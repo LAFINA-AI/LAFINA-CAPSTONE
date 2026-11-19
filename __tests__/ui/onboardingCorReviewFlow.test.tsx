@@ -20,6 +20,63 @@ import {chooseUstpMode} from '../../src/storage/studentMode';
 import * as corDocument from '../../src/ai/vision/corDocument';
 import {visionService} from '../../src/ai/vision/visionService';
 import {parseUstpCor} from '../../src/ai/vision/ustpCorParser';
+import {chooseCorReading} from '../../src/ai/vision/corExtraction';
+import {
+  buildSyntheticCorPage,
+  toOcrPage,
+  type SynthCor,
+} from '../fixtures/corSynthetic';
+
+const ACCURACY_COR: SynthCor = {
+  registrationNo: '123456',
+  studentNo: '2099000003',
+  fullName: 'SANTOS, MARIA CLARA R',
+  gender: 'F',
+  age: 21,
+  college: 'COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING',
+  program: 'B.S. in Information Technology',
+  major: 'N/A',
+  yearLevel: '4th Year - Baccalaureate',
+  curriculum: 'CITC-BSIT-2018-2019',
+  term: '1st Semester AY 2026-2027',
+  campusLine: 'USTP CDO CAMPUS',
+  courses: [
+    {
+      code: 'IT414',
+      title: 'IT Elective 3',
+      lec: 2,
+      lab: 1,
+      credit: 3,
+      section: 'IT4R11_Track2',
+      sessions: [
+        {
+          dayCode: 'F',
+          start: '7:00 AM',
+          end: '10:00 AM',
+          room: '51-201',
+          faculty: 'Ana Reyes',
+        },
+      ],
+    },
+    {
+      code: 'GnS',
+      title: 'Gender and Society',
+      lec: 3,
+      lab: 0,
+      credit: 3,
+      section: 'IT4R11_Track2',
+      sessions: [
+        {
+          dayCode: 'TF',
+          start: '1:00 PM',
+          end: '2:30 PM',
+          room: '',
+          faculty: 'Pedro Garcia',
+        },
+      ],
+    },
+  ],
+};
 
 const COR_TEXT = `
 Registration No: 556711 Academic Year/Term : 1st Semester AY 2026-2027
@@ -277,4 +334,37 @@ test('a restored USTP chat for a student without a confirmed COR shows an explan
   await waitFor(() =>
     expect(ui.queryByTestId('chat-ustp-unavailable')).toBeNull(),
   );
+});
+
+test('the review shows how the COR was read: exact for a portal PDF, itemized problems otherwise', async () => {
+  const user = student('accuracy');
+  chooseUstpMode(user);
+  mockPickedCor();
+  const page = buildSyntheticCorPage(ACCURACY_COR);
+  const spy = jest
+    .spyOn(visionService, 'extractUstpCorFromUri')
+    .mockResolvedValue(chooseCorReading({pdfWords: page})!);
+  const ui = render(
+    <ThemeProvider userId={user}>
+      <CorReviewFlow userId={user} onClose={jest.fn()} />
+    </ThemeProvider>,
+  );
+  fireEvent.press(ui.getByTestId('cor-choose-file'));
+  expect(await ui.findByTestId('cor-accuracy-exact')).toBeTruthy();
+  expect(ui.getByText('Read exactly from your COR PDF')).toBeTruthy();
+  expect(ui.queryByTestId('cor-accuracy-issue')).toBeNull();
+
+  // A misread credit digit in an image is itemized, not hidden.
+  const credit = page.words.findIndex(w => w.t === '3' && w.x0 === 282.3);
+  const misread = toOcrPage({
+    ...page,
+    words: page.words.map((w, i) => (i === credit ? {...w, t: '8'} : w)),
+  });
+  spy.mockResolvedValue(chooseCorReading({ocrWords: misread, ocrText: null})!);
+  fireEvent.press(ui.getByTestId('cor-replace'));
+  expect(await ui.findByTestId('cor-accuracy-needs_attention')).toBeTruthy();
+  const issues = ui.getAllByTestId('cor-accuracy-issue');
+  expect(
+    issues.some(node => String(node.props.children).includes('Total Unit(s)')),
+  ).toBe(true);
 });

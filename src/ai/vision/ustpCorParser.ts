@@ -92,7 +92,8 @@ export function expandDays(dayStr: string): string[] {
     if (compact.length > 0) return compact;
   }
 
-  return ['Monday'];
+  // Never invent a day: an unreadable code is left empty for the student to fix.
+  return [];
 }
 
 export function normalizeTime24(
@@ -163,6 +164,53 @@ export interface UstpEnrolledCourse {
   scheduleSummary: string;
   /** The recognized COR row this subject came from, for side-by-side review. */
   rawText?: string;
+  /**
+   * True when the units were deduced from the printed Total Unit(s) row
+   * instead of being read from the subject's own row (OCR text path only).
+   */
+  unitsInferred?: boolean;
+  /** True when a Lec/Lab/Credit cell could not be read as a number (layout path). */
+  unitsUnread?: boolean;
+}
+
+/** How the COR text was obtained. `pdf_text` reads the PDF's own text layer exactly. */
+export type CorExtractionMethod = 'pdf_text' | 'ocr_layout' | 'ocr_text';
+
+/** The Total Unit(s) row exactly as printed (null when it was not found). */
+export interface CorPrintedTotals {
+  lec: number | null;
+  lab: number | null;
+  credit: number | null;
+}
+
+export interface CorExtractionInfo {
+  method: CorExtractionMethod;
+  printedTotals: CorPrintedTotals | null;
+  /** The PDF carries the USTP portal's report-generator signature. */
+  portalPdf?: boolean;
+}
+
+export type CorCheckSeverity = 'error' | 'warning';
+
+export interface CorCheckIssue {
+  code: string;
+  severity: CorCheckSeverity;
+  /** Student-facing sentence. */
+  message: string;
+  courseCode?: string;
+}
+
+/**
+ * `exact`: read from the portal PDF's text layer and every check passed.
+ * `checked`: read with OCR and every check passed (still worth a glance).
+ * `needs_attention`: at least one check failed; the listed items need review.
+ */
+export type CorAccuracyLevel = 'exact' | 'checked' | 'needs_attention';
+
+export interface CorCheckReport {
+  method: CorExtractionMethod;
+  level: CorAccuracyLevel;
+  issues: CorCheckIssue[];
 }
 
 export interface UstpStudentProfile {
@@ -208,6 +256,10 @@ export interface ParsedUstpCorResult {
   semesterEndDate: string;
   recommendedPreferences: UstpCorOnboardingRecommendations;
   markdownSummary: string;
+  /** How the text was obtained and the printed totals used for cross-checking. */
+  extraction?: CorExtractionInfo;
+  /** Automatic consistency checks (see `corChecks.ts`). */
+  checks?: CorCheckReport;
 }
 
 const HARD_STOP_PATTERNS: RegExp[] = [
@@ -244,7 +296,8 @@ const USTP_CAMPUS_ENTRIES: ReadonlyArray<{
 }> = [
   {
     canonical: 'USTP CDO Campus',
-    letterheadPattern: /\b(?:C\.?\s*D\.?\s*[O0Q](?:\.|\b)|Cagayan\s+de\s+Oro\b)/i,
+    letterheadPattern:
+      /\b(?:C\.?\s*D\.?\s*[O0Q](?:\.|\b)|Cagayan\s+de\s+Oro\b)/i,
     tokenPattern:
       '(?:C\\.?[ \\t]*D\\.?[ \\t]*[O0Q](?:\\.|\\b)|CAGAYAN[ \\t]+DE[ \\t]+ORO\\b)',
   },
@@ -346,7 +399,8 @@ export function extractUstpCampus(
   isUstpCor: boolean,
 ): string {
   const candidateLines = zone1Lines.filter(
-    line => !isMultiCampusLetterheadLine(line) && !/^\s*Address\s*:/i.test(line),
+    line =>
+      !isMultiCampusLetterheadLine(line) && !/^\s*Address\s*:/i.test(line),
   );
 
   for (const line of candidateLines) {
@@ -610,7 +664,7 @@ export function formatUstpStudentName(rawName: string): {
   };
 }
 
-function deriveCollegeShort(college: string): string {
+export function deriveCollegeShort(college: string): string {
   for (const [pattern, acronym] of COLLEGE_ACRONYMS) {
     if (pattern.test(college)) return acronym;
   }
@@ -1434,8 +1488,17 @@ export function parseUstpCor(
     if (missingCred > 0 && missingCred <= 6) {
       zeroUnitCourses[0].creditUnits = missingCred;
       zeroUnitCourses[0].lecUnits = missingCred;
+      // Deduced, not read: the checks flag it so the student confirms it.
+      zeroUnitCourses[0].unitsInferred = true;
     }
   }
+
+  const printedTotals: CorPrintedTotals | null =
+    totalLecUnits !== null ||
+    totalLabUnits !== null ||
+    totalCreditUnits !== null
+      ? {lec: totalLecUnits, lab: totalLabUnits, credit: totalCreditUnits}
+      : null;
 
   const sectionCounts: Record<string, number> = {};
   let sumLec = 0;
@@ -1549,5 +1612,150 @@ export function parseUstpCor(
     semesterEndDate,
     recommendedPreferences,
     markdownSummary: markdownLines.join('\n'),
+    extraction: {method: 'ocr_text', printedTotals},
+  };
+}
+
+/** Header facts read from a COR, before display formatting. */
+export interface UstpCorHeaderFields {
+  campus: string;
+  registrationNo: string;
+  studentNo: string;
+  fullName: string;
+  gender: string;
+  age: number | null;
+  nationality: string;
+  college: string;
+  program: string;
+  major: string;
+  yearLevel: string;
+  curriculum: string;
+  academicTerm: string;
+}
+
+/**
+ * Builds the shared result shape from already-read header fields and
+ * subjects (used by the layout parser). Display totals fall back to the
+ * subject sums, but `extraction.printedTotals` keeps only what was printed so
+ * the checks can compare the two.
+ */
+export function assembleUstpCorResult(input: {
+  isUstpCor: boolean;
+  header: UstpCorHeaderFields;
+  courses: UstpEnrolledCourse[];
+  extraction: CorExtractionInfo;
+  referenceDate?: Date;
+}): ParsedUstpCorResult {
+  const {header, courses, extraction} = input;
+  const semesterEndDate = computeSemesterEndDate(
+    input.referenceDate ?? new Date(),
+    18,
+  );
+  const recurrenceRule = `FREQ=WEEKLY;UNTIL=${semesterEndDate}`;
+  const sessions: UstpCorClassSession[] = [];
+  const sectionCounts: Record<string, number> = {};
+  let sumLec = 0;
+  let sumLab = 0;
+  let sumCred = 0;
+  for (const course of courses) {
+    sumLec += course.lecUnits;
+    sumLab += course.labUnits;
+    sumCred += course.creditUnits;
+    if (course.section) {
+      sectionCounts[course.section] = (sectionCounts[course.section] || 0) + 1;
+    }
+    for (const session of course.sessions) {
+      session.recurrenceRule = recurrenceRule;
+      sessions.push(session);
+    }
+    course.scheduleSummary =
+      course.sessions.length > 0
+        ? course.sessions
+            .map(s => {
+              const dayShort = s.days.map(d => d.slice(0, 3)).join('/');
+              const roomPart = s.room && s.room !== 'TBA' ? ` (${s.room})` : '';
+              return `${dayShort} ${s.startTime12}–${s.endTime12}${roomPart}`;
+            })
+            .join(', ')
+        : 'TBA / Flexible';
+  }
+  let primarySection = '';
+  let bestSecCount = 0;
+  for (const [sec, count] of Object.entries(sectionCounts)) {
+    if (count > bestSecCount) {
+      bestSecCount = count;
+      primarySection = sec;
+    }
+  }
+  const printed = extraction.printedTotals;
+  const has = courses.length > 0;
+  const totalLecUnits = printed?.lec ?? (has ? sumLec : null);
+  const totalLabUnits = printed?.lab ?? (has ? sumLab : null);
+  const totalCreditUnits = printed?.credit ?? (has ? sumCred : null);
+  const {formattedName, preferredName} = formatUstpStudentName(header.fullName);
+  const yearLevelShort =
+    header.yearLevel.match(/^[1-5](?:st|nd|rd|th)\s+Year/i)?.[0] ||
+    header.yearLevel;
+  const profile: UstpStudentProfile = {
+    isUstpStudent: true,
+    campus: header.campus,
+    registrationNo: header.registrationNo,
+    studentNo: header.studentNo,
+    fullName: header.fullName,
+    formattedName,
+    preferredName,
+    gender: header.gender,
+    age: header.age,
+    nationality: header.nationality,
+    college: header.college,
+    collegeShort: header.college ? deriveCollegeShort(header.college) : '',
+    program: header.program,
+    major: header.major,
+    yearLevel: header.yearLevel,
+    yearLevelShort,
+    curriculum: header.curriculum,
+    academicTerm: header.academicTerm,
+    academicYearTerm: header.academicTerm,
+    section: primarySection,
+    primarySection,
+    totalUnits: totalCreditUnits !== null ? String(totalCreditUnits) : '',
+    totalLecUnits,
+    totalLabUnits,
+    totalCreditUnits,
+  };
+  const markdownLines: string[] = [
+    '### 🎓 USTP Certificate of Registration',
+    '',
+    `**Student:** ${formattedName || header.fullName || 'USTP Student'}${
+      header.studentNo ? ` (${header.studentNo})` : ''
+    }`,
+    `**Program:** ${header.program || 'N/A'}${
+      yearLevelShort ? ` · ${yearLevelShort}` : ''
+    }`,
+    `**Section:** ${primarySection || 'N/A'}${
+      header.academicTerm ? ` · ${header.academicTerm}` : ''
+    }`,
+    '',
+    '| Code | Subject Title | Section | Schedule / Room | Faculty |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    ...courses.map(
+      c =>
+        `| **${c.code}** | ${c.title} | ${c.section} | ${c.scheduleSummary} | ${c.faculty} |`,
+    ),
+  ];
+  const valid = Boolean(
+    input.isUstpCor &&
+      (courses.length > 0 || header.studentNo || header.fullName),
+  );
+  return {
+    isUstpCor: valid,
+    isValidUstpCor: valid,
+    profile,
+    courses,
+    sessions,
+    semesterEndDate,
+    recommendedPreferences: computeCorRecommendations(courses, sessions),
+    markdownSummary: markdownLines.join('\n'),
+    extraction,
   };
 }

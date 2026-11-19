@@ -2,13 +2,14 @@ import React, {useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   Bell,
   Check,
@@ -249,6 +250,7 @@ export const PreferencesSettingsScreen: React.FC<
   const sharedDownload = useSharedModelDownload();
   const downloadingModelId = sharedDownload?.modelId ?? null;
   const downloadProgress = sharedDownload?.progress ?? null;
+  const insets = useSafeAreaInsets();
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const cardShadow = isModern ? modernShadows.card : Shadows.card;
   const cardSurfaceStyle = isModern
@@ -280,6 +282,17 @@ export const PreferencesSettingsScreen: React.FC<
   React.useEffect(() => {
     void refreshModelsState();
   }, [refreshModelsState]);
+
+  React.useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        onBack();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [onBack]);
 
   const activePreset =
     OFFLINE_MODEL_CATALOG.find(item => item.id === selectedModelId) ||
@@ -445,23 +458,75 @@ export const PreferencesSettingsScreen: React.FC<
   };
 
   return (
-    <SafeAreaView
+    <View
+      testID="preferences-screen-root"
       style={[styles.container, {backgroundColor: colors.background}]}
     >
-      <View style={[styles.header, {borderBottomColor: colors.border}]}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <ChevronLeft size={22} color={colors.textPrimary} />
-          <Text style={[styles.backText, {color: colors.textPrimary}]}>
-            Profile
-          </Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, {color: colors.textPrimary}]}>
+      <View
+        testID="preferences-header"
+        style={[
+          styles.header,
+          isModern && styles.modernHeader,
+          {
+            borderBottomColor: isModern ? modernPalette.border : colors.border,
+          },
+        ]}
+      >
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            testID="preferences-back-button"
+            accessibilityRole="button"
+            accessibilityLabel="Back to Profile"
+            activeOpacity={0.78}
+            style={[
+              styles.backButton,
+              isModern && [
+                styles.modernBackButton,
+                modernShadows.subtle,
+                {
+                  backgroundColor: modernPalette.card,
+                  borderColor: modernPalette.border,
+                },
+              ],
+            ]}
+            onPress={onBack}
+          >
+            <ChevronLeft
+              size={18}
+              strokeWidth={2.2}
+              color={isModern ? modernPalette.text : colors.textPrimary}
+            />
+            <Text
+              style={[
+                styles.backText,
+                isModern && styles.modernBackText,
+                {color: isModern ? modernPalette.text : colors.textPrimary},
+              ]}
+              numberOfLines={1}
+            >
+              Profile
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <Text
+          style={[
+            styles.headerTitle,
+            isModern && styles.modernHeaderTitle,
+            {color: isModern ? modernPalette.text : colors.textPrimary},
+          ]}
+          numberOfLines={1}
+        >
           Preferences
         </Text>
-        <View style={styles.headerSpacer} />
+        <View style={[styles.headerSideSlot, styles.headerRightSlot]} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          {paddingBottom: Math.max(insets.bottom, 12) + 120},
+        ]}
+      >
         <View
           style={[
             styles.card,
@@ -1164,7 +1229,7 @@ export const PreferencesSettingsScreen: React.FC<
           void getAlarmHealth().then(setAlarmHealth);
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -1173,29 +1238,66 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    height: 58,
+    minHeight: 54,
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
-  backButton: {
-    width: 90,
+  modernHeader: {
+    paddingTop: 6,
+    paddingBottom: 10,
+  },
+  headerSideSlot: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerRightSlot: {
+    justifyContent: 'flex-end',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingVertical: 6,
+    paddingRight: 10,
+    minHeight: 36,
+  },
+  modernBackButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: ModernLayout.borderRadiusPill,
+    borderWidth: 1,
+    gap: 4,
   },
   backText: {
     fontFamily: Fonts.body,
     fontSize: 14,
+    fontWeight: '600',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  modernBackText: {
+    fontFamily: Fonts.heading,
+    fontSize: 13.5,
+    fontWeight: '700',
   },
   headerTitle: {
     fontFamily: Fonts.heading,
     fontSize: 17,
     fontWeight: 'bold',
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
-  headerSpacer: {
-    width: 90,
+  modernHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
   content: {
     padding: 16,

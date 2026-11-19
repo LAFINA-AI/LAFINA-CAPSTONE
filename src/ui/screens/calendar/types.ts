@@ -3,24 +3,29 @@ import type {Task, Event, TimeBlock, Reminder} from '../../../storage';
 import {ImportBatch} from '../../../storage/importedBatchesStore';
 import type {EventFolds} from '../../../storage/eventTime';
 import type {EventMemoryOffer} from '../../../storage/personalMemoryStore';
+import type {Holiday} from './utils/philippineHolidays';
 
 // ── View Modes ──
 export type ViewMode = 'month' | 'week' | 'day';
 
 export interface ScheduleTimelineItem {
   id: string;
-  kind: 'event' | 'block' | 'task' | 'reminder';
+  kind: 'event' | 'block' | 'task' | 'reminder' | 'holiday' | 'birthday';
   title: string;
   subtitle: string;
   categoryLabel: string;
   timeLabel: string;
   hour: number;
   sortMinutes: number;
-  tone: 'peach' | 'mint' | 'blueSoft';
+  tone: 'peach' | 'mint' | 'blueSoft' | 'lilac' | 'holiday';
+  isAllDay?: boolean;
+  accentColor?: string;
+  attachmentCount?: number;
   rawEvent?: Event;
   rawBlock?: TimeBlock;
   rawTask?: Task;
   rawReminder?: Reminder;
+  rawHoliday?: Holiday;
 }
 
 // ── CalendarScreen Props ──
@@ -87,6 +92,7 @@ export interface CalendarData {
   // Visibility and Import/Export
   batches: ImportBatch[];
   visibilityMap: Record<string, boolean>;
+  showHolidays: boolean;
   username: string;
   layersModalVisible: boolean;
   setLayersModalVisible: (visible: boolean) => void;

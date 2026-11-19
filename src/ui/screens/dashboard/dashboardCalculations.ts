@@ -7,6 +7,7 @@ import type {
   UserPreferences,
 } from '../../../storage';
 import {parseClassBlockMetadata} from '../../../storage/academicProfileStore';
+import {isBirthdayEvent} from '../calendar/utils/calendarGroups';
 import {getCategoryColor} from '../../theme/categoryColors';
 import {Colors} from '../../theme/colors';
 import type {
@@ -141,6 +142,7 @@ export const buildDayScheduleItems = (
 
   for (const event of events) {
     if (event.date !== dateStr) continue;
+    if (isBirthdayEvent(event)) continue;
     const startMinutes = parseTimeMinutes(event.startTime, false);
     const endMinutes = parseTimeMinutes(event.endTime, true);
     if (

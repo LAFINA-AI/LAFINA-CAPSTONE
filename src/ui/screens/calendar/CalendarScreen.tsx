@@ -36,6 +36,10 @@ import {
   ClassScheduleModal,
   CalendarOptionsSidebar,
   ViewClassesModal,
+  BirthdaysGroupModal,
+  HolidaysGroupModal,
+  CustomGroupModal,
+  ScheduleItemDetailModal,
 } from './components';
 import {
   useSchedulePalette,
@@ -44,14 +48,34 @@ import {
 import {UndatedTasksModal} from './components/UndatedTasksModal';
 import {NoteEditor} from '../notes/components/NoteEditor';
 import {
+  formatCompactTime,
   formatHeaderDateLabel,
+  formatLocalDate,
   formatShortWeekday,
 } from './utils/calendarHelpers';
 import {groupClassBlocks} from './utils/classScheduleHelpers';
+import {
+  getBirthdays,
+  getCustomScheduleGroups,
+  isBirthdayEvent,
+  type CustomScheduleGroup,
+} from './utils/calendarGroups';
+import {HOLIDAY_CALENDAR_ID} from './utils/philippineHolidays';
 import {CalendarScreenProps, ScheduleTimelineItem, ViewMode} from './types';
-import {tasksStore, timeBlocksStore, notesStore} from '../../../storage';
+import {
+  baseScheduleEntityId,
+  tasksStore,
+  timeBlocksStore,
+  notesStore,
+  remindersStore,
+  scheduleEntriesStore,
+} from '../../../storage';
 import {getConfirmedAcademicProfile} from '../../../storage/ustpEligibility';
-import type {Task} from '../../../storage';
+import type {ScheduleAttachedEntry, Task, TimeBlock} from '../../../storage';
+import {
+  cancelReminderAlarm,
+  finishNativeIncomingCall,
+} from '../../../scheduler';
 import {
   applyNoteFormat,
   continueListOnNewline,
@@ -81,6 +105,30 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
   const [undatedVisible, setUndatedVisible] = useState(false);
   const [classScheduleVisible, setClassScheduleVisible] = useState(false);
   const [viewClassesVisible, setViewClassesVisible] = useState(false);
+  const [selectedDetailItem, setSelectedDetailItem] =
+    useState<ScheduleTimelineItem | null>(null);
+  const [initialEditClassBlock, setInitialEditClassBlock] =
+    useState<TimeBlock | null>(null);
+  const [attachedEntries, setAttachedEntries] = useState<
+    ScheduleAttachedEntry[]
+  >(() => {
+    try {
+      return scheduleEntriesStore.getAll(userId);
+    } catch {
+      return [];
+    }
+  });
+  const [birthdaysModalVisible, setBirthdaysModalVisible] = useState(false);
+  const [highlightBirthdayId, setHighlightBirthdayId] = useState<string | null>(
+    null,
+  );
+  const [holidaysModalVisible, setHolidaysModalVisible] = useState(false);
+  const [customGroupModalState, setCustomGroupModalState] = useState<{
+    visible: boolean;
+    groupName: string | null;
+  }>({visible: false, groupName: null});
+  const [birthdayCount, setBirthdayCount] = useState(0);
+  const [customGroups, setCustomGroups] = useState<CustomScheduleGroup[]>([]);
   const [classSummary, setClassSummary] = useState<{
     count: number;
     profileText: string | null;
@@ -129,12 +177,14 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     notesStore.addCustomCategory(userId, normalizedName, color);
     registerCustomCategoryColor(normalizedName, color);
     setCustomCategories([...customCategories, normalizedName]);
+    refreshGroupSummaries();
   };
 
   const handleDeleteCategory = (name: string) => {
     notesStore.deleteCustomCategory(userId, name);
     const cats = notesStore.getCustomCategories(userId);
     setCustomCategories(cats.map(c => c.name));
+    refreshGroupSummaries();
   };
 
   const handleUpdateCategory = (
@@ -159,6 +209,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     if (noteCategory === oldName) {
       setNoteCategory(normalizedName);
     }
+    refreshGroupSummaries();
   };
 
   const calendar = useCalendarData({
@@ -169,17 +220,37 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     propOnViewModeChange,
   });
 
+  const reloadAttachedEntries = React.useCallback(() => {
+    try {
+      setAttachedEntries(scheduleEntriesStore.getAll(userId));
+    } catch {
+      setAttachedEntries([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    reloadAttachedEntries();
+  }, [reloadAttachedEntries, refreshTrigger]);
+
   const blockModal = useTimeBlockModal({
     userId,
     selectedDate: calendar.selectedDate,
-    onSaved: calendar.loadBlocks,
+    onSaved: () => {
+      calendar.loadBlocks();
+      refreshGroupSummaries();
+      reloadAttachedEntries();
+    },
     onRefresh,
   });
 
   const scheduleModal = useScheduleItemModal({
     userId,
     selectedDate: calendar.selectedDate,
-    onSaved: calendar.loadScheduleData,
+    onSaved: () => {
+      calendar.loadScheduleData();
+      refreshGroupSummaries();
+      reloadAttachedEntries();
+    },
     onRefresh,
   });
 
@@ -214,11 +285,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     scrollViewRef.current?.scrollTo?.({y: targetY, animated: false});
   }, []);
 
-  const loadedClassSummary = useRef('');
-  useEffect(() => {
-    const key = `${userId}:${refreshTrigger}`;
-    if (loadedClassSummary.current === key) return;
-    loadedClassSummary.current = key;
+  const refreshGroupSummaries = React.useCallback(() => {
     try {
       const page = tasksStore.getUndatedTasksPage(userId, {limit: 1});
       setHasUndated(page.items.length > 0);
@@ -241,7 +308,25 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     } catch {
       setClassSummary({count: 0, profileText: null});
     }
-  }, [userId, refreshTrigger]);
+    try {
+      setBirthdayCount(getBirthdays(userId).length);
+    } catch {
+      setBirthdayCount(0);
+    }
+    try {
+      setCustomGroups(getCustomScheduleGroups(userId));
+    } catch {
+      setCustomGroups([]);
+    }
+  }, [userId]);
+
+  const loadedClassSummary = useRef('');
+  useEffect(() => {
+    const key = `${userId}:${refreshTrigger}`;
+    if (loadedClassSummary.current === key) return;
+    loadedClassSummary.current = key;
+    refreshGroupSummaries();
+  }, [userId, refreshTrigger, refreshGroupSummaries]);
 
   const handledRequest = useRef<string | null>(null);
   useEffect(() => {
@@ -278,9 +363,15 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
         calendar.setCurrentDate(chosen);
         calendar.setViewMode('week');
       }
-      if (resolved?.kind === 'task' || resolved?.kind === 'event')
+      if (resolved?.kind === 'event' && isBirthdayEvent(resolved.item)) {
+        const at = resolved.item.id.indexOf('_occur_');
+        setHighlightBirthdayId(
+          at < 0 ? resolved.item.id : resolved.item.id.slice(0, at),
+        );
+        setBirthdaysModalVisible(true);
+      } else if (resolved?.kind === 'task' || resolved?.kind === 'event') {
         scheduleModal.openEdit(resolved.item, resolved.kind);
-      else if (resolved?.kind === 'block')
+      } else if (resolved?.kind === 'block')
         blockModal.openEditBlock(resolved.item);
       else if (resolved?.kind === 'reminder')
         Alert.alert(
@@ -333,24 +424,72 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
   };
 
   const toggleTaskCompletion = (task: Task) => {
-    tasksStore.updateTask({id: task.id, isCompleted: !task.isCompleted});
+    const baseId = baseScheduleEntityId(task.id);
+    const nextCompleted = !task.isCompleted;
+    tasksStore.updateTask({id: baseId, isCompleted: nextCompleted});
+    setSelectedDetailItem(prev => {
+      if (
+        !prev ||
+        prev.kind !== 'task' ||
+        !prev.rawTask ||
+        baseScheduleEntityId(prev.rawTask.id) !== baseId
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        rawTask: {...prev.rawTask, isCompleted: nextCompleted},
+      };
+    });
     calendar.loadScheduleData();
     onRefresh();
   };
 
   const handlePressTimelineItem = (item: ScheduleTimelineItem) => {
+    setSelectedDetailItem(item);
+  };
+
+  const handleEditScheduleFromDetail = (item: ScheduleTimelineItem) => {
+    setSelectedDetailItem(null);
     if (item.kind === 'event' && item.rawEvent) {
       scheduleModal.openEdit(item.rawEvent, 'event');
     } else if (item.kind === 'task' && item.rawTask) {
       scheduleModal.openEdit(item.rawTask, 'task');
     } else if (item.kind === 'block' && item.rawBlock) {
-      blockModal.openEditBlock(item.rawBlock);
+      if (item.rawBlock.category.trim().toLowerCase() === 'class') {
+        setInitialEditClassBlock(item.rawBlock);
+        setViewClassesVisible(true);
+      } else {
+        blockModal.openEditBlock(item.rawBlock);
+      }
+    } else if (item.kind === 'birthday') {
+      const rawId = item.rawEvent?.id ?? null;
+      const occurIdx = rawId ? rawId.indexOf('_occur_') : -1;
+      setHighlightBirthdayId(
+        rawId ? (occurIdx < 0 ? rawId : rawId.slice(0, occurIdx)) : null,
+      );
+      setBirthdaysModalVisible(true);
+    } else if (item.kind === 'holiday') {
+      setHolidaysModalVisible(true);
     } else if (item.kind === 'reminder' && item.rawReminder) {
       const rem = item.rawReminder;
-      const body = [rem.description?.trim(), item.timeLabel]
-        .filter(Boolean)
-        .join('\n');
-      Alert.alert(rem.task, body || item.timeLabel);
+      Alert.alert('Delete Reminder', `Delete "${rem.task}"?`, [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const remId = baseScheduleEntityId(rem.id);
+            remindersStore.deleteReminder(remId);
+            scheduleEntriesStore.removeEntriesForTarget(userId, remId);
+            void cancelReminderAlarm(remId);
+            void finishNativeIncomingCall(remId);
+            reloadAttachedEntries();
+            calendar.loadScheduleData();
+            onRefresh();
+          },
+        },
+      ]);
     }
   };
 
@@ -365,6 +504,13 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     (calendar.overdueTotal ?? overdueTasks.length) - overdueTasks.length,
   );
   const viewModes: ViewMode[] = ['month', 'week', 'day'];
+  const todayStr = formatLocalDate(new Date());
+  const isViewingToday =
+    calendar.viewMode === 'month'
+      ? formatLocalDate(calendar.currentDate).slice(0, 7) ===
+          todayStr.slice(0, 7) &&
+        formatLocalDate(calendar.selectedDate) === todayStr
+      : formatLocalDate(calendar.selectedDate) === todayStr;
 
   return (
     <View style={[styles.container, {backgroundColor: palette.bg}]}>
@@ -404,6 +550,28 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
         </TouchableOpacity>
 
         <View style={styles.navGroup}>
+          {!isViewingToday && (
+            <TouchableOpacity
+              testID="calendar-header-today-button"
+              onPress={calendar.handleGoToToday}
+              style={[
+                styles.todayHeaderBtn,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                },
+              ]}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Jump to today"
+            >
+              <Text
+                style={[styles.todayHeaderBtnText, {color: palette.accent}]}
+              >
+                Today
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={calendar.handlePrevPress}
             style={styles.iconChevronBtn}
@@ -567,10 +735,12 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             selectedDate={calendar.selectedDate}
             weekStartsMonday={calendar.weekStartsMonday}
             timeFormat24h={calendar.timeFormat24h}
+            showHolidays={calendar.showHolidays}
             blocks={calendar.blocks}
             allTasks={calendar.allTasks}
             allEvents={calendar.allEvents}
             reminders={calendar.reminders}
+            attachedEntries={attachedEntries}
             onDayPress={calendar.handleDayTap}
             onPrevMonth={calendar.handlePrevPress}
             onNextMonth={calendar.handleNextPress}
@@ -584,10 +754,12 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             weekDays={calendar.weekDays}
             selectedDate={calendar.selectedDate}
             timeFormat24h={calendar.timeFormat24h}
+            showHolidays={calendar.showHolidays}
             blocks={calendar.blocks}
             tasks={calendar.allTasks}
             events={calendar.allEvents}
             reminders={calendar.reminders}
+            attachedEntries={attachedEntries}
             onSelectDate={handleSelectStripDate}
             onPressItem={handlePressTimelineItem}
             onToggleTask={toggleTaskCompletion}
@@ -603,10 +775,12 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
               weekDays={calendar.weekDays}
               selectedDate={calendar.selectedDate}
               timeFormat24h={calendar.timeFormat24h}
+              showHolidays={calendar.showHolidays}
               blocks={calendar.blocks}
               tasks={calendar.allTasks}
               events={calendar.allEvents}
               reminders={calendar.reminders}
+              attachedEntries={attachedEntries}
               onSelectDate={handleSelectStripDate}
               onAddBlock={hour =>
                 blockModal.openNewBlock(hour, calendar.selectedDate)
@@ -638,7 +812,22 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
               {overdueTasks.map(ot => (
                 <TouchableOpacity
                   key={ot.id}
-                  onPress={() => scheduleModal.openEdit(ot, 'task')}
+                  onPress={() =>
+                    setSelectedDetailItem({
+                      id: `task-${ot.id}`,
+                      kind: 'task',
+                      title: ot.title,
+                      subtitle: 'To Do',
+                      categoryLabel: 'To Do',
+                      timeLabel: ot.dueTime
+                        ? formatCompactTime(ot.dueTime, calendar.timeFormat24h)
+                        : 'Anytime',
+                      hour: 9,
+                      sortMinutes: 0,
+                      tone: 'mint',
+                      rawTask: ot,
+                    })
+                  }
                   style={[styles.overdueChip, {backgroundColor: palette.card}]}
                 >
                   <Text
@@ -672,6 +861,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           <AddBlockModal
             state={blockModal}
             timeFormat24h={calendar.timeFormat24h}
+            customGroups={customGroups}
           />
         )}
         {scheduleModal.visible && (
@@ -695,6 +885,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           onClose={() => setClassScheduleVisible(false)}
           onSaved={() => {
             calendar.loadBlocks();
+            refreshGroupSummaries();
             onRefresh();
           }}
         />
@@ -704,18 +895,93 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           userId={userId}
           refreshTrigger={refreshTrigger}
           timeFormat24h={calendar.timeFormat24h}
-          onClose={() => setViewClassesVisible(false)}
+          initialEditBlock={initialEditClassBlock}
+          onClose={() => {
+            setViewClassesVisible(false);
+            setInitialEditClassBlock(null);
+          }}
           onChanged={() => {
             calendar.loadBlocks();
+            refreshGroupSummaries();
+            reloadAttachedEntries();
             onRefresh();
           }}
           onAddClassSchedule={() => setClassScheduleVisible(true)}
+        />
+
+        <ScheduleItemDetailModal
+          visible={selectedDetailItem !== null}
+          userId={userId}
+          item={selectedDetailItem}
+          selectedDate={calendar.selectedDate}
+          allBlocks={calendar.blocks}
+          onClose={() => setSelectedDetailItem(null)}
+          onEditSchedule={handleEditScheduleFromDetail}
+          onToggleTask={toggleTaskCompletion}
+          onEntriesChanged={reloadAttachedEntries}
+        />
+
+        <BirthdaysGroupModal
+          visible={birthdaysModalVisible}
+          userId={userId}
+          refreshTrigger={refreshTrigger}
+          initialBirthdayId={highlightBirthdayId}
+          onClose={() => {
+            setBirthdaysModalVisible(false);
+            setHighlightBirthdayId(null);
+          }}
+          onChanged={() => {
+            calendar.loadScheduleData();
+            refreshGroupSummaries();
+            onRefresh();
+          }}
+        />
+
+        <HolidaysGroupModal
+          visible={holidaysModalVisible}
+          initialYear={(calendar.viewMode === 'month'
+            ? calendar.currentDate
+            : calendar.selectedDate
+          ).getFullYear()}
+          holidaysVisible={calendar.showHolidays}
+          onToggleVisibility={isVisible => {
+            void calendar.handleToggleVisibility(
+              HOLIDAY_CALENDAR_ID,
+              isVisible,
+            );
+          }}
+          onSelectHolidayDate={dateStr => {
+            const chosen = new Date(`${dateStr}T12:00:00`);
+            if (!Number.isNaN(chosen.getTime())) {
+              calendar.setSelectedDate(chosen);
+              calendar.setCurrentDate(chosen);
+            }
+          }}
+          onClose={() => setHolidaysModalVisible(false)}
+        />
+
+        <CustomGroupModal
+          visible={customGroupModalState.visible}
+          userId={userId}
+          timeFormat24h={calendar.timeFormat24h}
+          initialGroupName={customGroupModalState.groupName}
+          onClose={() =>
+            setCustomGroupModalState({visible: false, groupName: null})
+          }
+          onSaved={() => {
+            calendar.loadBlocks();
+            refreshGroupSummaries();
+            onRefresh();
+          }}
         />
 
         <CalendarOptionsSidebar
           visible={calendarMenuVisible}
           onClose={() => setCalendarMenuVisible(false)}
           classCount={classSummary.count}
+          birthdayCount={birthdayCount}
+          customGroups={customGroups}
+          visibilityMap={calendar.visibilityMap}
           profileSummary={classSummary.profileText}
           hasUndated={hasUndated}
           onViewClasses={() => setViewClassesVisible(true)}
@@ -726,6 +992,20 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           onImportCalendar={calendar.handleImportCalendar}
           onRemoveImportedCalendar={calendar.startRemoveFlow}
           onExportCalendar={calendar.handleExportCalendar}
+          onToggleLayer={(layerId, isVisible) => {
+            void calendar.handleToggleVisibility(layerId, isVisible);
+          }}
+          onOpenBirthdays={() => {
+            setHighlightBirthdayId(null);
+            setBirthdaysModalVisible(true);
+          }}
+          onOpenHolidays={() => setHolidaysModalVisible(true)}
+          onOpenCustomGroup={groupName =>
+            setCustomGroupModalState({
+              visible: true,
+              groupName: groupName ?? null,
+            })
+          }
         />
 
         {calendar.layersModalVisible && (
@@ -734,6 +1014,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             onClose={() => calendar.setLayersModalVisible(false)}
             username={calendar.username}
             batches={calendar.batches}
+            customGroups={customGroups}
             visibilityMap={calendar.visibilityMap}
             onToggleVisibility={calendar.handleToggleVisibility}
             onRemoveBatch={calendar.handleRemoveBatch}
@@ -991,6 +1272,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
+  },
+  todayHeaderBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginRight: 4,
+  },
+  todayHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   iconChevronBtn: {
     width: 32,

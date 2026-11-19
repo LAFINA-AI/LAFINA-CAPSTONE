@@ -1,6 +1,7 @@
 import {db, DatabaseTransaction} from './database';
 import {GUEST_USER_ID, GUEST_USERNAME} from '../constants';
 import {academicProfileStore} from './academicProfileStore';
+import {scheduleEntriesStore} from './scheduleEntriesStore';
 import {corImportStore} from './corImportStore';
 import {studentSetupStore} from './studentSetupStore';
 import {avatarSeedStore} from './avatarSeedStore';
@@ -154,6 +155,7 @@ export const guestMigration = {
       // Device-local offline voice choice (AGY-PORT 10), same rule.
       speechSettingsStore.transferFromGuest(tx, cloudUserId, now);
       academicProfileStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
+      scheduleEntriesStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
       // Onboarding redesign: the USTP/scheduling choice, COR draft and import
       // ledger stay with the data they describe.
       studentSetupStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);

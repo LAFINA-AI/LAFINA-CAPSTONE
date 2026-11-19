@@ -5,8 +5,6 @@
  * settings such as the offline voice are kept. Real SQLite; Alert is mocked.
  */
 import React from 'react';
-import {Alert} from 'react-native';
-import type {AlertButton} from 'react-native';
 import {act, fireEvent, render} from '@testing-library/react-native';
 import {db, initDatabase, userStore} from '../../src/storage';
 import {
@@ -48,10 +46,6 @@ describe('codex audit A3: Clear All Data and saved event defaults', () => {
     userStore.setCurrentUser(a);
     remember(a);
     speech.save(a, {voiceId: null, rate: 1.5, pitch: 1}, 0);
-    const alerts: Array<{title: string; message?: string; buttons?: AlertButton[]}> = [];
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-      alerts.push({title, message, buttons});
-    });
 
     const view = render(
       <ThemeProvider userId={a}>
@@ -59,17 +53,21 @@ describe('codex audit A3: Clear All Data and saved event defaults', () => {
       </ThemeProvider>,
     );
     fireEvent.press(view.getByText('Clear All Data'));
-    const confirm = alerts.find(entry => entry.title === 'Clear All Data');
-    expect(confirm?.message).toMatch(/saved event defaults/);
-    expect(confirm?.message).toMatch(/offline voice.*kept/);
+    const message = String(view.getByTestId('clear-data-modal-message').props.children);
+    expect(message).toMatch(/saved event defaults/);
+    expect(message).toMatch(/offline voice.*kept/);
+    fireEvent.changeText(view.getByTestId('clear-data-confirm-input'), 'DELETE');
     act(() => {
-      confirm?.buttons?.find(button => button.text === 'Delete Everything')?.onPress?.();
+      fireEvent.press(view.getByTestId('clear-data-confirm-btn'));
     });
 
     expect(memory.read(a)).toMatchObject({enabled: false, value: null});
     expect(memory.offer(a)).toBeNull();
     expect(speech.read(a)).toMatchObject({explicit: true, rate: 1.5});
-    expect(alerts.find(entry => entry.title === 'Data Cleared')?.message).toMatch(/event defaults have been deleted\.$/);
+    expect(view.getByTestId('clear-data-result-title').props.children).toBe('Data Cleared');
+    expect(String(view.getByTestId('clear-data-result-message').props.children)).toMatch(
+      /event defaults have been deleted\.$/,
+    );
   });
 
   it('a review or offer issued before the reset cannot save or apply the old values', () => {

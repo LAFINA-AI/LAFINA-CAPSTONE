@@ -395,6 +395,17 @@ it('describes the answered reminder as start-of-call context that is not re-anno
   );
 });
 
+it('tells the agent the online reminder call has no buttons and how to snooze', () => {
+  const text = reminderCallContext('Review math', 15);
+  expect(text).toMatch(/no Acknowledge or Snooze buttons/);
+  expect(text).toMatch(/never tell the student to tap/i);
+  expect(text).toMatch(/Hanging up counts the reminder as received/);
+  expect(text).toContain('15 minutes (their usual snooze)');
+  // An unusable default is left out rather than passed to the agent.
+  expect(reminderCallContext('Review math', 0)).not.toMatch(/usual snooze/);
+  expect(reminderCallContext('Review math')).not.toMatch(/usual snooze/);
+});
+
 it('sends no mid-call message for the reminder: nothing a user turn or contextual update', async () => {
   const {controller, calls} = setup();
   await controller.start();
@@ -1203,4 +1214,43 @@ it('never opens transport after a permission grant arrives while backgrounded', 
   await start;
   expect(app.calls.transportStart).toHaveLength(0);
   expect(app.controller.getSnapshot().phase).toBe('restart_required');
+});
+
+it('starts a new conversation even when the previous controller already released natively', async () => {
+  const first = setup();
+  first.deps.transport.end = async () => false;
+  const second = setup();
+  const unregFirst = registerVoiceConversation(first.controller);
+  const unregSecond = registerVoiceConversation(second.controller);
+  await startVoiceConversation(first.controller);
+  first.emit({kind: 'closed', code: 1006, reason: 'network'});
+  await flush();
+  await startVoiceConversation(second.controller);
+  expect(second.controller.getSnapshot().phase).toBe('listening');
+  expect(getActiveVoiceConversation()).toBe(second.controller);
+  second.controller.end();
+  unregSecond();
+  unregFirst();
+});
+
+it('caps oversized studentContext at 12000 characters in the initiation payload', async () => {
+  const app = setup();
+  app.deps.getStudentContext = () => 'x'.repeat(20_000);
+  await app.controller.start();
+  const initiation = JSON.parse(app.calls.transportStart[0].initiation);
+  expect(initiation.custom_llm_extra_body.student_context).toHaveLength(12_000);
+  expect(initiation.dynamic_variables.student_context).toHaveLength(12_000);
+  app.controller.end();
+});
+
+it('times out a stalled pre-socket API call instead of hanging in connecting', async () => {
+  const app = setup({
+    capabilities: () => new Promise(() => undefined),
+  });
+  const started = app.controller.start();
+  await flush();
+  app.clock.advance(20_000);
+  await started;
+  expect(app.controller.getSnapshot().phase).toBe('failed');
+  expect(app.controller.getSnapshot().failure?.kind).toBe('connect_failed');
 });

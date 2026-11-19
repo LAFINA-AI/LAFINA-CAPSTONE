@@ -7,8 +7,6 @@
  * Real SQLite; Alert is mocked.
  */
 import React from 'react';
-import {Alert} from 'react-native';
-import type {AlertButton} from 'react-native';
 import {act, fireEvent, render} from '@testing-library/react-native';
 import {db, initDatabase, notesStore, tasksStore, userStore} from '../../src/storage';
 import {personalMemoryStore as memory} from '../../src/storage/personalMemoryStore';
@@ -82,10 +80,6 @@ describe('final audit F3: Clear All Data when forgetting event defaults fails', 
     jest.spyOn(memory, 'clearForDataReset').mockImplementation(() => {
       throw new Error('storage busy');
     });
-    const alerts: Array<{title: string; message?: string; buttons?: AlertButton[]}> = [];
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-      alerts.push({title, message, buttons});
-    });
 
     const view = render(
       <ThemeProvider userId={a}>
@@ -93,10 +87,11 @@ describe('final audit F3: Clear All Data when forgetting event defaults fails', 
       </ThemeProvider>,
     );
     fireEvent.press(view.getByText('Clear All Data'));
-    const confirm = alerts.find(entry => entry.title === 'Clear All Data');
-    expect(confirm?.message).toMatch(/offline voice.*kept/);
+    const message = String(view.getByTestId('clear-data-modal-message').props.children);
+    expect(message).toMatch(/offline voice.*kept/);
+    fireEvent.changeText(view.getByTestId('clear-data-confirm-input'), 'DELETE');
     act(() => {
-      confirm?.buttons?.find(button => button.text === 'Delete Everything')?.onPress?.();
+      fireEvent.press(view.getByTestId('clear-data-confirm-btn'));
     });
 
     // The planner data really is gone ...
@@ -106,14 +101,15 @@ describe('final audit F3: Clear All Data when forgetting event defaults fails', 
     expect(memory.read(a)).toMatchObject({enabled: true, revision: revisionBefore});
     expect(memory.read(a).value).toMatchObject({startTime: '18:30'});
     // ... and the message says exactly that.
-    const result = alerts.find(entry => entry.title !== 'Clear All Data');
-    expect(result).toBeDefined();
-    expect(result?.message).not.toMatch(/event defaults have been deleted/);
-    expect(result?.message).not.toMatch(/saved event defaults have been/);
-    expect(result?.message).toMatch(/notes, tasks, events, reminders.*cleared/i);
-    expect(result?.message).toMatch(/event defaults (were not|could not be) (deleted|forgotten)/i);
-    expect(result?.message).toMatch(/Event Defaults/);
-    expect(result?.message).toMatch(/offline voice.*kept/i);
+    const resultTitle = view.getByTestId('clear-data-result-title').props.children;
+    const resultMessage = String(view.getByTestId('clear-data-result-message').props.children);
+    expect(resultTitle).toBe('Data Partly Cleared');
+    expect(resultMessage).not.toMatch(/event defaults have been deleted/);
+    expect(resultMessage).not.toMatch(/saved event defaults have been/);
+    expect(resultMessage).toMatch(/notes, tasks, events, reminders.*cleared/i);
+    expect(resultMessage).toMatch(/event defaults (were not|could not be) (deleted|forgotten)/i);
+    expect(resultMessage).toMatch(/Event Defaults/);
+    expect(resultMessage).toMatch(/offline voice.*kept/i);
 
     // Other owner and device settings untouched.
     expect(speech.read(a)).toMatchObject({explicit: true, rate: 1.5});

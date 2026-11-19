@@ -1,19 +1,11 @@
-import React, {
+import {
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
 } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
 import {useVoiceConversation} from '../../hooks/useVoiceConversation';
-import {useTheme} from '../../contexts/ThemeContext';
 import {reminderCallContext} from '../../../cloud/voiceConversation';
 import type {ConversationSnapshot} from '../../../cloud/voiceConversation';
 import {actionService} from '../../../ai/voiceActions/actionService';
@@ -22,6 +14,12 @@ import {generateId} from '../../../utils';
 export interface OnlineReminderHandle {
   endAndWait: () => Promise<void>;
   sendContext: (context: string) => Promise<boolean>;
+  /** Mute or unmute the microphone; LAFINA cannot hear the student while muted. */
+  setMuted?: (muted: boolean) => void;
+  /** Stop LAFINA's current answer (the student wants to talk). */
+  stopResponse?: () => void;
+  /** A typed turn, for a student who cannot talk out loud right now. */
+  sendText?: (text: string) => Promise<boolean>;
 }
 
 interface Props {
@@ -31,6 +29,8 @@ interface Props {
   onSpokenTurn: (text: string) => void;
   /** Snoozes the reminder this call is about (the agent's snooze_reminder). */
   onSnooze?: (minutes: number) => Promise<string>;
+  /** The student's usual snooze, offered when they ask for "later". */
+  snoozeMinutes?: number;
 }
 
 /** Tools the agent may run during a reminder call: reads and the snooze. */
@@ -50,12 +50,15 @@ const REMINDER_CALL_TOOLS = new Set([
 export const REMINDER_CALL_WRITE_NOTE =
   'In a reminder call the app turns the student’s own words into a review card on screen. Ask the student to say the change they want, then let them confirm it. Nothing was changed.';
 
-/** Mounted only after Answer, admission, permission and streaming consent. */
+/**
+ * The online conversation behind an answered reminder call. It draws nothing:
+ * the call screen shows it in the Call LAFINA style from the snapshots it
+ * reports. Mounted only after Answer, admission, permission and consent.
+ */
 export const OnlineReminderConversation = forwardRef<
   OnlineReminderHandle,
   Props
->(({userId, task, onSnapshot, onSpokenTurn, onSnooze}, ref) => {
-  const {colors} = useTheme();
+>(({userId, task, onSnapshot, onSpokenTurn, onSnooze, snoozeMinutes}, ref) => {
   const snooze = useRef(onSnooze);
   snooze.current = onSnooze;
   const toolSession = useRef(generateId('reminder-call'));
@@ -76,7 +79,12 @@ export const OnlineReminderConversation = forwardRef<
         userId,
         toolSession.current,
         name,
-        parameters,
+        // "Remind me later" with no length uses the student's own snooze.
+        name === 'snooze_reminder' &&
+          parameters.minutes === undefined &&
+          snoozeMinutes
+          ? {...parameters, minutes: snoozeMinutes}
+          : parameters,
         isCurrent,
         {
           onError: () => {
@@ -88,12 +96,12 @@ export const OnlineReminderConversation = forwardRef<
       if (failed) throw new Error(answer);
       return answer;
     },
-    [userId],
+    [snoozeMinutes, userId],
   );
   // The reminder rides in the start-of-call context (audit finding 12).
   const conversation = useVoiceConversation(userId, {
     onFinalUserText: onSpokenTurn,
-    extraContext: reminderCallContext(task),
+    extraContext: reminderCallContext(task, snoozeMinutes),
     onClientTool,
   });
   const current = useRef(conversation);
@@ -107,6 +115,12 @@ export const OnlineReminderConversation = forwardRef<
         await current.current.endAndWait();
       },
       sendContext: (context: string) => current.current.sendContext(context),
+      setMuted: (muted: boolean) => current.current.setMuted(muted),
+      stopResponse: () => current.current.stopResponse?.(),
+      sendText: (text: string) =>
+        current.current.sendText
+          ? current.current.sendText(text)
+          : Promise.resolve(false),
     }),
     [],
   );
@@ -120,52 +134,5 @@ export const OnlineReminderConversation = forwardRef<
     snapshotCallback.current(conversation.snapshot);
   }, [conversation.snapshot]);
 
-  const {snapshot} = conversation;
-  const label = snapshot.muted
-    ? 'Muted'
-    : snapshot.phase === 'speaking'
-    ? 'LAFINA is speaking — you can interrupt'
-    : snapshot.phase === 'thinking'
-    ? 'Thinking…'
-    : snapshot.phase === 'listening'
-    ? 'Listening — pause whenever you like'
-    : 'Connecting to online conversation…';
-  return (
-    <View style={styles.container} testID="online-reminder-conversation">
-      {snapshot.phase === 'connecting' || snapshot.phase === 'idle' ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : null}
-      <Text
-        style={[styles.status, {color: colors.textPrimary}]}
-        accessibilityLiveRegion="polite"
-      >
-        {label}
-      </Text>
-      {['listening', 'speaking', 'thinking'].includes(snapshot.phase) ? (
-        <TouchableOpacity
-          onPress={() => conversation.setMuted(!snapshot.muted)}
-          accessibilityRole="button"
-          accessibilityLabel={
-            snapshot.muted ? 'Unmute conversation' : 'Mute conversation'
-          }
-          style={[styles.mute, {borderColor: colors.border}]}
-        >
-          <Text style={{color: colors.textPrimary}}>
-            {snapshot.muted ? 'Unmute' : 'Mute'}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  );
-});
-
-const styles = StyleSheet.create({
-  container: {alignItems: 'center', justifyContent: 'center', padding: 12},
-  status: {textAlign: 'center', fontSize: 15, marginVertical: 10},
-  mute: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
+  return null;
 });

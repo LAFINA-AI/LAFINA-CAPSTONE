@@ -6,9 +6,17 @@ import {
   StyleSheet,
   type LayoutChangeEvent,
 } from 'react-native';
-import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
+import {Cake, Flag} from 'lucide-react-native';
+import type {
+  TimeBlock,
+  Task,
+  Event,
+  Reminder,
+  ScheduleAttachedEntry,
+} from '../../../../storage';
 import type {ScheduleTimelineItem} from '../types';
 import {buildDayTimelineItems, formatLocalDate} from '../utils/calendarHelpers';
+import {BIRTHDAY_ACCENT_COLOR} from '../utils/calendarGroups';
 import {WeekStrip} from './WeekStrip';
 import {ScheduleItemCard} from './ScheduleItemCard';
 import {useSchedulePalette} from './schedulePalette';
@@ -19,10 +27,12 @@ interface DayViewProps {
   weekDays: Date[];
   selectedDate: Date;
   timeFormat24h: boolean;
+  showHolidays?: boolean;
   blocks: TimeBlock[];
   tasks: Task[];
   events: Event[];
   reminders?: Reminder[];
+  attachedEntries?: ScheduleAttachedEntry[];
   onSelectDate: (date: Date) => void;
   onAddBlock: (hour: number) => void;
   onPressItem: (item: ScheduleTimelineItem) => void;
@@ -84,10 +94,12 @@ export const DayView: React.FC<DayViewProps> = ({
   weekDays,
   selectedDate,
   timeFormat24h,
+  showHolidays = true,
   blocks,
   tasks,
   events,
   reminders = [],
+  attachedEntries,
   onSelectDate,
   onAddBlock,
   onPressItem,
@@ -132,16 +144,37 @@ export const DayView: React.FC<DayViewProps> = ({
         tasks,
         reminders,
         timeFormat24h,
+        showHolidays,
+        attachedEntries,
       }),
-    [selectedDate, blocks, events, tasks, reminders, timeFormat24h],
+    [
+      selectedDate,
+      blocks,
+      events,
+      tasks,
+      reminders,
+      timeFormat24h,
+      showHolidays,
+      attachedEntries,
+    ],
   );
+
+  const {allDayItems, timedItems} = useMemo(() => {
+    const allDay: ScheduleTimelineItem[] = [];
+    const timed: ScheduleTimelineItem[] = [];
+    for (const item of dayItems) {
+      if (item.isAllDay) allDay.push(item);
+      else timed.push(item);
+    }
+    return {allDayItems: allDay, timedItems: timed};
+  }, [dayItems]);
 
   const {hours, itemsByHour} = useMemo(() => {
     const grouped = new Map<number, ScheduleTimelineItem[]>();
     let minHour = isToday ? Math.min(7, currentHour) : 7;
     let maxHour = isToday ? Math.max(20, currentHour) : 20;
 
-    for (const item of dayItems) {
+    for (const item of timedItems) {
       if (item.hour < minHour) minHour = item.hour;
       if (item.hour > maxHour) maxHour = item.hour;
       const list = grouped.get(item.hour) ?? [];
@@ -158,7 +191,7 @@ export const DayView: React.FC<DayViewProps> = ({
       hours: hourList,
       itemsByHour: grouped,
     };
-  }, [dayItems, isToday, currentHour]);
+  }, [timedItems, isToday, currentHour]);
 
   useEffect(() => {
     if (!isToday) {
@@ -208,6 +241,69 @@ export const DayView: React.FC<DayViewProps> = ({
         selectedDate={selectedDate}
         onSelectDate={onSelectDate}
       />
+
+      {allDayItems.length > 0 && (
+        <View
+          testID="day-all-day-banner"
+          style={[styles.allDayBanner, {borderBottomColor: palette.border}]}
+        >
+          <View style={styles.allDayLabelCol}>
+            <Text style={[styles.allDayLabel, {color: palette.muted}]}>
+              All-day
+            </Text>
+          </View>
+          <View style={styles.allDayList}>
+            {allDayItems.map(item => {
+              const isHoliday = item.kind === 'holiday';
+              const accent =
+                item.accentColor ||
+                (isHoliday ? '#0B8043' : BIRTHDAY_ACCENT_COLOR);
+              const chipBg = isHoliday
+                ? palette.isDarkMode
+                  ? 'rgba(11, 128, 67, 0.22)'
+                  : '#E6F4EA'
+                : palette.isDarkMode
+                ? 'rgba(233, 30, 99, 0.18)'
+                : '#FCE4EC';
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  testID={isHoliday ? 'holiday-chip' : 'birthday-chip'}
+                  activeOpacity={0.8}
+                  onPress={() => onPressItem(item)}
+                  style={[
+                    styles.allDayChip,
+                    {
+                      backgroundColor: chipBg,
+                      borderLeftColor: accent,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.title}, ${item.subtitle}`}
+                >
+                  {isHoliday ? (
+                    <Flag size={13} color={accent} />
+                  ) : (
+                    <Cake size={13} color={accent} />
+                  )}
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.allDayChipTitle, {color: palette.text}]}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.allDayChipSub, {color: palette.muted}]}
+                  >
+                    {item.subtitle}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       <View
         testID="day-timeline"
@@ -370,5 +466,44 @@ const styles = StyleSheet.create({
   },
   slotList: {
     gap: 8,
+  },
+  allDayBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+    marginBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  allDayLabelCol: {
+    width: 58,
+    paddingTop: 6,
+    paddingRight: 6,
+  },
+  allDayLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  allDayList: {
+    flex: 1,
+    gap: 6,
+  },
+  allDayChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderRadius: 10,
+    borderLeftWidth: 3.5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  allDayChipTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  allDayChipSub: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

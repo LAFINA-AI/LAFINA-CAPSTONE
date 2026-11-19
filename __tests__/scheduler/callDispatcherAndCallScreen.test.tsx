@@ -110,7 +110,12 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
       const provider = {speakText: jest.fn(async () => ({source: 'native_tts' as const})),
         stopSpeech: jest.fn(async () => undefined)};
       expect(await answerCall('rem-online', userId, true, provider, null, true)).toBe(true);
-      expect(provider.speakText).toHaveBeenCalledWith(expect.stringContaining('Study'), expect.anything());
+      const opening = (provider.speakText.mock.calls[0] as unknown[])[0] as string;
+      expect(opening).toContain('Study');
+      // The online call shows no Acknowledge/Snooze choices, so its opening
+      // line must not point at any; it says how to ask for more time instead.
+      expect(opening).not.toMatch(/shown on screen/i);
+      expect(opening).toMatch(/call you back/i);
       expect(NativeModules.LafinaSpeechToText.startListening).not.toHaveBeenCalled();
       await manualAcknowledgeCall('rem-online', userId);
       expect(remindersStore.getReminderById('rem-online')?.status).toBe('acknowledged');

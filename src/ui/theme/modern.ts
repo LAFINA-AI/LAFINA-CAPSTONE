@@ -1,14 +1,18 @@
 import type {ViewStyle, TextStyle} from 'react-native';
 import type {UIVariant} from '../../storage/uiVariantStore';
 import {
+  getModernAiButtonDesignMeta,
   getModernPalette,
   getModernThemeExtras,
   getModernThemeMeta,
+  MODERN_AI_BUTTON_DESIGNS,
   MODERN_THEMES,
   modernDarkPalette,
   modernDarkThemeColors,
   modernLightPalette,
   modernLightThemeColors,
+  type ModernAiButtonDesignId,
+  type ModernAiButtonDesignMeta,
   type ModernPalette,
   type ModernThemeExtras,
   type ModernThemeId,
@@ -17,6 +21,8 @@ import {
 import {Fonts} from './typography';
 
 export type {
+  ModernAiButtonDesignId,
+  ModernAiButtonDesignMeta,
   ModernPalette,
   ModernThemeExtras,
   ModernThemeId,
@@ -24,9 +30,11 @@ export type {
   UIVariant,
 };
 export {
+  getModernAiButtonDesignMeta,
   getModernPalette,
   getModernThemeExtras,
   getModernThemeMeta,
+  MODERN_AI_BUTTON_DESIGNS,
   MODERN_THEMES,
   modernDarkPalette,
   modernDarkThemeColors,

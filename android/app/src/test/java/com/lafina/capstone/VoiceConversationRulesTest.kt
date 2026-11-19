@@ -145,4 +145,9 @@ class VoiceConversationRulesTest {
     assertEquals(0.0, silentSlice, 0.0001)
     assertEquals(1.0, loudSlice, 0.05)
   }
+
+  @Test
+  fun `initiation limit accommodates full 12000-char student context`() {
+    assertTrue(VoiceConversationRules.MAX_INITIATION_CHARS >= 32 * 1024)
+  }
 }

@@ -1271,4 +1271,42 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
     expect(LAFINA_VOICE_SYSTEM_PROMPT).toContain('first person');
     expect(LAFINA_VOICE_SYSTEM_PROMPT).not.toContain('LAFINA shows');
   });
+
+  test('connecting state shows a single Connecting status without duplicate waveform text', async () => {
+    const userId = student('connecting-polish');
+    signIn(userId);
+    fakeServer();
+    let resolveStart!: () => void;
+    const {transport} = fakeTransport();
+    transport.start = async () =>
+      new Promise<void>(resolve => {
+        resolveStart = resolve;
+      });
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+
+    await waitFor(() => {
+      expect(utils.getByTestId('call-connecting-badge')).toHaveTextContent(
+        'Connecting',
+      );
+      expect(utils.getByTestId('voice-conversation-status')).toHaveTextContent(
+        'Connecting…',
+      );
+      expect(utils.getByTestId('call-connecting-hint')).toHaveTextContent(
+        'Starting secure voice session',
+      );
+    });
+
+    expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+    expect(utils.queryByTestId('call-waveform-status-text')).toBeNull();
+    expect(utils.getAllByText(/Connecting/i)).toHaveLength(2);
+    expect(utils.getByTestId('voice-conversation-end')).toBeTruthy();
+
+    resolveStart();
+    await waitFor(() => {
+      expect(utils.getByTestId('call-waveform-area')).toBeTruthy();
+    });
+    expect(utils.queryByTestId('call-waveform-status-text')).toBeNull();
+    expect(utils.queryByTestId('call-connecting-hint')).toBeNull();
+  });
 });

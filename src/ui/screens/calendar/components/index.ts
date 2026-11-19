@@ -8,3 +8,7 @@ export {AddTaskEventModal} from './AddTaskEventModal';
 export {ClassScheduleModal} from './ClassScheduleModal';
 export {CalendarOptionsSidebar} from './CalendarOptionsSidebar';
 export {ViewClassesModal} from './ViewClassesModal';
+export {BirthdaysGroupModal} from './BirthdaysGroupModal';
+export {HolidaysGroupModal} from './HolidaysGroupModal';
+export {CustomGroupModal} from './CustomGroupModal';
+export {ScheduleItemDetailModal} from './ScheduleItemDetailModal';

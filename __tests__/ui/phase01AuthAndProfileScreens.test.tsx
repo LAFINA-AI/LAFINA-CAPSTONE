@@ -965,5 +965,31 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
 
       ui.unmount();
     });
+
+    test('renders aligned Preferences header and Profile back button without double SafeAreaView', async () => {
+      const guest = userStore.createGuestUser();
+      const onBack = jest.fn();
+
+      const ui = render(
+        <ThemeProvider userId={guest.id}>
+          <PreferencesSettingsScreen
+            userId={guest.id}
+            onBack={onBack}
+            onSaved={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      await waitFor(() => {
+        expect(ui.getByTestId('preferences-screen-root')).toBeTruthy();
+        expect(ui.getByTestId('preferences-header')).toBeTruthy();
+        expect(ui.getByTestId('preferences-back-button')).toBeTruthy();
+      });
+
+      fireEvent.press(ui.getByTestId('preferences-back-button'));
+      expect(onBack).toHaveBeenCalledTimes(1);
+
+      ui.unmount();
+    });
   });
 });

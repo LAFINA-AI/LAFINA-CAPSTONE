@@ -10,12 +10,21 @@ import {
 } from 'react-native';
 import {
   Bell,
+  Cake,
   Calendar,
   CheckCircle2,
   ChevronRight,
+  Flag,
+  Paperclip,
   Plus,
 } from 'lucide-react-native';
-import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
+import type {
+  TimeBlock,
+  Task,
+  Event,
+  Reminder,
+  ScheduleAttachedEntry,
+} from '../../../../storage';
 import type {ScheduleTimelineItem} from '../types';
 import {
   buildDayTimelineItems,
@@ -25,6 +34,8 @@ import {
   getDaysInMonth,
   reminderLocalDate,
 } from '../utils/calendarHelpers';
+import {BIRTHDAY_ACCENT_COLOR, isBirthdayEvent} from '../utils/calendarGroups';
+import {getHolidaysOn} from '../utils/philippineHolidays';
 import {useSchedulePalette, scheduleCardShadow} from './schedulePalette';
 
 interface MonthViewProps {
@@ -32,10 +43,12 @@ interface MonthViewProps {
   selectedDate: Date;
   weekStartsMonday: boolean;
   timeFormat24h: boolean;
+  showHolidays?: boolean;
   blocks: TimeBlock[];
   allTasks: Task[];
   allEvents: Event[];
   reminders?: Reminder[];
+  attachedEntries?: ScheduleAttachedEntry[];
   onDayPress: (dayNum: number) => void;
   onPrevMonth?: () => void;
   onNextMonth?: () => void;
@@ -48,6 +61,8 @@ interface DayIndicators {
   event: boolean;
   task: boolean;
   reminder: boolean;
+  holiday: boolean;
+  birthday: boolean;
   titles: Set<string>;
 }
 
@@ -56,10 +71,12 @@ export const MonthView: React.FC<MonthViewProps> = ({
   selectedDate,
   weekStartsMonday,
   timeFormat24h,
+  showHolidays = true,
   blocks,
   allTasks,
   allEvents,
   reminders = [],
+  attachedEntries,
   onDayPress,
   onPrevMonth,
   onNextMonth,
@@ -106,16 +123,36 @@ export const MonthView: React.FC<MonthViewProps> = ({
     const ensure = (dateKey: string): DayIndicators => {
       let entry = map.get(dateKey);
       if (!entry) {
-        entry = {event: false, task: false, reminder: false, titles: new Set()};
+        entry = {
+          event: false,
+          task: false,
+          reminder: false,
+          holiday: false,
+          birthday: false,
+          titles: new Set(),
+        };
         map.set(dateKey, entry);
       }
       return entry;
     };
 
+    if (showHolidays !== false) {
+      for (let d = 1; d <= totalDays; d++) {
+        const dateKey = formatLocalDate(new Date(year, month, d));
+        if (getHolidaysOn(dateKey).length > 0) {
+          ensure(dateKey).holiday = true;
+        }
+      }
+    }
+
     for (const ev of allEvents) {
       if (!ev.date) continue;
       const entry = ensure(ev.date);
-      entry.event = true;
+      if (isBirthdayEvent(ev)) {
+        entry.birthday = true;
+      } else {
+        entry.event = true;
+      }
       entry.titles.add(ev.title.trim().toLowerCase());
     }
     for (const blk of blocks) {
@@ -141,7 +178,16 @@ export const MonthView: React.FC<MonthViewProps> = ({
     }
 
     return map;
-  }, [allEvents, blocks, allTasks, reminders]);
+  }, [
+    allEvents,
+    blocks,
+    allTasks,
+    reminders,
+    showHolidays,
+    year,
+    month,
+    totalDays,
+  ]);
 
   const rows = useMemo(() => {
     const cells: Array<number | null> = [];
@@ -170,8 +216,19 @@ export const MonthView: React.FC<MonthViewProps> = ({
         tasks: allTasks,
         reminders,
         timeFormat24h,
+        showHolidays,
+        attachedEntries,
       }),
-    [selectedDate, blocks, allEvents, allTasks, reminders, timeFormat24h],
+    [
+      selectedDate,
+      blocks,
+      allEvents,
+      allTasks,
+      reminders,
+      timeFormat24h,
+      showHolidays,
+      attachedEntries,
+    ],
   );
 
   const todayBg = palette.isDarkMode ? palette.text : palette.darkInkBtn;
@@ -184,6 +241,12 @@ export const MonthView: React.FC<MonthViewProps> = ({
       )}`;
 
   const renderPlanIcon = (item: ScheduleTimelineItem) => {
+    if (item.kind === 'holiday') {
+      return <Flag size={18} color="#0B8043" />;
+    }
+    if (item.kind === 'birthday') {
+      return <Cake size={18} color={BIRTHDAY_ACCENT_COLOR} />;
+    }
     if (item.kind === 'reminder') {
       return <Bell size={18} color={palette.peachInk} />;
     }
@@ -205,7 +268,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
         </TouchableOpacity>
       );
     }
-    return <Calendar size={18} color={palette.accent} />;
+    return <Calendar size={18} color={item.accentColor || palette.accent} />;
   };
 
   const page = useSchedulePage(selectedStr, selectedPlanItems);
@@ -291,6 +354,19 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     </Text>
                   </View>
                   <View style={styles.dotsRow}>
+                    {dots?.holiday ? (
+                      <View
+                        style={[styles.dot, {backgroundColor: '#0B8043'}]}
+                      />
+                    ) : null}
+                    {dots?.birthday ? (
+                      <View
+                        style={[
+                          styles.dot,
+                          {backgroundColor: BIRTHDAY_ACCENT_COLOR},
+                        ]}
+                      />
+                    ) : null}
                     {dots?.event ? (
                       <View
                         style={[styles.dot, {backgroundColor: palette.accent}]}
@@ -365,11 +441,35 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 <TouchableOpacity
                   activeOpacity={0.78}
                   onPress={() => onPressItem(item)}
-                  style={styles.planRow}
+                  style={[
+                    styles.planRow,
+                    {
+                      borderLeftWidth: 3.5,
+                      borderLeftColor:
+                        item.accentColor ||
+                        (item.kind === 'task'
+                          ? palette.mintInk
+                          : item.kind === 'reminder'
+                          ? palette.peachInk
+                          : 'transparent'),
+                    },
+                  ]}
                 >
                   <View style={styles.planIconCol}>{renderPlanIcon(item)}</View>
                   <View style={styles.planBodyCol}>
-                    <Text style={[styles.planCategory, {color: palette.muted}]}>
+                    <Text
+                      style={[
+                        styles.planCategory,
+                        {
+                          color:
+                            item.kind === 'holiday'
+                              ? '#0B8043'
+                              : item.kind === 'birthday'
+                              ? BIRTHDAY_ACCENT_COLOR
+                              : palette.muted,
+                        },
+                      ]}
+                    >
                       {item.categoryLabel}
                     </Text>
                     <Text
@@ -387,9 +487,27 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     >
                       {item.title}
                     </Text>
-                    <Text style={[styles.planTime, {color: palette.muted}]}>
-                      {item.timeLabel}
-                    </Text>
+                    <View style={styles.planMetaRow}>
+                      <Text style={[styles.planTime, {color: palette.muted}]}>
+                        {item.timeLabel}
+                      </Text>
+                      {(item.attachmentCount ?? 0) > 0 && (
+                        <View
+                          testID={`month-plan-attachment-badge-${item.id}`}
+                          style={styles.attachmentBadge}
+                        >
+                          <Paperclip size={11} color={palette.muted} />
+                          <Text
+                            style={[
+                              styles.attachmentBadgeText,
+                              {color: palette.muted},
+                            ]}
+                          >
+                            {item.attachmentCount}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                   <ChevronRight size={18} color={palette.muted} />
                 </TouchableOpacity>
@@ -516,10 +634,24 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: -0.1,
   },
+  planMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 3,
+  },
   planTime: {
     fontSize: 12.5,
     fontWeight: '500',
-    marginTop: 3,
+  },
+  attachmentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2.5,
+  },
+  attachmentBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   divider: {
     height: 1,

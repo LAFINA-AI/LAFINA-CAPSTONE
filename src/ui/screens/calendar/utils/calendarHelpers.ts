@@ -1,6 +1,25 @@
-import type {Event, Reminder, Task, TimeBlock} from '../../../../storage';
-import {parseClassBlockMetadata} from '../../../../storage/academicProfileStore';
+import type {
+  Event,
+  Reminder,
+  ScheduleAttachedEntry,
+  Task,
+  TimeBlock,
+} from '../../../../storage';
+import {
+  parseClassBlockMetadata,
+  parseRrule,
+  resolveScheduleEntryTarget,
+} from '../../../../storage';
+import {getCategoryColor} from '../../../theme/categoryColors';
 import type {ScheduleTimelineItem, ViewMode} from '../types';
+import {
+  BIRTHDAY_ACCENT_COLOR,
+  formatBirthdayDisplayTitle,
+  formatBirthdaySubtitle,
+  isBirthdayEvent,
+  parseBirthdayEvent,
+} from './birthdayEvents';
+import {getHolidaysOn} from './philippineHolidays';
 
 const SHORT_MONTHS = [
   'Jan',
@@ -142,6 +161,105 @@ export const formatFullWeekday = (date: Date): string =>
 export const formatShortMonthDay = (date: Date): string =>
   `${SHORT_MONTHS[date.getMonth()] ?? ''} ${date.getDate()}`;
 
+const RRULE_DAY_LABELS: Record<string, string> = {
+  SU: 'Sun',
+  MO: 'Mon',
+  TU: 'Tue',
+  WE: 'Wed',
+  TH: 'Thu',
+  FR: 'Fri',
+  SA: 'Sat',
+};
+
+/** Formats an RFC 5545 RRULE string into a human-friendly schedule summary. */
+export const formatRecurrenceSummary = (
+  recurrenceRule?: string | null,
+): string | null => {
+  const rule = parseRrule(recurrenceRule);
+  if (!rule) return null;
+
+  const interval = rule.interval > 1 ? rule.interval : 1;
+  let base: string;
+
+  if (rule.freq === 'WEEKLY' && rule.byday && rule.byday.length > 0) {
+    const dayNames = rule.byday
+      .map(code => RRULE_DAY_LABELS[code.toUpperCase()] ?? code)
+      .join(', ');
+    base =
+      interval > 1
+        ? `Every ${interval} weeks on ${dayNames}`
+        : `Repeats ${dayNames}`;
+  } else {
+    const noun =
+      rule.freq === 'DAILY'
+        ? 'days'
+        : rule.freq === 'WEEKLY'
+        ? 'weeks'
+        : rule.freq === 'MONTHLY'
+        ? 'months'
+        : 'years';
+    const adverb =
+      rule.freq === 'DAILY'
+        ? 'Daily'
+        : rule.freq === 'WEEKLY'
+        ? 'Weekly'
+        : rule.freq === 'MONTHLY'
+        ? 'Monthly'
+        : 'Yearly';
+    base = interval > 1 ? `Every ${interval} ${noun}` : adverb;
+  }
+
+  if (rule.until) {
+    base = `${base} until ${rule.until}`;
+  } else if (rule.count) {
+    base = `${base} (${rule.count}x)`;
+  }
+
+  return base;
+};
+
+/** Counts user-attached entries and legacy inline notes for one timeline item. */
+export const countAttachmentsForTimelineItem = (
+  item: Pick<
+    ScheduleTimelineItem,
+    | 'id'
+    | 'kind'
+    | 'rawEvent'
+    | 'rawBlock'
+    | 'rawTask'
+    | 'rawReminder'
+    | 'rawHoliday'
+  >,
+  attachedEntries?: ScheduleAttachedEntry[],
+): number => {
+  let count = 0;
+  if (attachedEntries && attachedEntries.length > 0) {
+    const target = resolveScheduleEntryTarget(item);
+    const accepted = new Set([target.targetId, ...target.fallbackIds]);
+    for (const entry of attachedEntries) {
+      if (accepted.has(entry.targetId)) {
+        count += 1;
+      }
+    }
+  }
+  if (item.kind === 'task' && item.rawTask?.notes?.trim()) {
+    count += 1;
+  } else if (
+    item.kind === 'block' &&
+    item.rawBlock &&
+    item.rawBlock.category.trim().toLowerCase() !== 'class' &&
+    item.rawBlock.notes?.trim()
+  ) {
+    count += 1;
+  } else if (item.kind === 'birthday' && item.rawEvent) {
+    const parsed = parseBirthdayEvent(item.rawEvent);
+    if (parsed?.notes?.trim()) {
+      count += 1;
+    }
+  }
+  return count;
+};
+
 /** Get header title for the calendar based on view mode and selected date. */
 export const getHeaderTitle = (
   viewMode: ViewMode,
@@ -154,9 +272,22 @@ export const getHeaderTitle = (
     const start = weekDays[0];
     const end = weekDays[weekDays.length - 1];
     if (start.getFullYear() !== end.getFullYear()) {
-      return `${start.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${end.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+      return `${start.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })} - ${end.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })}`;
     }
-    return `${start.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${end.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}, ${start.getFullYear()}`;
+    return `${start.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })} - ${end.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })}, ${start.getFullYear()}`;
   }
   if (viewMode === 'day') {
     return formatHeaderDateLabel('day', selectedDate, currentDate);
@@ -197,6 +328,8 @@ export const buildDayTimelineItems = ({
   tasks,
   reminders = [],
   timeFormat24h,
+  showHolidays = true,
+  attachedEntries,
 }: {
   date: Date;
   blocks: TimeBlock[];
@@ -204,14 +337,60 @@ export const buildDayTimelineItems = ({
   tasks: Task[];
   reminders?: Reminder[];
   timeFormat24h: boolean;
+  showHolidays?: boolean;
+  attachedEntries?: ScheduleAttachedEntry[];
 }): ScheduleTimelineItem[] => {
   const dateStr = formatLocalDate(date);
   const items: ScheduleTimelineItem[] = [];
   const existingTitles = new Set<string>();
 
+  if (showHolidays !== false) {
+    for (const h of getHolidaysOn(dateStr)) {
+      const kindLabel =
+        h.kind === 'regular'
+          ? 'Regular Holiday'
+          : h.kind === 'special'
+          ? 'Special Non-Working Day'
+          : 'Observance';
+      items.push({
+        id: `holiday-${h.date}-${h.name}`,
+        kind: 'holiday',
+        title: h.name,
+        subtitle: h.tentative ? `${kindLabel} (est.)` : kindLabel,
+        categoryLabel: 'Philippine Holiday',
+        timeLabel: 'All day',
+        hour: 0,
+        sortMinutes: -20,
+        tone: 'holiday',
+        isAllDay: true,
+        accentColor: '#0B8043',
+        rawHoliday: h,
+      });
+    }
+  }
+
   for (const e of events) {
     if (e.date !== dateStr) continue;
     existingTitles.add(e.title.trim().toLowerCase());
+    if (isBirthdayEvent(e)) {
+      const entry = parseBirthdayEvent(e);
+      const year = date.getFullYear();
+      items.push({
+        id: `birthday-${e.id}`,
+        kind: 'birthday',
+        title: entry ? formatBirthdayDisplayTitle(entry) : e.title,
+        subtitle: entry ? formatBirthdaySubtitle(entry, year) : 'Birthday',
+        categoryLabel: 'Birthday',
+        timeLabel: 'All day',
+        hour: 0,
+        sortMinutes: -10,
+        tone: 'lilac',
+        isAllDay: true,
+        accentColor: BIRTHDAY_ACCENT_COLOR,
+        rawEvent: e,
+      });
+      continue;
+    }
     const {hour, minutes} = parseHourAndMinutes(e.startTime);
     items.push({
       id: `event-${e.id}`,
@@ -219,10 +398,14 @@ export const buildDayTimelineItems = ({
       title: e.title,
       subtitle: e.location?.trim() || 'Class / Event',
       categoryLabel: 'Class / Event',
-      timeLabel: `${formatCompactTime(e.startTime, timeFormat24h)} - ${formatCompactTime(e.endTime, timeFormat24h)}`,
+      timeLabel: `${formatCompactTime(
+        e.startTime,
+        timeFormat24h,
+      )} - ${formatCompactTime(e.endTime, timeFormat24h)}`,
       hour,
       sortMinutes: minutes,
       tone: 'peach',
+      accentColor: '#5945EB',
       rawEvent: e,
     });
   }
@@ -241,10 +424,14 @@ export const buildDayTimelineItems = ({
       title: b.title,
       subtitle,
       categoryLabel,
-      timeLabel: `${formatCompactTime(b.startTime, timeFormat24h)} - ${formatCompactTime(b.endTime, timeFormat24h)}`,
+      timeLabel: `${formatCompactTime(
+        b.startTime,
+        timeFormat24h,
+      )} - ${formatCompactTime(b.endTime, timeFormat24h)}`,
       hour,
       sortMinutes: minutes,
       tone: 'peach',
+      accentColor: b.color || getCategoryColor(b.category),
       rawBlock: b,
     });
   }
@@ -293,6 +480,13 @@ export const buildDayTimelineItems = ({
       tone: 'blueSoft',
       rawReminder: r,
     });
+  }
+
+  for (const item of items) {
+    const count = countAttachmentsForTimelineItem(item, attachedEntries);
+    if (count > 0) {
+      item.attachmentCount = count;
+    }
   }
 
   items.sort((a, b) => a.sortMinutes - b.sortMinutes);

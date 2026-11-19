@@ -134,7 +134,16 @@ afterEach(() => {
   endReviewSession();
 });
 
-describe('Acknowledge and Snooze give feedback at once', () => {
+// The buttons exist only on the offline call; the online call is a
+// conversation without them (onlineReminderCall.test.tsx).
+describe('Acknowledge and Snooze give feedback at once (offline call)', () => {
+  beforeEach(() => {
+    (localSettingsStore.get as jest.Mock).mockImplementation(
+      (_user: string, key: string) =>
+        key === 'chat.onlineMode' ? 'false' : 'true',
+    );
+  });
+
   it('shows "Acknowledging…" on the tap and ignores a second tap', async () => {
     let finish!: (result: string) => void;
     (scheduler.manualAcknowledgeCall as jest.Mock).mockImplementationOnce(

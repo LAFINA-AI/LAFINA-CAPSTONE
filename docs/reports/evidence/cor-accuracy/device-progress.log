@@ -1,0 +1,11 @@
+1795022500410 init start
+1795022500412 init done
+1795022500414 file ustp-cor-screenshot.png
+1795022500458 image loaded 2400x1501
+1795022500460 ocr start 2400x1501
+1795022501812 ocr done in 1352 ms
+1795022501829 image ocr written
+1795022501829 file ustp-cor.pdf
+1795022502582 pdf text done: 511 words
+1795022502595 pdf text written (753 ms)
+1795022502595 all done

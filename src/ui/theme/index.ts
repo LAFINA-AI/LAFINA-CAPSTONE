@@ -21,10 +21,12 @@ export type {Category} from './categoryColors';
 export {createThemedStyles, useThemedStyles} from './createThemedStyles';
 export type {ThemedStyleMeta} from './createThemedStyles';
 export {
+  getModernAiButtonDesignMeta,
   getModernPalette,
   getModernShadows,
   getModernThemeExtras,
   getModernThemeMeta,
+  MODERN_AI_BUTTON_DESIGNS,
   MODERN_THEMES,
   modernDarkPalette,
   modernDarkThemeColors,
@@ -35,6 +37,8 @@ export {
   ModernTypography,
 } from './modern';
 export type {
+  ModernAiButtonDesignId,
+  ModernAiButtonDesignMeta,
   ModernPalette,
   ModernShadowSet,
   ModernThemeExtras,

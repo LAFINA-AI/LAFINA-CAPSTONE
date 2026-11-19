@@ -31,6 +31,7 @@ import {CallAnsweredView} from '../components/call/CallAnsweredView';
 import type {CallPendingAction} from '../components/call/CallAnsweredView';
 import {OnlineReminderConversation} from '../components/call/OnlineReminderConversation';
 import type {OnlineReminderHandle} from '../components/call/OnlineReminderConversation';
+import {OnlineReminderCallView} from '../components/call/OnlineReminderCallView';
 import {
   answerCall,
   resumeOfflineCall,
@@ -109,6 +110,15 @@ const CARD_CLAIM_GRACE_MS = 600;
 const NO_CARD_NOTE =
   'No card was prepared, so nothing was changed. Say the change again, for example “add a task to review notes tomorrow at 5 PM”.';
 
+/**
+ * Online Mode is switched on for a signed-in account, so Answer is expected
+ * to open the online conversation. Only a prediction: Answer still checks the
+ * connection, consent and microphone before the conversation starts.
+ */
+const expectsOnlineCall = (userId: string): boolean =>
+  localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true' &&
+  !isGuestAccount(userId);
+
 /** Renders and coordinates the complete offline reminder call experience. */
 export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   visible,
@@ -134,6 +144,23 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   /** A line from the app itself (not the agent) that stays until the next turn. */
   const [notice, setNotice] = useState('');
   const [onlineCall, setOnlineCall] = useState(false);
+  /**
+   * The answered call is shown as an online conversation (Call LAFINA style,
+   * no Acknowledge or Snooze buttons). Any fallback to offline voice, or to
+   * the buttons, turns this off so the offline controls come back.
+   */
+  const [onlineView, setOnlineViewState] = useState(false);
+  const onlineViewRef = useRef(false);
+  const setOnlineView = useCallback((value: boolean): void => {
+    onlineViewRef.current = value;
+    setOnlineViewState(value);
+  }, []);
+  const [onlineSnapshot, setOnlineSnapshot] =
+    useState<ConversationSnapshot | null>(null);
+  /** The student said or typed something during the online call. */
+  const studentSpokeRef = useRef(false);
+  /** Online Mode is on at ring time; Answer will try the online call. */
+  const [expectOnline, setExpectOnline] = useState(false);
   const [answering, setAnswering] = useState(false);
   // The button just tapped. Shown at once: acknowledging cancels alarms and
   // speaks a confirmation, which used to leave the screen looking unchanged.
@@ -175,6 +202,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     transitioningRef.current = false;
     setAnswering(false);
     setOnlineCall(false);
+    setOnlineView(false);
+    setOnlineSnapshot(null);
+    studentSpokeRef.current = false;
     pendingActionRef.current = null;
     setPendingAction(null);
     setSessionLive(false);
@@ -190,7 +220,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     setNotice('');
     ringAnim.setValue(1);
     processedActionRef.current = '';
-  }, [clearResultTimeout, ringAnim]);
+  }, [clearResultTimeout, ringAnim, setOnlineView]);
 
   const stopOnline = useCallback(async (): Promise<void> => {
     const current = onlineRef.current;
@@ -214,9 +244,17 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       const defaultSnoozeMinutes =
         getReminderPreferences(userId).snoozeDurationMinutes;
       setSnoozeMinutes(defaultSnoozeMinutes);
+      const online = expectsOnlineCall(userId);
+      setExpectOnline(online);
       const speechProvider = createCallSpeechProvider(userId);
       speechProviderRef.current = speechProvider;
-      void prepareCallSpeech(speechProvider, task, defaultSnoozeMinutes);
+      // Prepare the opening line this call is expected to use.
+      void prepareCallSpeech(
+        speechProvider,
+        task,
+        defaultSnoozeMinutes,
+        online,
+      );
       return () => {
         if (speechProviderRef.current === speechProvider) {
           speechProviderRef.current = null;
@@ -348,6 +386,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     const attempt = ++attemptRef.current;
     Vibration.cancel();
     setCallState('connected');
+    // Online Mode on: open straight into the conversation view ("Connecting…")
+    // instead of flashing the offline buttons while the checks run.
+    setOnlineView(expectsOnlineCall(userId));
     answeredAtRef.current = Date.now();
     callLifecycle.put(
       userId,
@@ -422,6 +463,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
     if (attempt !== attemptRef.current || closingRef.current) return;
     if (AppState.currentState !== 'active') microphoneGranted = false;
+    // No connection, no consent or no microphone: this is an offline call and
+    // keeps its Acknowledge and Snooze buttons.
+    if (!(useOnline && microphoneGranted)) setOnlineView(false);
 
     try {
       const speechProvider =
@@ -443,9 +487,13 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         return;
       }
       if (useOnline && microphoneGranted) {
-        if (AppState.currentState === 'active') setOnlineCall(true);
-        else
+        if (AppState.currentState === 'active') {
+          setOnlineView(true);
+          setOnlineCall(true);
+        } else {
+          setOnlineView(false);
           setReply('The app left the screen. Use Acknowledge or Snooze below.');
+        }
       }
       if (!microphoneGranted) {
         setReply(
@@ -454,6 +502,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       }
     } catch (error) {
       console.error('[CallScreen] Could not answer reminder call:', error);
+      setOnlineView(false);
       setReply('LAFINA could not start the voice call. Use the buttons below.');
     } finally {
       if (attempt === attemptRef.current) {
@@ -461,7 +510,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         setAnswering(false);
       }
     }
-  }, [closeCallScreen, deliveryGeneration, reminderId, userId]);
+  }, [closeCallScreen, deliveryGeneration, reminderId, setOnlineView, userId]);
 
   const handleDecline = useCallback(async (): Promise<void> => {
     Vibration.cancel();
@@ -530,12 +579,16 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       pendingActionRef.current = action;
       setPendingAction(action);
       const attempt = attemptRef.current;
-      const release = (message?: string): void => {
+      const release = (message?: string, failed = true): void => {
         if (attempt !== attemptRef.current || closingRef.current) return;
         if (pendingActionRef.current === action) {
           pendingActionRef.current = null;
           setPendingAction(null);
         }
+        // The online conversation was stopped for this action; when it could
+        // not be carried out, the student gets the offline buttons back
+        // instead of a silent call. ("busy": another path is settling it.)
+        if (failed && onlineViewRef.current) setOnlineView(false);
         if (message) setReply(message);
       };
       try {
@@ -544,13 +597,14 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         // "busy": a spoken answer is already settling the call; its result
         // arrives on its own. "failed": the scheduler said why (shown as
         // LAFINA's reply), so only the buttons are given back.
-        if (result === 'failed' || result === 'busy') release();
+        if (result === 'failed') release();
+        else if (result === 'busy') release(undefined, false);
       } catch (error) {
         console.error(`[CallScreen] Could not ${action} reminder:`, error);
         release(failure);
       }
     },
-    [stopOnline],
+    [setOnlineView, stopOnline],
   );
 
   const handleManualSnooze = useCallback(
@@ -600,6 +654,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     (text: string): void => {
       const trimmed = text.trim();
       if (!trimmed) return;
+      studentSpokeRef.current = true;
       setNotice('');
       // A spoken "confirm" / "cancel" answers the card on screen.
       if (reviewRef.current.proposal && !reviewRef.current.expired) {
@@ -720,6 +775,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
   const handleOnlineSnapshot = useCallback(
     (snapshot: ConversationSnapshot): void => {
+      setOnlineSnapshot(snapshot);
       const latestUser = [...snapshot.turns]
         .reverse()
         .find(turn => turn.role === 'user');
@@ -780,6 +836,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       void (async () => {
         await stopOnline();
         if (closingRef.current || attempt !== attemptRef.current) return;
+        // Offline voice (or the buttons) takes over: show the offline call.
+        setOnlineView(false);
         setReply(
           `${message} ${
             canFallBack
@@ -790,8 +848,23 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         if (canFallBack) resumeOfflineCall(reminderId, userId);
       })();
     },
-    [reminderId, stopOnline, userId],
+    [reminderId, setOnlineView, stopOnline, userId],
   );
+
+  const handleToggleMute = useCallback((): void => {
+    onlineRef.current?.setMuted?.(!onlineSnapshot?.muted);
+  }, [onlineSnapshot?.muted]);
+
+  const handleStopResponse = useCallback((): void => {
+    onlineRef.current?.stopResponse?.();
+  }, []);
+
+  /** A typed turn, for a student who cannot speak out loud right now. */
+  const handleSendText = useCallback(async (text: string): Promise<boolean> => {
+    const send = onlineRef.current?.sendText;
+    if (!send) return false;
+    return send(text).catch(() => false);
+  }, []);
 
   useEffect(() => {
     if (!visible || !reminderId) return;
@@ -820,17 +893,33 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       if (Date.now() - start >= ANSWERED_CALL_LIMIT_MS) {
         answeredAtRef.current = null;
         reviewRef.current.cancel({silent: true});
+        // A student who has been talking with LAFINA has plainly received
+        // the reminder: the call ends as if they hung up. An answered call
+        // nobody spoke on still rings again later.
+        if (onlineViewRef.current && studentSpokeRef.current) {
+          void handleEndAnswered();
+          return;
+        }
         void stopOnline().then(() =>
           autoSnoozeCall({reminderId, userId, generation: deliveryGeneration}),
         );
       } else if (Date.now() - start >= ANSWERED_CALL_LIMIT_MS - 60_000) {
         setNotice(
-          'This reminder call ends in less than a minute. Acknowledge or Snooze to choose what happens next.',
+          onlineViewRef.current
+            ? 'This reminder call ends in less than a minute. Say “call me back later” if you need more time.'
+            : 'This reminder call ends in less than a minute. Acknowledge or Snooze to choose what happens next.',
         );
       }
     }, 1000);
     return () => clearInterval(tick);
-  }, [visible, stopOnline, reminderId, userId, deliveryGeneration]);
+  }, [
+    visible,
+    stopOnline,
+    handleEndAnswered,
+    reminderId,
+    userId,
+    deliveryGeneration,
+  ]);
 
   useEffect(() => {
     if (!visible || callState !== 'ringing') return;
@@ -839,6 +928,21 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   }, [visible, callState, handleDecline]);
 
   if (!visible) return null;
+
+  const reviewCard = review.proposal ? (
+    <CommandReviewCard
+      proposal={review.proposal}
+      expired={review.expired}
+      busy={review.busy}
+      onConfirm={() => void handleReviewConfirm()}
+      onCancel={handleReviewCancel}
+      onDismiss={review.dismiss}
+      onEdit={review.edit}
+      onDeliveryChange={review.setDelivery}
+      editError={review.editError}
+      testIDPrefix="reminder-call-review"
+    />
+  ) : undefined;
 
   const themed = {
     container: {backgroundColor: colors.background},
@@ -1005,13 +1109,33 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                     Answer
                   </Text>
                   <Text style={[styles.buttonSubLabel, themed.mutedText]}>
-                    Hear the reminder
+                    {expectOnline ? 'Talk with LAFINA' : 'Hear the reminder'}
                   </Text>
                 </View>
               </View>
             </View>
           </View>
+        ) : onlineView ? (
+          // Online: a conversation like Call LAFINA. No Acknowledge or Snooze
+          // buttons; the student talks, or hangs up (counts as received).
+          <OnlineReminderCallView
+            task={task}
+            snapshot={onlineSnapshot}
+            callState={callState}
+            resolution={resolution}
+            transcript={transcript}
+            reply={reply}
+            notice={notice}
+            pendingAction={pendingAction}
+            reviewCard={reviewCard}
+            onToggleMute={handleToggleMute}
+            onStopResponse={handleStopResponse}
+            onSendText={handleSendText}
+            onEnd={handleEndAnswered}
+          />
         ) : (
+          // Offline (or the online conversation could not run): the
+          // Acknowledge and Snooze buttons stay, with offline voice.
           <CallAnsweredView
             task={task}
             callState={callState}
@@ -1025,36 +1149,20 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             notice={notice}
             busy={answering && !sessionLive}
             pendingAction={pendingAction}
-            reviewCard={
-              review.proposal ? (
-                <CommandReviewCard
-                  proposal={review.proposal}
-                  expired={review.expired}
-                  busy={review.busy}
-                  onConfirm={() => void handleReviewConfirm()}
-                  onCancel={handleReviewCancel}
-                  onDismiss={review.dismiss}
-                  onEdit={review.edit}
-                  onDeliveryChange={review.setDelivery}
-                  editError={review.editError}
-                  testIDPrefix="reminder-call-review"
-                />
-              ) : undefined
-            }
-            onlineConversation={
-              onlineCall ? (
-                <OnlineReminderConversation
-                  ref={onlineRef}
-                  userId={userId}
-                  task={task}
-                  onSnapshot={handleOnlineSnapshot}
-                  onSpokenTurn={handleOnlineTurn}
-                  onSnooze={handleAgentSnooze}
-                />
-              ) : undefined
-            }
+            reviewCard={reviewCard}
           />
         )}
+        {onlineCall && callState !== 'ringing' ? (
+          <OnlineReminderConversation
+            ref={onlineRef}
+            userId={userId}
+            task={task}
+            snoozeMinutes={snoozeMinutes}
+            onSnapshot={handleOnlineSnapshot}
+            onSpokenTurn={handleOnlineTurn}
+            onSnooze={handleAgentSnooze}
+          />
+        ) : null}
       </SafeAreaView>
     </Modal>
   );

@@ -426,6 +426,8 @@ describe('AGY-PORT 06 planner replies and guide', () => {
       const update = jest.spyOn(tasksStore, 'updateTask');
       const utils = renderCalendar(me);
       fireEvent.press(utils.getByText('Old lab writeup'));
+      // The chip opens the schedule details first; Edit opens the editor.
+      fireEvent.press(utils.getByTestId('schedule-detail-edit-button'));
       fireEvent.press(utils.getByText('Save'));
 
       expect(update).toHaveBeenCalledWith(

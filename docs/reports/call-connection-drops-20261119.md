@@ -1,6 +1,6 @@
 # Call LAFINA: "The conversation connection closed" — audit and fix (2026-11-19)
 
-Status: READY FOR REVIEW. Automated gates pass; phone checks are NOT RUN.
+Status: AWAITING DEVICE VALIDATION. Backend deployed and agent settings applied; phone checks are NOT RUN.
 
 ## Symptom
 
@@ -88,8 +88,8 @@ turn quotas, and errors for missing grants and ended or expired sessions.
 | App `npm run preflight` (typecheck, lint, Jest, architecture) | passed: 160 suites, 2164 tests passed, 1 skipped |
 | `gradlew :app:compileDebugKotlin :app:testDebugUnitTest --tests VoiceConversationRulesTest` | BUILD SUCCESSFUL |
 | Signed-in call on a phone | NOT RUN |
-| Production deploy of the backend | NOT DONE (needs merge and Vercel deploy) |
-| Agent setting change (`--tune-reliability --apply`) | NOT DONE (run after the backend deploy) |
+| Production deploy of the backend | DONE: LAFINA-backend PR #8 merged as `38cdd95`; Vercel status `success` |
+| Agent setting change (`--tune-reliability --apply`) | DONE 2026-11-19: `--check` reads `cascade_timeout_seconds` 15.0, `turn_timeout` 30.0, no problems |
 
 ## Rollout order
 

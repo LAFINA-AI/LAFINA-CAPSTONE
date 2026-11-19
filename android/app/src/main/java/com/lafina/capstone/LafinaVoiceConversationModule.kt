@@ -135,9 +135,23 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       promise.reject("BAD_ARGUMENTS", "A session key, address and start message are required.")
       return
     }
-    if (session != null) {
-      promise.reject("SESSION_BUSY", "A voice conversation is already running.")
-      return
+    val existing = session
+    if (existing != null) {
+      if (!existing.ended.get()) {
+        promise.reject("SESSION_BUSY", "A voice conversation is already running.")
+        return
+      }
+      // Previous session is already tearing down on the worker thread; wait for release to complete.
+      val released = java.util.concurrent.CountDownLatch(1)
+      try {
+        worker.execute { released.countDown() }
+        released.await(2, TimeUnit.SECONDS)
+      } catch (_: Exception) {
+      }
+      if (session != null) {
+        promise.reject("SESSION_BUSY", "A voice conversation is still closing.")
+        return
+      }
     }
     if (ContextCompat.checkSelfPermission(reactContext, Manifest.permission.RECORD_AUDIO) !=
         PackageManager.PERMISSION_GRANTED) {
@@ -346,7 +360,13 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       val devices = manager.availableCommunicationDevices
       val target = devices.firstOrNull { it.type in headsets }
         ?: devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
-      target?.let { manager.setCommunicationDevice(it) }
+      target?.let {
+        try {
+          manager.setCommunicationDevice(it)
+        } catch (e: Exception) {
+          Log.w(TAG, "setCommunicationDevice failed (${e.javaClass.simpleName})")
+        }
+      }
     } else {
       val headset = manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { it.type in headsets }
       @Suppress("DEPRECATION")

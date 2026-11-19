@@ -1,0 +1,13 @@
+      ustp-cor-screenshot.words.device-ocr.json: 100/105 fields (95.2%), method=ocr_layout, level=needs_attention
+        wrong: course[3:IT412].session[1].dayCode expected="W" got=""
+               course[3:IT412].session[1].start expected="19:00" got=""
+               course[3:IT412].session[1].end expected="21:00" got=""
+               course[3:IT412].session[1].room expected="Modular Classroom 2" got="TBA"
+               course[5:GnS].section expected="IT4R11_Track2" got="ITAR11_Track2"
+        flagged: days_unclear, time_unclear, section_near_main
+      ustp-cor.words.device-pdftext.json: 105/105 fields (100.0%), method=pdf_text, level=exact
+      ustp-cor.words.pdfplumber.json: 105/105 fields (100.0%), method=pdf_text, level=exact
+    √ ustp-cor-screenshot.words.device-ocr.json (20 ms)
+    √ ustp-cor.words.device-pdftext.json (4 ms)
+    √ ustp-cor.words.pdfplumber.json (5 ms)
+Tests:       3 passed, 3 total

@@ -6,8 +6,6 @@
  * Synthetic owners and documents; Alert and react-native-fs are Jest fakes.
  */
 import React from 'react';
-import { Alert } from 'react-native';
-import type { AlertButton } from 'react-native';
 import RNFS from 'react-native-fs';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { chatStore, db, initDatabase, userStore } from '../../src/storage';
@@ -16,7 +14,7 @@ import { ProfileScreen } from '../../src/ui/screens/ProfileScreen';
 import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
 
 type Mock = jest.Mock;
-type AlertCall = { title: string; message?: string; buttons?: AlertButton[] };
+type ResultCall = { title: string; message: string };
 
 let serial = 0;
 const owner = (label: string): string => {
@@ -49,27 +47,22 @@ const settle = async () => {
   for (let i = 0; i < 12; i += 1) await new Promise(resolve => setImmediate(resolve));
 };
 
-const clearAllData = async (userId: string): Promise<AlertCall> => {
-  const alerts: AlertCall[] = [];
-  jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-    alerts.push({ title, message, buttons });
-  });
+const clearAllData = async (userId: string): Promise<ResultCall> => {
   const view = render(
     <ThemeProvider userId={userId}>
       <ProfileScreen userId={userId} refreshTrigger={0} onRefresh={jest.fn()} onLogout={jest.fn()} />
     </ThemeProvider>,
   );
   fireEvent.press(view.getByText('Clear All Data'));
-  const button = alerts
-    .find(entry => entry.title === 'Clear All Data')
-    ?.buttons?.find(entry => entry.text === 'Delete Everything');
+  fireEvent.changeText(view.getByTestId('clear-data-confirm-input'), 'DELETE');
   await act(async () => {
-    button!.onPress!();
+    fireEvent.press(view.getByTestId('clear-data-confirm-btn'));
     await settle();
   });
+  const title = String(view.getByTestId('clear-data-result-title').props.children);
+  const message = String(view.getByTestId('clear-data-result-message').props.children);
   view.unmount();
-  (Alert.alert as unknown as Mock).mockRestore();
-  return alerts.filter(entry => entry.title !== 'Clear All Data').pop()!;
+  return { title, message };
 };
 
 beforeAll(async () => {

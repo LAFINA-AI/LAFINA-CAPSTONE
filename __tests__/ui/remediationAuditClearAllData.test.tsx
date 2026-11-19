@@ -179,19 +179,32 @@ const profile = (userId: string) =>
   );
 
 /** Opens the confirmation and returns its retained "Delete Everything" callback. */
-const openConfirmation = (view: ReturnType<typeof profile>, alerts: AlertCall[]) => {
+const openConfirmation = (view: ReturnType<typeof profile>) => {
   fireEvent.press(view.getByText('Clear All Data'));
-  const confirm = alerts.find(entry => entry.title === 'Clear All Data');
-  const button = confirm?.buttons?.find(entry => entry.text === 'Delete Everything');
-  expect(button?.onPress).toBeDefined();
-  return () => button!.onPress!();
+  fireEvent.changeText(view.getByTestId('clear-data-confirm-input'), 'DELETE');
+  const button = view.getByTestId('clear-data-confirm-btn');
+  const onPress = button.props.onPress ?? button.props.onClick;
+  expect(typeof onPress).toBe('function');
+  return () => onPress();
 };
 
 const settle = async () => {
   for (let i = 0; i < 10; i += 1) await new Promise(resolve => setImmediate(resolve));
 };
 
-const result = (alerts: AlertCall[]) => alerts.filter(entry => entry.title !== 'Clear All Data').pop();
+const readResult = (view: ReturnType<typeof profile>): {title: string; message: string} | null => {
+  try {
+    const titleNode = view.queryByTestId('clear-data-result-title');
+    if (!titleNode) return null;
+    const messageNode = view.getByTestId('clear-data-result-message');
+    return {
+      title: String(titleNode.props.children),
+      message: String(messageNode.props.children),
+    };
+  } catch {
+    return null;
+  }
+};
 
 const unlink = RNFS.unlink as unknown as Mock;
 const exists = RNFS.exists as unknown as Mock;
@@ -217,7 +230,13 @@ afterEach(() => {
 });
 
 describe('remediation audit P1: a stale Clear All Data confirmation deletes nothing', () => {
-  const refusedCleanly = async (a: string, b: string, alerts: AlertCall[], memoryBefore: unknown) => {
+  const refusedCleanly = async (
+    a: string,
+    b: string,
+    alerts: AlertCall[],
+    memoryBefore: unknown,
+    view?: ReturnType<typeof profile>,
+  ) => {
     await settle();
     expect(live(a)).toEqual(FULL);
     expect(outboxDeletes(a)).toEqual([]);
@@ -225,6 +244,10 @@ describe('remediation audit P1: a stale Clear All Data confirmation deletes noth
     expect(unlink).not.toHaveBeenCalled();
     expect(cancelAlarm).not.toHaveBeenCalled();
     expect(alerts.some(entry => entry.title === 'Data Cleared' || entry.title === 'Data Partly Cleared')).toBe(false);
+    if (view) {
+      const shown = readResult(view);
+      expect(shown === null || (shown.title !== 'Data Cleared' && shown.title !== 'Data Partly Cleared')).toBe(true);
+    }
     // The other owner is untouched as well.
     expect(live(b)).toEqual(FULL);
     expect(speechRate(a)).toBe(1.5);
@@ -238,15 +261,15 @@ describe('remediation audit P1: a stale Clear All Data confirmation deletes noth
     const memoryBefore = memoryValue(a);
     const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
 
     act(() => userStore.setCurrentUser(b));
     await act(async () => {
       confirm();
       await settle();
     });
-    await refusedCleanly(a, b, alerts, memoryBefore);
-    expect(result(alerts)?.title).toBe('Not Cleared');
+    await refusedCleanly(a, b, alerts, memoryBefore, view);
+    expect(readResult(view)?.title).toBe('Not Cleared');
   });
 
   it('the Profile screen unmounted before the confirmation ran (same session)', async () => {
@@ -257,7 +280,7 @@ describe('remediation audit P1: a stale Clear All Data confirmation deletes noth
     const memoryBefore = memoryValue(a);
     const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
 
     view.unmount();
     await act(async () => {
@@ -276,7 +299,7 @@ describe('remediation audit P1: a stale Clear All Data confirmation deletes noth
     const memoryBefore = memoryValue(a);
     const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
 
     act(() => userStore.setCurrentUser(b));
     view.unmount();
@@ -295,7 +318,7 @@ describe('remediation audit P1: a stale Clear All Data confirmation deletes noth
     const memoryBefore = memoryValue(a);
     const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
 
     act(() => {
       userStore.logout();
@@ -305,8 +328,8 @@ describe('remediation audit P1: a stale Clear All Data confirmation deletes noth
       confirm();
       await settle();
     });
-    await refusedCleanly(a, b, alerts, memoryBefore);
-    expect(result(alerts)?.title).toBe('Not Cleared');
+    await refusedCleanly(a, b, alerts, memoryBefore, view);
+    expect(readResult(view)?.title).toBe('Not Cleared');
   });
 
   it('signed out (no session) before confirming', async () => {
@@ -317,14 +340,14 @@ describe('remediation audit P1: a stale Clear All Data confirmation deletes noth
     const memoryBefore = memoryValue(a);
     const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
 
     act(() => userStore.logout());
     await act(async () => {
       confirm();
       await settle();
     });
-    await refusedCleanly(a, b, alerts, memoryBefore);
+    await refusedCleanly(a, b, alerts, memoryBefore, view);
   });
 });
 
@@ -334,9 +357,8 @@ describe('remediation audit P2: only confirmed deletions are reported', () => {
     seed(b, '09:00');
     const a = owner('read-a');
     seed(a);
-    const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
     const execute = db.executeSync.bind(db);
     jest.spyOn(db, 'executeSync').mockImplementation((sql: string, params?: unknown[]) => {
       if (/FROM notes WHERE user_id = \?/i.test(sql) && /^\s*SELECT/i.test(sql)) {
@@ -352,7 +374,7 @@ describe('remediation audit P2: only confirmed deletions are reported', () => {
     jest.restoreAllMocks();
 
     expect(live(a).notes).toBe(1);
-    const shown = result(alerts);
+    const shown = readResult(view);
     expect(shown?.title).toBe('Data Partly Cleared');
     expect(shown?.message).not.toMatch(/All personal scheduling data/);
     expect(shown?.message).toMatch(/notes, tasks, events, reminders and calendar blocks were not deleted/);
@@ -362,9 +384,8 @@ describe('remediation audit P2: only confirmed deletions are reported', () => {
   it('a write failure part-way changes no planner record (all or nothing) and says so', async () => {
     const a = owner('write-a');
     seed(a);
-    const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
     const execute = db.executeSync.bind(db);
     jest.spyOn(db, 'executeSync').mockImplementation((sql: string, params?: unknown[]) => {
       if (/^\s*UPDATE events SET deleted_at/i.test(sql)) throw new Error('synthetic events write failure');
@@ -381,7 +402,7 @@ describe('remediation audit P2: only confirmed deletions are reported', () => {
     expect(live(a)).toMatchObject({notes: 1, tasks: 1, events: 1, blocks: 1, reminders: 2});
     expect(outboxDeletes(a).filter(key => !key.startsWith('message'))).toEqual([]);
     expect(cancelAlarm).not.toHaveBeenCalled();
-    const shown = result(alerts);
+    const shown = readResult(view);
     expect(shown?.title).toBe('Data Partly Cleared');
     expect(shown?.message).toMatch(/were not deleted/);
     expect(shown?.message).not.toMatch(/All personal scheduling data/);
@@ -394,10 +415,9 @@ describe('remediation audit P2: only confirmed deletions are reported', () => {
   it('an attachment file that cannot be removed is reported, not hidden', async () => {
     const a = owner('file-a');
     seed(a);
-    const alerts = recordAlerts();
     unlink.mockImplementation(() => Promise.reject(new Error('synthetic unlink failure')));
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
 
     await act(async () => {
       confirm();
@@ -406,7 +426,7 @@ describe('remediation audit P2: only confirmed deletions are reported', () => {
 
     expect(live(a)).toEqual(EMPTY);
     expect(unlink).toHaveBeenCalledWith(`/documents/${a}.pdf`);
-    const shown = result(alerts);
+    const shown = readResult(view);
     expect(shown?.title).toBe('Data Partly Cleared');
     expect(shown?.message).toMatch(/attachment file/i);
     expect(shown?.message).not.toMatch(/All personal scheduling data/);
@@ -419,9 +439,8 @@ describe('remediation audit: the ordinary same-session reset still works', () =>
     seed(b, '09:00');
     const a = owner('ok-a');
     seed(a);
-    const alerts = recordAlerts();
     const view = profile(a);
-    const confirm = openConfirmation(view, alerts);
+    const confirm = openConfirmation(view);
 
     await act(async () => {
       confirm();
@@ -448,7 +467,7 @@ describe('remediation audit: the ordinary same-session reset still works', () =>
     // Event defaults forgotten (fenced), device settings kept.
     expect(memory.read(a)).toMatchObject({enabled: false, value: null});
     expect(speechRate(a)).toBe(1.5);
-    expect(result(alerts)).toMatchObject({
+    expect(readResult(view)).toMatchObject({
       title: 'Data Cleared',
       message: 'All personal scheduling data and saved event defaults have been deleted.',
     });

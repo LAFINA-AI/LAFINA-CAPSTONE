@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -26,7 +26,13 @@ import {
   X,
 } from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
-import {timeBlocksStore, type AcademicProfileRecord} from '../../../../storage';
+import {
+  baseScheduleEntityId,
+  scheduleEntriesStore,
+  timeBlocksStore,
+  type AcademicProfileRecord,
+  type TimeBlock,
+} from '../../../../storage';
 import {getConfirmedAcademicProfile} from '../../../../storage/ustpEligibility';
 import {
   dateToTimeString,
@@ -53,6 +59,7 @@ export interface ViewClassesModalProps {
   userId: string;
   refreshTrigger?: number;
   timeFormat24h: boolean;
+  initialEditBlock?: TimeBlock | null;
   onClose: () => void;
   onChanged: () => void;
   onAddClassSchedule: () => void;
@@ -67,6 +74,7 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
   userId,
   refreshTrigger = 0,
   timeFormat24h,
+  initialEditBlock = null,
   onClose,
   onChanged,
   onAddClassSchedule,
@@ -90,6 +98,8 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
     text: string;
   } | null>(null);
 
+  const appliedInitialEditRef = useRef(false);
+
   const reloadRawBlocks = () => {
     try {
       setRawBlocks(timeBlocksStore.getAll(userId));
@@ -99,24 +109,53 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
   };
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      appliedInitialEditRef.current = false;
+      return;
+    }
     try {
       setProfile(getConfirmedAcademicProfile(userId));
     } catch {
       setProfile(null);
     }
+    let loadedBlocks: TimeBlock[] = [];
     try {
-      setRawBlocks(timeBlocksStore.getAll(userId));
+      loadedBlocks = timeBlocksStore.getAll(userId);
+      setRawBlocks(loadedBlocks);
     } catch {
       setRawBlocks([]);
     }
     setSearch('');
-    setEditingGroup(null);
-    setDraft(null);
     setShowStartPicker(false);
     setShowEndPicker(false);
     setStatusMessage(null);
-  }, [visible, userId, refreshTrigger]);
+
+    if (initialEditBlock && !appliedInitialEditRef.current) {
+      appliedInitialEditRef.current = true;
+      const groups = groupClassBlocks(loadedBlocks);
+      const targetBaseId = baseScheduleEntityId(initialEditBlock.id);
+      const matched =
+        groups.find(g =>
+          g.blocks.some(b => baseScheduleEntityId(b.id) === targetBaseId),
+        ) ??
+        groups.find(
+          g =>
+            g.displayTitle.trim().toLowerCase() ===
+              initialEditBlock.title.trim().toLowerCase() &&
+            g.startTime === initialEditBlock.startTime &&
+            g.endTime === initialEditBlock.endTime,
+        ) ??
+        null;
+      if (matched) {
+        setEditingGroup(matched);
+        setDraft(groupedClassToDraft(matched));
+        return;
+      }
+    }
+
+    setEditingGroup(null);
+    setDraft(null);
+  }, [visible, userId, refreshTrigger, initialEditBlock]);
 
   const classGroups = useMemo(() => groupClassBlocks(rawBlocks), [rawBlocks]);
 
@@ -197,14 +236,27 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
     }
 
     try {
+      const oldTargetId = `class::${editingGroup.displayTitle
+        .trim()
+        .toLowerCase()}::${editingGroup.startTime}::${editingGroup.endTime}`;
       updateClassGroupInStore({
         userId,
         group: editingGroup,
         draft,
       });
-      const updatedTitle = draft.code.trim()
-        ? `${draft.code.trim()} · ${draft.subjectTitle.trim()}`
-        : draft.subjectTitle.trim();
+      const cleanCode = draft.code.trim();
+      const cleanTitle = draft.subjectTitle.trim();
+      const updatedTitle =
+        cleanCode &&
+        !cleanTitle.toLowerCase().startsWith(cleanCode.toLowerCase())
+          ? `${cleanCode} · ${cleanTitle}`
+          : cleanTitle;
+      const newTargetId = `class::${updatedTitle.toLowerCase()}::${
+        draft.startTime
+      }::${draft.endTime}`;
+      if (oldTargetId !== newTargetId) {
+        scheduleEntriesStore.rekeyTarget(userId, oldTargetId, newTargetId);
+      }
       setEditingGroup(null);
       setDraft(null);
       setShowStartPicker(false);
@@ -240,7 +292,18 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
           style: 'destructive',
           onPress: () => {
             try {
+              const targetId = `class::${group.displayTitle
+                .trim()
+                .toLowerCase()}::${group.startTime}::${group.endTime}`;
+              const fallbackIds = group.blocks.map(b =>
+                baseScheduleEntityId(b.id),
+              );
               deleteClassGroupFromStore(group.blocks.map(b => b.id));
+              scheduleEntriesStore.removeEntriesForTarget(
+                userId,
+                targetId,
+                fallbackIds,
+              );
               setStatusMessage({
                 kind: 'success',
                 text: `Removed "${group.displayTitle}".`,
@@ -273,7 +336,20 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
           style: 'destructive',
           onPress: () => {
             try {
+              const cleanupTargets = classGroups.map(g => ({
+                targetId: `class::${g.displayTitle.trim().toLowerCase()}::${
+                  g.startTime
+                }::${g.endTime}`,
+                fallbackIds: g.blocks.map(b => baseScheduleEntityId(b.id)),
+              }));
               deleteClassGroupFromStore(allIds);
+              for (const target of cleanupTargets) {
+                scheduleEntriesStore.removeEntriesForTarget(
+                  userId,
+                  target.targetId,
+                  target.fallbackIds,
+                );
+              }
               setStatusMessage({
                 kind: 'success',
                 text: 'Cleared all repeating classes from your schedule.',

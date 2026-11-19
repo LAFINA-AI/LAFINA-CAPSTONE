@@ -254,15 +254,20 @@ export const ChatMessageItem = React.memo(function MessageRow({
               styles.handbookRow,
               isModern && [
                 styles.modernHandbookPill,
-                {backgroundColor: modernPalette.softViolet},
+                {
+                  backgroundColor: modernPalette.softViolet,
+                  borderColor: modernPalette.accent + '28',
+                },
               ],
             ]}
             testID="chat-handbook-citation"
           >
-            <BookOpen
-              size={11}
-              color={isModern ? modernPalette.accent : colors.textSecondary}
-            />
+            <View style={styles.handbookIconWrap}>
+              <BookOpen
+                size={12}
+                color={isModern ? modernPalette.accent : colors.textSecondary}
+              />
+            </View>
             <Text
               style={[
                 styles.handbookText,
@@ -414,19 +419,30 @@ const styles = StyleSheet.create({
   },
   handbookRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 8,
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 10,
+    maxWidth: '100%',
   },
   modernHandbookPill: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5.5,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  handbookIconWrap: {
+    height: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   handbookText: {
+    flexShrink: 1,
     fontFamily: Fonts.body,
-    fontSize: 10.5,
+    fontSize: 11,
+    lineHeight: 15,
+    includeFontPadding: false,
   },
   interruptedText: {
     marginTop: 6,

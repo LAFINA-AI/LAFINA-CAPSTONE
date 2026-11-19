@@ -9,20 +9,25 @@ import React, {
 } from 'react';
 import {useColorScheme} from 'react-native';
 import {
+  getSavedModernAiButtonDesign,
   getSavedModernTheme,
   getSavedUIVariant,
+  saveModernAiButtonDesign,
   saveModernTheme,
   saveUIVariant,
   userStore,
+  type ModernAiButtonDesignId,
   type ModernThemeId,
   type UIVariant,
 } from '../../storage';
 import {getModernShadows, type ModernShadowSet} from '../theme/modern';
 import {
+  getModernAiButtonDesignMeta,
   getModernPalette,
   getModernThemeExtras,
   getModernThemeMeta,
   getThemeColors,
+  type ModernAiButtonDesignMeta,
   type ModernPalette,
   type ModernThemeExtras,
   type ModernThemeMeta,
@@ -35,7 +40,7 @@ import {
 } from '../theme/themeReveal';
 import type {ThemeRevealOrigin} from '../theme/themeReveal';
 
-export type {ModernThemeId, ThemeColors};
+export type {ModernAiButtonDesignId, ModernThemeId, ThemeColors};
 
 export interface ThemeContextType {
   isDarkMode: boolean;
@@ -50,6 +55,9 @@ export interface ThemeContextType {
   modernThemeExtras: ModernThemeExtras;
   modernShadows: ModernShadowSet;
   setModernTheme: (themeId: ModernThemeId) => void;
+  modernAiButtonDesign: ModernAiButtonDesignId;
+  modernAiButtonDesignMeta: ModernAiButtonDesignMeta;
+  setModernAiButtonDesign: (designId: ModernAiButtonDesignId) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -59,12 +67,14 @@ export const ThemeProvider: React.FC<{
   refreshTrigger?: number;
   initialUIVariant?: UIVariant;
   initialModernTheme?: ModernThemeId;
+  initialModernAiButtonDesign?: ModernAiButtonDesignId;
   children: React.ReactNode;
 }> = ({
   userId,
   refreshTrigger,
   initialUIVariant,
   initialModernTheme,
+  initialModernAiButtonDesign,
   children,
 }) => {
   const systemScheme = useColorScheme();
@@ -83,6 +93,11 @@ export const ThemeProvider: React.FC<{
   const [modernTheme, setModernThemeState] = useState<ModernThemeId>(
     () => initialModernTheme ?? getSavedModernTheme(userId),
   );
+
+  const [modernAiButtonDesign, setModernAiButtonDesignState] =
+    useState<ModernAiButtonDesignId>(
+      () => initialModernAiButtonDesign ?? getSavedModernAiButtonDesign(userId),
+    );
 
   useEffect(() => {
     if (userId) {
@@ -108,6 +123,14 @@ export const ThemeProvider: React.FC<{
     setModernThemeState(getSavedModernTheme(userId));
   }, [userId, refreshTrigger, initialModernTheme]);
 
+  useEffect(() => {
+    if (initialModernAiButtonDesign) {
+      setModernAiButtonDesignState(initialModernAiButtonDesign);
+      return;
+    }
+    setModernAiButtonDesignState(getSavedModernAiButtonDesign(userId));
+  }, [userId, refreshTrigger, initialModernAiButtonDesign]);
+
   const colors = useMemo<ThemeColors>(
     () => getThemeColors(uiVariant, isDarkMode, modernTheme),
     [uiVariant, isDarkMode, modernTheme],
@@ -121,6 +144,11 @@ export const ThemeProvider: React.FC<{
   const modernThemeMeta = useMemo<ModernThemeMeta>(
     () => getModernThemeMeta(modernTheme),
     [modernTheme],
+  );
+
+  const modernAiButtonDesignMeta = useMemo<ModernAiButtonDesignMeta>(
+    () => getModernAiButtonDesignMeta(modernAiButtonDesign),
+    [modernAiButtonDesign],
   );
 
   const modernThemeExtras = useMemo<ModernThemeExtras>(
@@ -178,6 +206,14 @@ export const ThemeProvider: React.FC<{
     [userId],
   );
 
+  const setModernAiButtonDesign = useCallback(
+    (nextDesign: ModernAiButtonDesignId) => {
+      saveModernAiButtonDesign(userId, nextDesign);
+      setModernAiButtonDesignState(nextDesign);
+    },
+    [userId],
+  );
+
   useEffect(() => {
     if (!revealPendingRef.current) return;
     revealPendingRef.current = false;
@@ -200,6 +236,9 @@ export const ThemeProvider: React.FC<{
       modernThemeExtras,
       modernShadows,
       setModernTheme,
+      modernAiButtonDesign,
+      modernAiButtonDesignMeta,
+      setModernAiButtonDesign,
     }),
     [
       isDarkMode,
@@ -214,6 +253,9 @@ export const ThemeProvider: React.FC<{
       modernThemeExtras,
       modernShadows,
       setModernTheme,
+      modernAiButtonDesign,
+      modernAiButtonDesignMeta,
+      setModernAiButtonDesign,
     ],
   );
 
@@ -245,6 +287,9 @@ export const useModernTheme = () => {
     modernPalette,
     modernShadows,
     setModernTheme,
+    modernAiButtonDesign,
+    modernAiButtonDesignMeta,
+    setModernAiButtonDesign,
   } = useTheme();
   return {
     modernTheme,
@@ -253,5 +298,8 @@ export const useModernTheme = () => {
     modernPalette,
     modernShadows,
     setModernTheme,
+    modernAiButtonDesign,
+    modernAiButtonDesignMeta,
+    setModernAiButtonDesign,
   };
 };

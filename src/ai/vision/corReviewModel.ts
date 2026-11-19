@@ -6,7 +6,12 @@
  * Nothing here touches storage: `corImportStore` persists drafts and commits
  * the reviewed plan. Pure functions, so they are easy to test.
  */
-import type {ParsedUstpCorResult, UstpCorClassSession} from './ustpCorParser';
+import type {
+  CorAccuracyLevel,
+  CorExtractionMethod,
+  ParsedUstpCorResult,
+  UstpCorClassSession,
+} from './ustpCorParser';
 
 export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 export const WEEKDAYS: Weekday[] = [
@@ -103,6 +108,14 @@ export interface CorDetectedExtras {
   totalLabUnits: number | null;
 }
 
+/** How the COR was read and what the automatic checks found (read-only). */
+export interface CorDraftAccuracy {
+  method: CorExtractionMethod;
+  level: CorAccuracyLevel;
+  /** Student-facing check messages, most serious first. */
+  issues: string[];
+}
+
 export type CorDraftStatus = 'draft' | 'committed';
 
 export interface CorDraft {
@@ -133,6 +146,8 @@ export interface CorDraft {
   acknowledgedOverlaps: string[];
   extras: CorDetectedExtras;
   committedImportId: string | null;
+  /** Absent on drafts saved before accuracy checks existed. */
+  accuracy?: CorDraftAccuracy;
 }
 
 let idCounter = 0;
@@ -390,6 +405,21 @@ export const buildCorDraft = (
       totalLabUnits: profile.totalLabUnits,
     },
     committedImportId: null,
+    ...(parsed.checks
+      ? {
+          accuracy: {
+            method: parsed.checks.method,
+            level: parsed.checks.level,
+            issues: [...parsed.checks.issues]
+              .sort(
+                (a, b) =>
+                  (a.severity === 'error' ? 0 : 1) -
+                  (b.severity === 'error' ? 0 : 1),
+              )
+              .map(issue => issue.message),
+          },
+        }
+      : {}),
   };
 };
 

@@ -60,6 +60,7 @@ import type {
 import {corImportStore} from '../../../storage/corImportStore';
 import type {CommitResult} from '../../../storage/corImportStore';
 import {refreshAcademicMemories} from '../../../storage/onboardingMemory';
+import {CorAccuracyCard} from './CorAccuracyCard';
 import {
   Card,
   ChoiceButton,
@@ -877,6 +878,8 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
           />
         </InlineActions>
         {notice ? <Notice text={notice} testID="cor-notice" /> : null}
+
+        {draft.accuracy ? <CorAccuracyCard accuracy={draft.accuracy} /> : null}
 
         {/* Student & Program */}
         <Card testID="cor-student-card">
