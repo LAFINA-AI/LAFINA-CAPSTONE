@@ -91,6 +91,7 @@ import {TypingBubble} from '../components/chat/TypingBubble';
 import {CommandReviewCard} from '../components/chat/CommandReviewCard';
 import {UndoSnackbar} from '../components/chat/UndoSnackbar';
 import {CommandGuide} from '../components/chat/CommandGuide';
+import {EndTemporaryChatModal} from '../components/chat/EndTemporaryChatModal';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {
   formatResolvedReviewContent,
@@ -329,6 +330,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
   );
   const [isTemporaryChat, setIsTemporaryChat] = useState(false);
   const [tempMessages, setTempMessages] = useState<ChatMessage[]>([]);
+  const [endTempConfirmVisible, setEndTempConfirmVisible] = useState(false);
   const [chatTitle, setChatTitle] = useState('New chat');
 
   const refreshChatTitle = useCallback(() => {
@@ -868,6 +870,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     messagesLengthRef.current = 0;
     setIsTemporaryChat(false);
     setTempMessages([]);
+    setEndTempConfirmVisible(false);
     setMessages([]);
     setOlderCursor(null);
     setHandbookNotes({});
@@ -1071,10 +1074,22 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const handleStartTemporaryFromSidebar = () => {
     if (isSending) return;
     setHistoryVisible(false);
+    setEndTempConfirmVisible(false);
     setIsTemporaryChat(true);
     setTempMessages([]);
     beginInitialScroll(false);
   };
+
+  const handleConfirmEndTemporaryChat = useCallback(() => {
+    setEndTempConfirmVisible(false);
+    if (reviewSourceRef.current?.isTemporary) {
+      cancelOpenReviewRef.current({silent: true});
+      reviewSourceRef.current = null;
+    }
+    setIsTemporaryChat(false);
+    setTempMessages([]);
+    showCurrentChat();
+  }, [showCurrentChat]);
 
   const onlineToggleTicket = useRef(0);
   const handleToggleOnline = async (): Promise<boolean> => {
@@ -2026,22 +2041,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
             ]}
             onPress={() => {
               if (isTemporaryChat) {
-                Alert.alert(
-                  'End Temporary Chat?',
-                  'This temporary conversation will be cleared and your saved chats restored.',
-                  [
-                    {text: 'Cancel', style: 'cancel'},
-                    {
-                      text: 'End',
-                      style: 'destructive',
-                      onPress: () => {
-                        setIsTemporaryChat(false);
-                        setTempMessages([]);
-                        showCurrentChat();
-                      },
-                    },
-                  ],
-                );
+                setEndTempConfirmVisible(true);
               } else {
                 setIsTemporaryChat(true);
                 setTempMessages([]);
@@ -2440,6 +2440,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
         />
 
         <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
+
+        <EndTemporaryChatModal
+          visible={endTempConfirmVisible}
+          messageCount={tempMessages.length}
+          onCancel={() => setEndTempConfirmVisible(false)}
+          onConfirm={handleConfirmEndTemporaryChat}
+        />
       </ScreenOverlays>
     </View>
   );

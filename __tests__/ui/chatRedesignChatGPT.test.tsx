@@ -149,11 +149,7 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     chatStore.addMessage(user, 'user', 'Permanent message');
     chatStore.addMessage(user, 'assistant', 'Permanent reply');
 
-    jest
-      .spyOn(Alert, 'alert')
-      .mockImplementation((_title, _message, buttons) => {
-        buttons?.find(b => b.text === 'End')?.onPress?.();
-      });
+    const alertSpy = jest.spyOn(Alert, 'alert');
 
     const {getByTestId, getAllByText, findByText, queryByText, queryAllByText} =
       renderChat(user);
@@ -174,8 +170,11 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     });
     expect(await findByText('Secret temporary note')).toBeTruthy();
 
-    // End temporary chat
+    // Open themed End Temporary Chat confirmation modal and confirm
     fireEvent.press(getByTestId('chat-temporary-toggle-button'));
+    expect(getByTestId('end-temp-chat-modal')).toBeTruthy();
+    expect(alertSpy).not.toHaveBeenCalled();
+    fireEvent.press(getByTestId('end-temp-chat-confirm-btn'));
 
     // Temporary message is gone, permanent chat restored
     await waitFor(() => {
