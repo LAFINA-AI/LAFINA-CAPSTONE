@@ -30,47 +30,117 @@ export const normalizeModernTheme = (value: unknown): ModernThemeId =>
     ? (value as ModernThemeId)
     : DEFAULT_MODERN_THEME;
 
-export const getSavedModernTheme = (userId?: string | null): ModernThemeId => {
+/** Selectable center AI circle button designs available in Modern mode. */
+export type ModernAiButtonDesignId =
+  | 'synth_orb'
+  | 'liquid_pearl'
+  | 'eclipse_dial'
+  | 'prism_lens'
+  | 'acoustic_core';
+
+export const MODERN_AI_BUTTON_DESIGN_IDS: readonly ModernAiButtonDesignId[] = [
+  'synth_orb',
+  'liquid_pearl',
+  'eclipse_dial',
+  'prism_lens',
+  'acoustic_core',
+] as const;
+
+export const MODERN_AI_BUTTON_DESIGN_SETTING_KEY = 'modern_ai_button_design';
+export const DEFAULT_MODERN_AI_BUTTON_DESIGN: ModernAiButtonDesignId =
+  'synth_orb';
+
+const MODERN_AI_BUTTON_DESIGN_SET: ReadonlySet<string> = new Set(
+  MODERN_AI_BUTTON_DESIGN_IDS,
+);
+
+export const normalizeModernAiButtonDesign = (
+  value: unknown,
+): ModernAiButtonDesignId =>
+  typeof value === 'string' && MODERN_AI_BUTTON_DESIGN_SET.has(value)
+    ? (value as ModernAiButtonDesignId)
+    : DEFAULT_MODERN_AI_BUTTON_DESIGN;
+
+const getScopedSetting = <T extends string>(
+  userId: string | null | undefined,
+  key: string,
+  fallback: T,
+  normalize: (value: unknown) => T,
+): T => {
   try {
     if (userId) {
-      const userValue = localSettingsStore.get(
-        userId,
-        MODERN_THEME_SETTING_KEY,
-        '',
-      );
+      const userValue = localSettingsStore.get(userId, key, '');
       if (userValue) {
-        return normalizeModernTheme(userValue);
+        return normalize(userValue);
       }
     }
     const deviceValue = localSettingsStore.get(
       MODERN_THEME_DEVICE_SCOPE,
-      MODERN_THEME_SETTING_KEY,
-      DEFAULT_MODERN_THEME,
+      key,
+      fallback,
     );
-    return normalizeModernTheme(deviceValue);
+    return normalize(deviceValue);
   } catch {
-    return DEFAULT_MODERN_THEME;
+    return fallback;
   }
 };
 
-export const saveModernTheme = (
+const saveScopedSetting = <T extends string>(
   userId: string | null | undefined,
-  themeId: ModernThemeId,
+  key: string,
+  value: T,
+  normalize: (raw: unknown) => T,
 ): void => {
-  const safeTheme = normalizeModernTheme(themeId);
+  const safeValue = normalize(value);
   try {
-    localSettingsStore.set(
-      MODERN_THEME_DEVICE_SCOPE,
-      MODERN_THEME_SETTING_KEY,
-      safeTheme,
-    );
+    localSettingsStore.set(MODERN_THEME_DEVICE_SCOPE, key, safeValue);
   } catch {
-    // Keep runtime theme change responsive even if SQLite is temporarily locked.
+    // Keep runtime preference change responsive even if SQLite is temporarily locked.
   }
   if (!userId) return;
   try {
-    localSettingsStore.set(userId, MODERN_THEME_SETTING_KEY, safeTheme);
+    localSettingsStore.set(userId, key, safeValue);
   } catch {
     // Non-fatal; device scope was already updated above.
   }
 };
+
+export const getSavedModernTheme = (userId?: string | null): ModernThemeId =>
+  getScopedSetting(
+    userId,
+    MODERN_THEME_SETTING_KEY,
+    DEFAULT_MODERN_THEME,
+    normalizeModernTheme,
+  );
+
+export const saveModernTheme = (
+  userId: string | null | undefined,
+  themeId: ModernThemeId,
+): void =>
+  saveScopedSetting(
+    userId,
+    MODERN_THEME_SETTING_KEY,
+    themeId,
+    normalizeModernTheme,
+  );
+
+export const getSavedModernAiButtonDesign = (
+  userId?: string | null,
+): ModernAiButtonDesignId =>
+  getScopedSetting(
+    userId,
+    MODERN_AI_BUTTON_DESIGN_SETTING_KEY,
+    DEFAULT_MODERN_AI_BUTTON_DESIGN,
+    normalizeModernAiButtonDesign,
+  );
+
+export const saveModernAiButtonDesign = (
+  userId: string | null | undefined,
+  designId: ModernAiButtonDesignId,
+): void =>
+  saveScopedSetting(
+    userId,
+    MODERN_AI_BUTTON_DESIGN_SETTING_KEY,
+    designId,
+    normalizeModernAiButtonDesign,
+  );

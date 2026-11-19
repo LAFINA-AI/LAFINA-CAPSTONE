@@ -2,15 +2,21 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {act, fireEvent, render, within} from '@testing-library/react-native';
 import {
+  DEFAULT_MODERN_AI_BUTTON_DESIGN,
   DEFAULT_MODERN_THEME,
   db,
+  getSavedModernAiButtonDesign,
   getSavedModernTheme,
   initDatabase,
   localSettingsStore,
+  MODERN_AI_BUTTON_DESIGN_IDS,
+  MODERN_AI_BUTTON_DESIGN_SETTING_KEY,
   MODERN_THEME_DEVICE_SCOPE,
   MODERN_THEME_IDS,
   MODERN_THEME_SETTING_KEY,
+  normalizeModernAiButtonDesign,
   normalizeModernTheme,
+  saveModernAiButtonDesign,
   saveModernTheme,
   type ModernThemeId,
 } from '../src/storage';
@@ -208,6 +214,44 @@ describe('Modern Color Themes', () => {
         saveModernTheme(MODERN_THEME_DEVICE_SCOPE, 'forest'),
       ).not.toThrow();
     });
+
+    test('normalizes and persists AI button design per user + device fallback', () => {
+      expect(DEFAULT_MODERN_AI_BUTTON_DESIGN).toBe('synth_orb');
+      expect(MODERN_AI_BUTTON_DESIGN_IDS).toEqual([
+        'synth_orb',
+        'liquid_pearl',
+        'eclipse_dial',
+        'prism_lens',
+        'acoustic_core',
+      ]);
+      expect(normalizeModernAiButtonDesign(null)).toBe('synth_orb');
+      expect(normalizeModernAiButtonDesign('unknown')).toBe('synth_orb');
+      expect(normalizeModernAiButtonDesign('eclipse_dial')).toBe(
+        'eclipse_dial',
+      );
+
+      const u1 = makeStudent('ai-btn-1');
+      const u2 = makeStudent('ai-btn-2');
+
+      saveModernAiButtonDesign(null, 'prism_lens');
+      expect(getSavedModernAiButtonDesign(null)).toBe('prism_lens');
+      expect(getSavedModernAiButtonDesign(u1)).toBe('prism_lens');
+
+      saveModernAiButtonDesign(u1, 'liquid_pearl');
+      expect(getSavedModernAiButtonDesign(u1)).toBe('liquid_pearl');
+      expect(getSavedModernAiButtonDesign(null)).toBe('liquid_pearl');
+
+      saveModernAiButtonDesign(u2, 'acoustic_core');
+      expect(getSavedModernAiButtonDesign(u2)).toBe('acoustic_core');
+      expect(getSavedModernAiButtonDesign(u1)).toBe('liquid_pearl');
+
+      localSettingsStore.set(
+        u1,
+        MODERN_AI_BUTTON_DESIGN_SETTING_KEY,
+        'corrupt',
+      );
+      expect(getSavedModernAiButtonDesign(u1)).toBe('synth_orb');
+    });
   });
 
   describe('ThemeContext & UI integration', () => {
@@ -294,6 +338,7 @@ describe('Modern Color Themes', () => {
           userId={uid}
           initialUIVariant="modern"
           initialModernTheme="violet"
+          initialModernAiButtonDesign="synth_orb"
         >
           <ProfileScreen
             userId={uid}
@@ -331,6 +376,62 @@ describe('Modern Color Themes', () => {
       expect(getSavedModernTheme(uid)).toBe('rose');
     });
 
+    test('ProfileScreen exposes AI Button Design selector under Appearance, switches live, and persists selection', () => {
+      const uid = makeStudent('ai-design-profile');
+      const ui = render(
+        <ThemeProvider
+          userId={uid}
+          initialUIVariant="modern"
+          initialModernTheme="violet"
+          initialModernAiButtonDesign="synth_orb"
+        >
+          <ProfileScreen
+            userId={uid}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(ui.getByTestId('modern-ai-button-selector')).toBeTruthy();
+      expect(
+        within(ui.getByTestId('modern-ai-button-active-badge')).getByText(
+          'Synth Orb',
+        ),
+      ).toBeTruthy();
+
+      expect(ui.getByText('Liquid Pearl')).toBeTruthy();
+      expect(ui.getByText('Eclipse Dial')).toBeTruthy();
+      expect(ui.getByText('Prism Lens')).toBeTruthy();
+      expect(ui.getByText('Acoustic Core')).toBeTruthy();
+
+      for (const designId of MODERN_AI_BUTTON_DESIGN_IDS) {
+        expect(
+          ui.getByTestId(`modern-ai-button-preview-${designId}`),
+        ).toBeTruthy();
+      }
+
+      expect(
+        ui.getByTestId('modern-ai-button-synth_orb').props.accessibilityState,
+      ).toEqual({checked: true, selected: true});
+
+      fireEvent.press(ui.getByTestId('modern-ai-button-eclipse_dial'));
+
+      expect(
+        within(ui.getByTestId('modern-ai-button-active-badge')).getByText(
+          'Eclipse Dial',
+        ),
+      ).toBeTruthy();
+      expect(
+        ui.getByTestId('modern-ai-button-eclipse_dial').props
+          .accessibilityState,
+      ).toEqual({checked: true, selected: true});
+      expect(
+        ui.getByTestId('modern-ai-button-synth_orb').props.accessibilityState,
+      ).toEqual({checked: false, selected: false});
+      expect(getSavedModernAiButtonDesign(uid)).toBe('eclipse_dial');
+    });
+
     test('ProfileScreen hides Modern Color Theme selector when Classic interface is active', () => {
       const uid = makeStudent('classic-profile');
       const ui = render(
@@ -348,6 +449,7 @@ describe('Modern Color Themes', () => {
       );
 
       expect(ui.queryByTestId('modern-theme-selector')).toBeNull();
+      expect(ui.queryByTestId('modern-ai-button-selector')).toBeNull();
     });
 
     test('ModernHomeContent, CustomTabBar, ChatScreen, and SynthWaveAvatar adopt selected theme tokens', async () => {

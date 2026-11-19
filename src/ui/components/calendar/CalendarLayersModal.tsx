@@ -13,12 +13,21 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { CALENDAR_LAYER_SWATCHES, Fonts, Shadows } from '../../theme';
 import { ImportBatch } from '../../../storage/importedBatchesStore';
 import { HOLIDAY_CALENDAR_ID, HOLIDAY_CALENDAR_NAME } from '../../screens/calendar/utils/philippineHolidays';
+import {
+  BIRTHDAY_ACCENT_COLOR,
+  BIRTHDAYS_GROUP_ID,
+  CLASSES_GROUP_ID,
+  REMINDERS_GROUP_ID,
+  TASKS_GROUP_ID,
+  type CustomScheduleGroup,
+} from '../../screens/calendar/utils/calendarGroups';
 
 interface CalendarLayersModalProps {
   visible: boolean;
   onClose: () => void;
   username: string;
   batches: ImportBatch[];
+  customGroups?: CustomScheduleGroup[];
   visibilityMap: Record<string, boolean>;
   onToggleVisibility: (calendarId: string, isVisible: boolean) => void;
   onRemoveBatch: (batch: ImportBatch) => void;
@@ -33,6 +42,7 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
   onClose,
   username,
   batches,
+  customGroups = [],
   visibilityMap,
   onToggleVisibility,
   onRemoveBatch,
@@ -40,6 +50,10 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
   const { colors } = useTheme();
   
   const mainVisible = visibilityMap.main !== false;
+  const classesVisible = visibilityMap[CLASSES_GROUP_ID] !== false;
+  const birthdaysVisible = visibilityMap[BIRTHDAYS_GROUP_ID] !== false;
+  const tasksVisible = visibilityMap[TASKS_GROUP_ID] !== false;
+  const remindersVisible = visibilityMap[REMINDERS_GROUP_ID] !== false;
   const holidaysVisible = visibilityMap[HOLIDAY_CALENDAR_ID] !== false;
 
   /**
@@ -94,6 +108,124 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
                     <Text style={[styles.itemSub, { color: colors.textSecondary }]}>Primary Schedule</Text>
                   </View>
                 </TouchableOpacity>
+
+                {/* Classes Layer */}
+                <TouchableOpacity
+                  style={[styles.item, { borderBottomColor: colors.border }]}
+                  activeOpacity={0.7}
+                  onPress={() => onToggleVisibility(CLASSES_GROUP_ID, !classesVisible)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: classesVisible }}
+                  accessibilityLabel="Classes"
+                >
+                  <View style={[
+                    styles.checkbox,
+                    { borderColor: colors.primary },
+                    classesVisible && { backgroundColor: colors.primary }
+                  ]}>
+                    {classesVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>Classes</Text>
+                    <Text style={[styles.itemSub, { color: colors.textSecondary }]}>Repeating class subjects & COR schedule</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Birthdays Layer */}
+                <TouchableOpacity
+                  style={[styles.item, { borderBottomColor: colors.border }]}
+                  activeOpacity={0.7}
+                  onPress={() => onToggleVisibility(BIRTHDAYS_GROUP_ID, !birthdaysVisible)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: birthdaysVisible }}
+                  accessibilityLabel="Birthdays"
+                >
+                  <View style={[
+                    styles.checkbox,
+                    { borderColor: BIRTHDAY_ACCENT_COLOR },
+                    birthdaysVisible && { backgroundColor: BIRTHDAY_ACCENT_COLOR }
+                  ]}>
+                    {birthdaysVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>Birthdays</Text>
+                    <Text style={[styles.itemSub, { color: colors.textSecondary }]}>Yearly birthdays & anniversaries</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Tasks Layer */}
+                <TouchableOpacity
+                  style={[styles.item, { borderBottomColor: colors.border }]}
+                  activeOpacity={0.7}
+                  onPress={() => onToggleVisibility(TASKS_GROUP_ID, !tasksVisible)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: tasksVisible }}
+                  accessibilityLabel="Tasks"
+                >
+                  <View style={[
+                    styles.checkbox,
+                    { borderColor: colors.success },
+                    tasksVisible && { backgroundColor: colors.success }
+                  ]}>
+                    {tasksVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>Tasks</Text>
+                    <Text style={[styles.itemSub, { color: colors.textSecondary }]}>Due assignments & to-do items</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Reminders Layer */}
+                <TouchableOpacity
+                  style={[styles.item, { borderBottomColor: colors.border }]}
+                  activeOpacity={0.7}
+                  onPress={() => onToggleVisibility(REMINDERS_GROUP_ID, !remindersVisible)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: remindersVisible }}
+                  accessibilityLabel="Reminders"
+                >
+                  <View style={[
+                    styles.checkbox,
+                    { borderColor: colors.warning },
+                    remindersVisible && { backgroundColor: colors.warning }
+                  ]}>
+                    {remindersVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>Reminders</Text>
+                    <Text style={[styles.itemSub, { color: colors.textSecondary }]}>Standalone scheduled reminders</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Custom User Schedule Groups */}
+                {customGroups.map((group) => {
+                  const groupVisible = visibilityMap[group.layerId] !== false;
+                  return (
+                    <TouchableOpacity
+                      key={group.layerId}
+                      style={[styles.item, { borderBottomColor: colors.border }]}
+                      activeOpacity={0.7}
+                      onPress={() => onToggleVisibility(group.layerId, !groupVisible)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: groupVisible }}
+                      accessibilityLabel={group.name}
+                    >
+                      <View style={[
+                        styles.checkbox,
+                        { borderColor: group.color },
+                        groupVisible && { backgroundColor: group.color }
+                      ]}>
+                        {groupVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
+                      </View>
+                      <View style={styles.textContainer}>
+                        <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{group.name}</Text>
+                        <Text style={[styles.itemSub, { color: colors.textSecondary }]}>
+                          Custom group • {group.items.length} item{group.items.length === 1 ? '' : 's'}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
 
                 {/* Built in, like Google Calendar's holiday layer: nothing to import */}
                 <TouchableOpacity

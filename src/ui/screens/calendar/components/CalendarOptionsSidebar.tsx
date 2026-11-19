@@ -13,25 +13,40 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   BookOpen,
+  Cake,
   Calendar as CalendarIcon,
+  Check,
   ChevronRight,
   Download,
+  Flag,
+  FolderPlus,
   GraduationCap,
   Inbox,
   Layers,
   Maximize2,
   Minimize2,
+  Plus,
   Upload,
   X,
 } from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {Fonts, Shadows} from '../../../theme';
+import {
+  BIRTHDAY_ACCENT_COLOR,
+  BIRTHDAYS_GROUP_ID,
+  CLASSES_GROUP_ID,
+  type CustomScheduleGroup,
+} from '../utils/calendarGroups';
+import {HOLIDAY_CALENDAR_ID} from '../utils/philippineHolidays';
 import {useSchedulePalette, scheduleCardShadow} from './schedulePalette';
 
 export interface CalendarOptionsSidebarProps {
   visible: boolean;
   onClose: () => void;
   classCount: number;
+  birthdayCount?: number;
+  customGroups?: CustomScheduleGroup[];
+  visibilityMap?: Record<string, boolean>;
   profileSummary?: string | null;
   hasUndated: boolean;
   onViewClasses: () => void;
@@ -42,16 +57,24 @@ export interface CalendarOptionsSidebarProps {
   onImportCalendar: () => void;
   onRemoveImportedCalendar: () => void;
   onExportCalendar: () => void;
+  onToggleLayer?: (layerId: string, isVisible: boolean) => void;
+  onOpenBirthdays?: () => void;
+  onOpenHolidays?: () => void;
+  onOpenCustomGroup?: (groupName?: string | null) => void;
 }
 
 /**
  * Chat-style slide-out sidebar for Schedule tools, COR/class management,
+ * Google Calendar-style groups (Birthdays, Philippine Holidays, Custom Groups),
  * layer visibility, undated tasks, and .ics import/export.
  */
 export const CalendarOptionsSidebar: React.FC<CalendarOptionsSidebarProps> = ({
   visible,
   onClose,
   classCount,
+  birthdayCount = 0,
+  customGroups = [],
+  visibilityMap = {},
   profileSummary,
   hasUndated,
   onViewClasses,
@@ -62,6 +85,10 @@ export const CalendarOptionsSidebar: React.FC<CalendarOptionsSidebarProps> = ({
   onImportCalendar,
   onRemoveImportedCalendar,
   onExportCalendar,
+  onToggleLayer,
+  onOpenBirthdays,
+  onOpenHolidays,
+  onOpenCustomGroup,
 }) => {
   const {colors, isModern, modernPalette} = useTheme();
   const palette = useSchedulePalette();
@@ -364,6 +391,345 @@ export const CalendarOptionsSidebar: React.FC<CalendarOptionsSidebarProps> = ({
                   </Text>
                   <Text style={[styles.menuDesc, {color: palette.muted}]}>
                     Manually enter classes or scan a USTP COR / schedule
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Section: Calendar Groups (Google Calendar-style layers & managers) */}
+            <Text style={[styles.sectionLabel, {color: palette.muted}]}>
+              CALENDAR GROUPS
+            </Text>
+
+            <View
+              style={[
+                styles.sectionCard,
+                {
+                  backgroundColor: palette.isDarkMode
+                    ? palette.surface
+                    : palette.card,
+                  borderColor: palette.border,
+                },
+                !palette.isDarkMode && scheduleCardShadow,
+              ]}
+            >
+              {/* Classes Layer */}
+              {(() => {
+                const classesVisible = visibilityMap[CLASSES_GROUP_ID] !== false;
+                return (
+                  <View
+                    style={[
+                      styles.groupRow,
+                      {borderBottomColor: palette.border},
+                    ]}
+                  >
+                    <TouchableOpacity
+                      testID="sidebar-layer-toggle-classes"
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                      onPress={() =>
+                        onToggleLayer?.(CLASSES_GROUP_ID, !classesVisible)
+                      }
+                      style={[
+                        styles.groupCheckbox,
+                        {borderColor: palette.accent},
+                        classesVisible && {backgroundColor: palette.accent},
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{checked: classesVisible}}
+                      accessibilityLabel="Toggle Classes visibility"
+                    >
+                      {classesVisible && (
+                        <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.groupBody}
+                      onPress={() => {
+                        onClose();
+                        onViewClasses();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.menuTextCol}>
+                        <View style={styles.menuTitleRow}>
+                          <Text
+                            style={[styles.menuTitle, {color: palette.text}]}
+                          >
+                            Classes
+                          </Text>
+                          {classCount > 0 && (
+                            <View
+                              style={[
+                                styles.badgePill,
+                                {backgroundColor: palette.accent + '1E'},
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.badgePillText,
+                                  {color: palette.accent},
+                                ]}
+                              >
+                                {classCount}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.menuDesc, {color: palette.muted}]}>
+                          Repeating class subjects
+                        </Text>
+                      </View>
+                      <ChevronRight size={15} color={palette.muted} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+
+              {/* Birthdays Group */}
+              {(() => {
+                const bdayVisible = visibilityMap[BIRTHDAYS_GROUP_ID] !== false;
+                return (
+                  <View
+                    style={[
+                      styles.groupRow,
+                      {borderBottomColor: palette.border},
+                    ]}
+                  >
+                    <TouchableOpacity
+                      testID="sidebar-layer-toggle-birthdays"
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                      onPress={() =>
+                        onToggleLayer?.(BIRTHDAYS_GROUP_ID, !bdayVisible)
+                      }
+                      style={[
+                        styles.groupCheckbox,
+                        {borderColor: BIRTHDAY_ACCENT_COLOR},
+                        bdayVisible && {
+                          backgroundColor: BIRTHDAY_ACCENT_COLOR,
+                        },
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{checked: bdayVisible}}
+                      accessibilityLabel="Toggle Birthdays visibility"
+                    >
+                      {bdayVisible && (
+                        <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID="calendar-birthdays-group-button"
+                      style={styles.groupBody}
+                      onPress={() => {
+                        onClose();
+                        onOpenBirthdays?.();
+                      }}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Birthdays group"
+                    >
+                      <View style={styles.menuTextCol}>
+                        <View style={styles.menuTitleRow}>
+                          <Cake size={14} color={BIRTHDAY_ACCENT_COLOR} />
+                          <Text
+                            style={[styles.menuTitle, {color: palette.text}]}
+                          >
+                            Birthdays
+                          </Text>
+                          {birthdayCount > 0 && (
+                            <View
+                              style={[
+                                styles.badgePill,
+                                {
+                                  backgroundColor:
+                                    BIRTHDAY_ACCENT_COLOR + '1E',
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.badgePillText,
+                                  {color: BIRTHDAY_ACCENT_COLOR},
+                                ]}
+                              >
+                                {birthdayCount}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.menuDesc, {color: palette.muted}]}>
+                          Yearly birthdays & anniversaries
+                        </Text>
+                      </View>
+                      <ChevronRight size={15} color={palette.muted} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+
+              {/* Holidays in the Philippines */}
+              {(() => {
+                const holidaysVisible =
+                  visibilityMap[HOLIDAY_CALENDAR_ID] !== false;
+                return (
+                  <View
+                    style={[
+                      styles.groupRow,
+                      {borderBottomColor: palette.border},
+                    ]}
+                  >
+                    <TouchableOpacity
+                      testID="sidebar-layer-toggle-holidays"
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                      onPress={() =>
+                        onToggleLayer?.(HOLIDAY_CALENDAR_ID, !holidaysVisible)
+                      }
+                      style={[
+                        styles.groupCheckbox,
+                        {borderColor: '#0B8043'},
+                        holidaysVisible && {backgroundColor: '#0B8043'},
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{checked: holidaysVisible}}
+                      accessibilityLabel="Toggle Holidays in the Philippines visibility"
+                    >
+                      {holidaysVisible && (
+                        <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID="calendar-holidays-group-button"
+                      style={styles.groupBody}
+                      onPress={() => {
+                        onClose();
+                        onOpenHolidays?.();
+                      }}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Holidays in the Philippines"
+                    >
+                      <View style={styles.menuTextCol}>
+                        <View style={styles.menuTitleRow}>
+                          <Flag size={14} color="#0B8043" />
+                          <Text
+                            style={[styles.menuTitle, {color: palette.text}]}
+                          >
+                            Philippine Holidays
+                          </Text>
+                        </View>
+                        <Text style={[styles.menuDesc, {color: palette.muted}]}>
+                          Regular & special non-working days
+                        </Text>
+                      </View>
+                      <ChevronRight size={15} color={palette.muted} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+
+              {/* User Custom Groups */}
+              {customGroups.map(group => {
+                const isVis = visibilityMap[group.layerId] !== false;
+                return (
+                  <View
+                    key={group.layerId}
+                    style={[
+                      styles.groupRow,
+                      {borderBottomColor: palette.border},
+                    ]}
+                  >
+                    <TouchableOpacity
+                      testID={`sidebar-layer-toggle-custom-${group.name}`}
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                      onPress={() => onToggleLayer?.(group.layerId, !isVis)}
+                      style={[
+                        styles.groupCheckbox,
+                        {borderColor: group.color},
+                        isVis && {backgroundColor: group.color},
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{checked: isVis}}
+                      accessibilityLabel={`Toggle ${group.name} visibility`}
+                    >
+                      {isVis && (
+                        <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID={`calendar-custom-group-${group.name}`}
+                      style={styles.groupBody}
+                      onPress={() => {
+                        onClose();
+                        onOpenCustomGroup?.(group.name);
+                      }}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${group.name} group`}
+                    >
+                      <View style={styles.menuTextCol}>
+                        <View style={styles.menuTitleRow}>
+                          <Text
+                            style={[styles.menuTitle, {color: palette.text}]}
+                            numberOfLines={1}
+                          >
+                            {group.name}
+                          </Text>
+                          {group.items.length > 0 && (
+                            <View
+                              style={[
+                                styles.badgePill,
+                                {backgroundColor: group.color + '1E'},
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.badgePillText,
+                                  {color: group.color},
+                                ]}
+                              >
+                                {group.items.length}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.menuDesc, {color: palette.muted}]}>
+                          Custom schedule group
+                        </Text>
+                      </View>
+                      <ChevronRight size={15} color={palette.muted} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+
+              {/* Add New Group */}
+              <TouchableOpacity
+                testID="calendar-add-custom-group-button"
+                style={[styles.menuItem, styles.menuItemLast]}
+                onPress={() => {
+                  onClose();
+                  onOpenCustomGroup?.(null);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Add schedule group"
+              >
+                <View
+                  style={[
+                    styles.menuIconWrap,
+                    {backgroundColor: palette.accent + '16'},
+                  ]}
+                >
+                  <FolderPlus size={17} color={palette.accent} />
+                </View>
+                <View style={styles.menuTextCol}>
+                  <View style={styles.menuTitleRow}>
+                    <Plus size={14} color={palette.accent} strokeWidth={2.5} />
+                    <Text style={[styles.menuTitle, {color: palette.accent}]}>
+                      Add Schedule Group
+                    </Text>
+                  </View>
+                  <Text style={[styles.menuDesc, {color: palette.muted}]}>
+                    Create Exams, Org, Gym, or custom layers
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -675,6 +1041,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  groupCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  groupBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   menuItemLast: {
     borderBottomWidth: 0,

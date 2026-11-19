@@ -2001,11 +2001,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
             >
               {centerPillInfo.label}
             </Text>
-            <ChevronDown
-              size={13}
-              color={themed.headerSubtitle.color}
-              strokeWidth={2.2}
-            />
+            <View style={styles.centerPillChevron}>
+              <ChevronDown
+                size={14}
+                color={themed.headerSubtitle.color}
+                strokeWidth={2.2}
+              />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -2090,10 +2092,12 @@ export const ChatScreen = React.memo(function ChatScreenView({
               ]}
               testID="chat-ustp-mode-badge"
             >
-              <BookOpen
-                size={12}
-                color={isModern ? modernPalette.accent : colors.primary}
-              />
+              <View style={styles.contextPillIcon}>
+                <BookOpen
+                  size={12}
+                  color={isModern ? modernPalette.accent : colors.primary}
+                />
+              </View>
               <Text
                 style={[
                   styles.contextPillText,
@@ -2126,15 +2130,18 @@ export const ChatScreen = React.memo(function ChatScreenView({
                 },
               ]}
             >
-              <MessageCircleDashed
-                size={12}
-                color={isModern ? modernPalette.accent : colors.primary}
-              />
+              <View style={styles.contextPillIcon}>
+                <MessageCircleDashed
+                  size={12}
+                  color={isModern ? modernPalette.accent : colors.primary}
+                />
+              </View>
               <Text
                 style={[
                   styles.contextPillText,
                   {color: isModern ? modernPalette.accent : colors.primary},
                 ]}
+                numberOfLines={1}
               >
                 Temporary Chat · Not saved in history
               </Text>
@@ -2489,7 +2496,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderBottomWidth: 0,
     paddingTop: 8,
-    paddingBottom: 6,
+    paddingBottom: 8,
   },
   headerCircleButton: {
     width: 42,
@@ -2510,42 +2517,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    minHeight: 42,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
     maxWidth: '100%',
   },
   centerPillDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
   },
   centerPillText: {
     fontFamily: Fonts.heading,
     fontSize: 13,
     fontWeight: '700',
+    lineHeight: 17,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
     flexShrink: 1,
+  },
+  centerPillChevron: {
+    height: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   contextStrip: {
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingTop: 2,
+    paddingBottom: 8,
   },
   contextPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 5,
     maxWidth: '90%',
+  },
+  contextPillIcon: {
+    height: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   contextPillText: {
     fontFamily: Fonts.heading,
     fontSize: 11.5,
     fontWeight: '600',
+    lineHeight: 15,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    flexShrink: 1,
   },
   headerRight: {
     flexDirection: 'row',

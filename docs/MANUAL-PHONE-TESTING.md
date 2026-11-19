@@ -395,7 +395,7 @@ These are **simulated app calls**, not carrier calls. On the current privacy des
 | [ ] | INC-11 | Answer, then End/Back. | Current answered-call settlement matches displayed policy; no stale next call is closed. |
 | [ ] | INC-12 | Leave ringing unanswered for 45 seconds. | Ring/notification stops at the deadline, subject to documented OS scheduling limits. |
 | [ ] | INC-13 | **Regression:** after native 45-second timeout, open LAFINA about one minute later. | Same reminder does not ring again early; snoozed state persists until retry (default 5 minutes after cutoff). |
-| [ ] | INC-14 | Keep an answered call active near 10 minutes. | Remaining-time warning appears in last minute; timeout applies bounded snooze policy, never auto-completes task. |
+| [ ] | INC-14 | Keep an answered call active near 10 minutes. | Remaining-time warning appears in last minute; timeout applies bounded snooze policy, never auto-completes task. **Online call where you talked:** timeout ends the call as received (acknowledged), not snoozed. |
 | [ ] | INC-15 | Queue several reminders; let one waiting entry exceed its 15-minute lease. | Expired queued request becomes missed; it does not ring as fresh much later. |
 | [ ] | INC-16 | Tap Answer for a different queued notification while a call is active. | Active call stays coherent; later queued call rings and needs a fresh Answer. |
 | [ ] | INC-17 | Rapidly Answer/Decline/Snooze/Acknowledge, including notification plus screen action. | One committed outcome; no duplicate speech or inconsistent state. |
@@ -409,6 +409,12 @@ These are **simulated app calls**, not carrier calls. On the current privacy des
 | [ ] | INC-25 | Prepare a new task/event during an answered reminder conversation; ask a read-only question meanwhile. | Draft requires confirmation; read does not overwrite it or settle the reminder accidentally. |
 | [ ] | INC-26 | Switch account/sign out while a call is pending or answered. | Old call/audio/queue cannot appear or mutate the next owner's data. |
 | [ ] | INC-27 | Use Bluetooth/wired output; change volume/route and take a real phone call. | Audio focus and recovery are safe; no overlapping mic owner or orphan ringtone. |
+| [ ] | INC-28 | **Online call look:** signed in, Online Mode on, internet on. Let a reminder ring, then Answer. | Ringing screen says “Talk with LAFINA” under Answer. Answered screen looks like Call LAFINA (avatar ring, timer, waveform, Mute / Type / Stop / End). **No Acknowledge or Snooze buttons.** LAFINA says the reminder once, then “Need more time? Just tell me when to call you back…”. |
+| [ ] | INC-29 | In an online call, say “call me back in 20 minutes” (or type it after tapping Type). | Call ends with “Reminder snoozed”; reminder rings again about 20 minutes later; task unchanged. Saying “remind me later” with no length uses your usual snooze length from Preferences. |
+| [ ] | INC-30 | In an online call, say “okay, got it, thanks”; repeat on another call by just tapping End. | Both end with “Reminder acknowledged”; task is **not** marked done. |
+| [ ] | INC-31 | **Offline call keeps buttons:** turn Online Mode off (or use guest mode, or airplane mode), let a reminder ring, Answer. | Ringing screen says “Hear the reminder”; answered screen shows Acknowledge, Snooze and the 5/10/15/30m chips exactly as before. |
+| [ ] | INC-32 | Online call fallbacks: (a) choose “Use offline voice” in the first-time disclosure, (b) deny the microphone, (c) turn on airplane mode mid-call. | Each case switches to the offline call screen with Acknowledge and Snooze available; (c) also resumes offline voice when the app is on screen. |
+| [ ] | INC-33 | Online call, stay silent for about 2 minutes. | Conversation stops for inactivity and the screen switches to the offline call with Acknowledge and Snooze. |
 
 ## 14. Offline speech capture and intent models
 

@@ -2,7 +2,13 @@ import {useSchedulePage} from '../hooks/useSchedulePage';
 import {ScheduleMoreButton} from './ScheduleMoreButton';
 import React, {useMemo} from 'react';
 import {View, Text, StyleSheet} from 'react-native';
-import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
+import type {
+  TimeBlock,
+  Task,
+  Event,
+  Reminder,
+  ScheduleAttachedEntry,
+} from '../../../../storage';
 import type {ScheduleTimelineItem} from '../types';
 import {
   buildDayTimelineItems,
@@ -16,10 +22,12 @@ interface WeekViewProps {
   weekDays: Date[];
   selectedDate: Date;
   timeFormat24h: boolean;
+  showHolidays?: boolean;
   blocks: TimeBlock[];
   tasks: Task[];
   events: Event[];
   reminders?: Reminder[];
+  attachedEntries?: ScheduleAttachedEntry[];
   onSelectDate: (date: Date) => void;
   onPressItem: (item: ScheduleTimelineItem) => void;
   onToggleTask?: (task: Task) => void;
@@ -29,10 +37,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
   weekDays,
   selectedDate,
   timeFormat24h,
+  showHolidays = true,
   blocks,
   tasks,
   events,
   reminders = [],
+  attachedEntries,
   onSelectDate,
   onPressItem,
   onToggleTask,
@@ -48,8 +58,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
         tasks,
         reminders,
         timeFormat24h,
+        showHolidays,
+        attachedEntries,
       }),
-    [selectedDate, blocks, events, tasks, reminders, timeFormat24h],
+    [
+      selectedDate,
+      blocks,
+      events,
+      tasks,
+      reminders,
+      timeFormat24h,
+      showHolidays,
+      attachedEntries,
+    ],
   );
 
   const page = useSchedulePage(selectedDate.toDateString(), dayItems);

@@ -37,6 +37,14 @@ import {
   importedBatchesStore,
   type ImportBatch,
 } from '../../../../storage/importedBatchesStore';
+import {
+  BIRTHDAYS_GROUP_ID,
+  CLASSES_GROUP_ID,
+  STANDARD_BLOCK_CATEGORIES,
+  TASKS_GROUP_ID,
+  customGroupLayerId,
+  isBirthdayEvent,
+} from '../../calendar/utils/calendarGroups';
 import {plannerQueries} from '../../../../storage/plannerQueries';
 import {getDefaultUserPreferences} from '../../../../storage/preferencesStore';
 import {Colors} from '../../../theme';
@@ -393,29 +401,42 @@ export const useDashboardData = ({
       });
     }
 
-    const filterVisible = <T extends {id: string}>(
-      items: readonly T[],
-      importedSet: Set<string>,
-      hiddenSet: Set<string>,
-    ): T[] =>
-      items.filter(item => {
-        const id = baseEntityId(item.id);
-        return importedSet.has(id) ? !hiddenSet.has(id) : !hideMain;
+    const filterBlocks = (items: readonly TimeBlock[]): TimeBlock[] =>
+      items.filter(block => {
+        const id = baseEntityId(block.id);
+        if (importedBlockIds.has(id)) return !hiddenBlockIds.has(id);
+        const lowerCat = (block.category || '').trim().toLowerCase();
+        if (lowerCat === 'class') {
+          return visibilityMap[CLASSES_GROUP_ID] !== false;
+        }
+        if (lowerCat && !STANDARD_BLOCK_CATEGORIES.has(lowerCat)) {
+          return visibilityMap[customGroupLayerId(lowerCat)] !== false;
+        }
+        return !hideMain;
+      });
+
+    const filterEvents = (items: readonly Event[]): Event[] =>
+      items.filter(event => {
+        const id = baseEntityId(event.id);
+        if (importedEventIds.has(id)) return !hiddenEventIds.has(id);
+        if (isBirthdayEvent(event)) {
+          return visibilityMap[BIRTHDAYS_GROUP_ID] !== false;
+        }
+        return !hideMain;
+      });
+
+    const filterTasks = (items: readonly Task[]): Task[] =>
+      items.filter(task => {
+        const id = baseEntityId(task.id);
+        if (importedTaskIds.has(id)) return !hiddenTaskIds.has(id);
+        return visibilityMap[TASKS_GROUP_ID] !== false;
       });
 
     return {
-      blocks: filterVisible(raw.blocks, importedBlockIds, hiddenBlockIds),
-      events: filterVisible(raw.events, importedEventIds, hiddenEventIds),
-      windowTasks: filterVisible(
-        raw.windowTasks,
-        importedTaskIds,
-        hiddenTaskIds,
-      ),
-      overdueItems: filterVisible(
-        raw.overdue.items,
-        importedTaskIds,
-        hiddenTaskIds,
-      ),
+      blocks: filterBlocks(raw.blocks),
+      events: filterEvents(raw.events),
+      windowTasks: filterTasks(raw.windowTasks),
+      overdueItems: filterTasks(raw.overdue.items),
     };
   }, [batches, visibilityMap, raw]);
 

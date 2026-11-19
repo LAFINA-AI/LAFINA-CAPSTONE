@@ -22,6 +22,16 @@ import {
   persistImportedCalendarBatch,
   removeImportedCalendarBatch,
 } from './calendarImportPersistence';
+import {HOLIDAY_CALENDAR_ID} from '../utils/philippineHolidays';
+import {
+  BIRTHDAYS_GROUP_ID,
+  CLASSES_GROUP_ID,
+  REMINDERS_GROUP_ID,
+  STANDARD_BLOCK_CATEGORIES,
+  TASKS_GROUP_ID,
+  customGroupLayerId,
+  isBirthdayEvent,
+} from '../utils/calendarGroups';
 
 interface UseCalendarDataOptions {
   userId: string;
@@ -114,9 +124,9 @@ export const useCalendarData = (
 
   // Visibility and imports state
   const [batches, setBatches] = useState<ImportBatch[]>([]);
-  const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>({
-    main: true,
-  });
+  const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>(
+    () => calendarVisibilityStore.getCachedVisibilityMap(userId) ?? {main: true},
+  );
   const [username, setUsername] = useState(() => {
     try {
       return userStore.getUserById(userId)?.username || 'Main Calendar';
@@ -291,9 +301,15 @@ export const useCalendarData = (
       const isImported = importedBlockIds.has(id);
       if (isImported) {
         return !hiddenBlockIds.has(id);
-      } else {
-        return !hideMain;
       }
+      const lowerCat = (block.category || '').trim().toLowerCase();
+      if (lowerCat === 'class') {
+        return visibilityMap[CLASSES_GROUP_ID] !== false;
+      }
+      if (lowerCat && !STANDARD_BLOCK_CATEGORIES.has(lowerCat)) {
+        return visibilityMap[customGroupLayerId(lowerCat)] !== false;
+      }
+      return !hideMain;
     });
 
     setBlocks(rawData);
@@ -370,9 +386,8 @@ export const useCalendarData = (
       const isImported = importedTaskIds.has(id);
       if (isImported) {
         return !hiddenTaskIds.has(id);
-      } else {
-        return !hideMain;
       }
+      return visibilityMap[TASKS_GROUP_ID] !== false;
     });
 
     const expandedEvents = rawEvents.filter(e => {
@@ -380,9 +395,11 @@ export const useCalendarData = (
       const isImported = importedEventIds.has(id);
       if (isImported) {
         return !hiddenEventIds.has(id);
-      } else {
-        return !hideMain;
       }
+      if (isBirthdayEvent(e)) {
+        return visibilityMap[BIRTHDAYS_GROUP_ID] !== false;
+      }
+      return !hideMain;
     });
 
     setAllTasks(expandedTasks);
@@ -395,11 +412,15 @@ export const useCalendarData = (
     setTasks(dayTasks);
     setEvents(dayEvents);
     try {
-      setReminders(
-        remindersStore?.getPendingReminders
-          ? remindersStore.getPendingReminders(userId)
-          : [],
-      );
+      if (visibilityMap[REMINDERS_GROUP_ID] === false) {
+        setReminders([]);
+      } else {
+        setReminders(
+          remindersStore?.getPendingReminders
+            ? remindersStore.getPendingReminders(userId)
+            : [],
+        );
+      }
     } catch (error) {
       console.error('[Calendar] Could not read reminders:', error);
       setReminders([]);
@@ -809,6 +830,7 @@ export const useCalendarData = (
     // Visibility and Import/Export
     batches,
     visibilityMap,
+    showHolidays: visibilityMap[HOLIDAY_CALENDAR_ID] !== false,
     username,
     layersModalVisible,
     setLayersModalVisible,

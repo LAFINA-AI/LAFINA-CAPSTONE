@@ -22,7 +22,9 @@ import {
   Pin,
   CheckSquare,
 } from 'lucide-react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../contexts/ThemeContext';
+import {Layout, ModernLayout} from '../../theme';
 import {useNotesData} from './hooks/useNotesData';
 import {useTodoData} from './hooks/useTodoData';
 import {
@@ -47,8 +49,12 @@ export const NotesScreen = React.memo(function NotesScreenView({
   openRequest,
   onOpenRequestHandled,
 }: NotesScreenProps) {
-  const {colors} = useTheme();
+  const {colors, isModern} = useTheme();
+  const insets = useSafeAreaInsets();
   const palette = useSchedulePalette();
+  const tabBarClearance = isModern
+    ? ModernLayout.navbarContentHeight + Math.max(insets.bottom, 8) + 40
+    : Math.max(insets.bottom, 12) + 14 + Layout.navbarHeight + 8;
   const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
   const [alarmCreateTick, setAlarmCreateTick] = useState(0);
   const handleAddAlarm = useCallback(() => {
@@ -559,7 +565,10 @@ export const NotesScreen = React.memo(function NotesScreenView({
 
           {/* Content */}
           {data.filtered.length === 0 ? (
-            <View style={styles.emptyState}>
+            <View
+              testID="notes-empty-state"
+              style={[styles.emptyState, {paddingBottom: tabBarClearance}]}
+            >
               <FileText
                 size={48}
                 color={colors.red}
@@ -857,7 +866,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    paddingTop: 80,
   },
   emptyTitle: {
     fontFamily: 'sans-serif-medium',

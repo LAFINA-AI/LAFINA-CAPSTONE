@@ -2,7 +2,12 @@ import {useState, useCallback} from 'react';
 import {Alert} from 'react-native';
 import {Colors} from '../../../theme';
 import type {TimeBlock} from '../../../../storage';
-import {timeBlocksStore} from '../../../../storage';
+import {
+  baseScheduleEntityId,
+  resolveScheduleEntryTarget,
+  scheduleEntriesStore,
+  timeBlocksStore,
+} from '../../../../storage';
 import {TimeBlockForm, TimeBlockModalState} from '../types';
 import {generateId} from '../../../../utils';
 import {formatLocalDate} from '../utils/calendarHelpers';
@@ -101,16 +106,17 @@ export const useTimeBlockModal = (
   );
 
   const openEditBlock = useCallback((block: TimeBlock) => {
-    setEditingBlock(block);
+    const baseBlock = {...block, id: baseScheduleEntityId(block.id)};
+    setEditingBlock(baseBlock);
     setForm({
-      title: block.title,
-      date: block.date,
-      startTime: block.startTime,
-      endTime: block.endTime,
-      category: block.category,
-      color: block.color,
-      notes: block.notes || '',
-      recurrenceRule: block.recurrenceRule || null,
+      title: baseBlock.title,
+      date: baseBlock.date,
+      startTime: baseBlock.startTime,
+      endTime: baseBlock.endTime,
+      category: baseBlock.category,
+      color: baseBlock.color,
+      notes: baseBlock.notes || '',
+      recurrenceRule: baseBlock.recurrenceRule || null,
     });
     setVisible(true);
   }, []);
@@ -138,9 +144,14 @@ export const useTimeBlockModal = (
           : form.recurrenceRule || null;
 
       if (editingBlock) {
+        const oldTarget = resolveScheduleEntryTarget({
+          kind: 'block',
+          rawBlock: editingBlock,
+        });
+        const cleanTitle = form.title.trim();
         timeBlocksStore.update({
           id: editingBlock.id,
-          title: form.title.trim(),
+          title: cleanTitle,
           date: dateStr,
           startTime: form.startTime,
           endTime: form.endTime,
@@ -149,6 +160,24 @@ export const useTimeBlockModal = (
           notes: form.notes,
           recurrenceRule: rule,
         });
+        const newTarget = resolveScheduleEntryTarget({
+          kind: 'block',
+          rawBlock: {
+            ...editingBlock,
+            title: cleanTitle,
+            startTime: form.startTime,
+            endTime: form.endTime,
+            category: form.category,
+            recurrenceRule: rule,
+          },
+        });
+        if (oldTarget.targetId !== newTarget.targetId) {
+          scheduleEntriesStore.rekeyTarget(
+            userId,
+            oldTarget.targetId,
+            newTarget.targetId,
+          );
+        }
       } else {
         timeBlocksStore.insert({
           id: generateId('block'),
@@ -182,7 +211,24 @@ export const useTimeBlockModal = (
             text: 'Delete',
             style: 'destructive',
             onPress: () => {
-              timeBlocksStore.delete(id);
+              const targetId = baseScheduleEntityId(id);
+              timeBlocksStore.delete(targetId);
+              if (
+                editingBlock &&
+                baseScheduleEntityId(editingBlock.id) === targetId
+              ) {
+                const target = resolveScheduleEntryTarget({
+                  kind: 'block',
+                  rawBlock: editingBlock,
+                });
+                scheduleEntriesStore.removeEntriesForTarget(
+                  userId,
+                  target.targetId,
+                  [targetId, ...target.fallbackIds],
+                );
+              } else {
+                scheduleEntriesStore.removeEntriesForTarget(userId, targetId);
+              }
               setVisible(false);
               onSaved();
               onRefresh();
@@ -191,7 +237,7 @@ export const useTimeBlockModal = (
         ],
       );
     },
-    [onSaved, onRefresh],
+    [editingBlock, onSaved, onRefresh, userId],
   );
 
   return {

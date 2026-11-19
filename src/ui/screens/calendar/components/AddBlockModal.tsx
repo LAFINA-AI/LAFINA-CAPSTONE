@@ -20,13 +20,15 @@ import {
 } from '../utils/calendarHelpers';
 import { TimeBlockModalState } from '../types';
 import { parseRrule } from '../../../../storage/rruleHelper';
+import type { CustomScheduleGroup } from '../utils/calendarGroups';
 
 interface AddBlockModalProps {
   state: TimeBlockModalState;
   timeFormat24h: boolean;
+  customGroups?: CustomScheduleGroup[];
 }
 
-export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat24h }) => {
+export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat24h, customGroups = [] }) => {
   const { colors } = useTheme();
 
   // Local recurrence form states
@@ -213,6 +215,31 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
                   </Text>
                 </TouchableOpacity>
               ))}
+              {customGroups.map((group) => {
+                const selected =
+                  state.form.category.trim().toLowerCase() === group.name.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={group.layerId}
+                    style={[
+                      styles.categoryChip,
+                      { borderColor: group.color, backgroundColor: 'transparent' },
+                      selected && { backgroundColor: group.color, borderColor: group.color },
+                    ]}
+                    onPress={() => {
+                      state.updateField('category', group.name);
+                      state.updateField('color', group.color);
+                    }}
+                  >
+                    <Text style={[
+                      styles.categoryChipText,
+                      { color: selected ? colors.white : group.color, fontWeight: selected ? 'bold' : '600' },
+                    ]}>
+                      {group.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <View style={styles.colorRow}>

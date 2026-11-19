@@ -1,9 +1,12 @@
-import type {ModernThemeId} from '../../storage/modernThemeStore';
+import type {
+  ModernAiButtonDesignId,
+  ModernThemeId,
+} from '../../storage/modernThemeStore';
 import type {UIVariant} from '../../storage/uiVariantStore';
 import {DARK_STOPS, LIGHT_STOPS} from '../splash/synthWave';
 import {mixColors} from './colorMix';
 
-export type {ModernThemeId};
+export type {ModernAiButtonDesignId, ModernThemeId};
 
 /**
  * Single Source of Truth for LAFINA brand, Classic, Modern, and category palettes.
@@ -349,6 +352,46 @@ export interface ModernThemeMeta {
   previewLight: readonly [string, string, string];
   previewDark: readonly [string, string, string];
 }
+
+export interface ModernAiButtonDesignMeta {
+  id: ModernAiButtonDesignId;
+  label: string;
+  subtitle: string;
+}
+
+export const MODERN_AI_BUTTON_DESIGNS: readonly ModernAiButtonDesignMeta[] = [
+  {
+    id: 'synth_orb',
+    label: 'Synth Orb',
+    subtitle: 'Harmonic wave & glass sphere',
+  },
+  {
+    id: 'liquid_pearl',
+    label: 'Liquid Pearl',
+    subtitle: 'Pure 3D iridescent orb',
+  },
+  {
+    id: 'eclipse_dial',
+    label: 'Eclipse Dial',
+    subtitle: 'Concentric halo & focal core',
+  },
+  {
+    id: 'prism_lens',
+    label: 'Prism Lens',
+    subtitle: 'Faceted jewel & geometric mark',
+  },
+  {
+    id: 'acoustic_core',
+    label: 'Acoustic Core',
+    subtitle: 'Sculpted voice cadence bars',
+  },
+] as const;
+
+export const getModernAiButtonDesignMeta = (
+  designId: ModernAiButtonDesignId = 'synth_orb',
+): ModernAiButtonDesignMeta =>
+  MODERN_AI_BUTTON_DESIGNS.find(design => design.id === designId) ??
+  MODERN_AI_BUTTON_DESIGNS[0];
 
 export interface ModernThemeExtras {
   shadowColor: string;

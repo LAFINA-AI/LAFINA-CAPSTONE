@@ -13,11 +13,13 @@ import {
 import {
   Fonts,
   Layout,
+  MODERN_AI_BUTTON_DESIGNS,
   MODERN_THEMES,
   ModernLayout,
   ModernTypography,
   Shadows,
 } from '../theme';
+import {LafinaSynthOrb} from '../components/CustomTabBar';
 import {preferencesStore, userStore, avatarSeedStore} from '../../storage';
 import type {UserPreferences, User, AcademicProfileRecord} from '../../storage';
 import {useTheme} from '../contexts/ThemeContext';
@@ -32,6 +34,7 @@ import {
   Camera,
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Clock,
   Dices,
@@ -43,6 +46,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Sun,
+  Trash2,
   User as UserIcon,
 } from 'lucide-react-native';
 import {authService} from '../../cloud/authService';
@@ -90,6 +94,11 @@ import {
 } from '../../storage/accountDataReset';
 import type {DataResetAuthority} from '../../storage/accountDataReset';
 import {DeveloperModal} from '../components/profile/DeveloperModal';
+import {
+  ClearAllDataModal,
+  ClearDataResultModal,
+  type ClearDataResultState,
+} from '../components/profile/ClearAllDataModal';
 import {developerTestService} from '../components/profile/developerTestService';
 import {
   getConfirmedAcademicProfile,
@@ -295,6 +304,11 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   const [preferencesVisible, setPreferencesVisible] = useState(false);
 
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [clearDataModalVisible, setClearDataModalVisible] = useState(false);
+  const [clearDataAuthority, setClearDataAuthority] =
+    useState<DataResetAuthority | null>(null);
+  const [clearDataResult, setClearDataResult] =
+    useState<ClearDataResultState | null>(null);
   const [developerModalVisible, setDeveloperModalVisible] = useState(false);
   const [isDevMode, setIsDevMode] = useState(() =>
     developerTestService.isDeveloperModeEnabled(),
@@ -389,8 +403,12 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     modernPalette,
     modernTheme,
     modernThemeMeta,
+    modernThemeExtras,
     modernShadows,
     setModernTheme,
+    modernAiButtonDesign,
+    modernAiButtonDesignMeta,
+    setModernAiButtonDesign,
   } = useTheme();
   const themed = useThemedStyles(getProfileThemedStyles);
   const cardSurfaceStyle = isModern
@@ -728,10 +746,14 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       () => alive.current && currentUserId.current === authority?.userId,
     );
     if (!outcome.admitted || !authority) {
-      Alert.alert(
-        'Not Cleared',
-        'Nothing was deleted, because the account, sign-in or screen changed after Clear All Data was opened. Open Profile and choose Clear All Data again to clear the account that is signed in now.',
-      );
+      if (alive.current) {
+        setClearDataResult({
+          status: 'not_cleared',
+          title: 'Not Cleared',
+          message:
+            'Nothing was deleted, because the account, sign-in or screen changed after Clear All Data was opened. Open Profile and choose Clear All Data again to clear the account that is signed in now.',
+        });
+      }
       return;
     }
     // Clear-data audit C1 (ADR-026): every saved attachment cleanup for this
@@ -750,10 +772,14 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     const filesConfirmed = filesPending === 0 && refused === 0 && unsaved === 0;
 
     if (plannerCleared && chatCleared && defaultsCleared && filesConfirmed) {
-      Alert.alert(
-        'Data Cleared',
-        'All personal scheduling data and saved event defaults have been deleted.',
-      );
+      if (alive.current) {
+        setClearDataResult({
+          status: 'cleared',
+          title: 'Data Cleared',
+          message:
+            'All personal scheduling data and saved event defaults have been deleted.',
+        });
+      }
     } else {
       const done: string[] = [];
       const notDone: string[] = [];
@@ -805,7 +831,13 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
           : 'Try Clear All Data again.',
         'Device settings such as the offline voice, theme and time format were kept.',
       ];
-      Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));
+      if (alive.current) {
+        setClearDataResult({
+          status: 'partly_cleared',
+          title: 'Data Partly Cleared',
+          message: lines.filter(Boolean).join(' '),
+        });
+      }
     }
     if (alive.current) {
       setCurrentUser(userStore.getUserById(userId));
@@ -821,20 +853,20 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   const handleClearData = () => {
     // Captured now: a confirmation answered after a sign-in change is refused.
     const authority = authorizeDataReset(userId);
-    Alert.alert(
-      'Clear All Data',
-      'This will delete all your notes, tasks, events, reminders, calendar blocks, chat history and saved event defaults. Device settings such as the offline voice, theme and time format are kept; Offline Voice has its own Reset. This action cannot be undone.',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete Everything',
-          style: 'destructive',
-          onPress: () => {
-            void confirmClearData(authority);
-          },
-        },
-      ],
-    );
+    setClearDataAuthority(authority);
+    setClearDataModalVisible(true);
+  };
+
+  const handleCancelClearData = () => {
+    setClearDataModalVisible(false);
+    setClearDataAuthority(null);
+  };
+
+  const handleConfirmClearData = () => {
+    const authority = clearDataAuthority;
+    setClearDataModalVisible(false);
+    setClearDataAuthority(null);
+    void confirmClearData(authority);
   };
 
   const handleCreateAccount = () => {
@@ -2034,6 +2066,136 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                     })}
                   </View>
                 </View>
+                <View
+                  style={[
+                    styles.settingDivider,
+                    {backgroundColor: colors.divider},
+                  ]}
+                />
+                <View
+                  style={styles.themePickerBlock}
+                  testID="modern-ai-button-selector"
+                >
+                  <View style={styles.themePickerHeader}>
+                    <View style={styles.themePickerHeaderCopy}>
+                      <Text
+                        style={[
+                          styles.interfaceTitle,
+                          {color: colors.textPrimary},
+                        ]}
+                      >
+                        AI Button Design
+                      </Text>
+                      <Text
+                        style={[
+                          styles.themePickerSubtitle,
+                          {color: colors.textSecondary},
+                        ]}
+                      >
+                        Customize the center AI tab button
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.themeActiveBadge,
+                        {backgroundColor: modernPalette.softViolet},
+                      ]}
+                      testID="modern-ai-button-active-badge"
+                    >
+                      <Text
+                        style={[
+                          styles.themeActiveBadgeText,
+                          {color: modernPalette.accent},
+                        ]}
+                      >
+                        {modernAiButtonDesignMeta.label}
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    style={styles.themeGrid}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel="AI button design"
+                  >
+                    {MODERN_AI_BUTTON_DESIGNS.map(design => {
+                      const active = modernAiButtonDesign === design.id;
+                      return (
+                        <TouchableOpacity
+                          key={design.id}
+                          testID={`modern-ai-button-${design.id}`}
+                          accessibilityRole="radio"
+                          accessibilityState={{
+                            checked: active,
+                            selected: active,
+                          }}
+                          accessibilityLabel={`${design.label} AI button — ${design.subtitle}`}
+                          activeOpacity={0.8}
+                          onPress={() => setModernAiButtonDesign(design.id)}
+                          style={[
+                            styles.themeTile,
+                            {
+                              backgroundColor: active
+                                ? modernPalette.softViolet
+                                : modernPalette.surface,
+                              borderColor: active
+                                ? modernPalette.accent
+                                : modernPalette.border,
+                            },
+                          ]}
+                        >
+                          <LafinaSynthOrb
+                            design={design.id}
+                            size={28}
+                            isActive={active}
+                            isDarkMode={isDarkMode}
+                            modernTheme={modernTheme}
+                            modernPalette={modernPalette}
+                            modernThemeExtras={modernThemeExtras}
+                            testID={`modern-ai-button-preview-${design.id}`}
+                          />
+                          <View style={styles.themeTileTextCol}>
+                            <Text
+                              style={[
+                                styles.themeTileLabel,
+                                {
+                                  color: active
+                                    ? modernPalette.accent
+                                    : colors.textPrimary,
+                                },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {design.label}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.themeTileSubtitle,
+                                {color: colors.textSecondary},
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {design.subtitle}
+                            </Text>
+                          </View>
+                          {active && (
+                            <View
+                              style={[
+                                styles.themeTileCheck,
+                                {backgroundColor: modernPalette.accent},
+                              ]}
+                            >
+                              <Check
+                                size={10}
+                                color="#FFFFFF"
+                                strokeWidth={3}
+                              />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
               </>
             )}
           </View>
@@ -2055,14 +2217,64 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
               styles.settingsGroupCard,
               cardSurfaceStyle,
               themed.settingsGroupCard,
+              styles.clearDataGroupCard,
             ]}
           >
-            <SettingItem
-              text="Clear All Data"
-              type="clickable"
+            <TouchableOpacity
+              testID="profile-clear-all-data-btn"
               onPress={handleClearData}
-              isDestructive
-            />
+              activeOpacity={0.78}
+              accessibilityRole="button"
+              accessibilityLabel="Clear All Data"
+              style={styles.clearDataActionRow}
+            >
+              <View
+                style={[
+                  styles.clearDataIconBadge,
+                  {
+                    backgroundColor: isModern
+                      ? modernPalette.dangerSoft
+                      : colors.bannerBg,
+                    borderColor: isModern
+                      ? `${modernPalette.danger}2E`
+                      : `${colors.error}2E`,
+                    borderRadius: isModern ? 12 : 10,
+                  },
+                ]}
+              >
+                <Trash2
+                  size={17}
+                  color={isModern ? modernPalette.danger : colors.error}
+                />
+              </View>
+              <View style={styles.clearDataTextCol}>
+                <Text
+                  style={[
+                    styles.clearDataTitle,
+                    {color: isModern ? modernPalette.danger : colors.error},
+                  ]}
+                >
+                  Clear All Data
+                </Text>
+                <Text
+                  style={[
+                    styles.clearDataSubtitle,
+                    {
+                      color: isModern
+                        ? modernPalette.muted
+                        : colors.textSecondary,
+                    },
+                  ]}
+                  numberOfLines={2}
+                >
+                  Delete notes, tasks, schedule, chats &amp; event defaults
+                </Text>
+              </View>
+              <ChevronRight
+                size={17}
+                color={isModern ? modernPalette.danger : colors.error}
+              />
+            </TouchableOpacity>
           </View>
 
           {isDevMode && (
@@ -2434,6 +2646,16 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
             onClose={() => setPrivacyModalVisible(false)}
           />
         )}
+        <ClearAllDataModal
+          visible={clearDataModalVisible}
+          onCancel={handleCancelClearData}
+          onConfirm={handleConfirmClearData}
+        />
+        <ClearDataResultModal
+          visible={Boolean(clearDataResult)}
+          result={clearDataResult}
+          onClose={() => setClearDataResult(null)}
+        />
         <ProfileStatsModal
           visible={statsModalVisible}
           statistics={statistics}
@@ -2544,6 +2766,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.heading,
     fontWeight: '800',
     letterSpacing: -0.5,
+    includeFontPadding: false,
   },
   modernHeaderActions: {
     flexDirection: 'row',
@@ -3188,6 +3411,39 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadiusCard,
     paddingHorizontal: 16,
     marginBottom: 16,
+  },
+  clearDataGroupCard: {
+    paddingVertical: 4,
+  },
+  clearDataActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 11,
+  },
+  clearDataIconBadge: {
+    width: 38,
+    height: 38,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  clearDataTextCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  clearDataTitle: {
+    fontSize: 14.5,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+    includeFontPadding: false,
+  },
+  clearDataSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    lineHeight: 16,
   },
   modernLastGroupCard: {
     marginBottom: 0,

@@ -133,15 +133,21 @@ export {
 } from './uiVariantStore';
 export type {UIVariant} from './uiVariantStore';
 export {
+  DEFAULT_MODERN_AI_BUTTON_DESIGN,
   DEFAULT_MODERN_THEME,
+  getSavedModernAiButtonDesign,
   getSavedModernTheme,
+  MODERN_AI_BUTTON_DESIGN_IDS,
+  MODERN_AI_BUTTON_DESIGN_SETTING_KEY,
   MODERN_THEME_DEVICE_SCOPE,
   MODERN_THEME_IDS,
   MODERN_THEME_SETTING_KEY,
+  normalizeModernAiButtonDesign,
   normalizeModernTheme,
+  saveModernAiButtonDesign,
   saveModernTheme,
 } from './modernThemeStore';
-export type {ModernThemeId} from './modernThemeStore';
+export type {ModernAiButtonDesignId, ModernThemeId} from './modernThemeStore';
 export {
   avatarSeedStore,
   generateAvatarSeed,
@@ -215,3 +221,18 @@ export type {
   DetailedProfileStatistics,
   ProfileStatistics,
 } from './profileStatisticsStore';
+export {
+  baseScheduleEntityId,
+  extractUrlsFromText,
+  normalizeEntryUrl,
+  resolveScheduleEntryTarget,
+  SCHEDULE_ENTRIES_KEY,
+  scheduleEntriesStore,
+} from './scheduleEntriesStore';
+export type {
+  ResolvedScheduleEntryTarget,
+  ScheduleAttachedEntry,
+  ScheduleEntryTargetInput,
+  ScheduleEntryTargetKind,
+  ScheduleEntryType,
+} from './scheduleEntriesStore';

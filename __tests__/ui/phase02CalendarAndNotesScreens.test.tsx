@@ -1,5 +1,5 @@
 import React from 'react';
-import {ScrollView} from 'react-native';
+import {ScrollView, StyleSheet} from 'react-native';
 import {render, fireEvent, waitFor} from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {CalendarScreen} from '../../src/ui/screens/calendar';
@@ -519,6 +519,25 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       );
 
       expect(getByTestId('alarms-view')).toBeTruthy();
+    });
+
+    test('centers empty state above the floating tab bar without downward top padding', () => {
+      const {getByTestId, getByText} = render(
+        <ThemeProvider userId={userId}>
+          <NotesScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(getByText('No notes found')).toBeTruthy();
+      const emptyStyle = StyleSheet.flatten(
+        getByTestId('notes-empty-state').props.style,
+      );
+      expect(emptyStyle.paddingTop).toBeUndefined();
+      expect(emptyStyle.paddingBottom).toBeGreaterThanOrEqual(100);
     });
   });
 });
