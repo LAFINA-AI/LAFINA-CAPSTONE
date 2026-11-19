@@ -190,6 +190,11 @@ const getSnoozePreferenceLabel = (preferences: UserPreferences): string => {
   }
 };
 
+const formatReminderLeadLabel = (minutes: number): string =>
+  minutes >= 60 && minutes % 60 === 0
+    ? `${minutes / 60} hr`
+    : `${minutes} min`;
+
 interface ProfileScreenProps {
   userId: string;
   refreshTrigger: number;
@@ -294,9 +299,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   const [preferenceSummary, setPreferenceSummary] = useState(() => {
     try {
       const preferences = preferencesStore.get(userId);
-      return `${
-        preferences.reminderLeadMinutes
-      } min, ${getSnoozePreferenceLabel(preferences)}`;
+      return `${formatReminderLeadLabel(
+        preferences.reminderLeadMinutes,
+      )}, ${getSnoozePreferenceLabel(preferences)}`;
     } catch {
       return '15 min, Snooze once';
     }
@@ -458,9 +463,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
 
     const preferences = preferencesStore.get(userId);
     setPreferenceSummary(
-      `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(
-        preferences,
-      )}`,
+      `${formatReminderLeadLabel(
+        preferences.reminderLeadMinutes,
+      )}, ${getSnoozePreferenceLabel(preferences)}`,
     );
     loadEventDefaultsSummary();
     loadVoiceSummary();

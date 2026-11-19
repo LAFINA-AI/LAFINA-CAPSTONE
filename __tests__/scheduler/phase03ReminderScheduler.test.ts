@@ -21,6 +21,7 @@ import {
   startReminderPoller,
   stopReminderPoller,
   rescheduleUserReminders,
+  refreshPendingReminderLeadTimes,
   EVENT_CALL_TRIGGER,
 } from '../../src/scheduler';
 
@@ -393,6 +394,32 @@ describe('Phase 03 Reminder Alarms, Lifecycle Recovery & Actions', () => {
       // Verify near due was marked triggered
       const near = remindersStore.getReminderById('rem-resched-near');
       expect(near?.status).toBe('triggered');
+    });
+
+    test('refreshPendingReminderLeadTimes supports multi-hour lead times (up to 1440 min) and rejects out-of-range values', async () => {
+      const futureScheduled = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+      remindersStore.insertReminder({
+        id: 'rem-lead-multi-hr',
+        userId,
+        task: 'Afternoon Lab',
+        description: null,
+        scheduledAt: futureScheduled,
+        triggerAt: futureScheduled,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      const result = await refreshPendingReminderLeadTimes(userId, 180);
+      expect(result.updatedCount).toBe(1);
+      expect(result.failedCount).toBe(0);
+
+      const updated = remindersStore.getReminderById('rem-lead-multi-hr');
+      const expectedMs = new Date(futureScheduled).getTime() - 180 * 60 * 1000;
+      expect(new Date(updated!.triggerAt).getTime()).toBe(expectedMs);
+
+      await expect(refreshPendingReminderLeadTimes(userId, 1441)).rejects.toThrow(
+        'Reminder lead time must be between 0 and 1440 minutes.',
+      );
     });
   });
 });

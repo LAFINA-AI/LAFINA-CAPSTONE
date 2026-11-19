@@ -192,9 +192,12 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     fireEvent.press(ui.getByTestId('onboarding-continue'));
 
     // Step 4: optional quick preferences on a single finish screen.
+    expect(ui.getByTestId('onboarding-lead-120')).toBeTruthy();
+    expect(ui.getByTestId('onboarding-lead-180')).toBeTruthy();
+    expect(ui.getByTestId('onboarding-lead-300')).toBeTruthy();
     fireEvent.changeText(ui.getByTestId('onboarding-name'), 'Alex');
     fireEvent.press(ui.getByTestId('onboarding-tone-casual'));
-    fireEvent.press(ui.getByTestId('onboarding-lead-10'));
+    fireEvent.press(ui.getByTestId('onboarding-lead-180'));
     fireEvent.press(ui.getByTestId('onboarding-finish'));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -212,7 +215,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     );
     expect(setup.explicit).not.toContain('routine');
     const prefs = preferencesStore.get(guest.id);
-    expect(prefs.reminderLeadMinutes).toBe(10);
+    expect(prefs.reminderLeadMinutes).toBe(180);
     expect(prefs.wakeTime).toBe(defaults.wakeTime);
     expect(getUstpEligibility(guest.id).eligible).toBe(false);
     const memories = chatMemoryStore.list(guest.id).map(m => m.text);

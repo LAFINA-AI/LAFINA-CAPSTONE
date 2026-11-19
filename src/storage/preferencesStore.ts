@@ -108,7 +108,7 @@ const normalizePreferences = (preferences: UserPreferences): UserPreferences => 
     reminderLeadMinutes:
       Number.isInteger(preferences.reminderLeadMinutes) &&
       preferences.reminderLeadMinutes >= 0 &&
-      preferences.reminderLeadMinutes <= 120
+      preferences.reminderLeadMinutes <= 1440
         ? preferences.reminderLeadMinutes
         : defaults.reminderLeadMinutes,
     snoozeTendency: VALID_SNOOZE_TENDENCIES.includes(preferences.snoozeTendency)

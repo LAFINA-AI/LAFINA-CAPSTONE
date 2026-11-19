@@ -163,6 +163,17 @@ describe('Phase 01 Storage, Auth, Onboarding & Sync Schema', () => {
     expect(productTourStore.isPending(userId)).toBe(false);
   });
 
+  test('preserves multi-hour reminderLeadMinutes (2 hr, 3 hr, 5 hr) in preferencesStore', () => {
+    const guest = userStore.createGuestUser();
+    for (const minutes of [120, 180, 300]) {
+      preferencesStore.save(guest.id, {
+        ...getDefaultUserPreferences(),
+        reminderLeadMinutes: minutes,
+      });
+      expect(preferencesStore.get(guest.id).reminderLeadMinutes).toBe(minutes);
+    }
+  });
+
   test('supports only the 7 personal entity types matching LAFINA-backend', () => {
     expect(PERSONAL_SYNC_ENTITY_TYPES).toEqual([
       'profile',
