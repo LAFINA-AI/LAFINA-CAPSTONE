@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120" role="img" aria-labelledby="title description">
+  <title id="title">LAFINA system architecture — Android and Electron desktop</title>
+  <desc id="description">Students use Android and Electron PC clients with separate local SQLite stores and offline planning. Optional authenticated internet access connects them to a shared FastAPI backend on Vercel. The backend uses Neon PostgreSQL, DeepSeek, Pinecone handbook retrieval, and ElevenLabs speech. Live voice streams directly to ElevenLabs through a backend-authorized signed WebSocket. Android native services are labeled separately from desktop adapters.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#53657a" stroke-width="1.5"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #1d2a3b; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 19px; fill: #53657a; }
+      .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 1.7px; fill: #53657a; }
+      .heading { font-size: 24px; font-weight: 700; }
+      .body { font-size: 18px; }
+      .small { font-size: 16px; fill: #53657a; }
+      .label { font-size: 15px; fill: #53657a; }
+      .frame { fill: #f7f9fc; stroke: #b8c4d2; stroke-width: 1.5; }
+      .card { fill: #ffffff; stroke: #a5b4c6; stroke-width: 1.5; }
+      .line { fill: none; stroke: #53657a; stroke-width: 1.6; marker-start: url(#arrow); marker-end: url(#arrow); }
+      .icon { fill: none; stroke: #294e78; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+    <g id="person"><circle cx="0" cy="0" r="19" fill="#294e78"/><path d="M-35 62v-13c0-19 15-31 35-31s35 12 35 31v13z" fill="#294e78"/></g>
+    <g id="database" class="icon"><path d="M-23-21v39c0 13 46 13 46 0v-39M-23-1c0 13 46 13 46 0M-23 18c0 13 46 13 46 0"/><ellipse cx="0" cy="-21" rx="23" ry="10"/></g>
+    <g id="brain" class="icon"><circle cx="0" cy="0" r="25"/><path d="M-18-17 17 17M18-17-17 17M-25 0h50M0-25v50M-18-17 0-25 18-17 25 0 18 17 0 25-18 17-25 0z"/><circle cx="0" cy="0" r="5" fill="#294e78"/></g>
+  </defs>
+  <rect width="1800" height="1120" fill="#ffffff"/>
+  <text x="48" y="64" class="title">LAFINA System Architecture</text>
+  <text x="48" y="98" class="subtitle">Offline-first academic AI secretary · Android + Electron desktop · November 2026</text>
+
+  <text x="98" y="176" text-anchor="middle" class="eyebrow">USERS</text>
+  <rect x="220" y="150" width="500" height="744" rx="10" class="frame"/>
+  <text x="245" y="185" class="eyebrow">PRESENTATION + LOCAL APPLICATION</text>
+
+  <use href="#person" x="98" y="310"/>
+  <text x="98" y="405" text-anchor="middle" class="body">Student</text>
+  <path d="M148 342H243" class="line"/>
+  <text x="190" y="322" text-anchor="middle" class="label">Interact</text>
+
+  <rect x="245" y="210" width="450" height="273" rx="8" class="card"/>
+  <rect x="268" y="237" width="45" height="74" rx="7" class="icon"/>
+  <path d="M281 247h19M286 301h10" class="icon"/>
+  <text x="335" y="251" class="heading">Android application</text>
+  <text x="335" y="280" class="body">React Native + TypeScript</text>
+  <text x="268" y="331" class="body">Planner · tasks · notes · chat · voice</text>
+  <text x="268" y="360" class="body">SQLite: local records + sync outbox</text>
+  <text x="268" y="389" class="body">Whisper + Silero · rules + SmolLM2</text>
+  <text x="268" y="418" class="body">react-native-tts · Android AlarmManager</text>
+  <text x="268" y="447" class="small">Local handbook search · COR text / OCR</text>
+
+  <use href="#person" x="98" y="583"/>
+  <text x="98" y="678" text-anchor="middle" class="body">Same student</text>
+  <path d="M148 615H243" class="line"/>
+  <text x="190" y="595" text-anchor="middle" class="label">Interact</text>
+
+  <rect x="245" y="510" width="450" height="216" rx="8" class="card"/>
+  <rect x="262" y="540" width="59" height="39" rx="3" class="icon"/>
+  <path d="M291 579v13M275 592h33" class="icon"/>
+  <text x="335" y="552" class="heading">Desktop application</text>
+  <text x="335" y="581" class="body">Electron · PC</text>
+  <text x="268" y="625" class="body">Same academic assistant functionality</text>
+  <text x="268" y="654" class="body">Own local SQLite + synchronization queue</text>
+  <text x="268" y="683" class="body">Desktop adapters: voice, files, alerts</text>
+  <text x="268" y="708" class="small">Desktop source maintained separately</text>
+
+  <rect x="245" y="751" width="450" height="118" rx="8" fill="#eaf0f7"/>
+  <text x="268" y="783" class="body" font-weight="700">Review → Confirm → Save locally</text>
+  <text x="268" y="813" class="body">Guest planning works without internet</text>
+  <text x="268" y="841" class="small">A separate working store on each device</text>
+
+  <path d="M695 347h58v141h43M695 618h58V488" fill="none" stroke="#53657a" stroke-width="1.6"/>
+  <text x="842" y="340" text-anchor="middle" class="eyebrow">OPTIONAL ONLINE</text>
+  <g transform="translate(842 488)" class="icon">
+    <circle r="43"/><ellipse rx="20" ry="43"/><path d="M-43 0h86M-36-23h72M-36 23h72"/>
+  </g>
+  <text x="842" y="565" text-anchor="middle" class="heading">Internet</text>
+  <text x="842" y="594" text-anchor="middle" class="small">HTTPS + JWT</text>
+  <path d="M887 488H1008" class="line"/>
+  <text x="947" y="443" text-anchor="middle" class="label">API requests</text>
+  <text x="947" y="465" text-anchor="middle" class="label">+ responses</text>
+  <text x="842" y="660" text-anchor="middle" class="small">Signed-in sync</text>
+  <text x="842" y="685" text-anchor="middle" class="small">Opt-in online AI</text>
+
+  <text x="1170" y="185" text-anchor="middle" class="eyebrow">SHARED CLOUD BACKEND</text>
+  <rect x="1010" y="210" width="320" height="638" rx="10" class="frame"/>
+  <text x="1170" y="255" text-anchor="middle" class="heading">LAFINA-backend</text>
+  <text x="1170" y="287" text-anchor="middle" class="body">FastAPI · Vercel</text>
+  <path d="M1035 310h270" stroke="#b8c4d2"/>
+  <text x="1035" y="348" class="body">Authentication + access</text>
+  <text x="1035" y="377" class="small">Accounts · plans · subscriptions</text>
+  <text x="1035" y="426" class="body">Personal data synchronization</text>
+  <text x="1035" y="455" class="small">Validated mutations + change feed</text>
+  <text x="1035" y="510" class="body">Online chat + handbook RAG</text>
+  <text x="1035" y="539" class="small">Responses + source references</text>
+  <text x="1035" y="591" class="body">Speech + voice sessions</text>
+  <text x="1035" y="620" class="small">TTS proxy · signed session grants</text>
+  <text x="1035" y="672" class="body">Academic cloud workflows</text>
+  <text x="1035" y="701" class="small">Documents · recording summaries</text>
+  <path d="M1035 728h270" stroke="#b8c4d2"/>
+  <text x="1170" y="763" text-anchor="middle" class="small">Provider credentials stay here</text>
+  <text x="1170" y="799" text-anchor="middle" class="label">lafina-backend.vercel.app</text>
+
+  <text x="1607" y="185" text-anchor="middle" class="eyebrow">DATA + AI SERVICES</text>
+  <rect x="1460" y="210" width="294" height="122" rx="8" class="card"/>
+  <use href="#database" x="1506" y="268"/>
+  <text x="1546" y="250" class="heading">Neon</text>
+  <text x="1546" y="278" class="body">PostgreSQL</text>
+  <text x="1546" y="306" class="small">Accounts + synced data</text>
+  <path d="M1331 271H1458" class="line"/>
+  <text x="1394" y="250" text-anchor="middle" class="label">Read / write</text>
+
+  <rect x="1460" y="370" width="294" height="122" rx="8" class="card"/>
+  <use href="#brain" x="1506" y="427"/>
+  <text x="1546" y="411" class="heading">DeepSeek</text>
+  <text x="1546" y="440" class="body">Online assistant</text>
+  <text x="1546" y="468" class="small">Chat + voice LLM bridge</text>
+  <path d="M1331 431H1458" class="line"/>
+  <text x="1394" y="408" text-anchor="middle" class="label">Prompt / reply</text>
+
+  <rect x="1460" y="530" width="294" height="122" rx="8" class="card"/>
+  <use href="#database" x="1506" y="588"/>
+  <text x="1546" y="571" class="heading">Pinecone</text>
+  <text x="1546" y="600" class="body">Handbook retrieval</text>
+  <text x="1546" y="628" class="small">USTP passages + metadata</text>
+  <path d="M1331 591H1458" class="line"/>
+  <text x="1394" y="568" text-anchor="middle" class="label">Query / evidence</text>
+
+  <rect x="1460" y="690" width="294" height="158" rx="8" class="card"/>
+  <g transform="translate(1506 749)" class="icon"><path d="M-22-8v16M-11-22v44M0-29v58M11-18v36M22-8v16"/></g>
+  <text x="1546" y="732" class="heading">ElevenLabs</text>
+  <text x="1546" y="761" class="body">Online speech</text>
+  <text x="1546" y="789" class="small">TTS + live voice agent</text>
+  <text x="1546" y="817" class="small">Voice LLM → backend</text>
+  <path d="M1331 751H1458" class="line"/>
+  <text x="1394" y="716" text-anchor="middle" class="label">Speech / session</text>
+  <text x="1394" y="736" text-anchor="middle" class="label">authorization</text>
+
+  <path d="M806 510h-30v429h831v-89" class="line" stroke-dasharray="7 6"/>
+  <rect x="918" y="919" width="603" height="40" fill="#ffffff"/>
+  <text x="1219" y="944" text-anchor="middle" class="body">Live voice: signed WebSocket after backend authorization</text>
+
+  <path d="M48 996h1706" stroke="#d5dde6"/>
+  <text x="48" y="1031" class="small">Core planning stays local. Cloud sync and online AI are optional. Assistant writes require review and confirmation.</text>
+  <text x="48" y="1060" class="small">Android native engines are shown explicitly; Electron uses desktop platform adapters for the same product capabilities.</text>
+  <text x="48" y="1089" class="label">Scope: current Android source + shared backend; Electron capability parity confirmed by the project owner. Runtime device validation is separate.</text>
+</svg>

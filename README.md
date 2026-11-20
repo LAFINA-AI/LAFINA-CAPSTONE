@@ -13,6 +13,7 @@ The project is designed around university life, with additional support for Univ
 - [Alarms and reminder calls](#alarms-and-reminder-calls)
 - [Voice, handbook answers, and personalization](#voice-handbook-answers-and-personalization)
 - [Offline use and cloud synchronization](#offline-use-and-cloud-synchronization)
+- [System architecture](#system-architecture)
 - [Privacy and permissions](#privacy-and-permissions)
 - [Run the project](#run-the-project)
 - [Project structure and further reading](#project-structure-and-further-reading)
@@ -173,6 +174,33 @@ flowchart LR
 Sync keeps track of pending changes and conflicts rather than treating the server as a requirement for every edit. Account boundaries separate personal records, and local writes and their queued sync changes are saved together to reduce inconsistencies.
 
 The mobile app uses the [LAFINA backend](https://lafina-backend.vercel.app) for authentication, sync, and online AI. Development builds can also use a local backend. Online features depend on authentication, connection quality, service configuration, and applicable subscription or usage limits.
+
+## System architecture
+
+LAFINA has two student-facing clients: the **Android app built with React Native and TypeScript**, and an **Electron desktop app with the same academic assistant functionality for PC**. Each device keeps its own local working data; an optional account synchronizes supported personal records through the shared LAFINA backend.
+
+[![LAFINA system architecture: Android and Electron clients, offline services, shared FastAPI backend, Neon database, and online AI providers](docs/architecture/lafina-system-architecture.png)](docs/architecture/lafina-system-architecture.svg)
+
+*Open the diagram for the scalable SVG. Arrows show requests and responses; the dashed route shows live voice streaming after backend authorization.*
+
+| Layer | Components and responsibilities |
+| --- | --- |
+| **Presentation** | Android: React Native 0.86 + TypeScript. PC: Electron. Both provide planning, tasks, notes, reminders, chat, voice, and the supported academic workflows. |
+| **Local application and data** | Review and confirmation before assistant writes; local planning and persistence; a separate SQLite working store and synchronization queue on each device. Guest use does not require cloud access. |
+| **Android offline and native services** | OP-SQLite (`lafina.db`); Whisper.cpp + Silero VAD for speech input; command rules + SmolLM2 for supported intent extraction; `react-native-tts` for speech output; AlarmManager and recovery receivers for alerts; local handbook FTS5 search; PDF text extraction / image OCR for COR import. Electron uses desktop equivalents for platform services. |
+| **Shared cloud API** | FastAPI hosted on Vercel at `https://lafina-backend.vercel.app`: authentication, account access and subscriptions, personal sync, online chat and handbook RAG, speech/session authorization, and online document/recording workflows. Provider credentials stay on the backend. |
+| **Cloud data and AI** | Neon PostgreSQL stores accounts and synchronized personal data. DeepSeek supplies online assistant responses. Pinecone retrieves USTP handbook evidence. ElevenLabs supplies online speech and live voice conversations. |
+
+The main data paths are:
+
+1. **Local planning:** student input → validation and review → confirmation → local SQLite write and sync-outbox update in one transaction. Native scheduling is reconciled after persistence; it is not part of the SQLite transaction.
+2. **Cross-device sync:** Android or Electron → authenticated backend → Neon PostgreSQL → the other signed-in client's local store. The mobile worker uses `/v1/sync/batch` for the seven core entity types: profile, task, event, time block, reminder, note, and custom category. Device-local alarm clocks stay on their originating device.
+3. **Online answers:** client → backend → DeepSeek, with Pinecone handbook evidence for applicable questions → answer and source references. Local handbook search remains a separate offline path.
+4. **Online speech:** ordinary speech requests go through the backend to ElevenLabs; live calls obtain a session grant from the backend and then stream audio over a signed WebSocket to ElevenLabs. The voice agent uses the backend's DeepSeek bridge for assistant responses. Online access requires the user's mode choice and server authorization; local speech/text controls provide the applicable fallback.
+
+The Electron client and its matching product functionality are included based on the project owner's confirmation. This checkout contains the Android implementation; desktop packaging, native adapters, and device behavior are maintained separately and were not validated here. Android's AlarmManager and `react-native-tts` are platform-specific implementation details.
+
+Implementation references: [local database](src/storage/database.ts), [sync outbox](src/storage/syncOutboxStore.ts), [sync worker](src/sync/syncWorker.ts), [cloud client](src/cloud/cloudClient.ts), [voice session API](src/cloud/voiceConversation/voiceConversationApi.ts), [backend integration](backend_integration/README.md), and the [shared backend](https://github.com/LAFINA-AI/LAFINA-backend). Earlier phase architecture documents below retain their historical context.
 
 ## Privacy and permissions
 
