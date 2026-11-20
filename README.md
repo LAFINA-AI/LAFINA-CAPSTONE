@@ -14,6 +14,7 @@ The project is designed around university life, with additional support for Univ
 - [Voice, handbook answers, and personalization](#voice-handbook-answers-and-personalization)
 - [Offline use and cloud synchronization](#offline-use-and-cloud-synchronization)
 - [System architecture](#system-architecture)
+- [Context diagram](#context-diagram)
 - [Privacy and permissions](#privacy-and-permissions)
 - [Run the project](#run-the-project)
 - [Project structure and further reading](#project-structure-and-further-reading)
@@ -201,6 +202,23 @@ The main data paths are:
 The Electron client and its matching product functionality are included based on the project owner's confirmation. This checkout contains the Android implementation; desktop packaging, native adapters, and device behavior are maintained separately and were not validated here. Android's AlarmManager and `react-native-tts` are platform-specific implementation details.
 
 Implementation references: [local database](src/storage/database.ts), [sync outbox](src/storage/syncOutboxStore.ts), [sync worker](src/sync/syncWorker.ts), [cloud client](src/cloud/cloudClient.ts), [voice session API](src/cloud/voiceConversation/voiceConversationApi.ts), [backend integration](backend_integration/README.md), and the [shared backend](https://github.com/LAFINA-AI/LAFINA-backend). Earlier phase architecture documents below retain their historical context.
+
+## Context diagram
+
+The context diagram treats **LAFINA as one system (Process 0)**, covering the Android app, Electron PC app, local application services, and shared backend. It shows the data exchanged with the student and external AI services; internal components and databases are detailed in the [system architecture](#system-architecture).
+
+[![LAFINA context diagram: one central system exchanging student information, planner data, questions, files, AI responses, handbook evidence, and online speech](docs/architecture/lafina-context-diagram.png)](docs/architecture/lafina-context-diagram.svg)
+
+*Rectangles represent external entities. Each labeled arrow represents data moving in the indicated direction. Open the image for the scalable SVG.*
+
+| External entity | Data sent to LAFINA | Data received from LAFINA |
+| --- | --- | --- |
+| **Student** | Account/profile details; planner and note entries; questions and voice input; COR/calendar files and document requests; confirmations and preferences. | Account/sync status; saved plans, notes, and schedules; answers with source references; alerts and spoken replies; import previews and generated files. |
+| **DeepSeek** | Assistant replies and proposed actions for validation/review. | Conversation or planning prompts and relevant context through the backend. |
+| **Pinecone** | Retrieved handbook passages and source metadata. | Handbook search queries through the backend. |
+| **ElevenLabs** | Speech audio, live transcripts, and session status. | Speech/session requests and user-authorized microphone audio for online voice. |
+
+Student planning and local voice/search paths can work offline when their required local resources are available. External AI flows require the applicable online choice, account access, and connectivity. SQLite and Neon PostgreSQL are inside the LAFINA system boundary. COR files come from the student; this diagram does not imply a university portal connection. Proposed assistant changes still require student review and confirmation.
 
 ## Privacy and permissions
 

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1200" viewBox="0 0 1700 1200" role="img" aria-labelledby="title description">
+  <title id="title">LAFINA context diagram — Process 0</title>
+  <desc id="description">A context-level data flow diagram with one central LAFINA system covering Android, Electron desktop, local services, and the shared backend. The Student sends account details, planner entries, questions and voice input, files and document requests, confirmations and preferences; LAFINA returns account status, saved plans, answers and sources, alerts and speech, previews and generated files. DeepSeek exchanges prompts and assistant replies. Pinecone exchanges handbook queries and passages with source metadata. ElevenLabs exchanges speech and session requests, authorized microphone audio, speech audio, transcripts and session status. Internal databases and modules are not separate external entities.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1 9 5 1 9" fill="none" stroke="#4b5563" stroke-width="1.5"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #202a36; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 19px; fill: #566375; }
+      .entity { fill: #fff3cf; stroke: #d1ae4d; stroke-width: 1.5; }
+      .entity-title { font-size: 24px; font-weight: 700; }
+      .entity-note { font-size: 17px; fill: #566375; }
+      .flow { fill: none; stroke: #4b5563; stroke-width: 1.4; marker-end: url(#arrow); }
+      .label { font-size: 16px; }
+      .note { font-size: 17px; fill: #566375; }
+    </style>
+  </defs>
+  <rect width="1700" height="1200" fill="#ffffff"/>
+  <text x="48" y="64" class="title">LAFINA Context Diagram</text>
+  <text x="48" y="98" class="subtitle">Level 0 · One system boundary · External entities and data flows</text>
+
+  <!-- Student inputs use nested routes above the central process. -->
+  <path d="M330 265H360V160H970V410" class="flow"/>
+  <text x="665" y="150" text-anchor="middle" class="label">Account registration / sign-in / profile details</text>
+  <path d="M330 290H385V190H890V410" class="flow"/>
+  <text x="638" y="180" text-anchor="middle" class="label">Planner and note entries</text>
+  <path d="M330 315H410V220H810V410" class="flow"/>
+  <text x="610" y="210" text-anchor="middle" class="label">Questions and voice input</text>
+  <path d="M330 340H435V250H730V410" class="flow"/>
+  <text x="583" y="240" text-anchor="middle" class="label">COR / calendar files; document requests</text>
+  <path d="M330 365H460V280H650V410" class="flow"/>
+  <text x="555" y="270" text-anchor="middle" class="label">Confirmations and preferences</text>
+
+  <!-- Student outputs return to the lower edge of the student entity. -->
+  <path d="M580 470H280V390" class="flow"/>
+  <text x="565" y="460" text-anchor="end" class="label">Account and sync status</text>
+  <path d="M580 520H235V390" class="flow"/>
+  <text x="565" y="510" text-anchor="end" class="label">Saved plans, notes and schedules</text>
+  <path d="M580 570H190V390" class="flow"/>
+  <text x="565" y="560" text-anchor="end" class="label">Answers and source references</text>
+  <path d="M580 620H145V390" class="flow"/>
+  <text x="565" y="610" text-anchor="end" class="label">Alerts and spoken replies</text>
+  <path d="M580 670H100V390" class="flow"/>
+  <text x="565" y="660" text-anchor="end" class="label">Import previews and generated files</text>
+
+  <!-- Online conversation provider. -->
+  <path d="M1050 410V160H1490V240" class="flow"/>
+  <text x="1270" y="150" text-anchor="middle" class="label">Conversation / planning prompt + context</text>
+  <path d="M1370 315H1300V470H1120" class="flow"/>
+  <text x="1210" y="435" text-anchor="middle" class="label">Assistant replies +</text>
+  <text x="1210" y="457" text-anchor="middle" class="label">action proposals</text>
+
+  <!-- Online handbook retrieval provider. -->
+  <path d="M580 730H190V850" class="flow"/>
+  <text x="385" y="720" text-anchor="middle" class="label">Handbook search query</text>
+  <path d="M190 1010V1100H730V790" class="flow"/>
+  <text x="460" y="1090" text-anchor="middle" class="label">Handbook passages + source metadata</text>
+
+  <!-- Online speech provider; the system boundary includes client and backend. -->
+  <path d="M1120 590H1520V850" class="flow"/>
+  <text x="1320" y="575" text-anchor="middle" class="label">Speech / voice session request</text>
+  <path d="M1120 650H1410V850" class="flow"/>
+  <text x="1265" y="635" text-anchor="middle" class="label">User-authorized microphone audio</text>
+  <path d="M1520 1010V1100H1050V790" class="flow"/>
+  <text x="1285" y="1068" text-anchor="middle" class="label">Speech audio + live transcripts</text>
+  <text x="1285" y="1090" text-anchor="middle" class="label">+ session status</text>
+
+  <!-- External entities. -->
+  <rect x="40" y="240" width="290" height="150" class="entity"/>
+  <text x="185" y="300" text-anchor="middle" class="entity-title">Student</text>
+  <text x="185" y="334" text-anchor="middle" class="entity-note">Guest or signed-in user</text>
+  <text x="185" y="361" text-anchor="middle" class="entity-note">Android / Electron PC</text>
+
+  <rect x="1370" y="240" width="290" height="150" class="entity"/>
+  <text x="1515" y="305" text-anchor="middle" class="entity-title">DeepSeek</text>
+  <text x="1515" y="340" text-anchor="middle" class="entity-note">Online assistant provider</text>
+
+  <rect x="40" y="850" width="290" height="160" class="entity"/>
+  <text x="185" y="915" text-anchor="middle" class="entity-title">Pinecone</text>
+  <text x="185" y="950" text-anchor="middle" class="entity-note">USTP handbook retrieval</text>
+
+  <rect x="1370" y="850" width="290" height="160" class="entity"/>
+  <text x="1515" y="915" text-anchor="middle" class="entity-title">ElevenLabs</text>
+  <text x="1515" y="950" text-anchor="middle" class="entity-note">Online speech and live voice</text>
+
+  <!-- The single context-level process. -->
+  <rect x="580" y="410" width="540" height="380" fill="#ffffff" stroke="#4b5563" stroke-width="1.7"/>
+  <path d="M580 454H1120" stroke="#4b5563" stroke-width="1.4"/>
+  <text x="850" y="440" text-anchor="middle" font-size="20">0</text>
+  <text x="850" y="566" text-anchor="middle" font-size="42" font-weight="700">LAFINA</text>
+  <text x="850" y="610" text-anchor="middle" font-size="21">Academic AI Secretary</text>
+  <text x="850" y="669" text-anchor="middle" class="note">Android app + Electron PC app</text>
+  <text x="850" y="698" text-anchor="middle" class="note">Local services + shared backend</text>
+  <text x="850" y="745" text-anchor="middle" class="note">Review → Confirm → Save</text>
+
+  <path d="M48 1140H1652" stroke="#d5dde6"/>
+  <text x="48" y="1168" class="note">Core guest planning stays offline. External AI flows are optional online interactions. SQLite and Neon remain inside the system boundary.</text>
+  <text x="48" y="1192" font-size="15" fill="#566375">COR files are supplied by the student; no university portal integration is implied. Electron functionality is included as confirmed by the project owner.</text>
+</svg>
