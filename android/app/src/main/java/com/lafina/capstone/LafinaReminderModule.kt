@@ -357,12 +357,75 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
+  fun setAlertPreferences(options: ReadableMap, promise: Promise) {
+    try {
+      fun optString(key: String): String? =
+        if (options.hasKey(key) && !options.isNull(key)) options.getString(key) else null
+      fun optBool(key: String, fallback: Boolean): Boolean =
+        if (options.hasKey(key) && !options.isNull(key)) options.getBoolean(key) else fallback
+      fun optInt(key: String, fallback: Int): Int =
+        if (options.hasKey(key) && !options.isNull(key)) options.getInt(key) else fallback
+
+      val prefs =
+        NativeAlertPreferences(
+          defaultAlarmSoundUri = optString("defaultAlarmSoundUri"),
+          alarmVibrationPattern =
+            optString("alarmVibrationPattern") ?: AlertPreferencesContract.PATTERN_STANDARD,
+          alarmVolumeRampSec = optInt("alarmVolumeRampSec", 30),
+          notificationSoundUri = optString("notificationSoundUri"),
+          notificationVibrate = optBool("notificationVibrate", true),
+          notificationVibrationPattern =
+            optString("notificationVibrationPattern") ?: AlertPreferencesContract.PATTERN_STANDARD,
+          notificationSnoozeMinutes = optInt("notificationSnoozeMinutes", 10),
+          lockScreenPrivacy =
+            optString("lockScreenPrivacy") ?: AlertPreferencesContract.PRIVACY_HIDE_TASK,
+          callRingtoneUri = optString("callRingtoneUri"),
+          callVibrate = optBool("callVibrate", true),
+          callVibrationPattern =
+            optString("callVibrationPattern") ?: AlertPreferencesContract.PATTERN_STANDARD,
+          callRingTimeoutSec = optInt("callRingTimeoutSec", 45),
+        )
+      AlertPreferencesStoreNative.write(reactContext, prefs)
+      createReminderChannel(reactContext)
+      createCallChannel(reactContext)
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("ALERT_PREFS_ERROR", e.message, e)
+    }
+  }
+
+  @ReactMethod
+  fun getActiveNotificationChannelId(kind: String, promise: Promise) {
+    try {
+      val id =
+        if (kind == "call") createCallChannel(reactContext)
+        else createReminderChannel(reactContext)
+      promise.resolve(id)
+    } catch (e: Exception) {
+      promise.reject("CHANNEL_ERROR", e.message, e)
+    }
+  }
+
+  @ReactMethod
   fun startRingtone(promise: Promise) {
     try {
+      val prefs = AlertPreferencesStoreNative.read(reactContext)
+      if (prefs.callRingtoneUri == AlertPreferencesContract.TONE_SILENT) {
+        promise.resolve(true)
+        return
+      }
       synchronized(this) {
         if (activeRingtone == null) {
-          val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-          activeRingtone = RingtoneManager.getRingtone(reactContext, uri)
+          val customUri = prefs.callRingtoneUri?.let { Uri.parse(it) }
+          val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+          activeRingtone =
+            (customUri?.let {
+              try {
+                RingtoneManager.getRingtone(reactContext, it)
+              } catch (_: Exception) {
+                null
+              }
+            }) ?: RingtoneManager.getRingtone(reactContext, fallbackUri)
         }
         activeRingtone?.let { if (!it.isPlaying) it.play() }
       }
@@ -639,7 +702,9 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       }
       val identity = registration.identity
       val task = registration.task
-      createCallChannel(context)
+      val prefs = AlertPreferencesStoreNative.read(context)
+      val channelId = createCallChannel(context)
+      val timeoutMs = AlertPreferencesContract.clampRingTimeoutSec(prefs.callRingTimeoutSec) * 1000L
       persistPendingCall(context, identity.reminderId, task, ACTION_CALL, identity.ownerId, identity.generation)
       synchronized(DELIVERY_LOCK) {
         val store = PendingReminderCalls(context)
@@ -650,13 +715,16 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       synchronized(DELIVERY_LOCK) {
         val pending = PendingReminderCalls(context)
         val row = pending.get(identity.ownerId, identity.reminderId, identity.generation) ?: return
-        row.put("deadlineMs", System.currentTimeMillis() + 45_000L)
+        row.put("deadlineMs", System.currentTimeMillis() + timeoutMs)
         pending.put(row)
         scheduleCallDeadline(context, identity, row.getLong("deadlineMs"))
       }
       val fullScreenIntent = callActivityPendingIntent(context, registration, ACTION_CALL)
-      val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-      val notification = NotificationCompat.Builder(context, CALL_CHANNEL_ID)
+      val ringtoneUri = resolveChannelSoundUri(prefs.callRingtoneUri, RingtoneManager.TYPE_RINGTONE)
+      val callWave =
+        if (prefs.callVibrate) AlertPreferencesContract.callWaveform(prefs.callVibrationPattern)
+        else null
+      val builder = NotificationCompat.Builder(context, channelId)
           .setSmallIcon(android.R.drawable.sym_call_incoming)
           .setContentTitle("LAFINA Reminder")
           .setContentText(task.ifBlank { "Scheduled academic reminder" })
@@ -664,13 +732,13 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
           .setPriority(NotificationCompat.PRIORITY_MAX)
           .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
           .setOngoing(true)
-          .setTimeoutAfter(45_000L)
+          .setTimeoutAfter(timeoutMs)
           .setAutoCancel(false)
           .setSound(ringtoneUri)
-          .setVibrate(longArrayOf(0, 1000, 1000, 1000, 1000))
+          .setVibrate(callWave ?: longArrayOf(0L))
           .setContentIntent(fullScreenIntent)
           .setFullScreenIntent(fullScreenIntent, true)
-          .build()
+      val notification = builder.build()
       notification.flags = notification.flags or Notification.FLAG_INSISTENT
       try {
         NotificationManagerCompat.from(context).notify(identity.notificationTag(), CALL_NOTIFICATION_ID, notification)
@@ -693,21 +761,29 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     private fun showReminderNotification(context: Context, registration: DeliveryRegistration) {
       val identity = registration.identity
       val task = registration.task
-      createReminderChannel(context)
+      val prefs = AlertPreferencesStoreNative.read(context)
+      val channelId = createReminderChannel(context)
+      val snoozeMin = AlertPreferencesContract.clampSnoozeMinutes(prefs.notificationSnoozeMinutes)
+      val visibility =
+        if (prefs.lockScreenPrivacy == AlertPreferencesContract.PRIVACY_SHOW) {
+          NotificationCompat.VISIBILITY_PUBLIC
+        } else {
+          NotificationCompat.VISIBILITY_PRIVATE
+        }
       val acknowledge = callActivityPendingIntent(context, registration, ACTION_ACKNOWLEDGE)
       val snooze = callActivityPendingIntent(context, registration, ACTION_SNOOZE)
-      val notification = NotificationCompat.Builder(context, REMINDER_CHANNEL_ID)
+      val notification = NotificationCompat.Builder(context, channelId)
           .setSmallIcon(android.R.drawable.ic_popup_reminder)
           .setContentTitle("LAFINA Reminder")
           .setContentText(task.ifBlank { "Scheduled academic reminder" })
           .setStyle(NotificationCompat.BigTextStyle().bigText(task.ifBlank { "Scheduled academic reminder" }))
           .setCategory(NotificationCompat.CATEGORY_REMINDER)
           .setPriority(NotificationCompat.PRIORITY_HIGH)
-          .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+          .setVisibility(visibility)
           .setAutoCancel(true)
           .setContentIntent(acknowledge)
           .addAction(0, "Acknowledge", acknowledge)
-          .addAction(0, "Snooze 10 min", snooze)
+          .addAction(0, "Snooze $snoozeMin min", snooze)
           .build()
       try {
         NotificationManagerCompat.from(context)
@@ -718,19 +794,47 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       }
     }
 
-    private fun createReminderChannel(context: Context) {
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    private fun createReminderChannel(context: Context): String {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return REMINDER_CHANNEL_ID
+      val prefs = AlertPreferencesStoreNative.read(context)
+      val channelId = AlertPreferencesContract.notifyChannelId(
+          prefs.notificationSoundUri,
+          prefs.notificationVibrate,
+          prefs.notificationVibrationPattern,
+          prefs.lockScreenPrivacy,
+      )
+      val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      val prevId = AlertPreferencesStoreNative.getActiveNotifyChannelId(context)
+      if (prevId != null && prevId != channelId && AlertPreferencesContract.isDynamicNotifyChannel(prevId)) {
+        try {
+          manager.deleteNotificationChannel(prevId)
+        } catch (_: Exception) {
+        }
+      }
+      val soundUri = resolveChannelSoundUri(prefs.notificationSoundUri, RingtoneManager.TYPE_NOTIFICATION)
+      val audioAttributes = AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .build()
+      val wave =
+        if (prefs.notificationVibrate) AlertPreferencesContract.notifyWaveform(prefs.notificationVibrationPattern)
+        else null
       val channel = NotificationChannel(
-          REMINDER_CHANNEL_ID,
+          channelId,
           "LAFINA reminders (notify only)",
           NotificationManager.IMPORTANCE_HIGH
       ).apply {
         description = "Reminders you chose to receive as a notification instead of a call"
-        lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-        enableVibration(true)
+        lockscreenVisibility =
+          if (prefs.lockScreenPrivacy == AlertPreferencesContract.PRIVACY_SHOW) Notification.VISIBILITY_PUBLIC
+          else Notification.VISIBILITY_PRIVATE
+        enableVibration(wave != null)
+        if (wave != null) vibrationPattern = wave
+        if (soundUri == null) setSound(null, null) else setSound(soundUri, audioAttributes)
       }
-      (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-          .createNotificationChannel(channel)
+      manager.createNotificationChannel(channel)
+      AlertPreferencesStoreNative.setActiveNotifyChannelId(context, channelId)
+      return channelId
     }
 
     /** True for notification actions of a notify-only reminder (no lock-screen call UI). */
@@ -939,26 +1043,57 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       )
     }
 
-    private fun createCallChannel(context: Context) {
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-      val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+    private fun resolveChannelSoundUri(configuredUri: String?, defaultType: Int): Uri? {
+      val clean = AlertPreferencesContract.sanitizeToneUri(configuredUri)
+      if (clean == AlertPreferencesContract.TONE_SILENT) return null
+      if (clean != null) {
+        return try {
+          Uri.parse(clean)
+        } catch (_: Exception) {
+          RingtoneManager.getDefaultUri(defaultType)
+        }
+      }
+      return RingtoneManager.getDefaultUri(defaultType)
+    }
+
+    private fun createCallChannel(context: Context): String {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return CALL_CHANNEL_ID
+      val prefs = AlertPreferencesStoreNative.read(context)
+      val channelId = AlertPreferencesContract.callChannelId(
+          prefs.callRingtoneUri,
+          prefs.callVibrate,
+          prefs.callVibrationPattern,
+      )
+      val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      val prevId = AlertPreferencesStoreNative.getActiveCallChannelId(context)
+      if (prevId != null && prevId != channelId && AlertPreferencesContract.isDynamicCallChannel(prevId)) {
+        try {
+          manager.deleteNotificationChannel(prevId)
+        } catch (_: Exception) {
+        }
+      }
+      val ringtoneUri = resolveChannelSoundUri(prefs.callRingtoneUri, RingtoneManager.TYPE_RINGTONE)
       val audioAttributes = AudioAttributes.Builder()
           .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
           .build()
+      val wave =
+        if (prefs.callVibrate) AlertPreferencesContract.callWaveform(prefs.callVibrationPattern)
+        else null
       val channel = NotificationChannel(
-          CALL_CHANNEL_ID,
+          channelId,
           "LAFINA reminder calls",
           NotificationManager.IMPORTANCE_HIGH
       ).apply {
         description = "Incoming offline academic reminder calls"
         lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-        enableVibration(true)
-        vibrationPattern = longArrayOf(0, 1000, 1000, 1000, 1000)
-        setSound(ringtoneUri, audioAttributes)
+        enableVibration(wave != null)
+        if (wave != null) vibrationPattern = wave
+        if (ringtoneUri == null) setSound(null, null) else setSound(ringtoneUri, audioAttributes)
       }
-      (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-          .createNotificationChannel(channel)
+      manager.createNotificationChannel(channel)
+      AlertPreferencesStoreNative.setActiveCallChannelId(context, channelId)
+      return channelId
     }
 
     /** Pre-cutover notification id; cancelled once so an upgraded call can still be dismissed. */

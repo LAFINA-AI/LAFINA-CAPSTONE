@@ -29,6 +29,14 @@ NativeModules.LafinaReminder = {
   listDeliveryRegistrations: jest.fn(() => Promise.resolve([])),
   setDeliveryOwner: jest.fn(() => Promise.resolve(true)),
   drainDeliveryReceipts: jest.fn(() => Promise.resolve([])),
+  setAlertPreferences: jest.fn(() => Promise.resolve(true)),
+  getActiveNotificationChannelId: jest.fn(kind =>
+    Promise.resolve(
+      kind === 'call'
+        ? 'lafina_incoming_calls_v2'
+        : 'lafina_reminder_notifications_v1',
+    ),
+  ),
 };
 
 // Alarm plan A1/A2: native alarms (tests needing state install their own fake).
@@ -40,6 +48,8 @@ NativeModules.LafinaAlarm = {
   ),
   drainEvents: jest.fn(() => Promise.resolve([])),
   testAlarm: jest.fn(() => Promise.resolve(Date.now() + 60000)),
+  testAlarmWithSound: jest.fn(() => Promise.resolve(Date.now() + 60000)),
+  setAlarmAudioPreferences: jest.fn(() => Promise.resolve(true)),
   stopRinging: jest.fn(() => Promise.resolve(true)),
   getStatus: jest.fn(() =>
     Promise.resolve({
@@ -51,6 +61,46 @@ NativeModules.LafinaAlarm = {
     }),
   ),
   openBatterySettings: jest.fn(() => Promise.resolve(true)),
+};
+
+NativeModules.LafinaSoundPicker = {
+  listBundledTones: jest.fn(() =>
+    Promise.resolve([
+      {
+        id: 'gentle',
+        rawName: 'lafina_tone_gentle',
+        label: 'Gentle Chime',
+        uri: 'android.resource://com.lafina.capstone/raw/lafina_tone_gentle',
+      },
+      {
+        id: 'chime',
+        rawName: 'lafina_tone_chime',
+        label: 'Academic Bell',
+        uri: 'android.resource://com.lafina.capstone/raw/lafina_tone_chime',
+      },
+      {
+        id: 'classic_ring',
+        rawName: 'lafina_tone_classic_ring',
+        label: 'Classic Ring',
+        uri: 'android.resource://com.lafina.capstone/raw/lafina_tone_classic_ring',
+      },
+      {
+        id: 'urgent',
+        rawName: 'lafina_tone_urgent',
+        label: 'Urgent Pulse',
+        uri: 'android.resource://com.lafina.capstone/raw/lafina_tone_urgent',
+      },
+    ]),
+  ),
+  pickSystemTone: jest.fn(() =>
+    Promise.resolve({cancelled: true, uri: null, title: ''}),
+  ),
+  resolveToneTitle: jest.fn(uri =>
+    Promise.resolve(uri ? 'Custom tone' : 'Default alarm tone'),
+  ),
+  previewTone: jest.fn(() => Promise.resolve(true)),
+  stopPreview: jest.fn(() => Promise.resolve(true)),
+  openChannelNotificationSettings: jest.fn(() => Promise.resolve(true)),
 };
 
 // Floating LAFINA (ADR-036): no overlay in Jest; tests needing state install their own fake.

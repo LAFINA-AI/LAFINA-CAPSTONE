@@ -284,14 +284,19 @@ const AlarmArrivalWrapper: React.FC<AlarmArrivalWrapperProps> = ({
     outputRange: ['-16deg', '16deg'],
   });
 
+  const arrivalTransformStyle =
+    isHighlighted && !reducedMotion
+      ? {
+          opacity: opacityAnim,
+          transform: [{translateY: translateYAnim}, {scale: scaleAnim}],
+        }
+      : undefined;
+
   return (
     <Animated.View
       style={[
         isGridView ? styles.gridItemSlot : styles.listItemSlot,
-        {
-          opacity: opacityAnim,
-          transform: [{translateY: translateYAnim}, {scale: scaleAnim}],
-        },
+        arrivalTransformStyle,
       ]}
     >
       {children}
@@ -533,10 +538,26 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
   const cardSurfaceStyle = [
     {
       backgroundColor: palette.card,
-      borderColor: palette.isDarkMode ? palette.border : 'transparent',
-      borderWidth: palette.isDarkMode ? 1 : 0,
+      borderColor:
+        skillsPresentation || palette.isDarkMode
+          ? palette.border
+          : 'transparent',
+      borderWidth: skillsPresentation || palette.isDarkMode ? 1 : 0,
     },
-    !palette.isDarkMode && scheduleCardShadow,
+    !palette.isDarkMode && !skillsPresentation && scheduleCardShadow,
+  ];
+  // Android elevation inside Animated.View casts a rectangular shadow box behind
+  // rounded cube corners; use a crisp 1px border surface instead.
+  const gridCardSurfaceStyle = [
+    {
+      backgroundColor: palette.card,
+      borderColor: palette.border,
+      borderWidth: 1,
+    },
+    Platform.OS === 'ios' &&
+      !palette.isDarkMode &&
+      !skillsPresentation &&
+      scheduleCardShadow,
   ];
 
   const renderAlarmItem = (alarm: Alarm) => {
@@ -569,7 +590,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
     const cardNode = effectiveIsGridView ? (
       <View
         testID={`alarm-grid-card-${alarm.id}`}
-        style={[styles.alarmGridCard, cardSurfaceStyle]}
+        style={[styles.alarmGridCard, gridCardSurfaceStyle]}
       >
         <View style={styles.alarmGridTopRow}>
           <TouchableOpacity
@@ -1044,16 +1065,21 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
             ]}
           >
             {alarms
-              .filter(
-                alarm =>
-                  !skillsPresentation ||
-                  selectedDay === null ||
-                  (alarm.repeatDays > 0 &&
-                    (alarm.repeatDays & (1 << (selectedDay + 6) % 7)) !== 0) ||
-                  (alarm.repeatDays === 0 &&
-                    new Date(`${alarm.oneShotDate}T12:00:00`).getDay() ===
-                      selectedDay),
-              )
+              .filter(alarm => {
+                if (!skillsPresentation || selectedDay === null) return true;
+                if (alarm.repeatDays > 0) {
+                  return (alarm.repeatDays & (1 << (selectedDay + 6) % 7)) !== 0;
+                }
+                if (alarm.oneShotDate) {
+                  const parsed = new Date(`${alarm.oneShotDate}T12:00:00`);
+                  return (
+                    !Number.isNaN(parsed.getTime()) &&
+                    parsed.getDay() === selectedDay
+                  );
+                }
+                const nextTrigger = nextAlarmTrigger({...alarm, enabled: true});
+                return nextTrigger ? nextTrigger.getDay() === selectedDay : true;
+              })
               .map(renderAlarmItem)}
           </View>
         )}

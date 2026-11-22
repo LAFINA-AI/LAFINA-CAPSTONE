@@ -1,9 +1,9 @@
 import {NativeModules} from 'react-native';
 import type {Reminder} from '../storage/remindersStore';
 import {deliveryStore} from '../storage/deliveryStore';
-import {reminderDeliveryStyleStore} from '../storage/reminderDeliveryStyleStore';
 import type {ReminderDeliveryStyle} from '../storage/reminderDeliveryStyleStore';
 import {remindersStore} from '../storage/remindersStore';
+import {resolveReminderDeliveryStyle} from './reminderDeliveryPolicy';
 import {getReminderPreferences} from './userPreferences';
 
 /**
@@ -94,6 +94,8 @@ interface LafinaReminderNativeModule {
   openExactAlarmSettings: () => Promise<boolean>;
   openFullScreenIntentSettings: () => Promise<boolean>;
   openNotificationSettings?: () => Promise<boolean>;
+  setAlertPreferences?: (options: Record<string, unknown>) => Promise<boolean>;
+  getActiveNotificationChannelId?: (kind: 'notify' | 'call') => Promise<string>;
   listDeliveryRegistrations?: () => Promise<NativeDeliveryRegistration[]>;
   setDeliveryOwner?: (ownerId: string) => Promise<boolean>;
   /** Exactly-one-engine claim for the in-app fallback ringer. */
@@ -168,7 +170,11 @@ export const scheduleReminderAlarm = async (
   }
   const ownerId = job?.userId ?? '';
   const generation = job?.generation ?? 0;
-  const style = reminderDeliveryStyleStore.get(reminderId);
+  const style = resolveReminderDeliveryStyle(
+    reminderId,
+    ownerId || undefined,
+    triggerAtMs,
+  );
 
   let scheduled: boolean;
   const preferences = getReminderPreferences(ownerId);
@@ -273,6 +279,18 @@ export const openNotificationSettings = async (): Promise<void> => {
   const module = getNativeModule();
   if (!module?.openNotificationSettings) return;
   await module.openNotificationSettings();
+};
+
+export const getActiveNotificationChannelId = async (
+  kind: 'notify' | 'call',
+): Promise<string | null> => {
+  const module = getNativeModule();
+  if (!module?.getActiveNotificationChannelId) return null;
+  try {
+    return await module.getActiveNotificationChannelId(kind);
+  } catch {
+    return null;
+  }
 };
 
 export const reconcileReminderAlarms = async (

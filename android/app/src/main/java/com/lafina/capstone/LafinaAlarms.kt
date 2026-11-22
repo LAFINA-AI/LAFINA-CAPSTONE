@@ -31,6 +31,7 @@ object LafinaAlarms {
   const val EXTRA_TRIGGER_AT = "triggerAt"
   const val EXTRA_IS_SNOOZE = "isSnooze"
   const val EXTRA_IS_TEST = "isTest"
+  const val EXTRA_SOUND_URI = "soundUri"
   const val EXTRA_OPEN_ALARMS = "lafinaOpenAlarms"
   const val TEST_ALARM_ID = "__lafina_test_alarm__"
 
@@ -81,9 +82,15 @@ object LafinaAlarms {
   }
 
   /** A one-off ring [seconds] from now that touches no saved alarm. */
-  fun bookTest(context: Context, seconds: Int): Long {
+  fun bookTest(context: Context, seconds: Int, soundUri: String? = null): Long {
     val at = System.currentTimeMillis() + seconds.coerceIn(5, 600) * 1000L
-    val intent = fireIntent(context, TEST_ALARM_ID, 0L, at, false).apply { putExtra(EXTRA_IS_TEST, true) }
+    val intent = fireIntent(context, TEST_ALARM_ID, 0L, at, false).apply {
+      putExtra(EXTRA_IS_TEST, true)
+      val cleanUri = AlertPreferencesContract.sanitizeToneUri(soundUri)
+      if (cleanUri != null && cleanUri != AlertPreferencesContract.TONE_SILENT) {
+        putExtra(EXTRA_SOUND_URI, cleanUri)
+      }
+    }
     setClock(context, intent, at)
     return at
   }

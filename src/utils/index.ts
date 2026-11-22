@@ -1,5 +1,5 @@
-export { generateId } from './id';
-export { secureKeystore } from './keystore';
+export {generateId} from './id';
+export {secureKeystore} from './keystore';
 export {
   CHECKLIST_LINE,
   indentDepth,
@@ -7,7 +7,7 @@ export {
   parseInline,
   parseNoteBlocks,
 } from './noteMarkdown';
-export type { NoteBlock, NoteInline } from './noteMarkdown';
+export type {NoteBlock, NoteInline} from './noteMarkdown';
 export {
   chatMarkdownToPlainText,
   hasWideMarkdownBlock,
@@ -15,7 +15,7 @@ export {
   parseChatInline,
   parseChatMarkdown,
 } from './chatMarkdown';
-export type { ChatBlock, ChatInline, ChatMarkdownOptions } from './chatMarkdown';
+export type {ChatBlock, ChatInline, ChatMarkdownOptions} from './chatMarkdown';
 export {
   checklistStats,
   extractChecklistItems,
@@ -25,7 +25,7 @@ export {
   noteBodyToMarkdown,
   toggleChecklistItem,
 } from './richText';
-export type { ChecklistStat } from './richText';
+export type {ChecklistStat} from './richText';
 export {
   applyNoteFormat,
   continueListOnNewline,
@@ -39,4 +39,8 @@ export type {
   NoteFormat,
   NoteSelection,
 } from './noteEditing';
-
+export {
+  formatCallReplyMarkdown,
+  highlightCallInlineDetails,
+  splitCallSentences,
+} from './callReplyFormatting';

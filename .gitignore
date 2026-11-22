@@ -23,6 +23,7 @@ prompts/
 *.sqlite-*
 *.hprof
 *.wav
+!android/app/src/main/res/raw/lafina_tone_*.wav
 *.mp3
 *.m4a
 *.pcm

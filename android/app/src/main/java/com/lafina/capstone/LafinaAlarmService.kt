@@ -46,7 +46,6 @@ class LafinaAlarmService : Service() {
     const val NOTIFICATION_ID = 7402
     private const val ACTION_RING = "com.lafina.capstone.ALARM_RING"
     private const val MAX_RING_MS = 10 * 60_000L
-    private const val RAMP_MS = 30_000L
     private const val EXTRA_LABEL = "label"
     private const val EXTRA_VIBRATE = "vibrate"
     private const val EXTRA_SOUND = "sound"
@@ -168,12 +167,21 @@ class LafinaAlarmService : Service() {
   }
 
   private fun startSound(request: RingRequest) {
+    val prefs = AlertPreferencesStoreNative.read(this)
+    val rampMs = AlertPreferencesContract.clampRampSeconds(prefs.alarmVolumeRampSec) * 1000L
+    val initialVolume = if (rampMs <= 0L) 1.0f else 0.2f
+
     val attributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ALARM)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
     val candidates = listOfNotNull(
-        request.soundUri?.let { Uri.parse(it) },
+        AlertPreferencesContract.sanitizeToneUri(request.soundUri)
+            ?.takeIf { it != AlertPreferencesContract.TONE_SILENT }
+            ?.let { Uri.parse(it) },
+        prefs.defaultAlarmSoundUri
+            ?.takeIf { it != AlertPreferencesContract.TONE_SILENT }
+            ?.let { Uri.parse(it) },
         RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM),
         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
@@ -183,7 +191,7 @@ class LafinaAlarmService : Service() {
           setAudioAttributes(attributes)
           setDataSource(this@LafinaAlarmService, uri)
           isLooping = true
-          setVolume(0.2f, 0.2f)
+          setVolume(initialVolume, initialVolume)
           prepare()
           start()
         }
@@ -193,22 +201,26 @@ class LafinaAlarmService : Service() {
         player = null
       }
     }
-    rampStartedAt = System.currentTimeMillis()
-    handler.post(object : Runnable {
-      override fun run() {
-        val active = player ?: return
-        val progress = ((System.currentTimeMillis() - rampStartedAt).toFloat() / RAMP_MS).coerceIn(0f, 1f)
-        val volume = 0.2f + 0.8f * progress
-        try {
-          active.setVolume(volume, volume)
-        } catch (_: Exception) {
-          return
+    if (rampMs > 0L && player != null) {
+      rampStartedAt = System.currentTimeMillis()
+      handler.post(object : Runnable {
+        override fun run() {
+          val active = player ?: return
+          val progress = ((System.currentTimeMillis() - rampStartedAt).toFloat() / rampMs).coerceIn(0f, 1f)
+          val volume = 0.2f + 0.8f * progress
+          try {
+            active.setVolume(volume, volume)
+          } catch (_: Exception) {
+            return
+          }
+          if (progress < 1f) handler.postDelayed(this, 1000L)
         }
-        if (progress < 1f) handler.postDelayed(this, 1000L)
-      }
-    })
+      })
+    }
     // Vibration also runs when no tone could play, so the alarm is never silent and still.
-    if (request.vibrate || player == null) {
+    val chosenWaveform = AlertPreferencesContract.alarmWaveform(prefs.alarmVibrationPattern)
+    if ((request.vibrate && chosenWaveform != null) || player == null) {
+      val waveform = chosenWaveform ?: AlertPreferencesContract.STANDARD_ALARM_WAVEFORM
       vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
       } else {
@@ -216,7 +228,7 @@ class LafinaAlarmService : Service() {
         getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
       }
       @Suppress("DEPRECATION")
-      vibrator?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 800, 800), 0), attributes)
+      vibrator?.vibrate(VibrationEffect.createWaveform(waveform, 0), attributes)
     }
   }
 

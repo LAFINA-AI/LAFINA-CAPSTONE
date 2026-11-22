@@ -23,6 +23,9 @@ import {
 import type {CallResolution, CallState} from '../../../scheduler';
 import {Fonts, Layout, ModernLayout, Shadows} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
+import {ChatReplyText} from '../chat/ChatReplyText';
+import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
+import {formatCallReplyMarkdown} from '../../../utils';
 
 /** The button the student just tapped, while the app carries it out. */
 export type CallPendingAction = 'acknowledge' | 'snooze' | 'end';
@@ -37,6 +40,7 @@ interface CallAnsweredViewProps {
   onDecline: () => void;
   transcript: string;
   reply: string;
+  replyFormat?: ChatReplyFormat;
   /**
    * A line from the app itself, such as "No card was prepared". It stays in
    * view while the conversation keeps replacing LAFINA's reply.
@@ -120,6 +124,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   onDecline,
   transcript,
   reply,
+  replyFormat = 'markdown',
   notice = '',
   onlineConversation,
   busy = false,
@@ -422,11 +427,14 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
                     <Text style={[styles.cardLabel, {color: colors.textMuted}]}>
                       LAFINA
                     </Text>
-                    <Text
-                      style={[styles.replyText, {color: colors.textPrimary}]}
-                    >
-                      {reply}
-                    </Text>
+                    <ChatReplyText
+                      content={formatCallReplyMarkdown(reply)}
+                      format={replyFormat}
+                      textStyle={[
+                        styles.replyText,
+                        {color: colors.textPrimary},
+                      ]}
+                    />
                   </>
                 ) : null}
                 {reply && transcript ? (

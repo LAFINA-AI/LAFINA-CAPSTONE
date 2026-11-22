@@ -16,36 +16,50 @@ export const isReminderDeliveryStyle = (
 
 type Executor = Pick<DatabaseTransaction, 'executeSync'>;
 
+const getExplicit = (
+  reminderId: string,
+  executor: Executor = db,
+): ReminderDeliveryStyle | null => {
+  try {
+    const value = executor.executeSync(
+      'SELECT style FROM reminder_delivery_styles WHERE reminder_id = ?',
+      [reminderId],
+    ).rows?.[0]?.style;
+    return isReminderDeliveryStyle(value) ? value : null;
+  } catch (error) {
+    console.warn('[ReminderDeliveryStyle] Could not read style:', error);
+    return null;
+  }
+};
+
 export const reminderDeliveryStyleStore = {
-  /** The saved style, or `call` when none is saved or storage cannot be read. */
-  get: (reminderId: string, executor: Executor = db): ReminderDeliveryStyle => {
-    try {
-      const value = executor.executeSync(
-        'SELECT style FROM reminder_delivery_styles WHERE reminder_id = ?',
-        [reminderId],
-      ).rows?.[0]?.style;
-      return isReminderDeliveryStyle(value)
-        ? value
-        : DEFAULT_REMINDER_DELIVERY_STYLE;
-    } catch (error) {
-      console.warn('[ReminderDeliveryStyle] Could not read style:', error);
-      return DEFAULT_REMINDER_DELIVERY_STYLE;
-    }
-  },
+  /** Explicit per-reminder override, or null when no override row is saved. */
+  getExplicit,
+
+  /**
+   * The saved style, or `fallback` (default `call`) when no override row is
+   * saved or storage cannot be read.
+   */
+  get: (
+    reminderId: string,
+    executor: Executor = db,
+    fallback: ReminderDeliveryStyle = DEFAULT_REMINDER_DELIVERY_STYLE,
+  ): ReminderDeliveryStyle => getExplicit(reminderId, executor) ?? fallback,
 
   /**
    * Saves the style inside the caller's transaction (so it commits with the
-   * reminder). `call` removes the row, since a missing row already means call.
+   * reminder). Removes the row when it matches `defaultStyle` (default `call`).
    */
   set: (
     reminderId: string,
     style: ReminderDeliveryStyle,
     executor: Executor = db,
+    defaultStyle: ReminderDeliveryStyle = DEFAULT_REMINDER_DELIVERY_STYLE,
   ): void => {
     if (!isReminderDeliveryStyle(style)) {
       throw new Error('Invalid reminder delivery style.');
     }
-    if (style === DEFAULT_REMINDER_DELIVERY_STYLE) {
+    if (style === defaultStyle) {
       executor.executeSync(
         'DELETE FROM reminder_delivery_styles WHERE reminder_id = ?',
         [reminderId],

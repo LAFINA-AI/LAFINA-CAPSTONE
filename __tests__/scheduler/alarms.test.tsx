@@ -5,7 +5,7 @@
  * still needs a device; nothing here claims an alarm rang.
  */
 import React from 'react';
-import {NativeModules, Platform} from 'react-native';
+import {NativeModules, Platform, StyleSheet} from 'react-native';
 import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import {
   db,
@@ -260,6 +260,52 @@ describe('screens', () => {
     expect(screen.getByTestId(`alarm-row-${saved.id}`)).toBeTruthy();
     fireEvent.press(screen.getByTestId('alarm-view-toggle'));
     expect(screen.getByTestId(`alarm-grid-card-${saved.id}`)).toBeTruthy();
+  });
+
+  it('Android cube alarm cards use a clean 1px border without elevation shadow artifacts', async () => {
+    const saved = alarmsStore.create(user, {
+      hour: 5,
+      minute: 26,
+      label: 'Wake up',
+    });
+    const skillsView = render(
+      wrap(
+        <AlarmsView
+          userId={user}
+          refreshTrigger={0}
+          onRefresh={jest.fn()}
+          isGridView
+          skillsPresentation
+        />,
+      ),
+    );
+    await act(async () => {});
+    const skillsStyle = StyleSheet.flatten(
+      skillsView.getByTestId(`alarm-grid-card-${saved.id}`).props.style,
+    );
+    expect(skillsStyle.borderWidth).toBe(1);
+    expect(skillsStyle.borderColor).not.toBe('transparent');
+    expect(skillsStyle.borderRadius).toBe(20);
+    expect(skillsStyle.elevation ?? 0).toBe(0);
+
+    const standardView = render(
+      wrap(
+        <AlarmsView
+          userId={user}
+          refreshTrigger={0}
+          onRefresh={jest.fn()}
+          isGridView
+        />,
+      ),
+    );
+    await act(async () => {});
+    const standardStyle = StyleSheet.flatten(
+      standardView.getByTestId(`alarm-grid-card-${saved.id}`).props.style,
+    );
+    expect(standardStyle.borderWidth).toBe(1);
+    expect(standardStyle.borderColor).not.toBe('transparent');
+    expect(standardStyle.borderRadius).toBe(20);
+    expect(standardStyle.elevation ?? 0).toBe(0);
   });
 
   it('omits test alarm & alarm health from Alarms tab and surfaces battery saver in ReminderHealth & permissions', async () => {
