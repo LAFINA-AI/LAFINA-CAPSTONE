@@ -53,15 +53,18 @@ export interface DraftProtection {
  */
 export const useDraftProtection = (
   owner: string,
-  text: string,
+  text: string | (() => string),
   reviewPending: boolean,
   onDiscard: () => void,
   onReplace: (text: string) => void,
 ): DraftProtection => {
   const [dialog, setDialog] = useState<DraftDialogRequest | null>(null);
+  const readText = (): string => (typeof text === 'function' ? text() : text);
+  const currentText = readText();
   const state = useRef({
     owner,
-    text,
+    text: currentText,
+    readText,
     reviewPending,
     onDiscard,
     onReplace,
@@ -70,14 +73,15 @@ export const useDraftProtection = (
   });
   if (
     owner !== state.current.owner ||
-    text !== state.current.text ||
+    currentText !== state.current.text ||
     reviewPending !== state.current.reviewPending
   ) {
     state.current.version += 1;
   }
   Object.assign(state.current, {
     owner,
-    text,
+    text: currentText,
+    readText,
     reviewPending,
     onDiscard,
     onReplace,
@@ -98,14 +102,15 @@ export const useDraftProtection = (
   }, [owner]);
 
   const hasDraft = useCallback(
-    () => !!state.current.text.trim() || state.current.reviewPending,
+    () => !!state.current.readText().trim() || state.current.reviewPending,
     [],
   );
 
   const requestLeave = useCallback(
     (proceed: () => void, copy: DiscardDraftCopy = DISCARD_COPY): void => {
       if (!state.current.alive) return;
-      if (!state.current.text.trim() && !state.current.reviewPending) {
+      const current = state.current.readText();
+      if (!current.trim() && !state.current.reviewPending) {
         proceed();
         return;
       }
@@ -119,7 +124,11 @@ export const useDraftProtection = (
         onKeep: () => setDialog(null),
         onConfirm: () => {
           setDialog(null);
-          if (state.current.alive && state.current.version === version) {
+          if (
+            state.current.alive &&
+            state.current.version === version &&
+            state.current.readText() === current
+          ) {
             state.current.onDiscard();
             proceed();
           }
@@ -140,7 +149,7 @@ export const useDraftProtection = (
         return;
       }
       const version = state.current.version;
-      const current = state.current.text;
+      const current = state.current.readText();
       if (!current.trim() || current === next) {
         state.current.onReplace(next);
         done(true);
@@ -157,7 +166,11 @@ export const useDraftProtection = (
         },
         onConfirm: () => {
           setDialog(null);
-          if (!state.current.alive || state.current.version !== version) {
+          if (
+            !state.current.alive ||
+            state.current.version !== version ||
+            state.current.readText() !== current
+          ) {
             done(false);
             return;
           }

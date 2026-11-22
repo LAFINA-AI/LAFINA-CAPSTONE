@@ -138,6 +138,33 @@ const scheduleTaskReminder = (
   }
 };
 
+interface CachedChecklistEntry {
+  revision: number;
+  updatedAt: string;
+  title: string;
+  items: NoteChecklistTodoItem[];
+}
+
+const checklistCachesByUser = new Map<
+  string,
+  Map<string, CachedChecklistEntry>
+>();
+
+const getChecklistCacheForUser = (
+  userId: string,
+): Map<string, CachedChecklistEntry> => {
+  let cache = checklistCachesByUser.get(userId);
+  if (!cache) {
+    cache = new Map();
+    if (checklistCachesByUser.size >= 8) {
+      const oldest = checklistCachesByUser.keys().next().value;
+      if (oldest !== undefined) checklistCachesByUser.delete(oldest);
+    }
+    checklistCachesByUser.set(userId, cache);
+  }
+  return cache;
+};
+
 export const useTodoData = ({
   userId,
   refreshTrigger,
@@ -162,9 +189,6 @@ export const useTodoData = ({
     null,
   );
 
-  const checklistCache = useRef(
-    new Map<string, {revision: number; items: NoteChecklistTodoItem[]}>(),
-  );
   const scanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openTaskCount, setOpenTaskCount] = useState(0);
   const loadedKey = useRef('');
@@ -216,34 +240,43 @@ export const useTodoData = ({
         setTasks(rows.slice(0, taskLimit).map(mapRowToTask));
         setHasMoreTasks(rows.length > taskLimit);
       }
+      const checklistCache = getChecklistCacheForUser(userId);
       const metadata = db.executeSync(
-        `SELECT n.id, COALESCE(r.revision, 0) AS revision
+        `SELECT n.id, n.updated_at, n.title, COALESCE(r.revision, 0) AS revision
         FROM notes n LEFT JOIN entity_local_revisions r ON r.entity_type = 'note' AND r.entity_id = n.id
         WHERE n.user_id = ? AND n.deleted_at IS NULL ORDER BY n.id`,
         [userId],
       ).rows;
       const liveIds = new Set(metadata.map(row => String(row.id)));
-      for (const id of checklistCache.current.keys())
-        if (!liveIds.has(id)) checklistCache.current.delete(id);
-      const stale = metadata.filter(
-        row =>
-          checklistCache.current.get(String(row.id))?.revision !==
-          Number(row.revision),
-      );
-      setChecklistsLoading(stale.length > 8);
-      let offset = 0;
+      for (const id of checklistCache.keys())
+        if (!liveIds.has(id)) checklistCache.delete(id);
+      const stale = metadata.filter(row => {
+        const cached = checklistCache.get(String(row.id));
+        return (
+          !cached ||
+          cached.revision !== Number(row.revision) ||
+          cached.updatedAt !== String(row.updated_at ?? '') ||
+          cached.title !== String(row.title ?? '')
+        );
+      });
       const publish = () =>
         setNoteChecklists(
-          Array.from(checklistCache.current.values()).flatMap(
-            entry => entry.items,
-          ),
+          Array.from(checklistCache.values()).flatMap(entry => entry.items),
         );
+      if (stale.length === 0) {
+        publish();
+        loadedKey.current = key;
+        setChecklistsLoading(false);
+        return;
+      }
+      setChecklistsLoading(stale.length > 8);
+      let offset = 0;
       const batch = () => {
         try {
           // Yield between small batches; unchanged bodies are never read/parsed again.
           for (const row of stale.slice(offset, offset + 8)) {
             const note = db.executeSync(
-              'SELECT title, category, body FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+              'SELECT title, category, body, updated_at FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
               [row.id, userId],
             ).rows[0];
             if (!note) continue;
@@ -265,8 +298,10 @@ export const useTodoData = ({
                   ]
                 : [],
             );
-            checklistCache.current.set(noteId, {
+            checklistCache.set(noteId, {
               revision: Number(row.revision),
+              updatedAt: String(note.updated_at ?? row.updated_at ?? ''),
+              title: String(note.title ?? row.title ?? ''),
               items,
             });
           }
@@ -297,7 +332,6 @@ export const useTodoData = ({
   useEffect(() => {
     if (checklistOwner.current === userId) return;
     checklistOwner.current = userId;
-    checklistCache.current.clear();
     loadedKey.current = '';
     setHighlightedTaskId(null);
     setEditorVisible(false);

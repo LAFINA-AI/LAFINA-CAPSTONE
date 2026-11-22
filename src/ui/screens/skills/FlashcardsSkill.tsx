@@ -260,13 +260,14 @@ export function FlashcardsSkill({
 
   useEffect(() => {
     if (!active) return;
+    const checkTime = Date.now();
     const hasNearDue = decks.some(d =>
-      d.cards.some(c => c.dueAt > now && c.dueAt <= now + 3600000),
+      d.cards.some(c => c.dueAt > checkTime && c.dueAt <= checkTime + 3600000),
     );
     if (!hasNearDue) return;
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
-  }, [active, decks, now]);
+  }, [active, decks]);
 
   const studyDeck = decks.find(d => d.id === studyDeckId);
   const selectedDeck = decks.find(d => d.id === selectedDeckId);

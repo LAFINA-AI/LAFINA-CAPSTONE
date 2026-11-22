@@ -1,23 +1,20 @@
-import { accountLinkService } from '../cloud/accountLinkService';
-import { cloudClient } from '../cloud/cloudClient';
-import { reconcileReminderDelivery } from '../scheduler';
-import { runAttachmentCleanup } from '../storage/attachmentCleanup';
-import {
-  CHAT_LIMIT_REASON,
-  chatSyncStore,
-} from '../storage/chatSyncStore';
-import { db, DatabaseTransaction } from '../storage/database';
-import { syncConflictStore } from '../storage/syncConflictStore';
-import { syncMetadataStore } from '../storage/syncMetadataStore';
-import { OutboxItem, syncOutboxStore } from '../storage/syncOutboxStore';
-import { syncStateStore } from '../storage/syncStateStore';
+import {accountLinkService} from '../cloud/accountLinkService';
+import {cloudClient} from '../cloud/cloudClient';
+import {reconcileReminderDelivery} from '../scheduler';
+import {runAttachmentCleanup} from '../storage/attachmentCleanup';
+import {CHAT_LIMIT_REASON, chatSyncStore} from '../storage/chatSyncStore';
+import {db, DatabaseTransaction} from '../storage/database';
+import {syncConflictStore} from '../storage/syncConflictStore';
+import {syncMetadataStore} from '../storage/syncMetadataStore';
+import {OutboxItem, syncOutboxStore} from '../storage/syncOutboxStore';
+import {syncStateStore} from '../storage/syncStateStore';
 import type {
   SyncEntityType,
   SyncOperation,
   SyncPayload,
 } from '../storage/syncTypes';
-import { userStore } from '../storage/userStore';
-import { emitChatRemoteChanged } from './chatSyncEvents';
+import {userStore} from '../storage/userStore';
+import {emitChatRemoteChanged} from './chatSyncEvents';
 import {
   authoritativeSyncEntityTypes,
   declaredSyncEntityTypes,
@@ -27,9 +24,9 @@ import {
   sameEntityTypeSet,
   SINGLETON_SYNC_ENTITY_TYPES,
 } from './syncEntityTypes';
-import { syncState } from './syncState';
+import {syncState} from './syncState';
 
-export type { SyncEntityType } from '../storage/syncTypes';
+export type {SyncEntityType} from '../storage/syncTypes';
 
 interface MutationResult {
   mutationId: string;
@@ -240,7 +237,7 @@ const normalizeNoteTags = (payload: Record<string, unknown>): string => {
     const parsed: unknown = JSON.parse(value);
     if (
       Array.isArray(parsed) &&
-      parsed.every((entry) => typeof entry === 'string')
+      parsed.every(entry => typeof entry === 'string')
     ) {
       return JSON.stringify(parsed);
     }
@@ -250,7 +247,7 @@ const normalizeNoteTags = (payload: Record<string, unknown>): string => {
   return JSON.stringify(
     value
       .split(',')
-      .map((entry) => entry.trim())
+      .map(entry => entry.trim())
       .filter(Boolean),
   );
 };
@@ -260,7 +257,7 @@ const normalizeStudyPeakHours = (value: string): string => {
     const parsed: unknown = JSON.parse(value);
     if (
       Array.isArray(parsed) &&
-      parsed.every((entry) => typeof entry === 'string')
+      parsed.every(entry => typeof entry === 'string')
     ) {
       return JSON.stringify(parsed);
     }
@@ -271,7 +268,7 @@ const normalizeStudyPeakHours = (value: string): string => {
   return JSON.stringify(
     value
       .split(',')
-      .map((entry) => entry.trim())
+      .map(entry => entry.trim())
       .filter(Boolean),
   );
 };
@@ -282,10 +279,9 @@ const assertEntityOwnership = (
   entityId: string,
   localUserId: string,
 ): void => {
-  const result = tx.executeSync(
-    `SELECT user_id FROM ${table} WHERE id = ?`,
-    [entityId],
-  );
+  const result = tx.executeSync(`SELECT user_id FROM ${table} WHERE id = ?`, [
+    entityId,
+  ]);
   const owner = result.rows?.[0]?.user_id;
   if (owner === 'cloud') {
     tx.executeSync(
@@ -525,6 +521,10 @@ const applyReminder = (
        task = excluded.task, description = excluded.description,
        scheduled_at = excluded.scheduled_at, trigger_at = excluded.trigger_at,
        status = excluded.status, snooze_count = excluded.snooze_count,
+       precast_audio_path = CASE
+         WHEN reminders.task <> excluded.task THEN NULL
+         ELSE reminders.precast_audio_path
+       END,
        updated_at = excluded.updated_at, deleted_at = NULL`,
     [
       change.entityId,
@@ -750,7 +750,10 @@ const tallyChat = (tally: ChatApplyTally, applied: AppliedChange): void => {
   tally.removed = tally.removed || applied.chatRemoved;
 };
 
-const reportChatChanges = (localUserId: string, tally: ChatApplyTally): void => {
+const reportChatChanges = (
+  localUserId: string,
+  tally: ChatApplyTally,
+): void => {
   if (tally.removed) {
     // Files of messages deleted on another phone (ADR-026 obligations).
     void runAttachmentCleanup(
@@ -772,18 +775,20 @@ const formatMutation = (
   localUserId: string,
   item: OutboxItem,
 ): OutboundMutation => {
-  const resolvedBaseVersion = LAST_WRITE_WINS_ENTITY_TYPES.includes(item.entityType)
+  const resolvedBaseVersion = LAST_WRITE_WINS_ENTITY_TYPES.includes(
+    item.entityType,
+  )
     ? null
     : item.operation === 'create'
-      ? 0
-      : item.baseVersion ??
-        syncMetadataStore.getVersion(
-          localUserId,
-          item.entityType,
-          item.entityId,
-          item.scopeType,
-          item.scopeId,
-        );
+    ? 0
+    : item.baseVersion ??
+      syncMetadataStore.getVersion(
+        localUserId,
+        item.entityType,
+        item.entityId,
+        item.scopeType,
+        item.scopeId,
+      );
   return {
     mutationId: item.id,
     entityType: item.entityType,
@@ -791,9 +796,7 @@ const formatMutation = (
     operation: item.operation,
     clientUpdatedAt: item.updatedAt,
     payload: item.payload,
-    ...(resolvedBaseVersion === null
-      ? {}
-      : { baseVersion: resolvedBaseVersion }),
+    ...(resolvedBaseVersion === null ? {} : {baseVersion: resolvedBaseVersion}),
   };
 };
 
@@ -802,7 +805,7 @@ const validateMutationResults = (
   sentMutations: OutboundMutation[],
 ): void => {
   const sentById = new Map(
-    sentMutations.map((mutation) => [mutation.mutationId, mutation]),
+    sentMutations.map(mutation => [mutation.mutationId, mutation]),
   );
   const seen = new Set<string>();
   for (const result of response.accepted) {
@@ -838,7 +841,7 @@ const validateMutationResults = (
     seen.add(result.mutationId);
   }
   if (seen.size !== sentById.size) {
-    const missingIds = [...sentById.keys()].filter((id) => !seen.has(id));
+    const missingIds = [...sentById.keys()].filter(id => !seen.has(id));
     throw new Error(
       `Server omitted mutation results for: ${missingIds.join(', ')}`,
     );
@@ -849,13 +852,21 @@ const validatePage = (
   response: SyncBatchResponsePayload,
   requestCursor: number,
 ): void => {
-  if (!Number.isInteger(response.nextCursor) || response.nextCursor < requestCursor) {
+  if (
+    !Number.isInteger(response.nextCursor) ||
+    response.nextCursor < requestCursor
+  ) {
     throw new Error('Server returned an invalid or regressing sync cursor.');
   }
   let greatestChangeId = requestCursor;
   for (const change of response.changes) {
-    if (!Number.isInteger(change.changeId) || change.changeId <= requestCursor) {
-      throw new Error('Server returned a change at or behind the requested cursor.');
+    if (
+      !Number.isInteger(change.changeId) ||
+      change.changeId <= requestCursor
+    ) {
+      throw new Error(
+        'Server returned a change at or behind the requested cursor.',
+      );
     }
     if (change.changeId <= greatestChangeId) {
       throw new Error('Server returned changes out of order.');
@@ -865,10 +876,7 @@ const validatePage = (
   if (response.changes.length === 0 && response.nextCursor !== requestCursor) {
     throw new Error('Server advanced the cursor without returning changes.');
   }
-  if (
-    response.changes.length > 0 &&
-    response.nextCursor !== greatestChangeId
-  ) {
+  if (response.changes.length > 0 && response.nextCursor !== greatestChangeId) {
     throw new Error('Server cursor does not match the last returned change.');
   }
   if (response.hasMore && response.nextCursor === requestCursor) {
@@ -884,7 +892,9 @@ const validatePage = (
 const sameStringSet = (left: string[], right: string[]): boolean => {
   if (left.length !== right.length) return false;
   const leftSet = new Set(left);
-  return leftSet.size === right.length && right.every((item) => leftSet.has(item));
+  return (
+    leftSet.size === right.length && right.every(item => leftSet.has(item))
+  );
 };
 
 const validateSnapshotResponse = (
@@ -896,7 +906,9 @@ const validateSnapshotResponse = (
   const authoritativeTypes = authoritativeSyncEntityTypes(effectiveTypes);
   const snapshot = response.snapshot;
   if (!snapshot) {
-    throw new Error('Server omitted the requested current-state snapshot page.');
+    throw new Error(
+      'Server omitted the requested current-state snapshot page.',
+    );
   }
   if (
     response.resetRequired ||
@@ -912,7 +924,9 @@ const validateSnapshotResponse = (
     (request.boundaryCursor !== undefined &&
       snapshot.boundaryCursor !== request.boundaryCursor)
   ) {
-    throw new Error('Server returned an invalid or changing snapshot boundary.');
+    throw new Error(
+      'Server returned an invalid or changing snapshot boundary.',
+    );
   }
   if (snapshot.hasMore === snapshot.complete) {
     throw new Error('Server returned inconsistent snapshot pagination flags.');
@@ -921,7 +935,9 @@ const validateSnapshotResponse = (
     (snapshot.hasMore && !snapshot.nextAfter) ||
     (snapshot.complete && snapshot.nextAfter)
   ) {
-    throw new Error('Server returned an invalid snapshot continuation position.');
+    throw new Error(
+      'Server returned an invalid snapshot continuation position.',
+    );
   }
   if (snapshot.hasMore && snapshot.items.length === 0) {
     throw new Error('Server snapshot pagination made no item progress.');
@@ -935,7 +951,9 @@ const validateSnapshotResponse = (
     throw new Error('Server repeated the same snapshot continuation position.');
   }
   if (!sameStringSet(snapshot.authoritativeEntityTypes, authoritativeTypes)) {
-    throw new Error('Server snapshot did not cover every personal entity type.');
+    throw new Error(
+      'Server snapshot did not cover every personal entity type.',
+    );
   }
   if (
     !snapshot.prunePolicy.requireExistingSyncMetadata ||
@@ -958,14 +976,35 @@ const validateSnapshotResponse = (
       throw new Error('Server returned invalid snapshot entity metadata.');
     }
     if (change.operation !== 'update' && change.operation !== 'delete') {
-      throw new Error('Server returned a non-current-state snapshot operation.');
+      throw new Error(
+        'Server returned a non-current-state snapshot operation.',
+      );
     }
     if (!effectiveTypes.includes(change.entityType)) {
-      throw new Error(`Unsupported snapshot entity type: ${String(change.entityType)}`);
+      throw new Error(
+        `Unsupported snapshot entity type: ${String(change.entityType)}`,
+      );
     }
   }
   return snapshot;
 };
+
+const hasPendingLocalMutation = (
+  tx: DatabaseTransaction,
+  localUserId: string,
+  entityType: SyncEntityType,
+  entityId: string,
+): boolean =>
+  Boolean(
+    tx.executeSync(
+      `SELECT 1 FROM sync_outbox
+       WHERE user_id = ? AND scope_type = ? AND scope_id = ?
+         AND entity_type = ? AND entity_id = ?
+         AND status = 'pending'
+       LIMIT 1`,
+      [localUserId, ACCOUNT_SCOPE, localUserId, entityType, entityId],
+    ).rows?.[0],
+  );
 
 const pruneServerMissingEntities = (
   tx: DatabaseTransaction,
@@ -974,7 +1013,7 @@ const pruneServerMissingEntities = (
   serverTime: string,
   authoritativeTypes: readonly SyncEntityType[],
   chatTally: ChatApplyTally,
-): boolean => {
+): {reminderTextUpdated: boolean; remoteChanges: number} => {
   const snapshotIds = new Map<SyncEntityType, Set<string>>();
   for (const entityType of authoritativeTypes) {
     snapshotIds.set(entityType, new Set());
@@ -984,6 +1023,7 @@ const pruneServerMissingEntities = (
   }
 
   let reminderTextUpdated = false;
+  let remoteChanges = 0;
   for (const entityType of authoritativeTypes) {
     const isChat = isChatSyncEntityType(entityType);
     const table = isChat ? null : getPersonalEntityTable(entityType);
@@ -1018,7 +1058,7 @@ const pruneServerMissingEntities = (
           entityId,
         ).removed;
         if (removed) {
-          remoteChangesApplied += 1;
+          remoteChanges += 1;
           chatTally.changed = true;
           chatTally.removed = true;
         }
@@ -1030,7 +1070,7 @@ const pruneServerMissingEntities = (
           [serverTime, serverTime, entityId, localUserId],
         );
         if ((result.rowsAffected ?? 0) > 0) {
-          remoteChangesApplied += 1;
+          remoteChanges += 1;
           if (entityType === 'reminder') reminderTextUpdated = true;
         }
       }
@@ -1042,7 +1082,7 @@ const pruneServerMissingEntities = (
       );
     }
   }
-  return reminderTextUpdated;
+  return {reminderTextUpdated, remoteChanges};
 };
 
 const applyAuthoritativeSnapshot = (
@@ -1053,8 +1093,8 @@ const applyAuthoritativeSnapshot = (
   effectiveTypes: readonly SyncEntityType[],
 ): ApplyPageResult => {
   let reminderTextUpdated = false;
-  const beforeCount = remoteChangesApplied;
-  const chatTally: ChatApplyTally = { changed: false, removed: false };
+  let localRemoteChanges = 0;
+  const chatTally: ChatApplyTally = {changed: false, removed: false};
   db.transactionSync((tx: DatabaseTransaction) => {
     syncOutboxStore.setSuppression(
       localUserId,
@@ -1064,7 +1104,7 @@ const applyAuthoritativeSnapshot = (
       tx,
     );
     try {
-      reminderTextUpdated = pruneServerMissingEntities(
+      const pruned = pruneServerMissingEntities(
         tx,
         localUserId,
         items,
@@ -1072,7 +1112,19 @@ const applyAuthoritativeSnapshot = (
         authoritativeSyncEntityTypes(effectiveTypes),
         chatTally,
       );
+      reminderTextUpdated = pruned.reminderTextUpdated;
+      localRemoteChanges += pruned.remoteChanges;
       for (const change of items) {
+        if (
+          hasPendingLocalMutation(
+            tx,
+            localUserId,
+            change.entityType,
+            change.entityId,
+          )
+        ) {
+          continue;
+        }
         const knownVersion = syncMetadataStore.getVersion(
           localUserId,
           change.entityType,
@@ -1081,9 +1133,10 @@ const applyAuthoritativeSnapshot = (
           localUserId,
           tx,
         );
-        if (knownVersion !== change.version) remoteChangesApplied += 1;
+        if (knownVersion !== change.version) localRemoteChanges += 1;
         const applied = applyChange(tx, localUserId, change);
-        reminderTextUpdated = applied.reminderTextUpdated || reminderTextUpdated;
+        reminderTextUpdated =
+          applied.reminderTextUpdated || reminderTextUpdated;
         if (knownVersion !== change.version) tallyChat(chatTally, applied);
         if (!applied.recordMetadata) continue;
         syncMetadataStore.upsert(
@@ -1125,10 +1178,88 @@ const applyAuthoritativeSnapshot = (
       );
     }
   });
+  remoteChangesApplied += localRemoteChanges;
   syncState.reload(localUserId);
-  notifyRemoteChanges(localUserId, remoteChangesApplied - beforeCount);
+  notifyRemoteChanges(localUserId, localRemoteChanges);
   reportChatChanges(localUserId, chatTally);
-  return { reminderTextUpdated };
+  return {reminderTextUpdated};
+};
+
+const persistMutationResults = (
+  tx: DatabaseTransaction,
+  localUserId: string,
+  response: SyncBatchResponsePayload,
+  inFlightMutations: OutboundMutation[],
+): number => {
+  if (
+    inFlightMutations.length === 0 &&
+    response.accepted.length === 0 &&
+    response.rejected.length === 0
+  ) {
+    return 0;
+  }
+  const sentById = new Map(
+    inFlightMutations.map(mutation => [mutation.mutationId, mutation]),
+  );
+  // Chats the server refused because the account has its most chats stay on
+  // this phone; they are not conflicts and do not mark the sync as failed.
+  const heldForLimit = new Set<string>();
+  for (const result of response.rejected) {
+    const sent = sentById.get(result.mutationId);
+    if (!sent) {
+      throw new Error(
+        `Cannot persist rejection for unknown mutation ${result.mutationId}.`,
+      );
+    }
+    if (
+      isChatSyncEntityType(result.entityType) &&
+      result.reason === CHAT_LIMIT_REASON
+    ) {
+      chatSyncStore.holdForLimit(
+        tx,
+        localUserId,
+        result.entityType as 'chat_session' | 'chat_message',
+        result.entityId,
+        sent.payload,
+      );
+      heldForLimit.add(result.mutationId);
+      continue;
+    }
+    syncConflictStore.record(
+      localUserId,
+      {
+        mutationId: result.mutationId,
+        entityType: result.entityType,
+        entityId: result.entityId,
+        operation: sent.operation,
+        reason: result.reason ?? 'server_rejected',
+        localPayload: sent.payload,
+        baseVersion: sent.baseVersion ?? null,
+        serverVersion: result.serverVersion ?? null,
+        serverPayload: result.serverPayload ?? null,
+      },
+      ACCOUNT_SCOPE,
+      localUserId,
+      tx,
+    );
+  }
+  syncOutboxStore.acknowledgeMutations(
+    localUserId,
+    response.accepted.map(item => item.mutationId),
+    ACCOUNT_SCOPE,
+    localUserId,
+    tx,
+  );
+  syncOutboxStore.markMutationsFailed(
+    localUserId,
+    response.rejected
+      .map(item => item.mutationId)
+      .filter(mutationId => !heldForLimit.has(mutationId)),
+    ACCOUNT_SCOPE,
+    localUserId,
+    tx,
+  );
+  return response.rejected.length - heldForLimit.size;
 };
 
 const applyPage = (
@@ -1136,16 +1267,19 @@ const applyPage = (
   response: SyncBatchResponsePayload,
   finalStatus: 'Syncing' | 'Synced' | 'Attention required',
   finalError: string | null,
-): ApplyPageResult => {
+  inFlightMutations: OutboundMutation[] = [],
+): ApplyPageResult & {rejectedCount: number} => {
   let reminderTextUpdated = false;
-  const beforeCount = remoteChangesApplied;
+  let localRemoteChanges = 0;
+  let rejectedCount = 0;
   const ownEchoes = new Set(
     response.accepted.map(
-      (result) => `${result.entityType}:${result.entityId}:${result.serverVersion}`,
+      result =>
+        `${result.entityType}:${result.entityId}:${result.serverVersion}`,
     ),
   );
 
-  const chatTally: ChatApplyTally = { changed: false, removed: false };
+  const chatTally: ChatApplyTally = {changed: false, removed: false};
   db.transactionSync((tx: DatabaseTransaction) => {
     syncOutboxStore.setSuppression(
       localUserId,
@@ -1159,11 +1293,37 @@ const applyPage = (
         const ownEcho = ownEchoes.has(
           `${change.entityType}:${change.entityId}:${change.version}`,
         );
+        if (
+          hasPendingLocalMutation(
+            tx,
+            localUserId,
+            change.entityType,
+            change.entityId,
+          )
+        ) {
+          if (ownEcho) {
+            syncMetadataStore.upsert(
+              localUserId,
+              {
+                entityType: change.entityType,
+                entityId: change.entityId,
+                version: change.version,
+                changeId: change.changeId,
+                updatedAt: change.updatedAt,
+              },
+              ACCOUNT_SCOPE,
+              localUserId,
+              tx,
+            );
+          }
+          continue;
+        }
         if (!ownEcho) {
-          remoteChangesApplied += 1;
+          localRemoteChanges += 1;
         }
         const applied = applyChange(tx, localUserId, change);
-        reminderTextUpdated = applied.reminderTextUpdated || reminderTextUpdated;
+        reminderTextUpdated =
+          applied.reminderTextUpdated || reminderTextUpdated;
         if (!ownEcho) tallyChat(chatTally, applied);
         if (!applied.recordMetadata) continue;
         syncMetadataStore.upsert(
@@ -1180,6 +1340,13 @@ const applyPage = (
           tx,
         );
       }
+
+      rejectedCount = persistMutationResults(
+        tx,
+        localUserId,
+        response,
+        inFlightMutations,
+      );
 
       syncState.saveProgress(
         localUserId,
@@ -1200,86 +1367,26 @@ const applyPage = (
     }
   });
 
+  remoteChangesApplied += localRemoteChanges;
   syncState.reload(localUserId);
-  notifyRemoteChanges(localUserId, remoteChangesApplied - beforeCount);
+  notifyRemoteChanges(localUserId, localRemoteChanges);
   reportChatChanges(localUserId, chatTally);
-  return { reminderTextUpdated };
+  return {reminderTextUpdated, rejectedCount};
 };
 
 const settleMutationResults = (
   localUserId: string,
   response: SyncBatchResponsePayload,
   inFlightMutations: OutboundMutation[],
-): number => {
-  const sentById = new Map(
-    inFlightMutations.map((mutation) => [mutation.mutationId, mutation]),
+): number =>
+  db.transactionSync(tx =>
+    persistMutationResults(tx, localUserId, response, inFlightMutations),
   );
-  // Chats the server refused because the account has its most chats stay on
-  // this phone; they are not conflicts and do not mark the sync as failed.
-  const heldForLimit = new Set<string>();
-  db.transactionSync((tx) => {
-    for (const result of response.rejected) {
-      const sent = sentById.get(result.mutationId);
-      if (!sent) {
-        throw new Error(
-          `Cannot persist rejection for unknown mutation ${result.mutationId}.`,
-        );
-      }
-      if (
-        isChatSyncEntityType(result.entityType) &&
-        result.reason === CHAT_LIMIT_REASON
-      ) {
-        chatSyncStore.holdForLimit(
-          tx,
-          localUserId,
-          result.entityType as 'chat_session' | 'chat_message',
-          result.entityId,
-          sent.payload,
-        );
-        heldForLimit.add(result.mutationId);
-        continue;
-      }
-      syncConflictStore.record(
-        localUserId,
-        {
-          mutationId: result.mutationId,
-          entityType: result.entityType,
-          entityId: result.entityId,
-          operation: sent.operation,
-          reason: result.reason ?? 'server_rejected',
-          localPayload: sent.payload,
-          baseVersion: sent.baseVersion ?? null,
-          serverVersion: result.serverVersion ?? null,
-          serverPayload: result.serverPayload ?? null,
-        },
-        ACCOUNT_SCOPE,
-        localUserId,
-        tx,
-      );
-    }
-    syncOutboxStore.acknowledgeMutations(
-      localUserId,
-      response.accepted.map((item) => item.mutationId),
-      ACCOUNT_SCOPE,
-      localUserId,
-      tx,
-    );
-    syncOutboxStore.markMutationsFailed(
-      localUserId,
-      response.rejected
-        .map((item) => item.mutationId)
-        .filter((mutationId) => !heldForLimit.has(mutationId)),
-      ACCOUNT_SCOPE,
-      localUserId,
-      tx,
-    );
-  });
-  return response.rejected.length - heldForLimit.size;
-};
 
 interface PreparedOutboxBatch {
   mutations: OutboundMutation[];
   ids: string[];
+  oversizedCount: number;
 }
 
 const failOversizedMutations = (
@@ -1287,7 +1394,7 @@ const failOversizedMutations = (
   oversized: OutboundMutation[],
 ): void => {
   if (oversized.length === 0) return;
-  db.transactionSync((tx) => {
+  db.transactionSync(tx => {
     for (const mutation of oversized) {
       syncConflictStore.record(
         localUserId,
@@ -1309,7 +1416,7 @@ const failOversizedMutations = (
     }
     syncOutboxStore.markMutationsFailed(
       localUserId,
-      oversized.map((mutation) => mutation.mutationId),
+      oversized.map(mutation => mutation.mutationId),
       ACCOUNT_SCOPE,
       localUserId,
       tx,
@@ -1338,35 +1445,43 @@ const prepareOutboxBatch = (
   localUserId: string,
   effectiveTypes: readonly SyncEntityType[],
 ): PreparedOutboxBatch => {
+  let oversizedCount = 0;
   for (let claimAttempt = 0; claimAttempt < 2; claimAttempt += 1) {
-    const pending = syncOutboxStore.getPendingMutations(
-      localUserId,
-      OUTBOX_BATCH_SIZE,
-      ACCOUNT_SCOPE,
-      localUserId,
-      undefined,
-      effectiveTypes,
-    );
-    const seenEntities = new Set<string>();
-    const mutations: OutboundMutation[] = [];
-    const oversized: OutboundMutation[] = [];
-    let batchBytes = 0;
-    for (const item of pending) {
-      const key = `${item.entityType}:${item.entityId}`;
-      if (seenEntities.has(key)) continue;
-      seenEntities.add(key);
-      const mutation = formatMutation(localUserId, item);
-      const size = utf8Length(JSON.stringify(mutation));
-      if (size > MAX_BATCH_BYTES) {
-        oversized.push(mutation);
-        continue;
+    let mutations: OutboundMutation[] = [];
+    while (true) {
+      const pending = syncOutboxStore.getPendingMutations(
+        localUserId,
+        OUTBOX_BATCH_SIZE,
+        ACCOUNT_SCOPE,
+        localUserId,
+        undefined,
+        effectiveTypes,
+      );
+      const seenEntities = new Set<string>();
+      mutations = [];
+      const oversized: OutboundMutation[] = [];
+      let batchBytes = 0;
+      for (const item of pending) {
+        const key = `${item.entityType}:${item.entityId}`;
+        if (seenEntities.has(key)) continue;
+        seenEntities.add(key);
+        const mutation = formatMutation(localUserId, item);
+        const size = utf8Length(JSON.stringify(mutation));
+        if (size > MAX_BATCH_BYTES) {
+          oversized.push(mutation);
+          continue;
+        }
+        if (batchBytes + size > MAX_BATCH_BYTES) break;
+        batchBytes += size;
+        mutations.push(mutation);
       }
-      if (batchBytes + size > MAX_BATCH_BYTES) break;
-      batchBytes += size;
-      mutations.push(mutation);
+      failOversizedMutations(localUserId, oversized);
+      oversizedCount += oversized.length;
+      if (mutations.length > 0 || oversized.length === 0) {
+        break;
+      }
     }
-    failOversizedMutations(localUserId, oversized);
-    const ids = mutations.map((mutation) => mutation.mutationId);
+    const ids = mutations.map(mutation => mutation.mutationId);
     const claimed = syncOutboxStore.markMutationsInProgress(
       localUserId,
       ids,
@@ -1374,7 +1489,7 @@ const prepareOutboxBatch = (
       localUserId,
     );
     if (claimed === ids.length) {
-      return { mutations, ids };
+      return {mutations, ids, oversizedCount};
     }
 
     syncOutboxStore.requeueMutations(
@@ -1498,17 +1613,19 @@ export const syncWorker = {
         !sameEntityTypeSet(negotiated.snapshotEntityTypes, effectiveTypes);
       if (!snapshotFirst) queueUnsyncedChat(localUserId, effectiveTypes);
       let preparedBatch: PreparedOutboxBatch = snapshotFirst
-        ? { mutations: [], ids: [] }
+        ? {mutations: [], ids: [], oversizedCount: 0}
         : prepareOutboxBatch(localUserId, effectiveTypes);
       let outboundMutations = preparedBatch.mutations;
       inFlightMutationIds = preparedBatch.ids;
       inFlightMutations = preparedBatch.mutations;
       let requestCursor = snapshotFirst ? 0 : persistedState.cursor;
       let resetHandled = false;
-      let snapshotRequest: SnapshotRequestPayload | null = snapshotFirst ? {} : null;
+      let snapshotRequest: SnapshotRequestPayload | null = snapshotFirst
+        ? {}
+        : null;
       let snapshotItems: SyncChange[] = [];
       const snapshotItemKeys = new Set<string>();
-      let rejectedCount = 0;
+      let rejectedCount = preparedBatch.oversizedCount;
       let reminderTextUpdated = false;
 
       for (
@@ -1525,9 +1642,7 @@ export const syncWorker = {
               mutations: outboundMutations,
               cursor: requestCursor,
               entityTypes: declaredTypes,
-              ...(snapshotRequest === null
-                ? {}
-                : { snapshot: snapshotRequest }),
+              ...(snapshotRequest === null ? {} : {snapshot: snapshotRequest}),
             }),
           },
           true,
@@ -1646,6 +1761,7 @@ export const syncWorker = {
           // Now that the cloud's chats are here, send this phone's own.
           queueUnsyncedChat(localUserId, effectiveTypes);
           preparedBatch = prepareOutboxBatch(localUserId, effectiveTypes);
+          rejectedCount += preparedBatch.oversizedCount;
           outboundMutations = preparedBatch.mutations;
           inFlightMutationIds = preparedBatch.ids;
           inFlightMutations = preparedBatch.mutations;
@@ -1672,7 +1788,9 @@ export const syncWorker = {
         }
 
         if (response.snapshot) {
-          throw new Error('Server returned an unsolicited current-state snapshot.');
+          throw new Error(
+            'Server returned an unsolicited current-state snapshot.',
+          );
         }
         validatePage(response, requestCursor);
         if (response.resetRequired) {
@@ -1705,14 +1823,11 @@ export const syncWorker = {
           response,
           'Syncing',
           null,
+          inFlightMutations,
         );
         reminderTextUpdated =
           reminderTextUpdated || pageResult.reminderTextUpdated;
-        rejectedCount += settleMutationResults(
-          localUserId,
-          response,
-          inFlightMutations,
-        );
+        rejectedCount += pageResult.rejectedCount;
         inFlightMutationIds = [];
         inFlightMutations = [];
         requestCursor = response.nextCursor;
@@ -1723,6 +1838,7 @@ export const syncWorker = {
         }
 
         preparedBatch = prepareOutboxBatch(localUserId, effectiveTypes);
+        rejectedCount += preparedBatch.oversizedCount;
         outboundMutations = preparedBatch.mutations;
         inFlightMutationIds = preparedBatch.ids;
         inFlightMutations = preparedBatch.mutations;

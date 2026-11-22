@@ -146,149 +146,150 @@ const parseAttachment = (raw: unknown): ChatAttachment | null => {
   }
 };
 
-const parseHandbookNote = (raw: unknown): string | null => {
+const parseMessageMetadata = (raw: unknown): Record<string, unknown> | null => {
   if (typeof raw !== 'string' || !raw) return null;
   try {
-    const value = JSON.parse(raw) as {handbookNote?: unknown};
-    return typeof value?.handbookNote === 'string' && value.handbookNote
-      ? value.handbookNote
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
       : null;
   } catch {
     return null;
   }
 };
 
-const parseFlag = (
-  raw: unknown,
+const extractHandbookNote = (
+  metadata: Record<string, unknown> | null,
+): string | null => {
+  const note = metadata?.handbookNote;
+  return typeof note === 'string' && note ? note : null;
+};
+
+const extractFlag = (
+  metadata: Record<string, unknown> | null,
   flag: 'localReply' | 'voiceInterrupted',
-): boolean => {
-  if (typeof raw !== 'string' || !raw) return false;
-  try {
-    return (JSON.parse(raw) as Record<string, unknown> | null)?.[flag] === true;
-  } catch {
-    return false;
-  }
-};
-const parseLocalReply = (raw: unknown): boolean => parseFlag(raw, 'localReply');
+): boolean => metadata?.[flag] === true;
 
-const parseMemoryChanges = (raw: unknown): ChatMemoryChanges | null => {
-  if (typeof raw !== 'string' || !raw) return null;
-  try {
-    const value = (JSON.parse(raw) as {memoryChanges?: unknown} | null)
-      ?.memoryChanges as Partial<ChatMemoryChanges> | undefined;
-    if (!value || typeof value !== 'object') return null;
-    const items = (list: unknown): RemovedChatMemory[] =>
-      Array.isArray(list)
-        ? list
-            .filter(
-              (item): item is {id: string; text: string} =>
-                typeof item?.id === 'string' && typeof item?.text === 'string',
-            )
-            .map(item => {
-              const extra = item as Record<string, unknown>;
-              return {
-                id: item.id,
-                text: item.text,
-                ...(extra.source === 'manual' || extra.source === 'chat'
-                  ? {source: extra.source}
-                  : {}),
-                ...(typeof extra.sessionId === 'string' ||
-                extra.sessionId === null
-                  ? {sessionId: extra.sessionId}
-                  : {}),
-                ...(typeof extra.createdAt === 'string'
-                  ? {createdAt: extra.createdAt}
-                  : {}),
-                ...(typeof extra.updatedAt === 'string'
-                  ? {updatedAt: extra.updatedAt}
-                  : {}),
-                ...(typeof extra.rowId === 'number' &&
-                Number.isSafeInteger(extra.rowId)
-                  ? {rowId: extra.rowId}
-                  : {}),
-                ...(extra.tier === 'core' ||
-                extra.tier === 'preference' ||
-                extra.tier === 'episodic'
-                  ? {tier: extra.tier}
-                  : {}),
-                ...(extra.category === 'identity' ||
-                extra.category === 'academic' ||
-                extra.category === 'study' ||
-                extra.category === 'goal' ||
-                extra.category === 'routine' ||
-                extra.category === 'general'
-                  ? {category: extra.category}
-                  : {}),
-                ...(typeof extra.isPinned === 'boolean'
-                  ? {isPinned: extra.isPinned}
-                  : {}),
-                ...(typeof extra.slotKey === 'string' || extra.slotKey === null
-                  ? {slotKey: extra.slotKey}
-                  : {}),
-                ...(typeof extra.lastUsedAt === 'string' ||
-                extra.lastUsedAt === null
-                  ? {lastUsedAt: extra.lastUsedAt}
-                  : {}),
-                ...(typeof extra.expiresAt === 'string' ||
-                extra.expiresAt === null
-                  ? {expiresAt: extra.expiresAt}
-                  : {}),
-              };
-            })
-        : [];
-    const changes: ChatMemoryChanges = {
-      added: items(value.added),
-      removed: items(value.removed),
-    };
-    if (value.undone === true) changes.undone = true;
-    if (typeof value.revision === 'string') changes.revision = value.revision;
-    return changes.added.length || changes.removed.length ? changes : null;
-  } catch {
+const extractMemoryChanges = (
+  metadata: Record<string, unknown> | null,
+): ChatMemoryChanges | null => {
+  const value = metadata?.memoryChanges as
+    | Partial<ChatMemoryChanges>
+    | undefined;
+  if (!value || typeof value !== 'object') return null;
+  const items = (list: unknown): RemovedChatMemory[] =>
+    Array.isArray(list)
+      ? list
+          .filter(
+            (item): item is {id: string; text: string} =>
+              typeof item?.id === 'string' && typeof item?.text === 'string',
+          )
+          .map(item => {
+            const extra = item as Record<string, unknown>;
+            return {
+              id: item.id,
+              text: item.text,
+              ...(extra.source === 'manual' || extra.source === 'chat'
+                ? {source: extra.source}
+                : {}),
+              ...(typeof extra.sessionId === 'string' ||
+              extra.sessionId === null
+                ? {sessionId: extra.sessionId}
+                : {}),
+              ...(typeof extra.createdAt === 'string'
+                ? {createdAt: extra.createdAt}
+                : {}),
+              ...(typeof extra.updatedAt === 'string'
+                ? {updatedAt: extra.updatedAt}
+                : {}),
+              ...(typeof extra.rowId === 'number' &&
+              Number.isSafeInteger(extra.rowId)
+                ? {rowId: extra.rowId}
+                : {}),
+              ...(extra.tier === 'core' ||
+              extra.tier === 'preference' ||
+              extra.tier === 'episodic'
+                ? {tier: extra.tier}
+                : {}),
+              ...(extra.category === 'identity' ||
+              extra.category === 'academic' ||
+              extra.category === 'study' ||
+              extra.category === 'goal' ||
+              extra.category === 'routine' ||
+              extra.category === 'general'
+                ? {category: extra.category}
+                : {}),
+              ...(typeof extra.isPinned === 'boolean'
+                ? {isPinned: extra.isPinned}
+                : {}),
+              ...(typeof extra.slotKey === 'string' || extra.slotKey === null
+                ? {slotKey: extra.slotKey}
+                : {}),
+              ...(typeof extra.lastUsedAt === 'string' ||
+              extra.lastUsedAt === null
+                ? {lastUsedAt: extra.lastUsedAt}
+                : {}),
+              ...(typeof extra.expiresAt === 'string' ||
+              extra.expiresAt === null
+                ? {expiresAt: extra.expiresAt}
+                : {}),
+            };
+          })
+      : [];
+  const changes: ChatMemoryChanges = {
+    added: items(value.added),
+    removed: items(value.removed),
+  };
+  if (value.undone === true) changes.undone = true;
+  if (typeof value.revision === 'string') changes.revision = value.revision;
+  return changes.added.length || changes.removed.length ? changes : null;
+};
+
+const parseMemoryChanges = (raw: unknown): ChatMemoryChanges | null =>
+  extractMemoryChanges(parseMessageMetadata(raw));
+
+const extractReviewResolution = (
+  metadata: Record<string, unknown> | null,
+): ChatReviewResolution | null => {
+  const value = metadata?.reviewResolution as
+    | Partial<ChatReviewResolution>
+    | undefined;
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    (value.status !== 'confirmed' && value.status !== 'cancelled')
+  ) {
     return null;
   }
+  return {
+    status: value.status,
+    ...(typeof value.summary === 'string' && value.summary.trim()
+      ? {summary: value.summary}
+      : {}),
+    ...(typeof value.resolvedAt === 'string'
+      ? {resolvedAt: value.resolvedAt}
+      : {}),
+  };
 };
 
-const parseReviewResolution = (raw: unknown): ChatReviewResolution | null => {
-  if (typeof raw !== 'string' || !raw) return null;
-  try {
-    const value = (JSON.parse(raw) as {reviewResolution?: unknown} | null)
-      ?.reviewResolution as Partial<ChatReviewResolution> | undefined;
-    if (
-      !value ||
-      typeof value !== 'object' ||
-      (value.status !== 'confirmed' && value.status !== 'cancelled')
-    ) {
-      return null;
-    }
-    return {
-      status: value.status,
-      ...(typeof value.summary === 'string' && value.summary.trim()
-        ? {summary: value.summary}
-        : {}),
-      ...(typeof value.resolvedAt === 'string'
-        ? {resolvedAt: value.resolvedAt}
-        : {}),
-    };
-  } catch {
-    return null;
-  }
+const mapMessage = (row: Record<string, unknown>): ChatMessage => {
+  const metadata = parseMessageMetadata(row.metadata_json);
+  return {
+    id: String(row.id),
+    sessionId: String(row.session_id),
+    sender: row.sender === 'assistant' ? 'assistant' : 'user',
+    content: String(row.content ?? ''),
+    attachment: parseAttachment(row.attachment_json),
+    handbookNote: extractHandbookNote(metadata),
+    localReply: extractFlag(metadata, 'localReply'),
+    voiceInterrupted: extractFlag(metadata, 'voiceInterrupted'),
+    memoryChanges: extractMemoryChanges(metadata),
+    reviewResolution: extractReviewResolution(metadata),
+    sequence: Number(row.seq),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
 };
-
-const mapMessage = (row: Record<string, unknown>): ChatMessage => ({
-  id: String(row.id),
-  sessionId: String(row.session_id),
-  sender: row.sender === 'assistant' ? 'assistant' : 'user',
-  content: String(row.content ?? ''),
-  attachment: parseAttachment(row.attachment_json),
-  handbookNote: parseHandbookNote(row.metadata_json),
-  localReply: parseLocalReply(row.metadata_json),
-  voiceInterrupted: parseFlag(row.metadata_json, 'voiceInterrupted'),
-  memoryChanges: parseMemoryChanges(row.metadata_json),
-  reviewResolution: parseReviewResolution(row.metadata_json),
-  sequence: Number(row.seq),
-  createdAt: String(row.created_at),
-  updatedAt: String(row.updated_at),
-});
 
 /** Every owned read joins the session row so a message is only ever read by its owner. */
 const OWNED_MESSAGES = `messages m JOIN chat_sessions s ON s.id = m.session_id
@@ -324,6 +325,21 @@ const ensureOwnedSession = (
 };
 
 type Executor = Pick<DatabaseTransaction, 'executeSync'>;
+
+const findOwnedSession = (userId: string): OwnedSession | null => {
+  const sessionId = ownedChatSessionId(userId);
+  const row = db.executeSync(
+    'SELECT user_id, generation FROM chat_sessions WHERE id = ?',
+    [sessionId],
+  ).rows[0];
+  if (!row) return null;
+  if (row.user_id !== userId) {
+    throw new Error(
+      'Chat session ownership does not match the signed-in account.',
+    );
+  }
+  return {sessionId, generation: String(row.generation ?? '')};
+};
 
 /** A chat started with New chat, read only if this owner holds it (never a quarantined one). */
 const ownedNewChat = (
@@ -391,6 +407,36 @@ const sessionFor = (
   const chosen = ownedNewChat(userId, sessionId, tx);
   if (!chosen)
     throw new Error('This chat does not belong to the signed-in account.');
+  return chosen;
+};
+
+const findCurrentSession = (userId: string): OwnedSession | null => {
+  ownedChatSessionId(userId);
+  const saved = db.executeSync(
+    'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+    [userId, CURRENT_CHAT_KEY],
+  ).rows[0]?.value;
+  if (typeof saved === 'string') {
+    const chosen = ownedNewChat(userId, saved, db);
+    if (chosen) return chosen;
+  }
+  return findOwnedSession(userId);
+};
+
+const findSessionFor = (
+  userId: string,
+  sessionId?: string | null,
+): OwnedSession | null => {
+  if (sessionId === undefined || sessionId === null) {
+    return findCurrentSession(userId);
+  }
+  if (sessionId === ownedChatSessionId(userId)) {
+    return findOwnedSession(userId);
+  }
+  const chosen = ownedNewChat(userId, sessionId, db);
+  if (!chosen) {
+    throw new Error('This chat does not belong to the signed-in account.');
+  }
   return chosen;
 };
 
@@ -506,12 +552,18 @@ const decodeCursor = (
 
 export const chatStore = {
   /** The caller's first chat id, created on first use. Throws for an invalid owner. */
-  ensureDefaultSession: (userId: string): string =>
-    db.transactionSync(tx => ensureOwnedSession(userId, tx)).sessionId,
+  ensureDefaultSession: (userId: string): string => {
+    const existing = findOwnedSession(userId);
+    if (existing) return existing.sessionId;
+    return db.transactionSync(tx => ensureOwnedSession(userId, tx)).sessionId;
+  },
 
   /** The chat the student has open (their first chat until they start another). */
-  currentSessionId: (userId: string): string =>
-    db.transactionSync(tx => currentSession(userId, tx)).sessionId,
+  currentSessionId: (userId: string): string => {
+    const existing = findCurrentSession(userId);
+    if (existing) return existing.sessionId;
+    return db.transactionSync(tx => currentSession(userId, tx)).sessionId;
+  },
 
   /**
    * The account's chats that have messages, most recent activity first.
@@ -585,31 +637,31 @@ export const chatStore = {
   },
 
   /** The title of the session, matching the sidebar title rules. */
-  getSessionTitle: (userId: string, sessionId?: string | null): string =>
-    db.transactionSync(tx => {
-      const chosen = sessionFor(userId, tx, sessionId);
-      const rows = tx.executeSync(
-        `SELECT s.title,
-           (SELECT m.content FROM messages m WHERE m.session_id = s.id AND m.sender = 'user'
-            ORDER BY m.created_at ASC, m.id ASC LIMIT 1) AS first_user
-         FROM chat_sessions s
-         WHERE s.id = ?`,
-        [chosen.sessionId],
-      ).rows;
-      const fallback = isUstpSessionId(chosen.sessionId)
-        ? 'Ask about USTP'
-        : 'New chat';
-      if (!rows.length) return fallback;
-      const row = rows[0];
-      const stored = typeof row.title === 'string' ? row.title.trim() : '';
-      const customTitle =
-        stored.length > 0 && !PLACEHOLDER_TITLES.includes(stored);
-      if (customTitle) return stored;
-      const firstUser =
-        typeof row.first_user === 'string' ? row.first_user : '';
-      if (firstUser.trim()) return oneLine(firstUser, MAX_CHAT_TITLE);
-      return fallback;
-    }),
+  getSessionTitle: (userId: string, sessionId?: string | null): string => {
+    const chosen =
+      findSessionFor(userId, sessionId) ??
+      db.transactionSync(tx => sessionFor(userId, tx, sessionId));
+    const rows = db.executeSync(
+      `SELECT s.title,
+         (SELECT m.content FROM messages m WHERE m.session_id = s.id AND m.sender = 'user'
+          ORDER BY m.created_at ASC, m.id ASC LIMIT 1) AS first_user
+       FROM chat_sessions s
+       WHERE s.id = ?`,
+      [chosen.sessionId],
+    ).rows;
+    const fallback = isUstpSessionId(chosen.sessionId)
+      ? 'Ask about USTP'
+      : 'New chat';
+    if (!rows.length) return fallback;
+    const row = rows[0];
+    const stored = typeof row.title === 'string' ? row.title.trim() : '';
+    const customTitle =
+      stored.length > 0 && !PLACEHOLDER_TITLES.includes(stored);
+    if (customTitle) return stored;
+    const firstUser = typeof row.first_user === 'string' ? row.first_user : '';
+    if (firstUser.trim()) return oneLine(firstUser, MAX_CHAT_TITLE);
+    return fallback;
+  },
 
   /**
    * Starts an empty chat and opens it. If the open chat is still empty it is
@@ -795,9 +847,9 @@ export const chatStore = {
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) {
       throw new Error(`Chat page size must be between 1 and ${MAX_PAGE_SIZE}.`);
     }
-    const session = db.transactionSync(tx =>
-      sessionFor(userId, tx, query.sessionId),
-    );
+    const session =
+      findSessionFor(userId, query.sessionId) ??
+      db.transactionSync(tx => sessionFor(userId, tx, query.sessionId));
     let where = OWNED_MESSAGES;
     const params: unknown[] = [session.sessionId, userId];
     if (query.before !== undefined && query.before !== null) {
@@ -834,9 +886,9 @@ export const chatStore = {
    */
   getMessages: (userId: string, sessionId?: string | null): ChatMessage[] => {
     try {
-      const session = db.transactionSync(tx =>
-        sessionFor(userId, tx, sessionId),
-      );
+      const session =
+        findSessionFor(userId, sessionId) ??
+        db.transactionSync(tx => sessionFor(userId, tx, sessionId));
       return db
         .executeSync(
           `SELECT m.* FROM ${OWNED_MESSAGES} ORDER BY m.created_at ASC, m.seq ASC`,

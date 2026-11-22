@@ -17,7 +17,10 @@ import {SummarizerSkill} from './SummarizerSkill';
 import {DocGenSkill} from './DocGenSkill';
 import {MeetingsSkill} from './MeetingsSkill';
 import {LessonQaSkill} from './LessonQaSkill';
-import {MeetingsProvider} from '../../contexts/MeetingsContext';
+import {
+  MeetingsProvider,
+  useMeetingsProvided,
+} from '../../contexts/MeetingsContext';
 import type {SkillLaunchRequest} from '../../../skills/skillLaunch';
 
 /** The persisted root route stays `notes`; Skills is its new visible name. */
@@ -26,6 +29,10 @@ import type {SkillLaunchRequest} from '../../../skills/skillLaunch';
 export const SkillsScreen = React.memo(function SkillsScreenView(
   props: NotesScreenProps,
 ) {
+  const meetingsProvided = useMeetingsProvided();
+  if (meetingsProvided) {
+    return <SkillsContent {...props} />;
+  }
   return (
     <MeetingsProvider
       key={props.userId}
@@ -116,28 +123,11 @@ function SkillsContent(props: NotesScreenProps) {
         : 'notes',
     );
   }, [props.openRequest]);
-  useEffect(() => {
-    if (!active || route === 'hub' || route === 'flashcards') return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (route === 'materials' && backInterceptorRef.current?.()) {
-        return true;
-      }
-      setRequest(undefined);
-      setSkillMaterialId(undefined);
-      if (returnRoute) {
-        const target = returnRoute;
-        setReturnRoute(null);
-        setRoute(target);
-        return true;
-      }
-      setRoute('hub');
-      return true;
-    });
-    return () => sub.remove();
-  }, [active, route, returnRoute]);
-  const back = () => {
+  const back = useCallback(() => {
     setRequest(undefined);
     setFlashcardDeckId(null);
+    setLaunch(null);
+    setQuizHandoff(null);
     setSkillMaterialId(undefined);
     if (returnRoute) {
       const target = returnRoute;
@@ -146,7 +136,80 @@ function SkillsContent(props: NotesScreenProps) {
       return;
     }
     setRoute('hub');
-  };
+  }, [returnRoute]);
+
+  useEffect(() => {
+    backInterceptorRef.current = null;
+  }, [route]);
+
+  useEffect(() => {
+    if (!active || route === 'hub' || route === 'flashcards') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (
+        (route === 'materials' || route === 'docgen' || route === 'quiz') &&
+        backInterceptorRef.current?.()
+      ) {
+        return true;
+      }
+      back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [active, route, back]);
+
+  const registerBackHandler = useCallback(
+    (fn: (() => boolean) | null) => {
+      backInterceptorRef.current = fn;
+    },
+    [],
+  );
+
+  const handleHubOpen = useCallback((r: SkillRoute) => {
+    setRequest(undefined);
+    setReturnRoute(null);
+    setFlashcardDeckId(null);
+    setSkillMaterialId(undefined);
+    setRoute(r);
+  }, []);
+
+  const handleHubOpenMaterial = useCallback((matId: string) => {
+    setRequest(undefined);
+    setReturnRoute(null);
+    setFlashcardDeckId(null);
+    setSkillMaterialId(matId);
+    setRoute('materials');
+  }, []);
+
+  const handleHubOpenDeck = useCallback((id: string) => {
+    setRequest(undefined);
+    setReturnRoute(null);
+    setSkillMaterialId(undefined);
+    setFlashcardDeckId(id);
+    setRoute('flashcards');
+  }, []);
+
+  const handleHubEntity = useCallback(
+    (kind: 'task' | 'note', id: string) => {
+      setReturnRoute(null);
+      setRequest({
+        requestId: `skills-${Date.now()}`,
+        ownerId: props.userId,
+        screen: 'notes',
+        entityKind: kind,
+        entityId: id,
+      });
+      setSkillMaterialId(undefined);
+      setRoute(kind === 'task' ? 'todo' : 'notes');
+    },
+    [props.userId],
+  );
+
+  const handleRecordMeeting = useCallback(() => setRoute('meetings'), []);
+  const handleNotesOpenRequestHandled = useCallback((id: string) => {
+    setRequest(undefined);
+    openRequestHandled.current?.(id);
+  }, []);
+
   const isEssential =
     route === 'alarms' || route === 'todo' || route === 'notes';
   return (
@@ -161,39 +224,11 @@ function SkillsContent(props: NotesScreenProps) {
         <SkillsHub
           userId={props.userId}
           refreshTrigger={props.refreshTrigger}
-          onOpen={r => {
-            setRequest(undefined);
-            setReturnRoute(null);
-            setFlashcardDeckId(null);
-            setSkillMaterialId(undefined);
-            setRoute(r);
-          }}
-          onOpenMaterial={matId => {
-            setRequest(undefined);
-            setReturnRoute(null);
-            setFlashcardDeckId(null);
-            setSkillMaterialId(matId);
-            setRoute('materials');
-          }}
-          onOpenDeck={id => {
-            setRequest(undefined);
-            setReturnRoute(null);
-            setSkillMaterialId(undefined);
-            setFlashcardDeckId(id);
-            setRoute('flashcards');
-          }}
-          onEntity={(kind, id) => {
-            setReturnRoute(null);
-            setRequest({
-              requestId: `skills-${Date.now()}`,
-              ownerId: props.userId,
-              screen: 'notes',
-              entityKind: kind,
-              entityId: id,
-            });
-            setSkillMaterialId(undefined);
-            setRoute(kind === 'task' ? 'todo' : 'notes');
-          }}
+          isVisible={route === 'hub' && active}
+          onOpen={handleHubOpen}
+          onOpenMaterial={handleHubOpenMaterial}
+          onOpenDeck={handleHubOpenDeck}
+          onEntity={handleHubEntity}
         />
       </View>
       {isEssential && (
@@ -202,12 +237,9 @@ function SkillsContent(props: NotesScreenProps) {
           {...props}
           initialSubTab={route as NotesSubTab}
           onBackToSkills={back}
-          onRecordMeeting={() => setRoute('meetings')}
+          onRecordMeeting={handleRecordMeeting}
           openRequest={request}
-          onOpenRequestHandled={id => {
-            setRequest(undefined);
-            props.onOpenRequestHandled?.(id);
-          }}
+          onOpenRequestHandled={handleNotesOpenRequestHandled}
         />
       )}
       {route === 'materials' && (
@@ -217,9 +249,7 @@ function SkillsContent(props: NotesScreenProps) {
           initialMaterialId={skillMaterialId}
           onRefresh={props.onRefresh}
           onBack={back}
-          registerBackHandler={fn => {
-            backInterceptorRef.current = fn;
-          }}
+          registerBackHandler={registerBackHandler}
           onOpenSkill={(target, materialId) => {
             setReturnRoute(null);
             setSkillMaterialId(materialId);
@@ -264,6 +294,7 @@ function SkillsContent(props: NotesScreenProps) {
         route !== 'materials' &&
         route !== 'flashcards' && (
           <SkillPage
+            key={route}
             title={
               route === 'all'
                 ? 'All skills'
@@ -311,6 +342,7 @@ function SkillsContent(props: NotesScreenProps) {
                 launch={launch?.skill === 'quiz' ? launch : null}
                 onLaunchHandled={finishLaunch}
                 onHandoffConsumed={clearQuizHandoff}
+                registerBackHandler={registerBackHandler}
                 onNote={id => {
                   setReturnRoute('quiz');
                   setRequest({
@@ -339,6 +371,7 @@ function SkillsContent(props: NotesScreenProps) {
                 initialMaterialId={skillMaterialId}
                 launch={launch?.skill === 'docgen' ? launch : null}
                 onLaunchHandled={finishLaunch}
+                registerBackHandler={registerBackHandler}
                 onOpenProfile={props.onOpenProfile}
                 onNavigateToRegister={props.onNavigateToRegister}
               />

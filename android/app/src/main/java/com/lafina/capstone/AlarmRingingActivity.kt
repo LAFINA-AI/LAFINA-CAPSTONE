@@ -80,8 +80,11 @@ class AlarmRingingActivity : Activity() {
     }
     root.addView(button("Dismiss", accent, Color.WHITE) {
       LafinaAlarmService.finish(this, AlarmEvent.DISMISSED)
-      if (briefing) openForBriefing()
-      finish()
+      if (briefing) {
+        openForBriefing { finish() }
+      } else {
+        finish()
+      }
     })
     setContentView(root)
 
@@ -94,7 +97,7 @@ class AlarmRingingActivity : Activity() {
    * the lock screen Android first asks the student to unlock; JS plays the
    * briefing when the app comes up (it reads the queued Dismiss event).
    */
-  private fun openForBriefing() {
+  private fun openForBriefing(onDone: () -> Unit = {}) {
     val open = Intent(this, MainActivity::class.java).apply {
       putExtra(LafinaAlarms.EXTRA_OPEN_ALARMS, false)
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -104,10 +107,20 @@ class AlarmRingingActivity : Activity() {
       keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
         override fun onDismissSucceeded() {
           startActivity(open)
+          onDone()
+        }
+
+        override fun onDismissCancelled() {
+          onDone()
+        }
+
+        override fun onDismissError() {
+          onDone()
         }
       })
     } else {
       startActivity(open)
+      onDone()
     }
   }
 

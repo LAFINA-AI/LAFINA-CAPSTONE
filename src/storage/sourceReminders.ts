@@ -275,6 +275,15 @@ export const alertSuppression = (
     if (task && Number(task.is_completed) === 1) return 'task_completed';
   }
   const key = legacyTitleKey(reminder.task);
+  if (!source && key === '') {
+    return null;
+  }
+  const sourceFilter = source
+    ? '((j.source_type = ? AND j.source_id = ?) OR j.source_type IS NULL)'
+    : 'j.source_type IS NULL';
+  const params = source
+    ? [reminder.userId, reminder.id, source.type, source.id]
+    : [reminder.userId, reminder.id];
   const acknowledged =
     executor.executeSync(
       `SELECT r.id AS id, r.task AS task, r.scheduled_at AS scheduled_at,
@@ -282,15 +291,22 @@ export const alertSuppression = (
          FROM reminders r
          LEFT JOIN reminder_delivery_jobs j ON j.reminder_id = r.id
         WHERE r.user_id = ? AND r.id <> ? AND r.status = 'acknowledged'
-          AND r.deleted_at IS NULL`,
-      [reminder.userId, reminder.id],
+          AND r.deleted_at IS NULL
+          AND ${sourceFilter}`,
+      params,
     ).rows || [];
   for (const row of acknowledged) {
-    const linkedHere =
-      !!source &&
+    if (
+      source &&
       row.source_type === source.type &&
-      String(row.source_id ?? '') === source.id;
-    if (!linkedHere && (key === '' || legacyTitleKey(row.task) !== key)) {
+      String(row.source_id ?? '') === source.id
+    ) {
+      return 'already_acknowledged';
+    }
+    if (key === '' || legacyTitleKey(row.task) !== key) {
+      continue;
+    }
+    if (!source && !sameInstant(reminder.scheduledAt, row.scheduled_at)) {
       continue;
     }
     if (

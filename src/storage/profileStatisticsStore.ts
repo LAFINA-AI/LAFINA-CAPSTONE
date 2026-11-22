@@ -154,8 +154,22 @@ export const completionRate = (
   total: number,
 ): number | null => (total > 0 ? Math.round((completed / total) * 100) : null);
 
-let detailedCache: {key: string; value: DetailedProfileStatistics} | null =
-  null;
+const detailedCache = new Map<string, DetailedProfileStatistics>();
+const DETAILED_CACHE_LIMIT = 4;
+
+const DETAILED_TABLES = [
+  'tasks',
+  'notes',
+  'reminders',
+  'alarms',
+  'recorded_meetings',
+  'events',
+  'event_time_local',
+  'time_blocks',
+  'users',
+  'local_settings:academic',
+  'local_settings:student',
+] as const;
 
 export const profileStatisticsStore = {
   read: (userId: string): ProfileStatistics => {
@@ -202,24 +216,14 @@ export const profileStatisticsStore = {
   ): DetailedProfileStatistics => {
     try {
       if (!userId) throw new Error('Statistics owner required.');
-      const cacheKey = `${userId}:${Math.floor(
+      const cacheKey = `${userId}:${referenceDate.getTimezoneOffset()}:${Math.floor(
         referenceDate.getTime() / 60000,
-      )}:${db.getDataRevision([
-        'tasks',
-        'notes',
-        'reminders',
-        'alarms',
-        'recorded_meetings',
-        'events',
-        'event_time_local',
-        'time_blocks',
-        'users',
-        'local_settings',
-      ])}`;
-      if (detailedCache?.key === cacheKey) {
+      )}:${db.getDataRevision(DETAILED_TABLES)}`;
+      const cached = detailedCache.get(cacheKey);
+      if (cached) {
         // A cached summary must not conceal a storage outage.
         db.executeSync('SELECT 1');
-        return detailedCache.value;
+        return cached;
       }
       const todayStr = formatLocalDate(referenceDate);
       const nowHhmm = `${String(referenceDate.getHours()).padStart(
@@ -314,6 +318,7 @@ export const profileStatisticsStore = {
         userId,
         weekStartStr,
         weekEndStr,
+        {includeTasks: false},
       );
       let weeklyClassCount = 0;
       let weeklyClassMinutes = 0;
@@ -379,7 +384,11 @@ export const profileStatisticsStore = {
         enabledAlarmsCount,
         totalAlarmsCount,
       };
-      detailedCache = {key: cacheKey, value};
+      if (detailedCache.size >= DETAILED_CACHE_LIMIT) {
+        const oldest = detailedCache.keys().next().value;
+        if (oldest !== undefined) detailedCache.delete(oldest);
+      }
+      detailedCache.set(cacheKey, value);
       return value;
     } catch (error) {
       console.warn(

@@ -1,4 +1,5 @@
 import {AppState, NativeModules, Platform} from 'react-native';
+import {db} from '../storage/database';
 import {alarmsStore, onAlarmsChanged} from '../storage/alarmsStore';
 import type {Alarm} from '../storage/alarmsStore';
 import {nextAlarmTrigger} from './alarmSchedule';
@@ -81,6 +82,7 @@ export const needsBatteryGuidance = (health: AlarmHealth): boolean =>
 export const BRIEFING_WINDOW_MS = 10 * 60 * 1000;
 
 let activeOwner: string | null = null;
+let lifecycleSeq = 0;
 let pending: Promise<void> = Promise.resolve();
 const briefingListeners = new Set<(alarm: Alarm) => void>();
 
@@ -104,22 +106,31 @@ export const reconcileAlarms = (userId: string | null): Promise<void> => {
     const alarms = userId ? alarmsStore.list(userId) : [];
     const module = native();
     if (!module) {
-      for (const alarm of alarms) {
-        const next = nextAlarmTrigger(alarm);
-        alarmsStore.setNextTrigger(alarm.id, next ? next.toISOString() : null);
-      }
+      db.transactionSync(tx => {
+        for (const alarm of alarms) {
+          const next = nextAlarmTrigger(alarm);
+          const nextIso = next ? next.toISOString() : null;
+          if (alarm.nextTriggerAt !== nextIso) {
+            alarmsStore.setNextTrigger(alarm.id, nextIso, tx);
+          }
+        }
+      });
       return;
     }
     try {
       const booked = await module.reconcile(alarms.map(toNative));
-      for (const entry of booked) {
-        alarmsStore.setNextTrigger(
-          entry.id,
-          typeof entry.nextTriggerMs === 'number'
-            ? new Date(entry.nextTriggerMs).toISOString()
-            : null,
-        );
-      }
+      const existingById = new Map(alarms.map(a => [a.id, a.nextTriggerAt]));
+      db.transactionSync(tx => {
+        for (const entry of booked) {
+          const nextIso =
+            typeof entry.nextTriggerMs === 'number'
+              ? new Date(entry.nextTriggerMs).toISOString()
+              : null;
+          if (existingById.get(entry.id) !== nextIso) {
+            alarmsStore.setNextTrigger(entry.id, nextIso, tx);
+          }
+        }
+      });
     } catch (error) {
       console.warn('[alarmService] Could not book alarms:', error);
     }
@@ -143,24 +154,37 @@ export const syncAlarmEvents = async (
     return [];
   }
   let changed = false;
-  for (const event of events) {
-    const at = new Date(event.atMs).toISOString();
-    if (event.kind === 'one_shot_done') {
-      alarmsStore.markOneShotDone(event.alarmId, event.generation);
-      changed = true;
-    } else {
-      alarmsStore.recordOutcome(event.alarmId, event.kind, at);
-    }
-    // A wake-up briefing only soon after the student dismissed the alarm
-    // (long enough to unlock the phone, never hours later).
-    if (
-      userId &&
-      event.kind === 'dismissed' &&
-      now - event.atMs < BRIEFING_WINDOW_MS
-    ) {
-      const alarm = alarmsStore.get(event.alarmId, userId);
-      if (alarm?.briefing)
-        for (const listener of Array.from(briefingListeners)) listener(alarm);
+  const dismissedBriefings: Alarm[] = [];
+  if (events.length > 0) {
+    db.transactionSync(tx => {
+      for (const event of events) {
+        const at = new Date(event.atMs).toISOString();
+        if (event.kind === 'one_shot_done') {
+          alarmsStore.markOneShotDone(event.alarmId, event.generation, tx);
+          changed = true;
+        } else {
+          alarmsStore.recordOutcome(event.alarmId, event.kind, at, tx);
+        }
+        // A wake-up briefing only soon after the student dismissed the alarm
+        // (long enough to unlock the phone, never hours later).
+        if (
+          userId &&
+          event.kind === 'dismissed' &&
+          now - event.atMs < BRIEFING_WINDOW_MS
+        ) {
+          const alarm = alarmsStore.get(event.alarmId, userId, tx);
+          if (alarm?.briefing) dismissedBriefings.push(alarm);
+        }
+      }
+    });
+  }
+  for (const alarm of dismissedBriefings) {
+    for (const listener of Array.from(briefingListeners)) {
+      try {
+        listener(alarm);
+      } catch (error) {
+        console.warn('[alarmService] Briefing listener failed:', error);
+      }
     }
   }
   if (changed) await reconcileAlarms(userId);
@@ -237,20 +261,32 @@ export const nextAlarm = (
  * cleanup for React's effect.
  */
 export const startAlarmLifecycle = (userId: string | null): (() => void) => {
+  const seq = ++lifecycleSeq;
   activeOwner = userId;
   // Alarm plan A4: old "Alarm" reminders become real alarms (idempotent).
   if (userId) migrateAlarmReminders(userId);
-  void syncAlarmEvents(userId).then(() => reconcileAlarms(userId));
+  void syncAlarmEvents(userId)
+    .then(() => (seq === lifecycleSeq ? reconcileAlarms(userId) : undefined))
+    .catch(() => undefined);
   const unsubscribeStore = onAlarmsChanged(changedOwner => {
-    if (changedOwner === activeOwner) void reconcileAlarms(activeOwner);
+    if (seq === lifecycleSeq && changedOwner === activeOwner) {
+      void reconcileAlarms(activeOwner).catch(() => undefined);
+    }
   });
   const subscription = AppState.addEventListener('change', state => {
-    if (state === 'active')
-      void syncAlarmEvents(activeOwner).then(() =>
-        reconcileAlarms(activeOwner),
-      );
+    if (seq === lifecycleSeq && state === 'active') {
+      void syncAlarmEvents(activeOwner)
+        .then(() =>
+          seq === lifecycleSeq ? reconcileAlarms(activeOwner) : undefined,
+        )
+        .catch(() => undefined);
+    }
   });
   return () => {
+    if (seq === lifecycleSeq) {
+      lifecycleSeq += 1;
+      activeOwner = null;
+    }
     unsubscribeStore();
     subscription.remove();
   };

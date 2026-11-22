@@ -293,30 +293,43 @@ export const alarmsStore = {
    * Native rang a one-shot alarm and switched its copy off; JS mirrors that
    * only for the same generation (a newer edit wins).
    */
-  markOneShotDone(id: string, generation: number): void {
-    db.executeSync(
+  markOneShotDone(
+    id: string,
+    generation: number,
+    executor: Pick<DatabaseTransaction, 'executeSync'> = db,
+  ): void {
+    executor.executeSync(
       'UPDATE alarms SET enabled = 0, next_trigger_at = NULL, updated_at = ? WHERE id = ? AND generation = ? AND repeat_days = 0',
       [nowIso(), id, generation],
     );
   },
 
-  recordOutcome(id: string, outcome: string, atIso: string): void {
+  recordOutcome(
+    id: string,
+    outcome: string,
+    atIso: string,
+    executor: Pick<DatabaseTransaction, 'executeSync'> = db,
+  ): void {
     if (outcome === 'fired')
-      db.executeSync(
+      executor.executeSync(
         'UPDATE alarms SET last_fired_at = ?, last_outcome = ? WHERE id = ?',
         [atIso, outcome, id],
       );
     else
-      db.executeSync('UPDATE alarms SET last_outcome = ? WHERE id = ?', [
+      executor.executeSync('UPDATE alarms SET last_outcome = ? WHERE id = ?', [
         outcome,
         id,
       ]);
   },
 
-  setNextTrigger(id: string, nextIso: string | null): void {
-    db.executeSync('UPDATE alarms SET next_trigger_at = ? WHERE id = ?', [
-      nextIso,
-      id,
-    ]);
+  setNextTrigger(
+    id: string,
+    nextIso: string | null,
+    executor: Pick<DatabaseTransaction, 'executeSync'> = db,
+  ): void {
+    executor.executeSync(
+      'UPDATE alarms SET next_trigger_at = ? WHERE id = ? AND next_trigger_at IS NOT ?',
+      [nextIso, id, nextIso],
+    );
   },
 };

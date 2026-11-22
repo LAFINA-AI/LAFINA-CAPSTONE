@@ -35,6 +35,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
+import java.util.concurrent.Executors
 import java.util.zip.ZipInputStream
 import kotlin.math.abs
 
@@ -46,6 +47,15 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   private val pdfCacheLock = Any()
   private var cachedPdfUri: String? = null
   private var cachedPdfFile: File? = null
+  private val visionExecutor = Executors.newFixedThreadPool(2)
+
+  private fun runVisionTask(promise: Promise, block: () -> Unit) {
+    if (visionExecutor.isShutdown) {
+      promise.reject("MODULE_INVALIDATED", "Vision module is no longer active.")
+      return
+    }
+    visionExecutor.execute(block)
+  }
 
   private val activityEventListener: ActivityEventListener =
     object : BaseActivityEventListener() {
@@ -88,6 +98,9 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   override fun getName(): String = "LafinaVision"
 
   override fun invalidate() {
+    reactContext.removeActivityEventListener(activityEventListener)
+    pendingCameraPromise = null
+    visionExecutor.shutdown()
     super.invalidate()
     synchronized(pdfCacheLock) {
       clearPdfCacheLocked()
@@ -141,20 +154,20 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
 
   @ReactMethod
   fun getFileSize(uriString: String, promise: Promise) {
-    Thread {
+    runVisionTask(promise) {
       try {
         val uri = Uri.parse(uriString)
         if (uri.scheme == "file" && !uri.path.isNullOrBlank()) {
           val file = File(uri.path!!)
           promise.resolve(if (file.exists()) file.length().toDouble() else -1.0)
-          return@Thread
+          return@runVisionTask
         }
         val size = reactContext.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
         promise.resolve(size.toDouble())
       } catch (_: Throwable) {
         promise.resolve(-1.0)
       }
-    }.start()
+    }
   }
 
   @ReactMethod
@@ -371,7 +384,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
       promise.resolve(null)
       return
     }
-    Thread {
+    runVisionTask(promise) {
       try {
         CorPdfTextExtractor.ensureInit(reactContext)
         val result = openInput(uri).use { CorPdfTextExtractor.extract(it) }
@@ -398,7 +411,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
       } catch (e: Throwable) {
         promise.reject("PDF_TEXT_FAILED", e.message ?: "Could not read the PDF text.", e)
       }
-    }.start()
+    }
   }
 
   private fun normalizePdfPageText(rawText: String): String =
@@ -416,14 +429,14 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun extractDocumentText(uriString: String, maxPages: Int, promise: Promise) {
     val uri = Uri.parse(uriString)
-    Thread {
+    runVisionTask(promise) {
       var pfd: ParcelFileDescriptor? = null
       var renderer: PdfRenderer? = null
       var recognizer: TextRecognizer? = null
       try {
         if (!isPdfUri(uri, uriString)) {
           promise.reject("NOT_A_PDF", "The selected file is not a valid PDF document.")
-          return@Thread
+          return@runVisionTask
         }
         CorPdfTextExtractor.ensureInit(reactContext)
         val limitPages = maxPages.coerceIn(1, 20)
@@ -442,7 +455,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
               emptyMap.putInt("pagesRead", 0)
               emptyMap.putInt("ocrPages", 0)
               promise.resolve(emptyMap)
-              return@Thread
+              return@runVisionTask
             }
             val toRead = minOf(pageCount, limitPages)
             pagesRead = toRead
@@ -511,7 +524,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
         try { renderer?.close() } catch (_: Throwable) {}
         try { pfd?.close() } catch (_: Throwable) {}
       }
-    }.start()
+    }
   }
 
   /**
@@ -527,14 +540,14 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     promise: Promise
   ) {
     val uri = Uri.parse(uriString)
-    Thread {
+    runVisionTask(promise) {
       var pfd: ParcelFileDescriptor? = null
       var renderer: PdfRenderer? = null
       var recognizer: TextRecognizer? = null
       try {
         if (!isPdfUri(uri, uriString)) {
           promise.reject("NOT_A_PDF", "The selected file is not a valid PDF document.")
-          return@Thread
+          return@runVisionTask
         }
         CorPdfTextExtractor.ensureInit(reactContext)
         val safeMaxPages = maxPages.coerceIn(1, MAX_MATERIAL_PDF_PAGES)
@@ -564,7 +577,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
               emptyMap.putArray("pages", pagesArray)
               synchronized(pdfCacheLock) { clearPdfCacheLocked(uriString) }
               promise.resolve(emptyMap)
-              return@Thread
+              return@runVisionTask
             }
             endPage = minOf(totalCap, safeStart + safeBatch - 1)
             pagesRead = endPage
@@ -649,7 +662,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
         try { renderer?.close() } catch (_: Throwable) {}
         try { pfd?.close() } catch (_: Throwable) {}
       }
-    }.start()
+    }
   }
 
   private fun readBoundedStream(
@@ -920,12 +933,12 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun extractOfficeDocumentPages(uriString: String, fileName: String, promise: Promise) {
     val uri = Uri.parse(uriString)
-    Thread {
+    runVisionTask(promise) {
       try {
         val bytes = openInput(uri).use { readBoundedStream(it, MAX_OFFICE_BYTES) }
         if (bytes.isEmpty()) {
           promise.reject("OFFICE_EMPTY", "The selected file is empty.")
-          return@Thread
+          return@runVisionTask
         }
         val isZip = bytes.size >= 4 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()
         if (!isZip) {
@@ -946,7 +959,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
               "This file is not a valid Word (.docx) or PowerPoint (.pptx) document."
             )
           }
-          return@Thread
+          return@runVisionTask
         }
 
         var wordBody: ByteArray? = null
@@ -977,7 +990,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
             entryCount += 1
             if (entryCount > MAX_ZIP_ENTRIES) {
               promise.reject("OFFICE_UNREADABLE", "This Office document contains too many internal entries.")
-              return@Thread
+              return@runVisionTask
             }
             if (!entry.isDirectory) {
               when (val entryName = entry.name) {
@@ -1007,7 +1020,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
           val parsedPages = parseDocxPages(wordBody!!)
           if (parsedPages.isEmpty()) {
             promise.reject("OFFICE_EMPTY", "No readable text was found in that Word file.")
-            return@Thread
+            return@runVisionTask
           }
           pageCount = parsedPages.size
           parsedPages.forEachIndexed { idx, txt ->
@@ -1074,14 +1087,14 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
               "OFFICE_EMPTY",
               "No readable text was found in that PowerPoint file. Slides made only of images cannot be read."
             )
-            return@Thread
+            return@runVisionTask
           }
         } else {
           promise.reject(
             "OFFICE_UNREADABLE",
             "This file does not contain a readable Word document or PowerPoint slides."
           )
-          return@Thread
+          return@runVisionTask
         }
 
         val result = Arguments.createMap()
@@ -1103,7 +1116,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
           )
         }
       }
-    }.start()
+    }
   }
 
   /**

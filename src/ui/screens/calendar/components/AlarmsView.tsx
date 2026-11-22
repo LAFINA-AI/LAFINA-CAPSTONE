@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
   Animated,
@@ -34,7 +34,7 @@ import {
   formatAlarmTime,
   nextAlarmTrigger,
 } from '../../../../scheduler/alarmSchedule';
-import {getAlarmHealth, nextAlarm} from '../../../../scheduler/alarmService';
+import {getAlarmHealth} from '../../../../scheduler/alarmService';
 import type {AlarmHealth} from '../../../../scheduler/alarmService';
 import {
   openExactAlarmSettings,
@@ -360,13 +360,20 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
   const lastCreateTriggerRef = useRef(createTrigger ?? 0);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextPulseAnim = useRef(new Animated.Value(1)).current;
-  const [use24h] = useState(() => {
+  const [use24h, setUse24h] = useState(() => {
     try {
       return userStore.get24HourFormat(userId);
     } catch {
       return false;
     }
   });
+  useEffect(() => {
+    try {
+      setUse24h(userStore.get24HourFormat(userId));
+    } catch {
+      setUse24h(false);
+    }
+  }, [userId, refreshTrigger]);
 
   useEffect(
     () => () => {
@@ -412,7 +419,17 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
     };
   }, [load, loadHealth, refreshTrigger]);
 
-  const next = nextAlarm(userId);
+  const next = useMemo(() => {
+    const now = new Date();
+    let best: {alarm: Alarm; at: Date} | null = null;
+    for (const alarm of alarms) {
+      const at = nextAlarmTrigger(alarm, now);
+      if (at && (!best || at.getTime() < best.at.getTime())) {
+        best = {alarm, at};
+      }
+    }
+    return best;
+  }, [alarms]);
   const issues = alarmHealthIssues(health);
 
   const triggerArrivalHighlight = useCallback((alarmId: string) => {

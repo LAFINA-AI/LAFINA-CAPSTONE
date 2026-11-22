@@ -78,6 +78,12 @@ export const userStore = {
   createGuestUser: (): User => {
     const now = new Date().toISOString();
     try {
+      const existing = db.executeSync('SELECT * FROM users WHERE id = ?', [
+        GUEST_USER_ID,
+      ]);
+      if (existing.rows && existing.rows.length > 0) {
+        return mapStoredUser(existing.rows[0]);
+      }
       db.executeSync(
         `INSERT OR IGNORE INTO users (
            id, username, email, role, is_new_user, time_format_24h,
@@ -139,12 +145,10 @@ export const userStore = {
     const normalizedEmail = normalizeEmail(email);
     const now = new Date().toISOString();
 
-    const usersResult = db.executeSync('SELECT * FROM users');
-    const existing = usersResult.rows.find(
-      (row: StoredUserRow) =>
-        normalizeEmail(typeof row.email === 'string' ? row.email : '') ===
-        normalizedEmail,
-    );
+    const existing = db.executeSync(
+      'SELECT 1 FROM users WHERE lower(trim(email)) = ? LIMIT 1',
+      [normalizedEmail],
+    ).rows?.[0];
     if (existing) {
       throw new Error('Email already registered');
     }
@@ -198,14 +202,10 @@ export const userStore = {
     const id = generateId('user');
 
     db.transactionSync(tx => {
-      const rows =
-        tx.executeSync('SELECT id, email, cloud_account_id FROM users').rows ??
-        [];
-      const clash = rows.find(
-        (row: StoredUserRow) =>
-          normalizeEmail(typeof row.email === 'string' ? row.email : '') ===
-            normalizedEmail || row.cloud_account_id === input.cloudAccountId,
-      );
+      const clash = tx.executeSync(
+        'SELECT 1 FROM users WHERE lower(trim(email)) = ? OR cloud_account_id = ? LIMIT 1',
+        [normalizedEmail, input.cloudAccountId],
+      ).rows?.[0];
       if (clash) {
         throw new Error('This account is already on this phone.');
       }
@@ -233,13 +233,11 @@ export const userStore = {
 
   login: async (email: string, password: string): Promise<User | null> => {
     try {
-      const usersResult = db.executeSync('SELECT * FROM users');
       const normalizedEmail = normalizeEmail(email);
-      const userRow = usersResult.rows.find(
-        (row: StoredUserRow) =>
-          normalizeEmail(typeof row.email === 'string' ? row.email : '') ===
-          normalizedEmail,
-      );
+      const userRow = db.executeSync(
+        'SELECT * FROM users WHERE lower(trim(email)) = ? LIMIT 1',
+        [normalizedEmail],
+      ).rows?.[0] as StoredUserRow | undefined;
       if (!userRow) {
         return null;
       }
@@ -262,13 +260,10 @@ export const userStore = {
   getUserByEmail: (email: string): User | null => {
     const normalizedEmail = normalizeEmail(email);
     try {
-      const result = db.executeSync('SELECT * FROM users');
-      const row = result.rows.find(
-        (candidate: StoredUserRow) =>
-          normalizeEmail(
-            typeof candidate.email === 'string' ? candidate.email : '',
-          ) === normalizedEmail,
-      );
+      const row = db.executeSync(
+        'SELECT * FROM users WHERE lower(trim(email)) = ? LIMIT 1',
+        [normalizedEmail],
+      ).rows?.[0] as StoredUserRow | undefined;
       return row ? mapStoredUser(row) : null;
     } catch (error) {
       console.error('Error fetching user by email:', error);
@@ -295,12 +290,14 @@ export const userStore = {
     // the previous one (remediation audit P1).
     noteSessionChange();
     try {
-      db.executeSync('DELETE FROM active_session');
       const now = new Date().toISOString();
-      db.executeSync(
-        'INSERT INTO active_session (user_id, access_token, refresh_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-        [userId, null, null, now, now],
-      );
+      db.transactionSync(tx => {
+        tx.executeSync('DELETE FROM active_session');
+        tx.executeSync(
+          'INSERT INTO active_session (user_id, access_token, refresh_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+          [userId, null, null, now, now],
+        );
+      });
     } catch (error) {
       console.error('Error setting current user session:', error);
       throw error;
@@ -607,7 +604,11 @@ export const userStore = {
   },
 
   // ponytail: remember password alongside email when Remember Me is enabled
-  getRememberMe: (): {enabled: boolean; email: string | null; password: string | null} => {
+  getRememberMe: (): {
+    enabled: boolean;
+    email: string | null;
+    password: string | null;
+  } => {
     try {
       const result = db.executeSync('SELECT * FROM remember_me WHERE id = 1');
       if (result.rows && result.rows.length > 0) {

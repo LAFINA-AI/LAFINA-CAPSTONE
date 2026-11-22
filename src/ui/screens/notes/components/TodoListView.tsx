@@ -1,5 +1,5 @@
 import {SkillFonts} from '../../../theme/skills';
-import React, {useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {
   ScrollView,
   FlatList,
@@ -119,30 +119,31 @@ const formatCompactDueLabel = (task: Task, todayStr: string): string => {
   return shortDate;
 };
 
-export const TodoListView: React.FC<TodoListViewProps> = ({
-  hasMoreTasks,
-  onLoadMoreTasks,
-  undatedOpen,
-  scheduledOpen,
-  completedTasks,
-  noteChecklists,
-  allNoteChecklistCount,
-  filter,
-  onFilterChange,
-  quickTitle,
-  onQuickTitleChange,
-  quickPriority,
-  onQuickPriorityChange,
-  onQuickAdd,
-  onToggleTodo,
-  onPressTodo,
-  onToggleChecklistItem,
-  onOpenParentNote,
-  onOpenNewTodoModal,
-  highlightedTaskId,
-  searchQuery,
-  isGridView = false,
-}) => {
+export const TodoListView: React.FC<TodoListViewProps> = React.memo(
+  function TodoListViewInner({
+    hasMoreTasks,
+    onLoadMoreTasks,
+    undatedOpen,
+    scheduledOpen,
+    completedTasks,
+    noteChecklists,
+    allNoteChecklistCount,
+    filter,
+    onFilterChange,
+    quickTitle,
+    onQuickTitleChange,
+    quickPriority,
+    onQuickPriorityChange,
+    onQuickAdd,
+    onToggleTodo,
+    onPressTodo,
+    onToggleChecklistItem,
+    onOpenParentNote,
+    onOpenNewTodoModal,
+    highlightedTaskId,
+    searchQuery,
+    isGridView = false,
+  }) {
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const [showCompletedInline, setShowCompletedInline] = useState(false);
   const todayStr = toLocalYmd(new Date());
@@ -501,47 +502,154 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
     tasks?: Task[];
     checklists?: NoteChecklistTodoItem[];
   };
-  const todoRows: TodoRow[] = [];
-  const appendTasks = (label: string, items: Task[]) => {
-    if (!items.length) return;
-    todoRows.push({key: label, label: `${label} (${items.length})`});
-    const step = isGridView ? 2 : 1;
-    for (let index = 0; index < items.length; index += step)
-      todoRows.push({
-        key: `task:${items[index].id}`,
-        tasks: items.slice(index, index + step),
-      });
-  };
-  if (showUndated) appendTasks('TO-DO', undatedOpen);
-  if (showScheduled) appendTasks('SCHEDULED & DEADLINES', scheduledOpen);
-  if (showChecklists && noteChecklists.length) {
-    todoRows.push({
-      key: 'checklists',
-      label: `FROM NOTES CHECKLISTS (${noteChecklists.length})`,
-    });
-    const step = isGridView ? 2 : 1;
-    for (let index = 0; index < noteChecklists.length; index += step)
-      todoRows.push({
-        key: `checklist:${noteChecklists[index].id}`,
-        checklists: noteChecklists.slice(index, index + step),
-      });
-  }
-  if (showCompletedList) appendTasks('COMPLETED', completedTasks);
-  if (filter === 'open' && completedTasks.length) {
-    todoRows.push({
-      key: 'completed-toggle',
-      toggle: true,
-      label: `COMPLETED (${completedTasks.length})`,
-    });
-    if (showCompletedInline) {
+  const todoRows = useMemo(() => {
+    const rows: TodoRow[] = [];
+    const appendTasks = (label: string, items: Task[]) => {
+      if (!items.length) return;
+      rows.push({key: label, label: `${label} (${items.length})`});
       const step = isGridView ? 2 : 1;
-      for (let index = 0; index < completedTasks.length; index += step)
-        todoRows.push({
-          key: `completed:${completedTasks[index].id}`,
-          tasks: completedTasks.slice(index, index + step),
+      for (let index = 0; index < items.length; index += step)
+        rows.push({
+          key: `task:${items[index].id}`,
+          tasks: items.slice(index, index + step),
+        });
+    };
+    if (showUndated) appendTasks('TO-DO', undatedOpen);
+    if (showScheduled) appendTasks('SCHEDULED & DEADLINES', scheduledOpen);
+    if (showChecklists && noteChecklists.length) {
+      rows.push({
+        key: 'checklists',
+        label: `FROM NOTES CHECKLISTS (${noteChecklists.length})`,
+      });
+      const step = isGridView ? 2 : 1;
+      for (let index = 0; index < noteChecklists.length; index += step)
+        rows.push({
+          key: `checklist:${noteChecklists[index].id}`,
+          checklists: noteChecklists.slice(index, index + step),
         });
     }
-  }
+    if (showCompletedList) appendTasks('COMPLETED', completedTasks);
+    if (filter === 'open' && completedTasks.length) {
+      rows.push({
+        key: 'completed-toggle',
+        toggle: true,
+        label: `COMPLETED (${completedTasks.length})`,
+      });
+      if (showCompletedInline) {
+        const step = isGridView ? 2 : 1;
+        for (let index = 0; index < completedTasks.length; index += step)
+          rows.push({
+            key: `completed:${completedTasks[index].id}`,
+            tasks: completedTasks.slice(index, index + step),
+          });
+      }
+    }
+    return rows;
+  }, [
+    completedTasks,
+    filter,
+    isGridView,
+    noteChecklists,
+    scheduledOpen,
+    showChecklists,
+    showCompletedInline,
+    showCompletedList,
+    showScheduled,
+    showUndated,
+    undatedOpen,
+  ]);
+  const keyExtractor = useCallback((row: TodoRow) => row.key, []);
+  const renderRowFn = (row: TodoRow) =>
+    row.toggle ? (
+      <TouchableOpacity
+        onPress={() => setShowCompletedInline(previous => !previous)}
+        style={styles.completedToggleRow}
+        testID="todo-completed-toggle"
+      >
+        {showCompletedInline ? (
+          <ChevronDown size={15} color={colors.textSecondary} />
+        ) : (
+          <ChevronRight size={15} color={colors.textSecondary} />
+        )}
+        <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
+          {row.label}
+        </Text>
+      </TouchableOpacity>
+    ) : row.label ? (
+      <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
+        {row.label}
+      </Text>
+    ) : (
+      <View style={isGridView ? styles.gridContainer : undefined}>
+        {row.tasks?.map(renderTaskRow)}
+        {row.checklists?.map(renderChecklistCard)}
+      </View>
+    );
+  const renderRowRef = useRef(renderRowFn);
+  renderRowRef.current = renderRowFn;
+  const renderTodoItem = useCallback(
+    ({item: row}: {item: TodoRow}) => renderRowRef.current(row),
+    [],
+  );
+  const listFooter = useMemo(
+    () =>
+      hasMoreTasks ? (
+        <TouchableOpacity
+          onPress={onLoadMoreTasks}
+          accessibilityRole="button"
+          style={styles.completedToggleRow}
+        >
+          <Text style={{color: colors.textPrimary}}>Show more to-dos</Text>
+        </TouchableOpacity>
+      ) : null,
+    [colors.textPrimary, hasMoreTasks, onLoadMoreTasks],
+  );
+  const listEmpty = useMemo(
+    () =>
+      visibleCount === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyTitle, {color: colors.textPrimary}]}>
+            {searchQuery.trim()
+              ? 'No matching to-dos'
+              : filter === 'completed'
+              ? 'No completed to-dos yet'
+              : 'Your To-Do list is clear'}
+          </Text>
+          <Text style={[styles.emptySub, {color: colors.textSecondary}]}>
+            {searchQuery.trim()
+              ? 'Try another search term or switch filters.'
+              : 'Type above to add an undated to-do, tap + to set a due date, or ask LAFINA in Chat or Call.'}
+          </Text>
+          {!searchQuery.trim() && filter !== 'completed' ? (
+            <TouchableOpacity
+              onPress={onOpenNewTodoModal}
+              style={[
+                styles.emptyBtn,
+                isModern && styles.modernPill,
+                {borderColor: accentColor, backgroundColor: colors.cardBg},
+              ]}
+            >
+              <Text style={{color: accentColor, fontWeight: '700'}}>
+                Add detailed To-Do
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null,
+    [
+      accentColor,
+      colors.cardBg,
+      colors.textPrimary,
+      colors.textSecondary,
+      filter,
+      isModern,
+      onOpenNewTodoModal,
+      searchQuery,
+      visibleCount,
+    ],
+  );
+  const renderListFooter = useCallback(() => listFooter, [listFooter]);
+  const renderListEmpty = useCallback(() => listEmpty, [listEmpty]);
 
   return (
     <View style={styles.container} testID="notes-todo-view">
@@ -665,89 +773,21 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
       {/* Content */}
       <FlatList
         data={todoRows}
-        ListFooterComponent={
-          hasMoreTasks ? (
-            <TouchableOpacity
-              onPress={onLoadMoreTasks}
-              accessibilityRole="button"
-              style={styles.completedToggleRow}
-            >
-              <Text style={{color: colors.textPrimary}}>Show more to-dos</Text>
-            </TouchableOpacity>
-          ) : null
-        }
-        keyExtractor={row => row.key}
+        ListFooterComponent={renderListFooter}
+        keyExtractor={keyExtractor}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         initialNumToRender={8}
         maxToRenderPerBatch={4}
         windowSize={7}
         removeClippedSubviews={false}
-        ListEmptyComponent={
-          visibleCount === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={[styles.emptyTitle, {color: colors.textPrimary}]}>
-                {searchQuery.trim()
-                  ? 'No matching to-dos'
-                  : filter === 'completed'
-                  ? 'No completed to-dos yet'
-                  : 'Your To-Do list is clear'}
-              </Text>
-              <Text style={[styles.emptySub, {color: colors.textSecondary}]}>
-                {searchQuery.trim()
-                  ? 'Try another search term or switch filters.'
-                  : 'Type above to add an undated to-do, tap + to set a due date, or ask LAFINA in Chat or Call.'}
-              </Text>
-              {!searchQuery.trim() && filter !== 'completed' ? (
-                <TouchableOpacity
-                  onPress={onOpenNewTodoModal}
-                  style={[
-                    styles.emptyBtn,
-                    isModern && styles.modernPill,
-                    {borderColor: accentColor, backgroundColor: colors.cardBg},
-                  ]}
-                >
-                  <Text style={{color: accentColor, fontWeight: '700'}}>
-                    Add detailed To-Do
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          ) : null
-        }
-        renderItem={({item: row}) =>
-          row.toggle ? (
-            <TouchableOpacity
-              onPress={() => setShowCompletedInline(previous => !previous)}
-              style={styles.completedToggleRow}
-              testID="todo-completed-toggle"
-            >
-              {showCompletedInline ? (
-                <ChevronDown size={15} color={colors.textSecondary} />
-              ) : (
-                <ChevronRight size={15} color={colors.textSecondary} />
-              )}
-              <Text
-                style={[styles.sectionHeader, {color: colors.textSecondary}]}
-              >
-                {row.label}
-              </Text>
-            </TouchableOpacity>
-          ) : row.label ? (
-            <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
-              {row.label}
-            </Text>
-          ) : (
-            <View style={isGridView ? styles.gridContainer : undefined}>
-              {row.tasks?.map(renderTaskRow)}
-              {row.checklists?.map(renderChecklistCard)}
-            </View>
-          )
-        }
+        extraData={`${isGridView}:${showCompletedInline}:${highlightedTaskId ?? ''}:${isModern}:${colors.cardBg}`}
+        ListEmptyComponent={renderListEmpty}
+        renderItem={renderTodoItem}
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

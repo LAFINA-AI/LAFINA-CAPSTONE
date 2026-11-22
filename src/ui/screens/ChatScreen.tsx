@@ -48,6 +48,7 @@ import {
   type ChatMessage,
 } from '../../storage/chatStore';
 import {userStore} from '../../storage/userStore';
+import {db} from '../../storage/database';
 import {chatSyncStore} from '../../storage/chatSyncStore';
 import {chatHistorySync} from '../../sync/chatHistorySync';
 import {
@@ -65,7 +66,20 @@ import {
   chatMemoryService,
 } from '../../cloud/chatMemoryService';
 import type {ChatMemoryChangedEvent} from '../../cloud/chatMemoryService';
-import {chatOrchestrator, rebindReviewTurn} from '../../ai/chatOrchestrator';
+import {
+  CHAT_OFFLINE_SLM_TIMEOUT_MS,
+  chatOrchestrator,
+  rebindReviewTurn,
+} from '../../ai/chatOrchestrator';
+import {
+  chatTimingStore,
+  compactTimingLabel,
+  createRequestTrace,
+  isPerfTrackingEnabled,
+  monotonicNow,
+  subscribePerfTracking,
+  type RequestTrace,
+} from '../../ai/benchmark';
 import {localHandbookService, type LocalHandbookStatus} from '../../handbook';
 import {
   OFFLINE_MODEL_CATALOG,
@@ -104,10 +118,12 @@ import {CommandGuide} from '../components/chat/CommandGuide';
 import {EndTemporaryChatModal} from '../components/chat/EndTemporaryChatModal';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {
+  cancelReviewedCommand,
   formatResolvedReviewContent,
   type ReviewEditPatch,
   type UndoOffer,
 } from '../../ai/nlu/commandReview';
+import {warmUpOfflineModel} from '../../ai/nlu/intentService';
 import {useDraftProtection} from '../hooks/useDraftProtection';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
@@ -125,6 +141,11 @@ import type {
 
 /** How often a reply that is still arriving repaints (about 20 times a second). */
 const STREAM_REPAINT_MS = 50;
+/** Developer timing waits this long for the reply to be drawn before recording it. */
+const TIMING_RENDER_WAIT_MS = 5_000;
+
+/** Focusing the input loads the offline model at most this often. */
+const SLM_FOCUS_WARMUP_INTERVAL_MS = 45_000;
 
 const LAFINA_MASCOT = require('../../assets/new_lafina_app_logo/lafina_app_logo.png');
 
@@ -286,6 +307,102 @@ function renderSampleCardIcon(iconKey: SampleCardIconKey, color: string) {
   }
 }
 
+const CHAT_HISTORY_TABLES = ['messages', 'chat_sessions'] as const;
+
+function areUstpEligibilitiesEqual(
+  prev: UstpEligibility,
+  next: UstpEligibility,
+): boolean {
+  return prev.eligible === next.eligible && prev.reason === next.reason;
+}
+
+function areLocalHandbookStatusesEqual(
+  prev: LocalHandbookStatus,
+  next: LocalHandbookStatus,
+): boolean {
+  return (
+    prev.ready === next.ready &&
+    prev.populated === next.populated &&
+    prev.chunkCount === next.chunkCount &&
+    prev.title === next.title &&
+    prev.edition === next.edition &&
+    prev.sourceLabel === next.sourceLabel &&
+    prev.sha256 === next.sha256 &&
+    prev.origin === next.origin
+  );
+}
+
+interface ChatComposerProps {
+  userId: string;
+  isSending: boolean;
+  isOnlineMode: boolean;
+  isUstpChat: boolean;
+  schoolEnabled: boolean;
+  onSendText: (overrideText?: string, sendOptions?: {preserveDraft?: boolean}) => void;
+  onCallLafina?: () => void;
+  onOpenFormatPicker?: () => void;
+  onInputFocus: () => void;
+}
+
+const ChatComposer = React.memo(function ChatComposerView({
+  userId,
+  isSending,
+  isOnlineMode,
+  isUstpChat,
+  schoolEnabled,
+  onSendText,
+  onCallLafina,
+  onOpenFormatPicker,
+  onInputFocus,
+}: ChatComposerProps) {
+  const [inputText, setInputTextState] = useState(() =>
+    chatDraftStore.get(userId),
+  );
+  useEffect(() => {
+    setInputTextState(chatDraftStore.get(userId));
+    return chatDraftStore.subscribe((owner, text) => {
+      if (owner === userId) setInputTextState(text);
+    });
+  }, [userId]);
+
+  const setInputText = useCallback(
+    (text: string) => {
+      chatDraftStore.set(userId, text);
+      setInputTextState(text);
+    },
+    [userId],
+  );
+
+  const handleSendInput = useCallback(
+    (overrideText?: string) => onSendText(overrideText),
+    [onSendText],
+  );
+  const handleSelectPrompt = useCallback(
+    (prompt: string) => onSendText(prompt, {preserveDraft: true}),
+    [onSendText],
+  );
+
+  return (
+    <ChatInput
+      inputText={inputText}
+      setInputText={setInputText}
+      onSend={handleSendInput}
+      isSending={isSending}
+      isOnlineMode={isOnlineMode}
+      onCallLafina={onCallLafina}
+      onOpenFormatPicker={onOpenFormatPicker}
+      onSelectPrompt={handleSelectPrompt}
+      showSuggestions={false}
+      placeholderOverride={
+        isUstpChat && schoolEnabled
+          ? 'Ask anything about the USTP Handbook…'
+          : undefined
+      }
+      onFocus={onInputFocus}
+    />
+  );
+});
+
 export interface ChatScreenProps {
   userId: string;
   refreshTrigger?: number;
@@ -304,16 +421,19 @@ export const ChatScreen = React.memo(function ChatScreenView({
 }: ChatScreenProps) {
   const [initialPage] = useState(() => {
     try {
-      return chatStore.getMessagesPage(userId);
+      const rev = db.getDataRevision(CHAT_HISTORY_TABLES);
+      const page = chatStore.getMessagesPage(userId);
+      return {page, rev};
     } catch {
       return null;
     }
   });
+  const loadedMessagesRevRef = useRef<number>(initialPage?.rev ?? 0);
   const [messages, setMessages] = useState<ChatMessage[]>(
-    initialPage?.items ?? [],
+    initialPage?.page.items ?? [],
   );
   const [olderCursor, setOlderCursor] = useState<string | null>(
-    initialPage?.nextCursor ?? null,
+    initialPage?.page.nextCursor ?? null,
   );
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
   const readCurrentChat = useCallback((): string => {
@@ -375,7 +495,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const replyFormat = useChatReplyFormat(userId);
   activeUserRef.current = userId;
   const suppressAutoScrollRef = useRef(false);
-  const hasInitialMessages = (initialPage?.items.length ?? 0) > 0;
+  const hasInitialMessages = (initialPage?.page.items.length ?? 0) > 0;
   const needsInitialScrollRef = useRef(hasInitialMessages);
   const initialSettleUntilRef = useRef(
     hasInitialMessages ? Date.now() + 300 : 0,
@@ -390,18 +510,6 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const revealRafRef = useRef<number | null>(null);
   const fallbackRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
-  );
-  // AGY-PORT 05: the composer draft lives in an owner-bound memory store, so tab
-  // switches, tool sheets and the Voice handoff never lose it.
-  const [inputText, setInputTextState] = useState(() =>
-    chatDraftStore.get(userId),
-  );
-  const setInputText = useCallback(
-    (text: string) => {
-      chatDraftStore.set(userId, text);
-      setInputTextState(text);
-    },
-    [userId],
   );
   // The text a waiting review came from; Cancel puts it back in an empty composer.
   const reviewSourceRef = useRef<{
@@ -426,9 +534,60 @@ export const ChatScreen = React.memo(function ChatScreenView({
     startedAt: string;
   } | null>(null);
   const streamFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Developer timing (Developer Mode + performance tracking only).
+  const [perfOn, setPerfOn] = useState(isPerfTrackingEnabled);
+  const [timingLabels, setTimingLabels] = useState<Record<string, string>>({});
+  const pendingTraceRef = useRef<{
+    trace: RequestTrace;
+    assistantId: string | null;
+    tempMode: boolean;
+  } | null>(null);
+  /** The request whose streamed text is on screen now. */
+  const liveTraceRef = useRef<RequestTrace | null>(null);
+  useEffect(() => subscribePerfTracking(setPerfOn), []);
+  useEffect(() => {
+    if (!perfOn) {
+      setTimingLabels({});
+      return undefined;
+    }
+    const update = () => {
+      const next: Record<string, string> = {};
+      for (const entry of chatTimingStore.list()) {
+        if (entry.messageId && !next[entry.messageId]) {
+          next[entry.messageId] = compactTimingLabel(entry.snapshot);
+        }
+      }
+      setTimingLabels(next);
+    };
+    update();
+    return chatTimingStore.subscribe(update);
+  }, [perfOn]);
+  // First streamed text: marked on the first frame after it was committed.
+  useEffect(() => {
+    const live = liveTraceRef.current;
+    if (!live || !streamingReply?.text) return;
+    requestAnimationFrame(() => live.mark('firstContentRendered'));
+  }, [streamingReply]);
+  // The saved reply: marked on the first frame after it is in the list.
+  useEffect(() => {
+    const pending = pendingTraceRef.current;
+    if (!pending) return;
+    const list = pending.tempMode ? tempMessages : messages;
+    if (!list.some(msg => msg.id === pending.assistantId)) return;
+    pendingTraceRef.current = null;
+    requestAnimationFrame(() => {
+      pending.trace.mark('firstContentRendered');
+      pending.trace.mark('finalRendered');
+      pending.trace.finalize();
+    });
+  }, [messages, tempMessages]);
   const [isOnlineMode, setIsOnlineMode] = useState(() =>
     readInitialOnlineMode(userId),
   );
+  const isOnlineModeRef = useRef(isOnlineMode);
+  isOnlineModeRef.current = isOnlineMode;
+  const onlineAuthVerifiedUserRef = useRef<string | null>(null);
+  const lastNetConnectivityRef = useRef<boolean | null>(null);
   const isUstpChat = !isTemporaryChat && isUstpSessionId(currentChatId);
   // One eligibility decision for every USTP entry point on this screen.
   const [schoolEligibility, setSchoolEligibility] = useState<UstpEligibility>(
@@ -436,14 +595,29 @@ export const ChatScreen = React.memo(function ChatScreenView({
   );
   const schoolEnabled = schoolEligibility.eligible;
   const ustpChatBlocked = isUstpChat && !schoolEnabled;
+  const updateSchoolEligibility = useCallback((next: UstpEligibility) => {
+    setSchoolEligibility(prev =>
+      areUstpEligibilitiesEqual(prev, next) ? prev : next,
+    );
+  }, []);
   useEffect(() => {
-    setSchoolEligibility(getUstpEligibility(userId));
-    return studentSetupStore.subscribe(changedUserId => {
-      if (changedUserId === userId && isMountedRef.current) {
-        setSchoolEligibility(getUstpEligibility(userId));
+    let cancelled = false;
+    const requestUser = userId;
+    updateSchoolEligibility(getUstpEligibility(requestUser));
+    const unsubscribe = studentSetupStore.subscribe(changedUserId => {
+      if (
+        !cancelled &&
+        changedUserId === requestUser &&
+        activeUserRef.current === requestUser
+      ) {
+        updateSchoolEligibility(getUstpEligibility(requestUser));
       }
     });
-  }, [userId, refreshTrigger]);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [userId, refreshTrigger, updateSchoolEligibility]);
   const [handbookNotes, setHandbookNotes] = useState<Record<string, string>>(
     {},
   );
@@ -468,13 +642,6 @@ export const ChatScreen = React.memo(function ChatScreenView({
   studentNameRef.current = studentName;
   const selectedModelRef = useRef(selectedOfflineModelId);
   selectedModelRef.current = selectedOfflineModelId;
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -497,9 +664,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const modelCheckedAt = useRef(0);
   const refreshModelAndProfileState = useCallback(
-    async (force = false) => {
-      const nextName = resolveStudentGreetingName(userId);
-      const nextSelected = getSelectedOfflineModelId(userId);
+    async (force = false, isCancelled?: () => boolean) => {
+      const requestUser = userId;
+      const nextName = resolveStudentGreetingName(requestUser);
+      const nextSelected = getSelectedOfflineModelId(requestUser);
       if (studentNameRef.current !== nextName) {
         studentNameRef.current = nextName;
         setStudentName(nextName);
@@ -510,9 +678,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
       }
       if (!force && Date.now() - modelCheckedAt.current < 30_000) return;
       try {
-        const statuses = await getAllModelsStatus(userId);
+        const statuses = await getAllModelsStatus(requestUser);
         modelCheckedAt.current = Date.now();
-        if (!isMountedRef.current) {
+        if (isCancelled?.() || activeUserRef.current !== requestUser) {
           return;
         }
         if (!areModelStatusesEqual(modelsStatusRef.current, statuses)) {
@@ -527,16 +695,23 @@ export const ChatScreen = React.memo(function ChatScreenView({
   );
 
   useEffect(() => {
-    void refreshModelAndProfileState(engineSheetVisible);
+    let cancelled = false;
+    void refreshModelAndProfileState(engineSheetVisible, () => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [refreshModelAndProfileState, refreshTrigger, engineSheetVisible]);
 
   useEffect(() => {
     let cancelled = false;
+    const requestUser = userId;
     void localHandbookService
       .ensureReady()
       .then(status => {
-        if (!cancelled && isMountedRef.current) {
-          setLocalHandbookStatus(status);
+        if (!cancelled && activeUserRef.current === requestUser) {
+          setLocalHandbookStatus(prev =>
+            areLocalHandbookStatusesEqual(prev, status) ? prev : status,
+          );
         }
       })
       .catch(() => {
@@ -545,7 +720,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     return () => {
       cancelled = true;
     };
-  }, [isUstpChat, refreshTrigger]);
+  }, [isUstpChat, refreshTrigger, userId]);
 
   useEffect(() => {
     if (!engineSheetVisible) {
@@ -554,7 +729,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     let cancelled = false;
     void getDeviceAiRecommendation(modelsStatus)
       .then(rec => {
-        if (!cancelled && isMountedRef.current) {
+        if (!cancelled) {
           setDeviceRecommendation(rec);
         }
       })
@@ -602,22 +777,27 @@ export const ChatScreen = React.memo(function ChatScreenView({
   cancelOpenReviewRef.current = review.cancel;
 
   // AGY-PORT 05: Android back with unsent text asks first (default keeps it).
+  const readDraft = useCallback(() => chatDraftStore.get(userId), [userId]);
+  const clearDraft = useCallback(() => chatDraftStore.set(userId, ''), [userId]);
+  const replaceDraft = useCallback(
+    (next: string) => chatDraftStore.set(userId, next),
+    [userId],
+  );
   const draft = useDraftProtection(
     userId,
-    inputText,
+    readDraft,
     false,
-    () => setInputText(''),
-    next => setInputText(next),
+    clearDraft,
+    replaceDraft,
   );
   const {requestLeave, hasDraft} = draft;
 
+  const prevDraftUserRef = useRef(userId);
   useEffect(() => {
-    setInputTextState(chatDraftStore.get(userId));
+    if (prevDraftUserRef.current === userId) return;
+    prevDraftUserRef.current = userId;
     reviewSourceRef.current = null;
     setUndoOffer(null);
-    return chatDraftStore.subscribe((owner, text) => {
-      if (owner === userId) setInputTextState(text);
-    });
   }, [userId]);
 
   useEffect(() => {
@@ -825,9 +1005,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   /** Reloads the newest page, keeping earlier pages the student already opened. */
   const loadMessages = useCallback(
-    (options?: {replace?: boolean}) => {
+    (options?: {replace?: boolean}): number | null => {
       try {
+        const rev = db.getDataRevision(CHAT_HISTORY_TABLES);
         const page = chatStore.getMessagesPage(userId);
+        loadedMessagesRevRef.current = rev;
         if (options?.replace) {
           beginInitialScroll(page.items.length > 0);
           setMessages(page.items);
@@ -849,6 +1031,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
           });
         }
         setLoadError(null);
+        return page.items.length;
       } catch (error) {
         if (options?.replace) {
           beginInitialScroll(false);
@@ -858,6 +1041,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
         setLoadError(
           'Your conversation could not be loaded right now. Nothing was deleted.',
         );
+        return null;
       }
     },
     [beginInitialScroll, userId],
@@ -869,12 +1053,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
     try {
       const page = chatStore.getMessagesPage(userId, {before: olderCursor});
       suppressAutoScrollRef.current = true;
-      setMessages(current => [
-        ...page.items.filter(
-          item => !current.some(existing => existing.id === item.id),
-        ),
-        ...current,
-      ]);
+      setMessages(current => {
+        const shown = new Set(current.map(existing => existing.id));
+        return [...page.items.filter(item => !shown.has(item.id)), ...current];
+      });
       setOlderCursor(page.nextCursor);
       setLoadError(null);
     } catch (error) {
@@ -890,6 +1072,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
   useEffect(() => {
     if (prevUserIdRef.current === userId) return;
     prevUserIdRef.current = userId;
+    onlineAuthVerifiedUserRef.current = null;
+    lastNetConnectivityRef.current = null;
     messagesLengthRef.current = 0;
     isTemporaryChatRef.current = false;
     setIsTemporaryChat(false);
@@ -924,11 +1108,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
   // Automatically detect Wi-Fi / data connection and sync online mode
   useEffect(() => {
     let active = true;
-    let lastConnectivity: boolean | null = null;
 
     const syncConnectivity = async (
       isConnected: boolean | null,
       isInternetReachable: boolean | null,
+      isInitialFetch = false,
     ) => {
       if (!active) return;
       const isDeviceConnected = Boolean(
@@ -937,21 +1121,45 @@ export const ChatScreen = React.memo(function ChatScreenView({
       const optedIn = () =>
         localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true';
 
-      // fetch() and the listener may report the same initial connection.
-      if (lastConnectivity === isDeviceConnected) return;
-      lastConnectivity = isDeviceConnected;
+      // Avoid redundant re-authorization on <Activity> warm return when already
+      // connected, opted-in, online, and verified for this user.
+      if (isInitialFetch && lastNetConnectivityRef.current === isDeviceConnected) {
+        if (
+          isDeviceConnected &&
+          optedIn() &&
+          isOnlineModeRef.current &&
+          onlineAuthVerifiedUserRef.current === userId
+        ) {
+          return;
+        }
+      } else if (
+        !isInitialFetch &&
+        lastNetConnectivityRef.current === isDeviceConnected
+      ) {
+        return;
+      }
+      lastNetConnectivityRef.current = isDeviceConnected;
       // Online Mode is opt-in: connectivity alone never turns it on.
       if (!optedIn()) {
+        onlineAuthVerifiedUserRef.current = null;
         return;
       }
 
       if (isDeviceConnected) {
+        if (
+          isOnlineModeRef.current &&
+          onlineAuthVerifiedUserRef.current === userId
+        ) {
+          return;
+        }
         const auth = await accountLinkService.authorizeOnlineMode(userId);
         // The student may have switched Online Mode off while this was pending.
         if (active && auth.status === 'success' && optedIn()) {
+          onlineAuthVerifiedUserRef.current = userId;
           setIsOnlineMode(true);
         }
       } else if (active) {
+        onlineAuthVerifiedUserRef.current = null;
         setIsOnlineMode(false);
       }
     };
@@ -962,6 +1170,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
         void syncConnectivity(
           state.isConnected,
           state.isInternetReachable,
+          true,
         ).catch(() => undefined);
       })
       .catch(() => undefined);
@@ -1066,10 +1275,17 @@ export const ChatScreen = React.memo(function ChatScreenView({
       return;
     }
     const hadMessages = messagesLengthRef.current > 0;
-    loadMessages();
+    const msgRev = db.getDataRevision(CHAT_HISTORY_TABLES);
+    if (
+      msgRev === loadedMessagesRevRef.current &&
+      (msgRev > 0 || !hadMessages)
+    ) {
+      return;
+    }
+    const loadedCount = loadMessages();
     refreshChatTitle();
     // If history was cleared in Profile while on Default Chat, dismiss stale cards.
-    if (hadMessages && chatStore.getMessagesPage(userId).items.length === 0) {
+    if (hadMessages && loadedCount === 0) {
       if (!reviewSourceRef.current?.isTemporary) {
         cancelOpenReviewRef.current({silent: true});
         reviewSourceRef.current = null;
@@ -1244,6 +1460,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     // Any tap (on or off) supersedes a pending enable from an earlier tap.
     const ticket = ++onlineToggleTicket.current;
     if (isOnlineMode) {
+      onlineAuthVerifiedUserRef.current = null;
       setIsOnlineMode(false);
       localSettingsStore.set(userId, 'chat.onlineMode', 'false');
       return false;
@@ -1281,6 +1498,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       );
       return false;
     }
+    onlineAuthVerifiedUserRef.current = userId;
     setIsOnlineMode(true);
     return true;
   };
@@ -1383,19 +1601,49 @@ export const ChatScreen = React.memo(function ChatScreenView({
     [userId],
   );
 
+  // Offline, the installed model loads while the student types, so the first
+  // message is not also waiting for it (it unloads itself after a minute idle).
+  const lastModelWarmupRef = useRef(0);
+  const warmOfflineModelForTyping = () => {
+    if (isOnlineMode) return;
+    const now = Date.now();
+    if (now - lastModelWarmupRef.current < SLM_FOCUS_WARMUP_INTERVAL_MS) return;
+    lastModelWarmupRef.current = now;
+    void warmUpOfflineModel(userId).catch(() => false);
+  };
+
   const handleSend = async (
     overrideText?: string,
     sendOptions?: {preserveDraft?: boolean},
   ) => {
-    const query = (overrideText || inputText).trim();
+    const sentAt = monotonicNow();
+    const query = (overrideText || chatDraftStore.get(userId)).trim();
     if (!query || isSendingRef.current) return;
+    // One trace per request, handed to this request only. A late callback
+    // from an older request can never reach it.
+    let timedAssistantId: string | null = null;
+    const trace = isPerfTrackingEnabled()
+      ? createRequestTrace({
+          requestedMode: isOnlineMode ? 'online' : 'offline',
+          source: 'chat',
+          startedAtMonotonic: sentAt,
+          onFinalize: snapshot =>
+            chatTimingStore.record(timedAssistantId, snapshot),
+        })
+      : null;
+    if (pendingTraceRef.current) {
+      // The previous request's reply never reached the screen.
+      pendingTraceRef.current.trace.finalize();
+      pendingTraceRef.current = null;
+    }
+    liveTraceRef.current = trace;
 
     const requestUser = userId;
     const requestChatId = shownChatIdRef.current;
     const tempMode = isTemporaryChatRef.current;
     const ustpMode = !tempMode && isUstpSessionId(requestChatId);
     if (!sendOptions?.preserveDraft) {
-      setInputText('');
+      chatDraftStore.set(userId, '');
     }
     isSendingRef.current = true;
     needsInitialScrollRef.current = false;
@@ -1428,12 +1676,25 @@ export const ChatScreen = React.memo(function ChatScreenView({
       if (activeUserRef.current !== requestUser) return;
       setStreamingReply({text: latestText, startedAt});
     };
+    let questionShown = false;
+    const stillShown = () =>
+      activeUserRef.current === requestUser &&
+      shownChatIdRef.current === requestChatId &&
+      isTemporaryChatRef.current === tempMode;
+    // The question appears the moment it is saved, not after the reply
+    // (an offline reply can take seconds while the on-device model reads it).
+    const onUserMessage = () => {
+      if (tempMode || questionShown || !stillShown()) return;
+      questionShown = true;
+      loadMessages();
+    };
     const onReplyText = (replySoFar: string) => {
       latestText = replySoFar;
       if (!shownFirst) {
         // The question is saved before the reply starts; show it above.
         shownFirst = true;
-        if (!tempMode) {
+        if (!tempMode && !questionShown) {
+          questionShown = true;
           loadMessages();
         }
         showLatest();
@@ -1450,10 +1711,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
         useHandbook: ustpMode,
         ustpRagOnly: ustpMode,
         onReplyText,
-        isCurrent: () =>
-          activeUserRef.current === requestUser &&
-          shownChatIdRef.current === requestChatId &&
-          isTemporaryChatRef.current === tempMode,
+        onUserMessage,
+        // Offline, the on-device model gets this long; the parser answers after.
+        slmTimeoutMs: CHAT_OFFLINE_SLM_TIMEOUT_MS,
+        isCurrent: stillShown,
+        trace,
         temporaryChat: tempMode,
         temporaryHistory: tempMode
           ? userTempMsg
@@ -1461,6 +1723,27 @@ export const ChatScreen = React.memo(function ChatScreenView({
             : tempMessages
           : undefined,
       });
+      if (trace) {
+        timedAssistantId = result.assistantMessage?.id ?? null;
+        trace.setOutcome('success');
+        if (stillShown() && timedAssistantId) {
+          // Finalized once the saved reply is drawn (see the effect below).
+          pendingTraceRef.current = {
+            trace,
+            assistantId: timedAssistantId,
+            tempMode,
+          };
+          // A reply that never reaches the screen still gets recorded.
+          setTimeout(() => {
+            if (pendingTraceRef.current?.trace === trace) {
+              pendingTraceRef.current = null;
+            }
+            trace.finalize();
+          }, TIMING_RENDER_WAIT_MS);
+        } else {
+          trace.finalize();
+        }
+      }
       // If the account changed while the reply was pending, the reply was saved
       // for the account that sent it and must not appear in this one.
       if (activeUserRef.current !== requestUser) return;
@@ -1493,6 +1776,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
         }
         reviewSourceRef.current = null;
         review.dismiss();
+      } else if (result.review?.status === 'proposal' && !stillShown()) {
+        // The student opened another chat while this was being read: the
+        // card would land under the wrong conversation. Discard it quietly;
+        // nothing was written. Saying it again in that chat brings it back.
+        cancelReviewedCommand(requestUser, result.review.proposal.operationId);
       } else {
         setChatMultiBatch(null);
         if (result.review?.status === 'proposal') {
@@ -1513,6 +1801,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
       }
       onRefresh?.();
     } catch (err) {
+      if (trace) {
+        trace.setOutcome(
+          'failure',
+          err instanceof Error ? err.message.slice(0, 200) : 'error',
+        );
+        trace.finalize();
+      }
       if (tempMode && userTempMsg && activeUserRef.current === requestUser) {
         const failedId = userTempMsg.id;
         setTempMessages(prev => prev.filter(msg => msg.id !== failedId));
@@ -1636,9 +1931,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
     if (
       cancelled &&
       source?.operationId === cancelled.operationId &&
-      !inputText.trim()
+      !chatDraftStore.get(userId).trim()
     ) {
-      setInputText(source.text);
+      chatDraftStore.set(userId, source.text);
     }
     if (cancelledInTemp) {
       updateTempReviewMessage('cancelled', decision.reply, source?.messageId);
@@ -1827,116 +2122,201 @@ export const ChatScreen = React.memo(function ChatScreenView({
     return [...current].reverse();
   }, [isTemporaryChat, tempMessages, ustpChatBlocked, messages]);
 
-  const renderListHeader = () => (
-    <View>
-      {chatSyncNoticeVisible && !isTemporaryChat ? (
-        <View
-          style={[
-            styles.noticeCard,
-            themed.headerButton,
-            isModern && styles.modernNoticeCard,
-          ]}
-          testID="chat-sync-notice"
-        >
-          <Text style={[styles.noticeText, themed.emptySubtitle]}>
-            Your chats are now saved to your LAFINA account, so they appear on
-            your other phones and come back if you reinstall. Chats you write
-            offline sync when you reconnect. Attached files stay on this phone.
-            You can change this in Preferences.
-          </Text>
-          <View style={styles.noticeActions}>
+  const orderedGeneralSampleCards = useMemo(
+    () => orderCardsByGoal(GENERAL_SAMPLE_CARDS, effectiveGoal(userId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recomputes only when userId or refreshTrigger changes student setup
+    [userId, refreshTrigger],
+  );
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
+  const handleStartUstpChatRef = useRef(handleStartUstpChat);
+  handleStartUstpChatRef.current = handleStartUstpChat;
+  const handleLeaveBlockedUstpChatRef = useRef(handleLeaveBlockedUstpChat);
+  handleLeaveBlockedUstpChatRef.current = handleLeaveBlockedUstpChat;
+  const handleToggleOnlineRef = useRef(handleToggleOnline);
+  handleToggleOnlineRef.current = handleToggleOnline;
+  const acknowledgeChatSyncRef = useRef(acknowledgeChatSync);
+  acknowledgeChatSyncRef.current = acknowledgeChatSync;
+  const dismissLegacyNoticeRef = useRef(dismissLegacyNotice);
+  dismissLegacyNoticeRef.current = dismissLegacyNotice;
+  const handleLoadEarlierRef = useRef(handleLoadEarlier);
+  handleLoadEarlierRef.current = handleLoadEarlier;
+  const loadMessagesRef = useRef(loadMessages);
+  loadMessagesRef.current = loadMessages;
+  const ensureGeneralSessionForToolRef = useRef(ensureGeneralSessionForTool);
+  ensureGeneralSessionForToolRef.current = ensureGeneralSessionForTool;
+  const handleOpenFormatPickerRef = useRef(handleOpenFormatPicker);
+  handleOpenFormatPickerRef.current = handleOpenFormatPicker;
+  const warmOfflineModelForTypingRef = useRef(warmOfflineModelForTyping);
+  warmOfflineModelForTypingRef.current = warmOfflineModelForTyping;
+
+  const handleComposerSend = useCallback(
+    (overrideText?: string, sendOptions?: {preserveDraft?: boolean}) => {
+      void handleSendRef.current(overrideText, sendOptions);
+    },
+    [],
+  );
+  const handleComposerCall = useMemo(
+    () =>
+      onCallLafina && !isTemporaryChat
+        ? () => {
+            if (isSendingRef.current) return;
+            if (!ensureGeneralSessionForToolRef.current()) return;
+            onCallLafina();
+          }
+        : undefined,
+    [onCallLafina, isTemporaryChat],
+  );
+  const handleComposerOpenPicker = useMemo(
+    () =>
+      isUstpChat
+        ? undefined
+        : () => {
+            handleOpenFormatPickerRef.current();
+          },
+    [isUstpChat],
+  );
+  const handleComposerFocus = useCallback(() => {
+    setIsKeyboardVisible(true);
+    warmOfflineModelForTypingRef.current();
+    needsInitialScrollRef.current = false;
+    initialSettleUntilRef.current = 0;
+    isNearBottomRef.current = true;
+    setTimeout(
+      () => flatListRef.current?.scrollToOffset({offset: 0, animated: true}),
+      100,
+    );
+  }, []);
+
+  const listFooterElement = useMemo(
+    () => (
+      <View>
+        {chatSyncNoticeVisible && !isTemporaryChat ? (
+          <View
+            style={[
+              styles.noticeCard,
+              themed.headerButton,
+              isModern && styles.modernNoticeCard,
+            ]}
+            testID="chat-sync-notice"
+          >
+            <Text style={[styles.noticeText, themed.emptySubtitle]}>
+              Your chats are now saved to your LAFINA account, so they appear on
+              your other phones and come back if you reinstall. Chats you write
+              offline sync when you reconnect. Attached files stay on this phone.
+              You can change this in Preferences.
+            </Text>
+            <View style={styles.noticeActions}>
+              <TouchableOpacity
+                onPress={() => acknowledgeChatSyncRef.current(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Keep syncing chat history"
+                testID="chat-sync-notice-keep"
+              >
+                <Text style={[styles.noticeAction, {color: colors.primary}]}>
+                  Got it
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => acknowledgeChatSyncRef.current(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Keep chat history on this phone only"
+                testID="chat-sync-notice-off"
+              >
+                <Text style={[styles.noticeAction, {color: colors.primary}]}>
+                  Keep on this phone only
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+        {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
+          <View
+            style={[
+              styles.noticeCard,
+              themed.headerButton,
+              isModern && styles.modernNoticeCard,
+            ]}
+            testID="chat-legacy-notice"
+          >
+            <Text style={[styles.noticeText, themed.emptySubtitle]}>
+              Some chat history saved before accounts were kept separate could
+              not be matched to a single account. It is still stored on this
+              device, hidden from every account, and nothing was deleted.
+            </Text>
             <TouchableOpacity
-              onPress={() => acknowledgeChatSync(true)}
+              onPress={() => dismissLegacyNoticeRef.current()}
               accessibilityRole="button"
-              accessibilityLabel="Keep syncing chat history"
-              testID="chat-sync-notice-keep"
+              accessibilityLabel="Dismiss notice about older chat history"
+              testID="chat-legacy-notice-dismiss"
             >
               <Text style={[styles.noticeAction, {color: colors.primary}]}>
                 Got it
               </Text>
             </TouchableOpacity>
+          </View>
+        ) : null}
+        {loadError ? (
+          <View
+            style={[
+              styles.noticeCard,
+              themed.headerButton,
+              isModern && styles.modernNoticeCard,
+            ]}
+            testID="chat-load-error"
+          >
+            <Text style={[styles.noticeText, themed.emptySubtitle]}>
+              {loadError}
+            </Text>
             <TouchableOpacity
-              onPress={() => acknowledgeChatSync(false)}
+              onPress={() =>
+                olderCursor
+                  ? handleLoadEarlierRef.current()
+                  : loadMessagesRef.current()
+              }
               accessibilityRole="button"
-              accessibilityLabel="Keep chat history on this phone only"
-              testID="chat-sync-notice-off"
+              accessibilityLabel="Retry loading the conversation"
+              testID="chat-load-retry"
             >
               <Text style={[styles.noticeAction, {color: colors.primary}]}>
-                Keep on this phone only
+                Try again
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      ) : null}
-      {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
-        <View
-          style={[
-            styles.noticeCard,
-            themed.headerButton,
-            isModern && styles.modernNoticeCard,
-          ]}
-          testID="chat-legacy-notice"
-        >
-          <Text style={[styles.noticeText, themed.emptySubtitle]}>
-            Some chat history saved before accounts were kept separate could not
-            be matched to a single account. It is still stored on this device,
-            hidden from every account, and nothing was deleted.
-          </Text>
+        ) : null}
+        {olderCursor ? (
           <TouchableOpacity
-            onPress={dismissLegacyNotice}
+            style={[
+              styles.loadEarlierButton,
+              themed.headerButton,
+              isModern && {backgroundColor: modernPalette.surface},
+            ]}
+            onPress={() => handleLoadEarlierRef.current()}
+            disabled={isLoadingEarlier}
             accessibilityRole="button"
-            accessibilityLabel="Dismiss notice about older chat history"
-            testID="chat-legacy-notice-dismiss"
+            accessibilityLabel="Load earlier messages"
+            testID="chat-load-earlier"
           >
-            <Text style={[styles.noticeAction, {color: colors.primary}]}>
-              Got it
+            <Text style={[styles.loadEarlierText, themed.onlineToggleText]}>
+              {isLoadingEarlier ? 'Loading...' : 'Load earlier messages'}
             </Text>
           </TouchableOpacity>
-        </View>
-      ) : null}
-      {loadError ? (
-        <View
-          style={[
-            styles.noticeCard,
-            themed.headerButton,
-            isModern && styles.modernNoticeCard,
-          ]}
-          testID="chat-load-error"
-        >
-          <Text style={[styles.noticeText, themed.emptySubtitle]}>
-            {loadError}
-          </Text>
-          <TouchableOpacity
-            onPress={() => (olderCursor ? handleLoadEarlier() : loadMessages())}
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading the conversation"
-            testID="chat-load-retry"
-          >
-            <Text style={[styles.noticeAction, {color: colors.primary}]}>
-              Try again
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-      {olderCursor ? (
-        <TouchableOpacity
-          style={[
-            styles.loadEarlierButton,
-            themed.headerButton,
-            isModern && {backgroundColor: modernPalette.surface},
-          ]}
-          onPress={handleLoadEarlier}
-          disabled={isLoadingEarlier}
-          accessibilityRole="button"
-          accessibilityLabel="Load earlier messages"
-          testID="chat-load-earlier"
-        >
-          <Text style={[styles.loadEarlierText, themed.onlineToggleText]}>
-            {isLoadingEarlier ? 'Loading...' : 'Load earlier messages'}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
+        ) : null}
+      </View>
+    ),
+    [
+      chatSyncNoticeVisible,
+      colors.primary,
+      isLoadingEarlier,
+      isModern,
+      isTemporaryChat,
+      legacyHiddenCount,
+      legacyNoticeDismissed,
+      loadError,
+      modernPalette.surface,
+      olderCursor,
+      themed,
+    ],
   );
 
   const renderSampleGrid = (
@@ -1965,7 +2345,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
                       borderColor: cardBorder,
                     },
                   ]}
-                  onPress={() => handleSend(card.prompt, {preserveDraft: true})}
+                  onPress={() =>
+                    void handleSendRef.current(card.prompt, {
+                      preserveDraft: true,
+                    })
+                  }
                   accessibilityRole="button"
                   accessibilityLabel={card.prompt}
                   testID={`${testIdPrefix}-${index}`}
@@ -1989,7 +2373,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
     );
   };
 
-  const renderEmptyState = () => {
+  const listEmptyElement = useMemo(() => {
+    if (loadError) return null;
     const greetingColor = isModern ? modernPalette.text : colors.textPrimary;
     const subtitleColor = isModern ? modernPalette.muted : colors.textSecondary;
     const accentColor = isModern ? modernPalette.accent : colors.primary;
@@ -2027,7 +2412,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
                   borderColor: accentColor + '35',
                 },
               ]}
-              onPress={handleLeaveBlockedUstpChat}
+              onPress={() => handleLeaveBlockedUstpChatRef.current()}
               accessibilityRole="button"
               accessibilityLabel="Back to a scheduling chat"
               testID="chat-ustp-unavailable-back"
@@ -2094,7 +2479,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
                   },
                 ]}
                 onPress={() => {
-                  void handleToggleOnline();
+                  void handleToggleOnlineRef.current();
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Enable Online Mode for USTP Handbook lookup"
@@ -2158,10 +2543,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
         </View>
 
         <View style={styles.emptyBottomSection}>
-          {renderSampleGrid(
-            orderCardsByGoal(GENERAL_SAMPLE_CARDS, effectiveGoal(userId)),
-            'chat-prompt-chip',
-          )}
+          {renderSampleGrid(orderedGeneralSampleCards, 'chat-prompt-chip')}
           {!isTemporaryChat && schoolEnabled && (
             <TouchableOpacity
               style={[
@@ -2173,7 +2555,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
                     : colors.primary + '38',
                 },
               ]}
-              onPress={handleStartUstpChat}
+              onPress={() => handleStartUstpChatRef.current()}
               accessibilityRole="button"
               accessibilityLabel="Ask LAFINA anything about USTP"
               testID="chat-switch-to-ustp-button"
@@ -2191,24 +2573,35 @@ export const ChatScreen = React.memo(function ChatScreenView({
         </View>
       </View>
     );
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- renderSampleGrid uses the listed theme & card deps
+  }, [
+    colors.primary,
+    colors.surface,
+    colors.textPrimary,
+    colors.textSecondary,
+    isModern,
+    isOnlineMode,
+    isTemporaryChat,
+    isUstpChat,
+    loadError,
+    localHandbookStatus.chunkCount,
+    localHandbookStatus.populated,
+    modernPalette.accent,
+    modernPalette.border,
+    modernPalette.card,
+    modernPalette.muted,
+    modernPalette.softViolet,
+    modernPalette.text,
+    modernShadows.card,
+    orderedGeneralSampleCards,
+    schoolEligibility.reason,
+    schoolEnabled,
+    studentName,
+    ustpChatBlocked,
+  ]);
 
-  return (
-    <View
-      style={[
-        styles.container,
-        themed.container,
-        {paddingBottom: bottomClearance},
-      ]}
-      onLayout={e => {
-        const h = e.nativeEvent.layout.height;
-        if (h > maxHeightRef.current) {
-          maxHeightRef.current = h;
-        }
-        setCurrentHeight(h);
-      }}
-      testID="chat-screen-container"
-    >
+  const backgroundSvg = useMemo(
+    () => (
       <Svg
         style={StyleSheet.absoluteFill}
         width="100%"
@@ -2258,6 +2651,94 @@ export const ChatScreen = React.memo(function ChatScreenView({
           }
         />
       </Svg>
+    ),
+    [colors.background, isDarkMode, isModern, modernTheme, modernThemeExtras],
+  );
+
+  const flatListKeyExtractor = useCallback((item: ChatMessage) => item.id, []);
+  const flatListRenderItem = useCallback(
+    ({item}: {item: ChatMessage}) => (
+      <ChatMessageItem
+        item={item}
+        replyFormat={replyFormat}
+        handbookNote={
+          schoolEnabled ? item.handbookNote ?? handbookNotes[item.id] : undefined
+        }
+        onUndoMemory={handleUndoMemory}
+        onOpenAttachment={handleOpenAttachment}
+        timingLabel={perfOn ? timingLabels[item.id] : undefined}
+      />
+    ),
+    [
+      handbookNotes,
+      handleOpenAttachment,
+      handleUndoMemory,
+      perfOn,
+      replyFormat,
+      schoolEnabled,
+      timingLabels,
+    ],
+  );
+  const handleListScrollBeginDrag = useCallback(() => {
+    needsInitialScrollRef.current = false;
+    initialSettleUntilRef.current = 0;
+  }, []);
+  const hasNoMessages =
+    (isTemporaryChat ? tempMessages.length : messages.length) === 0;
+  const listContentContainerStyle = useMemo(
+    () => [styles.listContent, hasNoMessages && styles.listContentEmpty],
+    [hasNoMessages],
+  );
+  const listHeaderElement = useMemo(
+    () =>
+      streamingReply ? (
+        <ChatMessageItem
+          replyFormat={replyFormat}
+          item={{
+            id: 'streaming-reply',
+            sessionId: '',
+            sender: 'assistant',
+            content: streamingReply.text,
+            createdAt: streamingReply.startedAt,
+            updatedAt: streamingReply.startedAt,
+          }}
+          streaming
+        />
+      ) : isSending ? (
+        <TypingBubble label="lafina is thinking…" />
+      ) : null,
+    [isSending, replyFormat, streamingReply],
+  );
+  const renderListFooter = useCallback(
+    () => listFooterElement,
+    [listFooterElement],
+  );
+  const renderListEmpty = useCallback(
+    () => listEmptyElement,
+    [listEmptyElement],
+  );
+  const renderListHeader = useCallback(
+    () => listHeaderElement,
+    [listHeaderElement],
+  );
+
+  return (
+    <View
+      style={[
+        styles.container,
+        themed.container,
+        {paddingBottom: bottomClearance},
+      ]}
+      onLayout={e => {
+        const h = e.nativeEvent.layout.height;
+        if (h > maxHeightRef.current) {
+          maxHeightRef.current = h;
+        }
+        setCurrentHeight(prev => (prev === h ? prev : h));
+      }}
+      testID="chat-screen-container"
+    >
+      {backgroundSvg}
 
       {/* Top Header */}
       <View
@@ -2483,55 +2964,19 @@ export const ChatScreen = React.memo(function ChatScreenView({
           maxToRenderPerBatch={6}
           windowSize={7}
           // Switching the reply format or chat mode redraws replies/empty state.
-          extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${studentName}:${modernTheme}:${isDarkMode}`}
-          keyExtractor={item => item.id}
+          extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${studentName}:${modernTheme}:${isDarkMode}:${perfOn ? Object.keys(timingLabels)[0] ?? "" : ""}`}
+          keyExtractor={flatListKeyExtractor}
           style={styles.messagesList}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           scrollEventThrottle={16}
           onScroll={handleListScroll}
-          onScrollBeginDrag={() => {
-            needsInitialScrollRef.current = false;
-            initialSettleUntilRef.current = 0;
-          }}
-          renderItem={({item}) => (
-            <ChatMessageItem
-              item={item}
-              replyFormat={replyFormat}
-              handbookNote={
-                schoolEnabled
-                  ? item.handbookNote ?? handbookNotes[item.id]
-                  : undefined
-              }
-              onUndoMemory={handleUndoMemory}
-              onOpenAttachment={handleOpenAttachment}
-            />
-          )}
-          contentContainerStyle={[
-            styles.listContent,
-            (isTemporaryChat ? tempMessages.length : messages.length) === 0 &&
-              styles.listContentEmpty,
-          ]}
-          ListFooterComponent={renderListHeader}
-          ListEmptyComponent={loadError ? null : renderEmptyState}
-          ListHeaderComponent={
-            streamingReply ? (
-              <ChatMessageItem
-                replyFormat={replyFormat}
-                item={{
-                  id: 'streaming-reply',
-                  sessionId: '',
-                  sender: 'assistant',
-                  content: streamingReply.text,
-                  createdAt: streamingReply.startedAt,
-                  updatedAt: streamingReply.startedAt,
-                }}
-                streaming
-              />
-            ) : isSending ? (
-              <TypingBubble label="lafina is thinking…" />
-            ) : null
-          }
+          onScrollBeginDrag={handleListScrollBeginDrag}
+          renderItem={flatListRenderItem}
+          contentContainerStyle={listContentContainerStyle}
+          ListFooterComponent={renderListFooter}
+          ListEmptyComponent={renderListEmpty}
+          ListHeaderComponent={renderListHeader}
           onContentSizeChange={handleListContentSizeChange}
           onLayout={handleListLayout}
           testID="chat-messages-list"
@@ -2618,176 +3063,161 @@ export const ChatScreen = React.memo(function ChatScreenView({
       ) : null}
 
       {/* Bottom Input */}
-      <ChatInput
-        inputText={inputText}
-        setInputText={setInputText}
-        onSend={text => handleSend(text)}
+      <ChatComposer
+        userId={userId}
         isSending={isSending}
         isOnlineMode={isOnlineMode}
-        onCallLafina={
-          onCallLafina && !isTemporaryChat
-            ? () => {
-                if (isSending) return;
-                if (!ensureGeneralSessionForTool()) return;
-                onCallLafina();
-              }
-            : undefined
-        }
-        onOpenFormatPicker={
-          isUstpChat
-            ? undefined
-            : () => {
-                void handleOpenFormatPicker();
-              }
-        }
-        onSelectPrompt={prompt => handleSend(prompt, {preserveDraft: true})}
-        showSuggestions={false}
-        placeholderOverride={
-          isUstpChat && schoolEnabled
-            ? 'Ask anything about the USTP Handbook…'
-            : undefined
-        }
-        onFocus={() => {
-          setIsKeyboardVisible(true);
-          needsInitialScrollRef.current = false;
-          initialSettleUntilRef.current = 0;
-          isNearBottomRef.current = true;
-          setTimeout(
-            () =>
-              flatListRef.current?.scrollToOffset({offset: 0, animated: true}),
-            100,
-          );
-        }}
+        isUstpChat={isUstpChat}
+        schoolEnabled={schoolEnabled}
+        onSendText={handleComposerSend}
+        onCallLafina={handleComposerCall}
+        onOpenFormatPicker={handleComposerOpenPicker}
+        onInputFocus={handleComposerFocus}
       />
 
       {/* Attachment & Create Picker Sheet (Gemini-style) */}
       <ScreenOverlays>
-        <ToolSheet
-          visible={formatPickerOpen}
-          title="Add to conversation"
-          onClose={() => setFormatPickerOpen(false)}
-        >
-          <Text style={[styles.sectionHeader, themed.sectionHeader]}>
-            Photos & Schedule
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.formatOption, themed.formatOption]}
-            onPress={() => {
-              void handleScanCamera();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Take photo with camera"
-            testID="chat-attach-camera"
+        {formatPickerOpen ? (
+          <ToolSheet
+            visible
+            title="Add to conversation"
+            onClose={() => setFormatPickerOpen(false)}
           >
-            <Camera size={20} color={colors.primary} />
-            <View style={styles.formatOptionText}>
-              <Text
-                style={[styles.formatOptionTitle, themed.formatOptionTitle]}
-              >
-                Camera
-              </Text>
-              <Text
-                style={[
-                  styles.formatOptionSubtitle,
-                  themed.formatOptionSubtitle,
-                ]}
-              >
-                Scan timetable, syllabus, or notes
-              </Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={[styles.sectionHeader, themed.sectionHeader]}>
+              Photos & Schedule
+            </Text>
 
-          <TouchableOpacity
-            style={[styles.formatOption, themed.formatOption]}
-            onPress={() => {
-              void handleScanGallery();
+            <TouchableOpacity
+              style={[styles.formatOption, themed.formatOption]}
+              onPress={() => {
+                void handleScanCamera();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Take photo with camera"
+              testID="chat-attach-camera"
+            >
+              <Camera size={20} color={colors.primary} />
+              <View style={styles.formatOptionText}>
+                <Text
+                  style={[styles.formatOptionTitle, themed.formatOptionTitle]}
+                >
+                  Camera
+                </Text>
+                <Text
+                  style={[
+                    styles.formatOptionSubtitle,
+                    themed.formatOptionSubtitle,
+                  ]}
+                >
+                  Scan timetable, syllabus, or notes
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.formatOption, themed.formatOption]}
+              onPress={() => {
+                void handleScanGallery();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Choose from photos"
+              testID="chat-attach-gallery"
+            >
+              <ImageIcon size={20} color={colors.primary} />
+              <View style={styles.formatOptionText}>
+                <Text
+                  style={[styles.formatOptionTitle, themed.formatOptionTitle]}
+                >
+                  Photos & Screenshots
+                </Text>
+                <Text
+                  style={[
+                    styles.formatOptionSubtitle,
+                    themed.formatOptionSubtitle,
+                  ]}
+                >
+                  Import schedule image from gallery
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </ToolSheet>
+        ) : null}
+
+        {historyVisible ? (
+          <ChatHistorySheet
+            visible
+            userId={userId}
+            currentSessionId={currentChatId}
+            isTemporaryChat={isTemporaryChat}
+            busy={isSending}
+            onClose={() => setHistoryVisible(false)}
+            onChanged={showCurrentChat}
+            onStartUstpChat={handleStartUstpChat}
+            ustpAvailable={schoolEnabled}
+            onStartTemporaryChat={handleStartTemporaryFromSidebar}
+            onScanCamera={() => {
+              setHistoryVisible(false);
+              if (ensureGeneralSessionForTool()) void handleScanCamera();
             }}
-            accessibilityRole="button"
-            accessibilityLabel="Choose from photos"
-            testID="chat-attach-gallery"
-          >
-            <ImageIcon size={20} color={colors.primary} />
-            <View style={styles.formatOptionText}>
-              <Text
-                style={[styles.formatOptionTitle, themed.formatOptionTitle]}
-              >
-                Photos & Screenshots
-              </Text>
-              <Text
-                style={[
-                  styles.formatOptionSubtitle,
-                  themed.formatOptionSubtitle,
-                ]}
-              >
-                Import schedule image from gallery
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </ToolSheet>
-
-        <ChatHistorySheet
-          visible={historyVisible}
-          userId={userId}
-          currentSessionId={currentChatId}
-          isTemporaryChat={isTemporaryChat}
-          busy={isSending}
-          onClose={() => setHistoryVisible(false)}
-          onChanged={showCurrentChat}
-          onStartUstpChat={handleStartUstpChat}
-          ustpAvailable={schoolEnabled}
-          onStartTemporaryChat={handleStartTemporaryFromSidebar}
-          onScanCamera={() => {
-            setHistoryVisible(false);
-            if (ensureGeneralSessionForTool()) void handleScanCamera();
-          }}
-          onScanGallery={() => {
-            setHistoryVisible(false);
-            if (ensureGeneralSessionForTool()) void handleScanGallery();
-          }}
-          onOpenGuide={() => {
-            setHistoryVisible(false);
-            setGuideVisible(true);
-          }}
-        />
+            onScanGallery={() => {
+              setHistoryVisible(false);
+              if (ensureGeneralSessionForTool()) void handleScanGallery();
+            }}
+            onOpenGuide={() => {
+              setHistoryVisible(false);
+              setGuideVisible(true);
+            }}
+          />
+        ) : null}
 
         {/* AGY-PORT 06: an example only fills the draft; unsent text is kept unless replaced. */}
-        <CommandGuide
-          visible={guideVisible}
-          onClose={() => setGuideVisible(false)}
-          onSelect={command => {
-            setGuideVisible(false);
-            draft.offerText(command, undefined, {
-              title: 'Replace your draft?',
-              message:
-                'Keep your current text, or replace it with this example. Nothing will be sent.',
-            });
-          }}
-        />
+        {guideVisible ? (
+          <CommandGuide
+            visible
+            onClose={() => setGuideVisible(false)}
+            onSelect={command => {
+              setGuideVisible(false);
+              draft.offerText(command, undefined, {
+                title: 'Replace your draft?',
+                message:
+                  'Keep your current text, or replace it with this example. Nothing will be sent.',
+              });
+            }}
+          />
+        ) : null}
 
-        <ChatEngineSheet
-          visible={engineSheetVisible}
-          onClose={() => setEngineSheetVisible(false)}
-          userId={userId}
-          isOnlineMode={isOnlineMode}
-          onToggleOnline={async () => {
-            await handleToggleOnline();
-            await refreshModelAndProfileState(true);
-          }}
-          selectedModelId={selectedOfflineModelId}
-          modelsStatus={modelsStatus}
-          onModelsUpdated={() => refreshModelAndProfileState(true)}
-          deviceRecommendation={deviceRecommendation}
-        />
+        {engineSheetVisible ? (
+          <ChatEngineSheet
+            visible
+            onClose={() => setEngineSheetVisible(false)}
+            userId={userId}
+            isOnlineMode={isOnlineMode}
+            onToggleOnline={async () => {
+              await handleToggleOnline();
+              await refreshModelAndProfileState(true);
+            }}
+            selectedModelId={selectedOfflineModelId}
+            modelsStatus={modelsStatus}
+            onModelsUpdated={() => refreshModelAndProfileState(true)}
+            deviceRecommendation={deviceRecommendation}
+          />
+        ) : null}
 
-        <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
+        {draft.dialog ? (
+          <DraftDecisionDialog
+            request={draft.dialog}
+            testIDPrefix="chat-draft"
+          />
+        ) : null}
 
-        <EndTemporaryChatModal
-          visible={endTempConfirmVisible}
-          messageCount={tempMessages.length}
-          onCancel={() => setEndTempConfirmVisible(false)}
-          onConfirm={handleConfirmEndTemporaryChat}
-        />
+        {endTempConfirmVisible ? (
+          <EndTemporaryChatModal
+            visible
+            messageCount={tempMessages.length}
+            onCancel={() => setEndTempConfirmVisible(false)}
+            onConfirm={handleConfirmEndTemporaryChat}
+          />
+        ) : null}
       </ScreenOverlays>
     </View>
   );

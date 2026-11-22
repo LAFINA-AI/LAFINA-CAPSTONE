@@ -90,7 +90,7 @@ const formatExactTimeLabel = (date: Date, timeFormat24h: boolean): string => {
   return `${h12}:${min} ${suffix}`;
 };
 
-export const DayView: React.FC<DayViewProps> = ({
+export const DayView: React.FC<DayViewProps> = React.memo(({
   weekDays,
   selectedDate,
   timeFormat24h,
@@ -109,6 +109,8 @@ export const DayView: React.FC<DayViewProps> = ({
 }) => {
   const palette = useSchedulePalette();
   const [clockNow, setClockNow] = useState<Date>(() => now ?? new Date());
+  const clockNowRef = useRef(clockNow);
+  clockNowRef.current = clockNow;
   const timelineYRef = useRef<number | null>(null);
   const currentRowYRef = useRef<number | null>(null);
 
@@ -116,9 +118,21 @@ export const DayView: React.FC<DayViewProps> = ({
     if (now) {
       return;
     }
-    setClockNow(new Date());
+    const fresh = new Date();
+    if (
+      Math.floor(fresh.getTime() / 60_000) !==
+      Math.floor(clockNowRef.current.getTime() / 60_000)
+    ) {
+      setClockNow(fresh);
+    }
     const id = setInterval(() => {
-      setClockNow(new Date());
+      const next = new Date();
+      if (
+        Math.floor(next.getTime() / 60_000) !==
+        Math.floor(clockNowRef.current.getTime() / 60_000)
+      ) {
+        setClockNow(next);
+      }
     }, 60_000);
     return () => clearInterval(id);
   }, [now]);
@@ -393,7 +407,7 @@ export const DayView: React.FC<DayViewProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

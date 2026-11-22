@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useRef,
@@ -51,7 +52,7 @@ const RowLayout = createContext<
 >(null);
 export const useGridRowLayout = () => useContext(RowLayout);
 
-function Row({
+const Row = React.memo(function GridRowView({
   row,
   renderItem,
 }: {
@@ -124,9 +125,9 @@ function Row({
       </RowLayout.Provider>
     </View>
   );
-}
+});
 
-export function VirtualNoteGrid({
+export const VirtualNoteGrid = React.memo(function VirtualNoteGridView({
   items,
   renderItem,
   scrollEnabled,
@@ -167,23 +168,29 @@ export function VirtualNoteGrid({
     });
     return result;
   }, [items, showSections]);
+  const keyExtractor = useCallback((row: GridRow) => row.key, []);
+  const renderFooter = useCallback(() => footer, [footer]);
+  const renderGridRow = useCallback(
+    ({item}: {item: GridRow}) => <Row row={item} renderItem={renderItem} />,
+    [renderItem],
+  );
   return (
     <FlatList
       data={rows}
       CellRendererComponent={GridCell}
-      keyExtractor={row => row.key}
-      renderItem={({item}) => <Row row={item} renderItem={renderItem} />}
+      keyExtractor={keyExtractor}
+      renderItem={renderGridRow}
       initialNumToRender={6}
       maxToRenderPerBatch={4}
       windowSize={7}
       removeClippedSubviews={false}
       scrollEnabled={scrollEnabled}
       extraData={generation}
-      ListFooterComponent={footer}
+      ListFooterComponent={renderFooter}
       contentContainerStyle={styles.content}
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: {flexDirection: 'row', justifyContent: 'space-between'},

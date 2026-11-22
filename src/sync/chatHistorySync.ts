@@ -1,5 +1,6 @@
 import {cloudClient} from '../cloud/cloudClient';
 import {chatSyncStore} from '../storage/chatSyncStore';
+import {userStore} from '../storage/userStore';
 import {syncWorker} from './syncWorker';
 
 /**
@@ -39,15 +40,31 @@ export const chatHistorySync = {
   },
 
   deleteCloudCopy: async (userId: string): Promise<ChatCloudDeleteResult> => {
+    const ownerAtStart = userStore.getActiveSessionToken().userId;
+    const accountChanged = (): boolean =>
+      userStore.getActiveSessionToken().userId !== ownerAtStart;
     chatSyncStore.setEnabled(userId, false);
     // A pass already running may still send chats; wait for it (and the
     // follow-up pass, which no longer sends chat) so none land after the purge.
     await syncWorker.performSync().catch(() => undefined);
+    if (accountChanged()) {
+      return {
+        status: 'sign_in_required',
+        message:
+          'Active account changed before the cloud copy could be deleted.',
+      };
+    }
     const result = await cloudClient.request<PurgeResponse>(
       '/v1/sync/chat/purge',
       {method: 'POST'},
       true,
     );
+    if (accountChanged()) {
+      return {
+        status: 'sign_in_required',
+        message: 'Active account changed while deleting the cloud copy.',
+      };
+    }
     if (result.status === 'success') {
       try {
         chatSyncStore.forgetCloudState(userId);

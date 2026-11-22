@@ -1,4 +1,4 @@
-export { cloudClient } from './cloudClient';
+export { cloudClient, LONG_REQUEST_TIMEOUT_MS } from './cloudClient';
 export type { CloudResult, CloudResultStatus } from './cloudClient';
 export { authService, resolveEffectiveProfileRole } from './authService';
 export { accountLinkService } from './accountLinkService';

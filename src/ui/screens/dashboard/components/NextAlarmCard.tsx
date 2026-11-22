@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {AlarmClock, ChevronRight} from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
@@ -28,19 +28,20 @@ interface NextAlarmCardProps {
  * Alarm plan A2 / tab plan T1: Home's "Next alarm" card. Shown only when an
  * alarm is on, so students who never use alarms never see an empty card.
  */
-export const NextAlarmCard: React.FC<NextAlarmCardProps> = ({
+export const NextAlarmCard: React.FC<NextAlarmCardProps> = React.memo(({
   userId,
   timeFormat24h,
   now,
   onOpenAlarms,
 }) => {
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
-  let next: ReturnType<typeof nextAlarm> = null;
-  try {
-    next = nextAlarm(userId, now);
-  } catch {
-    next = null;
-  }
+  const next = useMemo(() => {
+    try {
+      return nextAlarm(userId, now);
+    } catch {
+      return null;
+    }
+  }, [userId, now]);
   if (!next) return null;
   const time = formatAlarmTime(
     next.alarm.hour,
@@ -108,7 +109,7 @@ export const NextAlarmCard: React.FC<NextAlarmCardProps> = ({
       <ChevronRight size={16} color={colors.textMuted} />
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {

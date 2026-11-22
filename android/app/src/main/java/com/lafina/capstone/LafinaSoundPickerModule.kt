@@ -40,11 +40,19 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
   override fun onHostResume() = Unit
 
   override fun onHostPause() {
-    stopPreviewInternal()
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      stopPreviewInternal()
+    } else {
+      handler.post { stopPreviewInternal() }
+    }
   }
 
   override fun onHostDestroy() {
-    stopPreviewInternal()
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      stopPreviewInternal()
+    } else {
+      handler.post { stopPreviewInternal() }
+    }
     pendingPickerPromise?.let {
       pendingPickerPromise = null
       it.resolve(
@@ -55,6 +63,19 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
         },
       )
     }
+  }
+
+  override fun invalidate() {
+    reactContext.removeActivityEventListener(this)
+    reactContext.removeLifecycleEventListener(this)
+    handler.removeCallbacksAndMessages(null)
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      stopPreviewInternal()
+    } else {
+      handler.post { stopPreviewInternal() }
+    }
+    pendingPickerPromise = null
+    super.invalidate()
   }
 
   override fun onNewIntent(intent: Intent) = Unit
@@ -204,7 +225,7 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
     val normalizedKind = normalizeKind(kind)
     val cleanUri = AlertPreferencesContract.sanitizeToneUri(uri)
     if (cleanUri == AlertPreferencesContract.TONE_SILENT) {
-      stopPreviewInternal()
+      handler.post { stopPreviewInternal() }
       promise.resolve(false)
       return
     }
@@ -223,21 +244,36 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
         val audioManager = reactContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
         val attrs = audioAttributesForKind(normalizedKind)
         requestFocus(audioManager, attrs)
-        val mp =
-          MediaPlayer().apply {
-            setAudioAttributes(attrs)
-            setDataSource(reactContext, targetUri)
-            isLooping = false
-            setOnCompletionListener { stopPreviewInternal() }
-            setOnErrorListener { _, _, _ ->
-              stopPreviewInternal()
-              true
-            }
-            prepare()
-            start()
-          }
+        val mp = MediaPlayer()
         previewPlayer = mp
-        handler.postDelayed(stopPreviewRunnable, PREVIEW_MAX_MS)
+        mp.apply {
+          setAudioAttributes(attrs)
+          setDataSource(reactContext, targetUri)
+          isLooping = false
+          setOnCompletionListener { player ->
+            if (previewPlayer === player) stopPreviewInternal()
+          }
+          setOnErrorListener { player, _, _ ->
+            if (previewPlayer === player) stopPreviewInternal()
+            true
+          }
+          setOnPreparedListener { player ->
+            if (previewPlayer === player) {
+              try {
+                player.start()
+                handler.postDelayed(stopPreviewRunnable, PREVIEW_MAX_MS)
+              } catch (_: Exception) {
+                stopPreviewInternal()
+              }
+            } else {
+              try {
+                player.release()
+              } catch (_: Exception) {
+              }
+            }
+          }
+          prepareAsync()
+        }
         promise.resolve(true)
       } catch (e: Exception) {
         stopPreviewInternal()

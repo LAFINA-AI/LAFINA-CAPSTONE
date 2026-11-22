@@ -1,4 +1,11 @@
-import {useState, useEffect, useLayoutEffect, useCallback, useRef} from 'react';
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import {ViewMode, CalendarData} from '../types';
 import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
 import {db, remindersStore, userStore} from '../../../../storage';
@@ -97,8 +104,6 @@ export const useCalendarData = (
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [blocks, setBlocks] = useState<TimeBlock[]>([]);
   const [weekDays, setWeekDays] = useState<Date[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -176,7 +181,15 @@ export const useCalendarData = (
       d.setDate(start.getDate() + i);
       days.push(d);
     }
-    setWeekDays(days);
+    setWeekDays(prev => {
+      if (
+        prev.length === 7 &&
+        prev.every((d, i) => toLocalDate(d) === toLocalDate(days[i]))
+      ) {
+        return prev;
+      }
+      return days;
+    });
   }, [selectedDate, weekStartsMonday]);
 
   const loadSettings = useCallback(() => {
@@ -187,40 +200,43 @@ export const useCalendarData = (
   }, [userId]);
 
   const visibilityLoadedKey = useRef('');
-  const loadImportsAndVisibility = useCallback(async () => {
-    const key = `${userId}:${refreshTrigger}`;
-    if (visibilityLoadedKey.current === key) return;
-    try {
-      const [fetchedBatches, fetchedVisibility] = await Promise.all([
-        importedBatchesStore.getImportedBatches(userId),
-        calendarVisibilityStore.getVisibilityMap(userId),
-      ]);
-      if (activeUserIdRef.current !== userId) return;
-      visibilityLoadedKey.current = key;
-      setBatches(prev =>
-        prev.length === 0 && fetchedBatches.length === 0
-          ? prev
-          : fetchedBatches,
-      );
-      setVisibilityMap(prev => {
-        const prevKeys = Object.keys(prev);
-        const nextKeys = Object.keys(fetchedVisibility);
-        if (
-          prevKeys.length === nextKeys.length &&
-          prevKeys.every(k => prev[k] === fetchedVisibility[k])
-        ) {
-          return prev;
+  const loadImportsAndVisibility = useCallback(
+    async (force = false) => {
+      const key = `${userId}:${refreshTrigger}`;
+      if (!force && visibilityLoadedKey.current === key) return;
+      try {
+        const [fetchedBatches, fetchedVisibility] = await Promise.all([
+          importedBatchesStore.getImportedBatches(userId),
+          calendarVisibilityStore.getVisibilityMap(userId),
+        ]);
+        if (activeUserIdRef.current !== userId) return;
+        visibilityLoadedKey.current = key;
+        setBatches(prev =>
+          prev.length === 0 && fetchedBatches.length === 0
+            ? prev
+            : fetchedBatches,
+        );
+        setVisibilityMap(prev => {
+          const prevKeys = Object.keys(prev);
+          const nextKeys = Object.keys(fetchedVisibility);
+          if (
+            prevKeys.length === nextKeys.length &&
+            prevKeys.every(k => prev[k] === fetchedVisibility[k])
+          ) {
+            return prev;
+          }
+          return fetchedVisibility;
+        });
+        const user = userStore.getUserById(userId);
+        if (user) {
+          setUsername(prev => (prev === user.username ? prev : user.username));
         }
-        return fetchedVisibility;
-      });
-      const user = userStore.getUserById(userId);
-      if (user) {
-        setUsername(prev => (prev === user.username ? prev : user.username));
+      } catch (error) {
+        console.error('Failed to load visibility or batches:', error);
       }
-    } catch (error) {
-      console.error('Failed to load visibility or batches:', error);
-    }
-  }, [userId, refreshTrigger]);
+    },
+    [userId, refreshTrigger],
+  );
 
   const getViewRange = useCallback((): {start: Date; end: Date} => {
     if (viewMode === 'week' || viewMode === 'day') {
@@ -248,21 +264,39 @@ export const useCalendarData = (
     }
   }, [viewMode, selectedDate, currentDate]);
 
-  // A single owner/range/revision snapshot serves both loaders and day selection.
+  // A single owner/range/revision snapshot serves both loaders and view switches
+  // when the requested range falls inside the cached window.
   const windowCache = useRef<{
-    key: string;
+    userId: string;
+    refreshTrigger: number;
+    rev: number;
+    from: string;
+    to: string;
     value: ReturnType<typeof plannerQueries.window>;
   } | null>(null);
   const readWindow = useCallback(() => {
     const {start, end} = getViewRange();
-    const from = toLocalDate(start),
-      to = toLocalDate(end);
-    const key = `${userId}:${refreshTrigger}:${from}:${to}:${db.getDataRevision(
-      ['tasks', 'events', 'event_time_local', 'time_blocks'],
-    )}`;
-    if (windowCache.current?.key === key) return windowCache.current.value;
+    const from = toLocalDate(start);
+    const to = toLocalDate(end);
+    const rev = db.getDataRevision([
+      'tasks',
+      'events',
+      'event_time_local',
+      'time_blocks',
+    ]);
+    const cached = windowCache.current;
+    if (
+      cached &&
+      cached.userId === userId &&
+      cached.refreshTrigger === refreshTrigger &&
+      cached.rev === rev &&
+      cached.from <= from &&
+      cached.to >= to
+    ) {
+      return cached.value;
+    }
     const value = plannerQueries.window(userId, from, to);
-    windowCache.current = {key, value};
+    windowCache.current = {userId, refreshTrigger, rev, from, to, value};
     return value;
   }, [userId, refreshTrigger, getViewRange]);
 
@@ -405,12 +439,6 @@ export const useCalendarData = (
     setAllTasks(expandedTasks);
     setAllEvents(expandedEvents);
 
-    const dateStr = toLocalDate(selectedDate);
-    const dayTasks = expandedTasks.filter(t => t.dueDate === dateStr);
-    const dayEvents = expandedEvents.filter(e => e.date === dateStr);
-
-    setTasks(dayTasks);
-    setEvents(dayEvents);
     try {
       if (visibilityMap[REMINDERS_GROUP_ID] === false) {
         setReminders([]);
@@ -425,9 +453,21 @@ export const useCalendarData = (
       console.error('[Calendar] Could not read reminders:', error);
       setReminders([]);
     }
-  }, [userId, batches, visibilityMap, selectedDate, readWindow, markRead]);
+  }, [userId, batches, visibilityMap, readWindow, markRead]);
+
+  const selectedDateKey = toLocalDate(selectedDate);
+  const tasks = useMemo(
+    () => allTasks.filter(t => t.dueDate === selectedDateKey),
+    [allTasks, selectedDateKey],
+  );
+  const events = useMemo(
+    () => allEvents.filter(e => e.date === selectedDateKey),
+    [allEvents, selectedDateKey],
+  );
 
   const retryRead = useCallback(() => {
+    windowCache.current = null;
+    loadedCoverage.current = null;
     loadBlocks();
     loadScheduleData();
   }, [loadBlocks, loadScheduleData]);
@@ -446,39 +486,64 @@ export const useCalendarData = (
         }
       : null;
 
-  const loadedWindowKey = useRef('');
-  const loadedLayers = useRef({batches, visibilityMap});
-  // Warm activation with unchanged data does not repeat synchronous reads.
+  const loadedCoverage = useRef<{
+    userId: string;
+    refreshTrigger: number;
+    rev: number;
+    from: string;
+    to: string;
+    batches: ImportBatch[];
+    visibilityMap: Record<string, boolean>;
+  } | null>(null);
+  // Warm activation and same-window day taps / view switches do not repeat SQLite reads.
   useLayoutEffect(() => {
     const range = getViewRange();
-    const key = `${userId}:${refreshTrigger}:${toLocalDate(
-      selectedDate,
-    )}:${toLocalDate(range.start)}:${toLocalDate(
-      range.end,
-    )}:${weekStartsMonday}`;
+    const from = toLocalDate(range.start);
+    const to = toLocalDate(range.end);
+    const rev = db.getDataRevision([
+      'tasks',
+      'events',
+      'event_time_local',
+      'time_blocks',
+      'reminders',
+    ]);
+    const prev = loadedCoverage.current;
     if (
-      loadedWindowKey.current === key &&
-      loadedLayers.current.batches === batches &&
-      loadedLayers.current.visibilityMap === visibilityMap
-    )
+      prev &&
+      prev.userId === userId &&
+      prev.refreshTrigger === refreshTrigger &&
+      prev.rev === rev &&
+      prev.batches === batches &&
+      prev.visibilityMap === visibilityMap &&
+      prev.from <= from &&
+      prev.to >= to
+    ) {
       return;
-    loadedWindowKey.current = key;
-    loadedLayers.current = {batches, visibilityMap};
+    }
+    loadedCoverage.current = {
+      userId,
+      refreshTrigger,
+      rev,
+      from,
+      to,
+      batches,
+      visibilityMap,
+    };
     loadBlocks();
     loadScheduleData();
-    generateWeekDays();
   }, [
     userId,
-    selectedDate,
     refreshTrigger,
     loadBlocks,
     loadScheduleData,
-    generateWeekDays,
     getViewRange,
-    weekStartsMonday,
     batches,
     visibilityMap,
   ]);
+
+  useLayoutEffect(() => {
+    generateWeekDays();
+  }, [generateWeekDays]);
 
   const prevSettingsKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
@@ -576,7 +641,7 @@ export const useCalendarData = (
                   'Success',
                   `Successfully imported ${totalCount} items.`,
                 );
-                loadImportsAndVisibility();
+                void loadImportsAndVisibility(true);
                 onRefresh();
               } catch (err) {
                 console.error('Failed to save imported items:', err);
@@ -660,7 +725,7 @@ export const useCalendarData = (
               try {
                 await removeImportedCalendarBatch(userId, batch);
 
-                loadImportsAndVisibility();
+                void loadImportsAndVisibility(true);
                 onRefresh();
                 Alert.alert(
                   'Success',

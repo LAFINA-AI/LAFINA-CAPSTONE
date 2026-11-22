@@ -99,32 +99,40 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
      * local dates), with recurring occurrences expanded. Completed tasks are
      * included, as Calendar shows them; undated tasks are not.
      */
-    window(owner: string, start: string, end: string): PlannerWindow {
+    window(
+      owner: string,
+      start: string,
+      end: string,
+      options?: {includeTasks?: boolean},
+    ): PlannerWindow {
       assertDate(start, 'start');
       assertDate(end, 'end');
       if (start > end) throw new Error('Window start is after its end.');
-      const tasks = expand(
-        rows(
-          `SELECT * FROM tasks
-            WHERE user_id = ? AND is_completed IN (0, 1)
-              AND due_date BETWEEN ? AND ? AND deleted_at IS NULL
-              AND (recurrence_rule IS NULL OR recurrence_rule = '')
-            ORDER BY due_date, due_time, id`,
-          [owner, start, end],
-        ).map(mapRowToTask),
-        rows(
-          `SELECT * FROM tasks
-            WHERE user_id = ? AND deleted_at IS NULL
-              AND recurrence_rule IS NOT NULL AND recurrence_rule <> ''
-              AND due_date IS NOT NULL AND due_date <> '' AND due_date <= ?
-            ORDER BY due_date, due_time, id`,
-          [owner, end],
-        ).map(mapRowToTask),
-        task => task.dueDate,
-        (task, date) => ({...task, dueDate: date}),
-        start,
-        end,
-      );
+      const tasks =
+        options?.includeTasks === false
+          ? []
+          : expand(
+              rows(
+                `SELECT * FROM tasks
+                  WHERE user_id = ? AND is_completed IN (0, 1)
+                    AND due_date BETWEEN ? AND ? AND deleted_at IS NULL
+                    AND (recurrence_rule IS NULL OR recurrence_rule = '')
+                  ORDER BY due_date, due_time, id`,
+                [owner, start, end],
+              ).map(mapRowToTask),
+              rows(
+                `SELECT * FROM tasks
+                  WHERE user_id = ? AND deleted_at IS NULL
+                    AND recurrence_rule IS NOT NULL AND recurrence_rule <> ''
+                    AND due_date IS NOT NULL AND due_date <> '' AND due_date <= ?
+                  ORDER BY due_date, due_time, id`,
+                [owner, end],
+              ).map(mapRowToTask),
+              task => task.dueDate,
+              (task, date) => ({...task, dueDate: date}),
+              start,
+              end,
+            );
       const scheduled = <T extends {id: string}>(
         table: 'events' | 'time_blocks',
         map: (row: unknown) => T,

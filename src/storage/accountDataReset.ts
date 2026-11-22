@@ -228,37 +228,43 @@ export const resetPersonalData = (
   let defaults: DataResetStep = 'failed';
   if (stillAdmitted(authority, isCurrent)) {
     try {
-      // Codex audit A3: saved event defaults are personal scheduling memory.
-      personalMemoryStore.clearForDataReset(userId);
-      academicProfileStore.clear(userId);
-      scheduleEntriesStore.clear(userId);
-      // The reviewed COR import goes with the academic profile; the declared
-      // affiliation stays, so USTP students return to "COR pending".
-      // Also clear personal onboarding identity/goal so deleted facts never haunt greetings.
-      corImportStore.clear(userId);
-      const currentSetup = studentSetupStore.get(userId);
-      studentSetupStore.update(userId, {
-        ...(currentSetup.corStatus === 'confirmed'
-          ? {
-              corStatus: 'pending' as const,
-              confirmedImportId: null,
-              confirmedAt: null,
-            }
-          : {}),
-        preferredName: '',
-        tone: null,
-        goal: null,
-        responseStyle: null,
-        explicit: [],
+      db.transactionSync(tx => {
+        // Codex audit A3: saved event defaults are personal scheduling memory.
+        personalMemoryStore.clearForDataReset(userId, tx);
+        academicProfileStore.clear(userId, tx);
+        scheduleEntriesStore.clear(userId, tx);
+        // The reviewed COR import goes with the academic profile; the declared
+        // affiliation stays, so USTP students return to "COR pending".
+        // Also clear personal onboarding identity/goal so deleted facts never haunt greetings.
+        corImportStore.clear(userId, tx);
+        const currentSetup = studentSetupStore.get(userId, tx);
+        studentSetupStore.update(
+          userId,
+          {
+            ...(currentSetup.corStatus === 'confirmed'
+              ? {
+                  corStatus: 'pending' as const,
+                  confirmedImportId: null,
+                  confirmedAt: null,
+                }
+              : {}),
+            preferredName: '',
+            tone: null,
+            goal: null,
+            responseStyle: null,
+            explicit: [],
+          },
+          tx,
+        );
+        tx.executeSync(
+          `DELETE FROM local_settings WHERE user_id = ? AND (key LIKE 'skills.%' OR key = 'onboarding.memory.v1')`,
+          [userId],
+        );
+        tx.executeSync(`DELETE FROM recorded_meetings WHERE user_id = ?`, [
+          userId,
+        ]);
+        materialStore.clearForUser(userId, tx);
       });
-      db.executeSync(
-        `DELETE FROM local_settings WHERE user_id = ? AND (key LIKE 'skills.%' OR key = 'onboarding.memory.v1')`,
-        [userId],
-      );
-      db.executeSync(`DELETE FROM recorded_meetings WHERE user_id = ?`, [
-        userId,
-      ]);
-      materialStore.clearForUser(userId);
       void cancelFocusTimer();
       defaults = 'cleared';
     } catch (error) {

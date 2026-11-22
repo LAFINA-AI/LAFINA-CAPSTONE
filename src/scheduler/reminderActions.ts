@@ -1,6 +1,6 @@
 import type {Reminder} from '../storage/remindersStore';
 import {remindersStore} from '../storage/remindersStore';
-import {getOccurrences} from '../storage/rruleHelper';
+import {getOccurrences, parseRrule} from '../storage/rruleHelper';
 import {DeliveryFenceError, deliveryStore} from '../storage/deliveryStore';
 import {reminderDeliveryStyleStore} from '../storage/reminderDeliveryStyleStore';
 import type {DeliveryFenceReason} from '../storage/deliveryStore';
@@ -236,8 +236,20 @@ export const createNextRecurringReminder = (
     from = new Date(floor);
     from.setHours(0, 0, 0, 0);
   }
+  const parsedRule = parseRrule(rule);
+  const ruleInterval = parsedRule?.interval ?? 1;
+  const searchDays = Math.min(
+    4000,
+    parsedRule?.freq === 'YEARLY'
+      ? Math.max(400, ruleInterval * 366 + 14)
+      : parsedRule?.freq === 'MONTHLY'
+      ? Math.max(95, ruleInterval * 32 + 14)
+      : parsedRule?.freq === 'WEEKLY'
+      ? Math.max(60, ruleInterval * 7 + 14)
+      : Math.max(60, ruleInterval + 14),
+  );
   const until = new Date(from);
-  until.setDate(until.getDate() + 60);
+  until.setDate(until.getDate() + searchDays);
   const nextDate = getOccurrences(date, rule, from, until).find(
     day => !floor || new Date(`${day}T${time}:00`).getTime() > floor.getTime(),
   );

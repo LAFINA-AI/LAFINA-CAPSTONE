@@ -9,6 +9,7 @@ import {
 import {AppState} from 'react-native';
 import {quickChatPresence} from '../../../quickChat/quickChatPresence';
 import {
+  avatarSeedStore,
   dashboardConfigStore,
   notesQueryStore,
   notesStore,
@@ -17,7 +18,10 @@ import {
   tasksStore,
   userStore,
 } from '../../../../storage';
-import {getConfirmedAcademicProfile} from '../../../../storage/ustpEligibility';
+import {
+  getConfirmedAcademicProfile,
+  isUstpSchoolEnabled,
+} from '../../../../storage/ustpEligibility';
 import type {
   AcademicProfileRecord,
   DashboardConfig,
@@ -82,6 +86,9 @@ interface RawSnapshot {
   preferences: UserPreferences;
   greetingName: string;
   academicBadge: string | null;
+  avatarUri: string | null;
+  avatarSeed: string;
+  ustpSchoolEnabled: boolean;
   readError: string | null;
 }
 
@@ -98,21 +105,16 @@ const buildAcademicBadge = (
 };
 
 const resolveGreetingName = (
-  userId: string,
+  user: ReturnType<typeof userStore.getUserById>,
   academic: AcademicProfileRecord | null,
 ): string => {
   const preferred = academic?.preferredName?.trim();
   if (preferred) return preferred;
   const formatted = academic?.formattedName?.trim();
   if (formatted) return formatted.split(/\s+/)[0] || formatted;
-  try {
-    const user = userStore.getUserById(userId);
-    const username = user?.username?.trim();
-    if (username && username.toLowerCase() !== 'guest') {
-      return username.split(/[\s_]+/)[0] || username;
-    }
-  } catch {
-    // Fallback below
+  const username = user?.username?.trim();
+  if (username && username.toLowerCase() !== 'guest') {
+    return username.split(/[\s_]+/)[0] || username;
   }
   return 'Student';
 };
@@ -127,6 +129,27 @@ const readDashboardSnapshot = (userId: string, refDate: Date): RawSnapshot => {
     academic = getConfirmedAcademicProfile(userId);
   } catch {
     academic = null;
+  }
+
+  let user: ReturnType<typeof userStore.getUserById> = null;
+  try {
+    user = userStore.getUserById(userId);
+  } catch {
+    user = null;
+  }
+
+  let avatarSeed = userId || 'student';
+  try {
+    avatarSeed = avatarSeedStore.get(userId) || userId || 'student';
+  } catch {
+    avatarSeed = userId || 'student';
+  }
+
+  let ustpSchoolEnabled = false;
+  try {
+    ustpSchoolEnabled = isUstpSchoolEnabled(userId);
+  } catch {
+    ustpSchoolEnabled = false;
   }
 
   let preferences = getDefaultUserPreferences();
@@ -185,8 +208,11 @@ const readDashboardSnapshot = (userId: string, refDate: Date): RawSnapshot => {
     reminders,
     notes,
     preferences,
-    greetingName: resolveGreetingName(userId, academic),
+    greetingName: resolveGreetingName(user, academic),
     academicBadge: buildAcademicBadge(academic),
+    avatarUri: user?.avatarUri ?? null,
+    avatarSeed,
+    ustpSchoolEnabled,
     readError,
   };
 };
@@ -311,17 +337,23 @@ export const useDashboardData = ({
     void loadVisibility();
   }, [userId, loadRawData, syncVisibilityFromCache, loadVisibility]);
 
+  const dirtyRef = useRef(false);
   const loadedIdentityRef = useRef({userId, refreshTrigger});
   useLayoutEffect(() => {
-    if (
-      loadedIdentityRef.current.userId === userId &&
-      loadedIdentityRef.current.refreshTrigger === refreshTrigger
-    ) {
+    const userChanged = loadedIdentityRef.current.userId !== userId;
+    const triggerChanged =
+      loadedIdentityRef.current.refreshTrigger !== refreshTrigger;
+    if (!userChanged && !triggerChanged) {
       return;
     }
     loadedIdentityRef.current = {userId, refreshTrigger};
+    if (!userChanged && !isActive) {
+      dirtyRef.current = true;
+      return;
+    }
+    dirtyRef.current = false;
     refresh();
-  }, [userId, refreshTrigger, refresh]);
+  }, [userId, refreshTrigger, isActive, refresh]);
 
   useEffect(() => {
     void loadVisibility();
@@ -332,6 +364,11 @@ export const useDashboardData = ({
     const wasActive = prevActiveRef.current;
     prevActiveRef.current = isActive;
     if (!wasActive && isActive) {
+      if (dirtyRef.current) {
+        dirtyRef.current = false;
+        refresh();
+        return;
+      }
       syncVisibilityFromCache();
       const freshNow = new Date();
       // A new day must not paint yesterday's plan: reload before paint.
@@ -340,7 +377,7 @@ export const useDashboardData = ({
         loadRawData(freshNow);
       }
     }
-  }, [isActive, syncVisibilityFromCache, loadRawData]);
+  }, [isActive, syncVisibilityFromCache, loadRawData, refresh]);
   // A new minute only moves countdowns: it updates right after the switch
   // paints, so returning Home is not held for a second render.
   useEffect(() => {
@@ -357,7 +394,21 @@ export const useDashboardData = ({
   // Keep live countdowns & current-class progress fresh while active.
   useEffect(() => {
     if (!isActive) return undefined;
-    const tick = () => setNow(new Date());
+    const tick = () => {
+      const freshNow = new Date();
+      const prev = nowRef.current;
+      if (formatLocalDateStr(freshNow) !== formatLocalDateStr(prev)) {
+        setNow(freshNow);
+        loadRawData(freshNow);
+        return;
+      }
+      if (
+        Math.floor(freshNow.getTime() / 60_000) !==
+        Math.floor(prev.getTime() / 60_000)
+      ) {
+        setNow(freshNow);
+      }
+    };
     const interval = setInterval(tick, 30_000);
     // Floating LAFINA: a hidden Home waits for the opening Quick Chat panel.
     let cancelRefresh: () => void = () => undefined;
@@ -373,7 +424,7 @@ export const useDashboardData = ({
       sub.remove();
       cancelRefresh();
     };
-  }, [isActive, refresh]);
+  }, [isActive, refresh, loadRawData]);
 
   const todayDate = useMemo(() => new Date(now), [now]);
   const blockModal = useTimeBlockModal({
@@ -448,9 +499,14 @@ export const useDashboardData = ({
     };
   }, [batches, visibilityMap, raw]);
 
-  const data: DashboardLoadedData = useMemo(() => {
-    const todayStr = formatLocalDateStr(now);
-    const tomorrowStr = formatLocalDateStr(addDaysToDate(now, 1));
+  const todayStr = formatLocalDateStr(now);
+  const tomorrowStr = useMemo(
+    () => formatLocalDateStr(addDaysToDate(now, 1)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todayStr],
+  );
+
+  const staticDailyData = useMemo(() => {
     const todayItems = buildDayScheduleItems(
       todayStr,
       visibleData.blocks,
@@ -460,13 +516,6 @@ export const useDashboardData = ({
       tomorrowStr,
       visibleData.blocks,
       visibleData.events,
-    );
-    const upNext = computeUpNextSummary(todayItems, tomorrowItems, now);
-    const freeStudy = computeFreeStudySummary(
-      todayItems,
-      raw.preferences,
-      now,
-      config.minFreeGapMinutes,
     );
     const tasksSummary = summarizeDashboardTasks(
       {
@@ -487,21 +536,61 @@ export const useDashboardData = ({
 
     return {
       todayStr,
+      tomorrowItems,
+      todayItems,
+      tasksSummary,
+      highlightedNotes,
+      pinnedNotesCount: pinnedNotes.length,
+      pendingReminders: raw.reminders.slice(0, 4),
+    };
+  }, [todayStr, tomorrowStr, visibleData, raw]);
+
+  const data: DashboardLoadedData = useMemo(() => {
+    const upNext = computeUpNextSummary(
+      staticDailyData.todayItems,
+      staticDailyData.tomorrowItems,
+      now,
+    );
+    const freeStudy = computeFreeStudySummary(
+      staticDailyData.todayItems,
+      raw.preferences,
+      now,
+      config.minFreeGapMinutes,
+    );
+
+    return {
+      todayStr: staticDailyData.todayStr,
       nowMinutes: now.getHours() * 60 + now.getMinutes(),
       greetingName: raw.greetingName,
       academicBadge: raw.academicBadge,
-      todayItems,
+      avatarUri: raw.avatarUri,
+      avatarSeed: raw.avatarSeed,
+      ustpSchoolEnabled: raw.ustpSchoolEnabled,
+      todayItems: staticDailyData.todayItems,
       upNext,
       freeStudy,
-      tasksSummary,
-      pendingReminders: raw.reminders.slice(0, 4),
-      highlightedNotes,
-      pinnedNotesCount: pinnedNotes.length,
+      tasksSummary: staticDailyData.tasksSummary,
+      pendingReminders: staticDailyData.pendingReminders,
+      highlightedNotes: staticDailyData.highlightedNotes,
+      pinnedNotesCount: staticDailyData.pinnedNotesCount,
       readError: raw.readError,
       rawBlocksCount: visibleData.blocks.length,
       rawEventsCount: visibleData.events.length,
     };
-  }, [now, visibleData, raw, config.minFreeGapMinutes]);
+  }, [
+    now,
+    staticDailyData,
+    visibleData.blocks.length,
+    visibleData.events.length,
+    raw.preferences,
+    raw.greetingName,
+    raw.academicBadge,
+    raw.avatarUri,
+    raw.avatarSeed,
+    raw.ustpSchoolEnabled,
+    raw.readError,
+    config.minFreeGapMinutes,
+  ]);
 
   const updateConfig = useCallback(
     (patch: Partial<DashboardConfig>) => {

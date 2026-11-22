@@ -1,6 +1,6 @@
-import { DatabaseTransaction } from '../storage/database';
-import { syncStateStore } from '../storage/syncStateStore';
-import { PersistedSyncStatus } from '../storage/syncTypes';
+import {DatabaseTransaction} from '../storage/database';
+import {syncStateStore} from '../storage/syncStateStore';
+import {PersistedSyncStatus} from '../storage/syncTypes';
 
 export type SyncStatusState = PersistedSyncStatus;
 
@@ -28,9 +28,9 @@ let currentState: SyncStateData = localOnlyState();
 const listeners: Set<SyncStateListener> = new Set();
 
 const publish = (state: SyncStateData): SyncStateData => {
-  currentState = { ...state };
-  const snapshot = { ...currentState };
-  listeners.forEach((listener) => listener(snapshot));
+  currentState = {...state};
+  const snapshot = {...currentState};
+  listeners.forEach(listener => listener(snapshot));
   return snapshot;
 };
 
@@ -63,7 +63,7 @@ export const syncState = {
     publish(localOnlyState(status, errorMessage));
   },
 
-  getState: (): SyncStateData => ({ ...currentState }),
+  getState: (): SyncStateData => ({...currentState}),
 
   setStatus: (
     localUserId: string,
@@ -79,7 +79,9 @@ export const syncState = {
       status,
       errorMessage,
     };
-    syncStateStore.save(localUserId, next);
+    if (status !== 'Syncing') {
+      syncStateStore.save(localUserId, next);
+    }
     activeLocalUserId = localUserId;
     publish(next);
   },
@@ -98,13 +100,7 @@ export const syncState = {
       status,
       errorMessage,
     };
-    syncStateStore.save(
-      localUserId,
-      next,
-      'account',
-      localUserId,
-      executor,
-    );
+    syncStateStore.save(localUserId, next, 'account', localUserId, executor);
     if (!executor) {
       activeLocalUserId = localUserId;
       publish(next);

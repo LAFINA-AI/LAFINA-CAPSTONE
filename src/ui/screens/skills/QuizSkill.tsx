@@ -80,6 +80,7 @@ export function QuizSkill({
   onInitialSourceConsumed,
   launch,
   onLaunchHandled,
+  registerBackHandler,
 }: {
   userId: string;
   onFlashcards: () => void;
@@ -92,6 +93,7 @@ export function QuizSkill({
   /** LAFINA opened the Quiz maker (ADR-041). */
   launch?: SkillLaunchRequest | null;
   onLaunchHandled?: (id: string) => void;
+  registerBackHandler?: (handler: (() => boolean) | null) => void;
 }) {
   const p = useSkillsPalette();
   const [store, setStore] = useState(() => readQuizStore(userId));
@@ -522,6 +524,46 @@ export function QuizSkill({
   const mistakesAlreadySaved = Boolean(
     session && session.mistakesSavedAttempt === session.attempt,
   );
+
+  const quizBackStateRef = useRef({
+    session,
+    done,
+    save,
+    openSetupClean,
+  });
+  quizBackStateRef.current = {
+    session,
+    done,
+    save,
+    openSetupClean,
+  };
+
+  useEffect(() => {
+    if (!registerBackHandler) return undefined;
+    registerBackHandler(() => {
+      const current = quizBackStateRef.current;
+      if (current.session && !current.session.paused && !current.done) {
+        if (
+          current.save({
+            ...current.session,
+            paused: true,
+            updatedAt: new Date().toISOString(),
+          })
+        ) {
+          setNotice({
+            text: 'Quiz progress is saved. Resume whenever you are ready.',
+          });
+        }
+        return true;
+      }
+      if (current.done && current.session) {
+        current.openSetupClean();
+        return true;
+      }
+      return false;
+    });
+    return () => registerBackHandler(null);
+  }, [registerBackHandler]);
 
   const makeCards = () => {
     if (!session || !mistakes.length || mistakesAlreadySaved) return;

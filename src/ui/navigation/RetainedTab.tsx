@@ -37,7 +37,7 @@ export function ScreenOverlays({children}: React.PropsWithChildren) {
 /** Mount on first visit; preserve state and release effects while hidden.
  * The caller must key this boundary by account as well as tab.
  */
-function RevisionScreen({
+const RevisionScreen = React.memo(function RevisionScreenView({
   tables,
   children,
 }: {
@@ -48,9 +48,9 @@ function RevisionScreen({
   return children
     ? React.cloneElement(children, {refreshTrigger: revision})
     : null;
-}
+});
 
-export function RetainedTab({
+export const RetainedTab = React.memo(function RetainedTabView({
   active,
   children,
   tables,
@@ -76,6 +76,6 @@ export function RetainedTab({
       </Activity>
     </ScreenActivity.Provider>
   );
-}
+});
 
 const styles = StyleSheet.create({screen: {flex: 1}});

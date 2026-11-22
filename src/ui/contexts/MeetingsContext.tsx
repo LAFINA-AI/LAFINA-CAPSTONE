@@ -839,6 +839,8 @@ export const MeetingsProvider: React.FC<{
     }
   }, [userId, refresh, transcribeMeeting]);
 
+  const clearRecorderError = useCallback(() => setRecorderError(null), []);
+
   const value = useMemo<MeetingsContextValue>(
     () => ({
       userId,
@@ -850,7 +852,7 @@ export const MeetingsProvider: React.FC<{
       setKeepAudio,
       recorder,
       recorderError,
-      clearRecorderError: () => setRecorderError(null),
+      clearRecorderError,
       startRecording,
       pauseRecording,
       resumeRecording,
@@ -875,6 +877,7 @@ export const MeetingsProvider: React.FC<{
       keepAudio,
       recorder,
       recorderError,
+      clearRecorderError,
       startRecording,
       pauseRecording,
       resumeRecording,
@@ -904,6 +907,9 @@ export const useMeetings = (): MeetingsContextValue => {
   }
   return context;
 };
+
+export const useMeetingsProvided = (): boolean =>
+  useContext(MeetingsContext) !== null;
 
 export const useMeetingRecorderIndicator = (): RecorderState | null =>
   useContext(MeetingsContext)?.recorder ?? null;

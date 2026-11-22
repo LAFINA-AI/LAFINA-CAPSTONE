@@ -1,13 +1,8 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React, {useEffect, useRef} from 'react';
+import {Animated, StyleSheet, Text, View} from 'react-native';
 import type {ConversationPhase} from '../../../cloud/voiceConversation/types';
 import {useTheme} from '../../contexts/ThemeContext';
+import {useReducedMotion} from '../../hooks/useReducedMotion';
 import {Fonts, FontSize} from '../../theme';
 
 export interface CallWaveformProps {
@@ -90,31 +85,11 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
   testID = 'call-waveform-area',
 }) => {
   const {colors} = useTheme();
-  const [deviceReduceMotion, setDeviceReduceMotion] = useState(false);
+  const deviceReduceMotion = useReducedMotion();
   const isReducedMotion = reduceMotionProp ?? deviceReduceMotion;
 
   // Subtle pulse animation for thinking / tool working
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
-
-  useEffect(() => {
-    let mounted = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then(enabled => {
-        if (mounted) setDeviceReduceMotion(enabled);
-      })
-      .catch(() => {});
-
-    const sub = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
-      enabled => {
-        if (mounted) setDeviceReduceMotion(enabled);
-      },
-    );
-    return () => {
-      mounted = false;
-      sub?.remove?.();
-    };
-  }, []);
 
   useEffect(() => {
     if (isReducedMotion) {

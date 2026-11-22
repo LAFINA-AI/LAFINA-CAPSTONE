@@ -269,6 +269,7 @@ export function DocGenSkill({
   onNavigateToRegister,
   launch,
   onLaunchHandled,
+  registerBackHandler,
 }: {
   userId: string;
   refreshTrigger?: number;
@@ -276,6 +277,7 @@ export function DocGenSkill({
   /** LAFINA opened Create with LAFINA (ADR-041); a topic pre-fills the prompt. */
   launch?: SkillLaunchRequest | null;
   onLaunchHandled?: (id: string) => void;
+  registerBackHandler?: (handler: (() => boolean) | null) => void;
   onOpenProfile?: () => void;
   onNavigateToRegister?: () => void;
 }) {
@@ -454,6 +456,44 @@ export function DocGenSkill({
     setDictationState('idle');
     void cancelListening(activeId).catch(() => undefined);
   };
+
+  const docBackStateRef = useRef({
+    selected,
+    reviseOpen,
+    stopActiveDictation,
+    clearError,
+  });
+  docBackStateRef.current = {
+    selected,
+    reviseOpen,
+    stopActiveDictation,
+    clearError,
+  };
+
+  useEffect(() => {
+    if (!registerBackHandler) return undefined;
+    registerBackHandler(() => {
+      const current = docBackStateRef.current;
+      if (current.reviseOpen) {
+        current.stopActiveDictation();
+        setReviseOpen(false);
+        setRevisionPrompt('');
+        current.clearError();
+        return true;
+      }
+      if (current.selected) {
+        current.stopActiveDictation();
+        setSelected(null);
+        setReviseOpen(false);
+        setRevisionPrompt('');
+        setNotice(null);
+        current.clearError();
+        return true;
+      }
+      return false;
+    });
+    return () => registerBackHandler(null);
+  }, [registerBackHandler]);
 
   const dictate = async (target: 'create' | 'revise') => {
     setNotice(null);

@@ -173,10 +173,15 @@ class LafinaMeetingRecorderModule(
 
     @ReactMethod
     fun stopRecording(promise: Promise) {
-        val stopIntent = Intent(reactContext, LafinaMeetingService::class.java).apply {
-            action = LafinaMeetingService.ACTION_STOP
+        if (LafinaMeetingService.isRunning) {
+            try {
+                val stopIntent = Intent(reactContext, LafinaMeetingService::class.java).apply {
+                    action = LafinaMeetingService.ACTION_STOP
+                }
+                reactContext.startService(stopIntent)
+            } catch (_: Exception) {
+            }
         }
-        reactContext.startService(stopIntent)
 
         transcribeExecutor.execute {
             try {
@@ -310,8 +315,11 @@ class LafinaMeetingRecorderModule(
     }
 
     override fun invalidate() {
-        transcribeExecutor.execute { freeWhisperContext() }
-        transcribeExecutor.shutdown()
+        mainHandler.removeCallbacksAndMessages(null)
+        if (!transcribeExecutor.isShutdown) {
+            transcribeExecutor.execute { freeWhisperContext() }
+            transcribeExecutor.shutdown()
+        }
         super.invalidate()
     }
 

@@ -28,11 +28,13 @@ export function Entry({
 }>) {
   const reduced = useReducedMotion();
   const progress = useRef(new Animated.Value(1)).current;
+  const hasAnimatedRef = useRef(false);
   useEffect(() => {
-    if (reduced) {
+    if (reduced || hasAnimatedRef.current) {
       progress.setValue(1);
       return;
     }
+    hasAnimatedRef.current = true;
     progress.setValue(0);
     const animation = Animated.timing(progress, {
       toValue: 1,

@@ -15,6 +15,7 @@ import type {NativeRegistrationSnapshot} from './deliveryReconciler';
 
 let pollerInterval: ReturnType<typeof setInterval> | null = null;
 let activeUserId: string | null = null;
+let pollerSeq = 0;
 
 export const EVENT_CALL_TRIGGER = 'LAFINA_CALL_TRIGGER';
 
@@ -26,7 +27,11 @@ export const EVENT_CALL_TRIGGER = 'LAFINA_CALL_TRIGGER';
  * AlarmManager registry holds is left to Android, so one reminder generation
  * never rings from both engines.
  */
-const runReminderPoll = async (userId: string): Promise<void> => {
+const isPollValid = (userId: string, seq: number): boolean =>
+  seq === pollerSeq && (activeUserId === null || activeUserId === userId);
+
+const runReminderPoll = async (userId: string, seq: number): Promise<void> => {
+  if (!isPollValid(userId, seq)) return;
   try {
     const upcoming = remindersStore.getUpcomingReminders(userId, 1);
     const now = new Date();
@@ -34,12 +39,14 @@ const runReminderPoll = async (userId: string): Promise<void> => {
     let registrationsRead = false;
 
     for (const reminder of upcoming) {
+      if (!isPollValid(userId, seq)) return;
       const triggerTime = new Date(reminder.triggerAt);
 
       // Only trigger if triggerTime has passed or is within 30s
       if (triggerTime.getTime() <= now.getTime() + 30 * 1000) {
         if (!registrationsRead) {
           liveRegistrations = await readLiveNativeRegistrations();
+          if (!isPollValid(userId, seq)) return;
           registrationsRead = true;
         }
         if (!shouldDispatchInJs(reminder.id, liveRegistrations)) continue;
@@ -49,8 +56,8 @@ const runReminderPoll = async (userId: string): Promise<void> => {
         // duplicate); a shared title alone never silences a reminder.
         if (alertSuppression(db, reminder)) {
           remindersStore.acknowledgeReminder(reminder.id);
-          void cancelReminderAlarm(reminder.id);
-          void finishNativeIncomingCall(reminder.id);
+          void cancelReminderAlarm(reminder.id).catch(() => undefined);
+          void finishNativeIncomingCall(reminder.id).catch(() => undefined);
           continue;
         }
 
@@ -73,6 +80,7 @@ const runReminderPoll = async (userId: string): Promise<void> => {
         const job = deliveryStore.get(reminder.id);
         if (!(await claimForegroundRing(reminder.id, userId, job?.generation)))
           continue;
+        if (!isPollValid(userId, seq)) return;
 
         console.log(
           `[ReminderPoller] Triggering reminder: ${reminder.id} - ${reminder.task}`,
@@ -120,6 +128,7 @@ const runReminderPoll = async (userId: string): Promise<void> => {
   } catch (error) {
     console.error('[ReminderPoller] Error checking reminders:', error);
   }
+  if (!isPollValid(userId, seq)) return;
   // A writer that retired or moved a job without cancelling its alarm is
   // corrected now, not only at the next start, resume or sync.
   try {
@@ -140,6 +149,7 @@ export const startReminderPoller = (
     clearInterval(pollerInterval);
   }
 
+  pollerSeq += 1;
   activeUserId = userId;
   console.log(`[ReminderPoller] Poller started for user ${userId}`);
 
@@ -157,6 +167,7 @@ export const startReminderPoller = (
  * Stops the foreground poller loop.
  */
 export const stopReminderPoller = (): void => {
+  pollerSeq += 1;
   if (pollerInterval) {
     clearInterval(pollerInterval);
     pollerInterval = null;
@@ -168,7 +179,8 @@ export const stopReminderPoller = (): void => {
 // Startup, resume and interval callbacks can overlap while native listing awaits.
 let pollWork: Promise<void> = Promise.resolve();
 export const checkAndTriggerReminders = (userId: string): Promise<void> => {
-  const next = pollWork.then(() => runReminderPoll(userId));
+  const seq = pollerSeq;
+  const next = pollWork.then(() => runReminderPoll(userId, seq));
   pollWork = next.catch(() => undefined);
   return next;
 };

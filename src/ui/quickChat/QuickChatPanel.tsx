@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
-  AccessibilityInfo,
   Animated,
   BackHandler,
   Keyboard,
@@ -14,6 +13,7 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import {useTheme} from '../contexts/ThemeContext';
+import {useReducedMotion} from '../hooks/useReducedMotion';
 import {Fonts, FontSize, Spacing} from '../theme';
 import {resolveOnlineMode} from '../../cloud/onlineModeGate';
 import type {OnlineModeDecision} from '../../cloud/onlineModeGate';
@@ -38,34 +38,6 @@ const OPEN_REDUCED_MS = 80;
 const STATE_MESSAGES: Record<Exclude<QuickChatPanelState, 'ready'>, string> = {
   no_user: 'Open LAFINA to finish setting up.',
   storage: 'LAFINA’s storage needs attention.',
-};
-
-/**
- * Read once, then kept current by Android's change event, so each open starts
- * its animation without a native round trip first.
- */
-let reduceMotionCache: boolean | null = null;
-let reduceMotionWatch: {remove: () => void} | null = null;
-const readReduceMotion = (): Promise<boolean> => {
-  if (!reduceMotionWatch) {
-    try {
-      reduceMotionWatch = AccessibilityInfo.addEventListener(
-        'reduceMotionChanged',
-        enabled => {
-          reduceMotionCache = enabled;
-        },
-      );
-    } catch {
-      reduceMotionWatch = {remove: () => undefined};
-    }
-  }
-  if (reduceMotionCache !== null) return Promise.resolve(reduceMotionCache);
-  return AccessibilityInfo.isReduceMotionEnabled()
-    .catch(() => false)
-    .then(enabled => {
-      reduceMotionCache = enabled;
-      return enabled;
-    });
 };
 
 export const closeQuickChat = (): void => {
@@ -101,26 +73,39 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
   const [cardOpen, setCardOpen] = useState(false);
   const appear = useRef(new Animated.Value(0)).current;
   const keyboardShown = useRef(false);
+  const mountedRef = useRef(true);
+  const openAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const cancelLatestRef = useRef<(() => void) | null>(null);
+  const reducedMotion = useReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
 
   const playOpen = useCallback(() => {
+    if (!mountedRef.current) return;
+    openAnimRef.current?.stop();
     appear.setValue(0);
-    void readReduceMotion().then(reduced => {
-      Animated.timing(appear, {
-        toValue: 1,
-        duration: reduced ? OPEN_REDUCED_MS : OPEN_MS,
-        useNativeDriver: true,
-      }).start(() => quickChatPresence.markPanelShown());
+    const anim = Animated.timing(appear, {
+      toValue: 1,
+      duration: reducedMotionRef.current ? OPEN_REDUCED_MS : OPEN_MS,
+      useNativeDriver: true,
+    });
+    openAnimRef.current = anim;
+    anim.start(({finished}) => {
+      if (openAnimRef.current === anim) openAnimRef.current = null;
+      if (finished && mountedRef.current) {
+        quickChatPresence.markPanelShown();
+      }
     });
   }, [appear]);
 
   const refreshOnline = useCallback(() => {
     if (!userId || state !== 'ready') {
       setOnline(null);
-      return;
+      return undefined;
     }
     let current = true;
     void resolveOnlineMode(userId).then(decision => {
-      if (current) setOnline(decision);
+      if (current && mountedRef.current) setOnline(decision);
     });
     return () => {
       current = false;
@@ -129,11 +114,11 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
 
   // Open (first mount) and every reopen from the orb or the notification.
   useEffect(() => {
+    mountedRef.current = true;
     playOpen();
-    const cancels = new Set<() => void>();
     const recheck = () => {
-      const cancel = refreshOnline();
-      if (cancel) cancels.add(cancel);
+      cancelLatestRef.current?.();
+      cancelLatestRef.current = refreshOnline() ?? null;
     };
     recheck();
     const unsubscribe = quickChatPresence.subscribe(() => {
@@ -150,9 +135,13 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
       wasConnected = connected;
     });
     return () => {
+      mountedRef.current = false;
+      openAnimRef.current?.stop();
+      openAnimRef.current = null;
       unsubscribe();
       unsubscribeNet();
-      cancels.forEach(cancel => cancel());
+      cancelLatestRef.current?.();
+      cancelLatestRef.current = null;
     };
   }, [playOpen, refreshOnline]);
 
@@ -176,6 +165,7 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
+        if (!quickChatPresence.isOpen()) return false;
         if (keyboardShown.current) {
           Keyboard.dismiss();
           return true;

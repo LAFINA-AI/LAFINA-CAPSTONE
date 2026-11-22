@@ -225,15 +225,21 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
 
     private fun buildProgram(): Int? {
       val vertex = compile(GLES30.GL_VERTEX_SHADER, VERTEX_SHADER) ?: return null
-      val fragment = compile(GLES30.GL_FRAGMENT_SHADER, FRAGMENT_SHADER) ?: return null
+      val fragment = compile(GLES30.GL_FRAGMENT_SHADER, FRAGMENT_SHADER) ?: run {
+        GLES30.glDeleteShader(vertex)
+        return null
+      }
       val linked = GLES30.glCreateProgram()
       GLES30.glAttachShader(linked, vertex)
       GLES30.glAttachShader(linked, fragment)
       GLES30.glLinkProgram(linked)
+      GLES30.glDeleteShader(vertex)
+      GLES30.glDeleteShader(fragment)
       val status = IntArray(1)
       GLES30.glGetProgramiv(linked, GLES30.GL_LINK_STATUS, status, 0)
       if (status[0] == 0) {
         Log.e(TAG, "Link failed: ${GLES30.glGetProgramInfoLog(linked)}")
+        GLES30.glDeleteProgram(linked)
         return null
       }
       return linked
@@ -296,9 +302,15 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
 
     private fun tearDown() {
       if (display != EGL14.EGL_NO_DISPLAY) {
+        if (vertexBuffer != 0) {
+          GLES30.glDeleteBuffers(1, intArrayOf(vertexBuffer), 0)
+          vertexBuffer = 0
+        }
+        if (program != 0) {
+          GLES30.glDeleteProgram(program)
+          program = 0
+        }
         EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
-        if (vertexBuffer != 0) GLES30.glDeleteBuffers(1, intArrayOf(vertexBuffer), 0)
-        if (program != 0) GLES30.glDeleteProgram(program)
         if (surface != EGL14.EGL_NO_SURFACE) EGL14.eglDestroySurface(display, surface)
         if (context != EGL14.EGL_NO_CONTEXT) EGL14.eglDestroyContext(display, context)
         EGL14.eglReleaseThread()

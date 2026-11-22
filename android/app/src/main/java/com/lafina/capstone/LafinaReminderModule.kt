@@ -43,6 +43,17 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
   override fun onHostPause() = Unit
   override fun onHostDestroy() = Unit
 
+  override fun invalidate() {
+    reactContext.removeActivityEventListener(this)
+    reactContext.removeLifecycleEventListener(this)
+    try {
+      activeRingtone?.stop()
+    } catch (_: Exception) {
+    }
+    activeRingtone = null
+    super.invalidate()
+  }
+
   override fun getName(): String = "LafinaReminder"
 
   @ReactMethod fun addListener(eventName: String) = Unit

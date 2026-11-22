@@ -56,6 +56,10 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
         activePlaybackPromise = promise
 
         mp.setOnCompletionListener {
+          if (activeMediaPlayer !== mp) {
+            releasePlayer(mp)
+            return@setOnCompletionListener
+          }
           val completedPromise = activePlaybackPromise
           releasePlayer(mp)
           activeMediaPlayer = null
@@ -66,6 +70,10 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
 
         mp.setOnErrorListener { _, what, extra ->
           Log.e("LafinaAudioPlayer", "MediaPlayer error: what=$what, extra=$extra")
+          if (activeMediaPlayer !== mp) {
+            releasePlayer(mp)
+            return@setOnErrorListener true
+          }
           val failedPromise = activePlaybackPromise
           releasePlayer(mp)
           activeMediaPlayer = null
@@ -100,6 +108,13 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
       interruptActivePlayback()
       promise.resolve(true)
     }
+  }
+
+  override fun invalidate() {
+    reactContext.runOnUiQueueThread {
+      interruptActivePlayback()
+    }
+    super.invalidate()
   }
 
   private fun interruptActivePlayback() {

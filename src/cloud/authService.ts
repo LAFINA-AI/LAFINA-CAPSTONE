@@ -1,7 +1,7 @@
-import { cloudClient, CloudResult } from './cloudClient';
-import { normalizeEmail, validatePassword } from '../storage/authUtils';
-import { userStore } from '../storage/userStore';
-import type { SubscriptionPlan, SystemRole } from '../storage/syncTypes';
+import {cloudClient, CloudResult} from './cloudClient';
+import {normalizeEmail, validatePassword} from '../storage/authUtils';
+import {userStore} from '../storage/userStore';
+import type {SubscriptionPlan, SystemRole} from '../storage/syncTypes';
 
 export interface AuthResponseData {
   access_token: string;
@@ -27,7 +27,9 @@ export interface UserProfileData {
   created_at: string;
 }
 
-export const resolveEffectiveProfileRole = (profile: UserProfileData): string => {
+export const resolveEffectiveProfileRole = (
+  profile: UserProfileData,
+): string => {
   if (
     profile.role === 'student_pro' ||
     profile.effective_subscription_plan === 'student_pro' ||
@@ -42,7 +44,10 @@ export const resolveEffectiveProfileRole = (profile: UserProfileData): string =>
 };
 
 export const authService = {
-  register: async (email: string, password: string): Promise<CloudResult<AuthResponseData>> => {
+  register: async (
+    email: string,
+    password: string,
+  ): Promise<CloudResult<AuthResponseData>> => {
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
       return {
@@ -54,7 +59,7 @@ export const authService = {
       '/v1/auth/register',
       {
         method: 'POST',
-        body: JSON.stringify({ email: normalizeEmail(email), password }),
+        body: JSON.stringify({email: normalizeEmail(email), password}),
       },
       false,
     );
@@ -86,19 +91,28 @@ export const authService = {
     );
   },
 
-  refresh: async (refreshToken: string): Promise<CloudResult<AuthResponseData>> => {
+  refresh: async (
+    refreshToken: string,
+  ): Promise<CloudResult<AuthResponseData>> => {
+    const ownerAtStart = userStore.getActiveSessionToken().userId;
     const res = await cloudClient.request<AuthResponseData>(
       '/v1/auth/refresh',
       {
         method: 'POST',
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        body: JSON.stringify({refresh_token: refreshToken}),
       },
       false,
     );
     if (res.status === 'success' && res.data) {
       const activeSession = userStore.getActiveSessionToken();
-      if (!activeSession.userId) {
-        return { status: 'auth_required', error: 'No active local account is available.' };
+      if (
+        !activeSession.userId ||
+        (ownerAtStart && activeSession.userId !== ownerAtStart)
+      ) {
+        return {
+          status: 'auth_required',
+          error: 'No active local account is available.',
+        };
       }
       await cloudClient.establishSession(
         activeSession.userId,
@@ -110,10 +124,17 @@ export const authService = {
   },
 
   logout: async (): Promise<CloudResult<null>> => {
+    const ownerAtStart = userStore.getActiveSessionToken().userId;
     try {
-      return await cloudClient.request<null>('/v1/auth/logout', { method: 'POST' }, true);
+      return await cloudClient.request<null>(
+        '/v1/auth/logout',
+        {method: 'POST'},
+        true,
+      );
     } finally {
-      cloudClient.clearActiveSession();
+      if (userStore.getActiveSessionToken().userId === ownerAtStart) {
+        cloudClient.clearActiveSession();
+      }
     }
   },
 
@@ -125,16 +146,22 @@ export const authService = {
    * a network or server hiccup.
    */
   getMe: async (): Promise<CloudResult<UserProfileData>> => {
+    const ownerAtStart = userStore.getActiveSessionToken().userId;
     const result = await cloudClient.request<UserProfileData>(
       '/v1/auth/me',
-      { method: 'GET' },
+      {method: 'GET'},
       true,
     );
     if (result.status !== 'auth_required') {
       return result;
     }
     if (result.sessionEnded) {
-      cloudClient.clearActiveSession();
+      if (
+        ownerAtStart &&
+        userStore.getActiveSessionToken().userId === ownerAtStart
+      ) {
+        cloudClient.clearActiveSession();
+      }
       return {
         status: 'auth_required',
         error: 'Cloud authentication expired. Sign in again while online.',
@@ -143,7 +170,8 @@ export const authService = {
     }
     return {
       status: 'server_unavailable',
-      error: 'Your sign-in could not be renewed right now. Try again in a moment.',
+      error:
+        'Your sign-in could not be renewed right now. Try again in a moment.',
       httpStatus: result.httpStatus,
     };
   },

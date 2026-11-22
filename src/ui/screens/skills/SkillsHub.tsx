@@ -1,6 +1,5 @@
 import {alarmsStore} from '../../../storage/alarmsStore';
-import {useTodoData} from '../notes/hooks/useTodoData';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   Alert,
   Modal,
@@ -37,7 +36,7 @@ import {useStudyJob} from '../../../skills/studyJobs';
 import {readDecks, subscribeDecks} from '../../../skills/studyDecks';
 import {getDeckStats} from '../../../skills/studyLogic';
 import type {Deck} from '../../../skills/studyLogic';
-import {useScreenActive} from '../../navigation/RetainedTab';
+import {ScreenOverlays, useScreenActive} from '../../navigation/RetainedTab';
 import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 import {Entry, SkillButton, SkillCard, SkillText, ui} from './SkillUI';
 
@@ -104,7 +103,7 @@ const SKILL_SEARCH_ALIASES: Record<string, string> = {
   docgen:
     'pptx docx xlsx word excel powerpoint spreadsheet presentation report document handout deck',
 };
-const noRefresh = () => {};
+const MAX_SEARCH_INDEX_RETRIES = 25;
 const ESSENTIALS = [
   {id: 'alarms', title: 'Alarms', icon: AlarmClock},
   {id: 'todo', title: 'To-do', icon: CheckCheck},
@@ -117,9 +116,10 @@ const normalizeSkillOrder = (raw: readonly string[]): string[] => {
   return Array.from(new Set([...kept, ...missing]));
 };
 
-export function SkillsHub({
+export const SkillsHub = React.memo(function SkillsHubView({
   userId,
   refreshTrigger,
+  isVisible = true,
   onOpen,
   onOpenMaterial,
   onEntity,
@@ -127,6 +127,7 @@ export function SkillsHub({
 }: {
   userId: string;
   refreshTrigger: number;
+  isVisible?: boolean;
   onOpen: (route: SkillRoute) => void;
   onOpenMaterial?: (materialId: string) => void;
   onEntity: (kind: 'task' | 'note', id: string) => void;
@@ -140,15 +141,17 @@ export function SkillsHub({
     setDecks(readDecks(userId));
     return subscribeDecks(userId, () => setDecks(readDecks(userId)));
   }, [userId, refreshTrigger, screenActive]);
-  const todo = useTodoData({
-    userId,
-    refreshTrigger,
-    enabled: false,
-    searchQuery: '',
-    onRefresh: noRefresh,
-  });
   const [query, setQuery] = useState('');
   const trimmedQuery = query.trim();
+  const [debouncedQuery, setDebouncedQuery] = useState(trimmedQuery);
+  useEffect(() => {
+    if (!trimmedQuery) {
+      setDebouncedQuery('');
+      return;
+    }
+    const timer = setTimeout(() => setDebouncedQuery(trimmedQuery), 150);
+    return () => clearTimeout(timer);
+  }, [trimmedQuery]);
   const normalizedQuery = trimmedQuery.toLowerCase();
   const [edit, setEdit] = useState(false);
   const [order, setOrder] = useState<string[]>(() =>
@@ -164,7 +167,8 @@ export function SkillsHub({
   const [pinned, setPinned] = useState<string[]>(() =>
     readSkillState(userId, 'pins', []),
   );
-  const [counts, setCounts] = useState({alarms: 0, notes: 0});
+  const [counts, setCounts] = useState({alarms: 0, notes: 0, openTasks: 0});
+  const loadedCountsKeyRef = useRef('');
   const [results, setResults] = useState<
     Array<{id: string; kind: 'note' | 'task'; title: string}>
   >([]);
@@ -174,22 +178,43 @@ export function SkillsHub({
   const [indexing, setIndexing] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
+    if (!isVisible) return;
+    const countKey = `${userId}:${refreshTrigger}`;
+    if (loadedCountsKeyRef.current === countKey) return;
+    try {
+      const notesCount = Number(
+        db.executeSync(
+          'SELECT COUNT(*) AS count FROM notes WHERE user_id = ? AND deleted_at IS NULL',
+          [userId],
+        ).rows[0]?.count ?? 0,
+      );
+      const openTasksCount = Number(
+        db.executeSync(
+          'SELECT COUNT(*) AS count FROM tasks WHERE user_id = ? AND deleted_at IS NULL AND is_completed = 0',
+          [userId],
+        ).rows[0]?.count ?? 0,
+      );
+      loadedCountsKeyRef.current = countKey;
+      setCounts({
+        alarms: alarmsStore.list(userId).filter(a => a.enabled).length,
+        notes: notesCount,
+        openTasks: openTasksCount,
+      });
+      setError('');
+    } catch {
+      setError(
+        'Could not read your skills data. Try opening the page again.',
+      );
+    }
+  }, [isVisible, refreshTrigger, userId]);
+  useEffect(() => {
+    if (!isVisible) return;
     let active = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    const load = () => {
+    let retryCount = 0;
+    const loadSearch = () => {
       try {
-        const notesCount = Number(
-          db.executeSync(
-            'SELECT COUNT(*) AS count FROM notes WHERE user_id = ? AND deleted_at IS NULL',
-            [userId],
-          ).rows[0]?.count ?? 0,
-        );
-        if (!active) return;
-        setCounts({
-          alarms: alarmsStore.list(userId).filter(a => a.enabled).length,
-          notes: notesCount,
-        });
-        if (!trimmedQuery) {
+        if (!debouncedQuery) {
           setResults([]);
           setMaterialMatches([]);
           setIndexing(false);
@@ -198,17 +223,17 @@ export function SkillsHub({
         }
         const page = notesQueryStore.page({
           userId,
-          search: trimmedQuery,
+          search: debouncedQuery,
           filter: 'All',
           limit: 20,
         });
         const tasks = db.executeSync(
           "SELECT id,title FROM tasks WHERE user_id = ? AND deleted_at IS NULL AND title LIKE ? ESCAPE '\\' ORDER BY is_completed,updated_at DESC LIMIT 20",
-          [userId, `%${escapeLike(trimmedQuery)}%`],
+          [userId, `%${escapeLike(debouncedQuery)}%`],
         ).rows;
         const foundMaterials = materialStore.searchMaterialTitles(
           userId,
-          trimmedQuery,
+          debouncedQuery,
           10,
         );
         if (!active) return;
@@ -225,9 +250,14 @@ export function SkillsHub({
           })),
         ]);
         setMaterialMatches(foundMaterials);
-        setIndexing(page.indexing);
         setError('');
-        if (page.indexing) retry = setTimeout(load, 80);
+        if (page.indexing && retryCount < MAX_SEARCH_INDEX_RETRIES) {
+          retryCount += 1;
+          setIndexing(true);
+          retry = setTimeout(loadSearch, 80);
+        } else {
+          setIndexing(false);
+        }
       } catch {
         if (!active) return;
         setError(
@@ -235,12 +265,12 @@ export function SkillsHub({
         );
       }
     };
-    load();
+    loadSearch();
     return () => {
       active = false;
       if (retry) clearTimeout(retry);
     };
-  }, [trimmedQuery, userId, refreshTrigger]);
+  }, [debouncedQuery, isVisible, userId, refreshTrigger]);
   const ordered = [...SKILLS].sort(
     (a, b) =>
       Number(pinned.includes(b.id)) - Number(pinned.includes(a.id)) ||
@@ -359,7 +389,7 @@ export function SkillsHub({
                       ? `${counts.alarms} on`
                       : 'None on'
                     : s.id === 'todo'
-                    ? `${todo.pendingCount} open`
+                    ? `${counts.openTasks} open`
                     : `${counts.notes} notes`}
                 </SkillText>
               </TouchableOpacity>
@@ -568,71 +598,75 @@ export function SkillsHub({
           </Text>
         )}
       </ScrollView>
-      <Modal
-        visible={edit}
-        transparent
-        animationType="none"
-        onRequestClose={() => setEdit(false)}
-      >
-        <View style={[styles.sheet, {backgroundColor: p.bg}]}>
-          <SkillText strong size={20}>
-            Pin & reorder skills
-          </SkillText>
-          <ScrollView>
-            {normalizedOrder.map((id, i) => {
-              const s = SKILLS.find(x => x.id === id);
-              return s ? (
-                <SkillCard key={id}>
-                  <SkillText strong>{s.title}</SkillText>
-                  <View style={ui.between}>
-                    <TouchableOpacity
-                      accessibilityRole="checkbox"
-                      accessibilityState={{checked: pinned.includes(id)}}
-                      accessibilityLabel={`Pin ${s.title}`}
-                      onPress={() =>
-                        save(
-                          normalizedOrder,
-                          pinned.includes(id)
-                            ? pinned.filter(x => x !== id)
-                            : [...pinned, id],
-                        )
-                      }
-                      style={ui.icon}
-                    >
-                      <Pin
-                        color={pinned.includes(id) ? p.accent : p.muted}
-                        size={20}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      accessibilityRole="button"
-                      accessibilityLabel={`Move ${s.title} up`}
-                      disabled={i === 0}
-                      onPress={() => move(id, -1)}
-                      style={ui.icon}
-                    >
-                      <ArrowUp size={20} color={p.text} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      accessibilityRole="button"
-                      accessibilityLabel={`Move ${s.title} down`}
-                      disabled={i === normalizedOrder.length - 1}
-                      onPress={() => move(id, 1)}
-                      style={ui.icon}
-                    >
-                      <ArrowDown size={20} color={p.text} />
-                    </TouchableOpacity>
-                  </View>
-                </SkillCard>
-              ) : null;
-            })}
-          </ScrollView>
-          <SkillButton label="Done" onPress={() => setEdit(false)} />
-        </View>
-      </Modal>
+      <ScreenOverlays>
+        {edit ? (
+          <Modal
+            visible
+            transparent
+            animationType="none"
+            onRequestClose={() => setEdit(false)}
+          >
+            <View style={[styles.sheet, {backgroundColor: p.bg}]}>
+              <SkillText strong size={20}>
+                Pin & reorder skills
+              </SkillText>
+              <ScrollView>
+                {normalizedOrder.map((id, i) => {
+                  const s = SKILLS.find(x => x.id === id);
+                  return s ? (
+                    <SkillCard key={id}>
+                      <SkillText strong>{s.title}</SkillText>
+                      <View style={ui.between}>
+                        <TouchableOpacity
+                          accessibilityRole="checkbox"
+                          accessibilityState={{checked: pinned.includes(id)}}
+                          accessibilityLabel={`Pin ${s.title}`}
+                          onPress={() =>
+                            save(
+                              normalizedOrder,
+                              pinned.includes(id)
+                                ? pinned.filter(x => x !== id)
+                                : [...pinned, id],
+                            )
+                          }
+                          style={ui.icon}
+                        >
+                          <Pin
+                            color={pinned.includes(id) ? p.accent : p.muted}
+                            size={20}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={`Move ${s.title} up`}
+                          disabled={i === 0}
+                          onPress={() => move(id, -1)}
+                          style={ui.icon}
+                        >
+                          <ArrowUp size={20} color={p.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={`Move ${s.title} down`}
+                          disabled={i === normalizedOrder.length - 1}
+                          onPress={() => move(id, 1)}
+                          style={ui.icon}
+                        >
+                          <ArrowDown size={20} color={p.text} />
+                        </TouchableOpacity>
+                      </View>
+                    </SkillCard>
+                  ) : null;
+                })}
+              </ScrollView>
+              <SkillButton label="Done" onPress={() => setEdit(false)} />
+            </View>
+          </Modal>
+        ) : null}
+      </ScreenOverlays>
     </>
   );
-}
+});
 const styles = StyleSheet.create({
   content: {paddingHorizontal: 20, paddingTop: 20, paddingBottom: 150},
   title: {fontSize: 32, fontFamily: SkillFonts.bold, letterSpacing: -0.64},

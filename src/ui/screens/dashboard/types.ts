@@ -101,6 +101,9 @@ export interface DashboardLoadedData {
   nowMinutes: number;
   greetingName: string;
   academicBadge: string | null;
+  avatarUri?: string | null;
+  avatarSeed?: string;
+  ustpSchoolEnabled?: boolean;
   todayItems: DashboardScheduleItem[];
   upNext: UpNextSummary;
   freeStudy: FreeStudySummary;

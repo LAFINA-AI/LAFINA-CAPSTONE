@@ -32,6 +32,25 @@ import {NextAlarmCard} from './components/NextAlarmCard';
 import type {DashboardScheduleItem, DashboardScreenProps} from './types';
 import type {Reminder, Task} from '../../../storage';
 
+const DASHBOARD_DATA_TABLES = [
+  'tasks',
+  'events',
+  'event_time_local',
+  'time_blocks',
+  'reminders',
+  'notes',
+  'alarms',
+  'users',
+  'custom_categories',
+  'local_settings:dashboard',
+  'local_settings:academic',
+  'local_settings:student',
+  'local_settings:profile',
+  'local_settings:cor',
+  'local_settings:schedule',
+  'local_settings:onboarding',
+] as const;
+
 export const DashboardScreen = React.memo(function Dashboard({
   userId,
   refreshTrigger: explicitRefresh,
@@ -49,20 +68,7 @@ export const DashboardScreen = React.memo(function Dashboard({
       scrollRef.current?.scrollTo?.({y: 0, animated: false});
     }
   }, [isActive, tourAnchor]);
-  const refreshTrigger =
-    explicitRefresh +
-    useStorageRevision([
-      'tasks',
-      'events',
-      'event_time_local',
-      'time_blocks',
-      'reminders',
-      'notes',
-      'alarms',
-      'users',
-      'local_settings',
-      'custom_categories',
-    ]);
+  const refreshTrigger = explicitRefresh + useStorageRevision(DASHBOARD_DATA_TABLES);
   const {colors, isModern} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const insets = useSafeAreaInsets();
@@ -339,19 +345,23 @@ export const DashboardScreen = React.memo(function Dashboard({
         )}
       </ScrollView>
 
-      <AddBlockModal state={blockModal} timeFormat24h={timeFormat24h} />
+      {blockModal.visible && (
+        <AddBlockModal state={blockModal} timeFormat24h={timeFormat24h} />
+      )}
 
-      <CustomizeDashboardModal
-        visible={customizeVisible}
-        config={actions.config}
-        onClose={closeCustomize}
-        onApplyPreset={actions.applyPreset}
-        onMoveWidget={actions.moveWidget}
-        onToggleWidget={actions.toggleWidgetVisibility}
-        onChangeMinGap={actions.setMinFreeGapMinutes}
-        onChangeDefaultFilter={actions.setScheduleFilter}
-        onReset={actions.resetConfig}
-      />
+      {customizeVisible && (
+        <CustomizeDashboardModal
+          visible={customizeVisible}
+          config={actions.config}
+          onClose={closeCustomize}
+          onApplyPreset={actions.applyPreset}
+          onMoveWidget={actions.moveWidget}
+          onToggleWidget={actions.toggleWidgetVisibility}
+          onChangeMinGap={actions.setMinFreeGapMinutes}
+          onChangeDefaultFilter={actions.setScheduleFilter}
+          onReset={actions.resetConfig}
+        />
+      )}
     </View>
   );
 });

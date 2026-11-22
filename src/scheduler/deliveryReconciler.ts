@@ -1,3 +1,4 @@
+import {db} from '../storage/database';
 import {deliveryStore} from '../storage/deliveryStore';
 import type {DeliveryJob} from '../storage/deliveryStore';
 import {
@@ -55,7 +56,12 @@ export const NATIVE_CALL_TIMEOUT_MS = 5000;
 const boundedNative = <T>(work: Promise<T>, what: string): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error(`${what} did not answer within ${NATIVE_CALL_TIMEOUT_MS} ms`)),
+      () =>
+        reject(
+          new Error(
+            `${what} did not answer within ${NATIVE_CALL_TIMEOUT_MS} ms`,
+          ),
+        ),
       NATIVE_CALL_TIMEOUT_MS,
     );
     work.then(
@@ -83,29 +89,40 @@ export const drainNativeDeliveryReceipts = async (): Promise<number> => {
   if (!module?.drainDeliveryReceipts) return 0;
   let receipts;
   try {
-    receipts = await boundedNative(Promise.resolve(module.drainDeliveryReceipts()), 'Receipt drain');
+    receipts = await boundedNative(
+      Promise.resolve(module.drainDeliveryReceipts()),
+      'Receipt drain',
+    );
   } catch (error) {
     console.warn('[DeliveryReconciler] Could not read native receipts:', error);
     return 0;
   }
   let recorded = 0;
-  for (const receipt of receipts || []) {
-    if (!receipt || typeof receipt.reminderId !== 'string') continue;
-    try {
-      deliveryStore.recordEvent({
-        reminderId: receipt.reminderId,
-        userId: typeof receipt.ownerId === 'string' ? receipt.ownerId : '',
-        generation: Number(receipt.generation),
-        event: String(receipt.event),
-        origin: 'native',
-        occurredAt: Number.isFinite(receipt.atMs)
-          ? new Date(receipt.atMs).toISOString()
-          : undefined,
-      });
-      recorded += 1;
-    } catch (error) {
-      console.warn('[DeliveryReconciler] Could not record receipt:', error);
-    }
+  if (receipts && receipts.length > 0) {
+    db.transactionSync(tx => {
+      for (const receipt of receipts) {
+        if (!receipt || typeof receipt.reminderId !== 'string') continue;
+        try {
+          deliveryStore.recordEvent(
+            {
+              reminderId: receipt.reminderId,
+              userId:
+                typeof receipt.ownerId === 'string' ? receipt.ownerId : '',
+              generation: Number(receipt.generation),
+              event: String(receipt.event),
+              origin: 'native',
+              occurredAt: Number.isFinite(receipt.atMs)
+                ? new Date(receipt.atMs).toISOString()
+                : undefined,
+            },
+            tx,
+          );
+          recorded += 1;
+        } catch (error) {
+          console.warn('[DeliveryReconciler] Could not record receipt:', error);
+        }
+      }
+    });
   }
   return recorded;
 };
@@ -138,22 +155,29 @@ const matches = (
   job.registrationState === 'registered' &&
   job.registeredGeneration === job.generation;
 
+let latestRequestedOwner: string | null = null;
+
 const reconcile = async (
   activeUserId: string | null,
+  isStale: () => boolean = () => false,
 ): Promise<DeliveryReconcileSummary> => {
   const module = getNativeDeliveryModule();
-  if (!module) return emptySummary(false);
+  if (!module || isStale()) return emptySummary(Boolean(module));
   const summary = emptySummary(true);
   const owner = activeUserId && activeUserId.length > 0 ? activeUserId : null;
 
   if (module.setDeliveryOwner) {
     try {
-      await boundedNative(Promise.resolve(module.setDeliveryOwner(owner ?? '')), 'Delivery owner');
+      await boundedNative(
+        Promise.resolve(module.setDeliveryOwner(owner ?? '')),
+        'Delivery owner',
+      );
     } catch (error) {
       console.warn('[DeliveryReconciler] Could not set delivery owner:', error);
     }
   }
   summary.receipts = await drainNativeDeliveryReceipts();
+  if (isStale()) return summary;
 
   const now = Date.now();
   const jobs = deliveryStore.listWithTask();
@@ -171,9 +195,11 @@ const reconcile = async (
       console.warn('[DeliveryReconciler] Could not list registrations:', error);
     }
   }
+  if (isStale()) return summary;
 
   if (registrations) {
     for (const registration of registrations) {
+      if (isStale()) return summary;
       const job = byId.get(registration.reminderId);
       if (job && isDesired(job, owner, now) && matches(registration, job)) {
         covered.add(job.reminderId);
@@ -185,7 +211,10 @@ const reconcile = async (
         continue;
       }
       try {
-        await boundedNative(cancelReminderAlarm(registration.reminderId), 'Cancel');
+        await boundedNative(
+          cancelReminderAlarm(registration.reminderId),
+          'Cancel',
+        );
         summary.cancelled += 1;
         if (job) {
           deliveryStore.recordEvent({
@@ -211,6 +240,7 @@ const reconcile = async (
   }
 
   for (const job of jobs) {
+    if (isStale()) return summary;
     if (!isDesired(job, owner, now) || covered.has(job.reminderId)) continue;
     if (
       registrations === null &&
@@ -223,7 +253,9 @@ const reconcile = async (
     }
     try {
       await boundedNative(
-        Promise.resolve(scheduleReminderAlarm(job.reminderId, job.task, job.triggerAt)),
+        Promise.resolve(
+          scheduleReminderAlarm(job.reminderId, job.task, job.triggerAt),
+        ),
         'Registration',
       );
       summary.registered += 1;
@@ -237,6 +269,7 @@ const reconcile = async (
     }
   }
 
+  if (isStale()) return summary;
   try {
     deliveryStore.markSuppressed(owner);
   } catch (error) {
@@ -252,10 +285,13 @@ const reconcile = async (
  */
 export const reconcileReminderDelivery = (
   activeUserId: string | null,
-): Promise<DeliveryReconcileSummary> =>
-  serialized(async () => {
+): Promise<DeliveryReconcileSummary> => {
+  latestRequestedOwner = activeUserId;
+  const isStale = () => latestRequestedOwner !== activeUserId;
+  return serialized(async () => {
+    if (isStale()) return emptySummary(isNativeReminderDeliveryAvailable());
     try {
-      return await reconcile(activeUserId);
+      return await reconcile(activeUserId, isStale);
     } catch (error) {
       // Never an unhandled rejection from lifecycle callers; work stays in
       // SQLite and the next pass retries.
@@ -266,6 +302,7 @@ export const reconcileReminderDelivery = (
       };
     }
   });
+};
 
 /**
  * True when the foreground JS poller may dispatch this reminder: the native
@@ -360,12 +397,16 @@ export const reconcileIfDeliveryChanged = async (
     return null;
   }
   const summary = await reconcileReminderDelivery(ownerId);
-  try {
-    lastDeliveryFingerprint = {
-      owner: ownerId,
-      value: deliveryStore.changeFingerprint(ownerId),
-    };
-  } catch {
+  if (summary.failed === 0 && !summary.error) {
+    try {
+      lastDeliveryFingerprint = {
+        owner: ownerId,
+        value: deliveryStore.changeFingerprint(ownerId),
+      };
+    } catch {
+      lastDeliveryFingerprint = null;
+    }
+  } else {
     lastDeliveryFingerprint = null;
   }
   return summary;

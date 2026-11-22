@@ -21,6 +21,7 @@ import {
   removeAcademicMemories,
 } from './onboardingMemory';
 import {isUstpSchoolEnabled} from './ustpEligibility';
+import {MAX_ALARMS_PER_OWNER} from './alarmsStore';
 
 export interface GuestDataSummary {
   taskCount: number;
@@ -34,7 +35,9 @@ export interface GuestDataSummary {
 /** Same cap as Quiz Maker's saved list (MAX_SAVED_QUIZZES in src/skills/quizLogic). */
 const MAX_MERGED_QUIZZES = 12;
 
-const parseSkillsList = (raw: string): Array<Record<string, unknown>> | null => {
+const parseSkillsList = (
+  raw: string,
+): Array<Record<string, unknown>> | null => {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
@@ -69,7 +72,10 @@ function mergeSkillsList(
     ).rows?.[0] as {value?: unknown} | undefined;
   const guestRow = read(guestUserId);
   const cloudRow = read(cloudUserId);
-  if (typeof guestRow?.value !== 'string' || typeof cloudRow?.value !== 'string')
+  if (
+    typeof guestRow?.value !== 'string' ||
+    typeof cloudRow?.value !== 'string'
+  )
     return;
   const guestItems = parseSkillsList(guestRow.value);
   if (!guestItems?.length) return;
@@ -169,12 +175,47 @@ export const guestMigration = {
           now,
         ],
       );
+      let guestUsernameApplied = false;
       if (guestCustomName) {
-        tx.executeSync(
+        const res = tx.executeSync(
           `UPDATE users SET username = ?, updated_at = ? WHERE id = ? AND (username = ? OR username = '')`,
           [guestCustomName, now, cloudUserId, cloudEmail.split('@')[0]],
         );
+        guestUsernameApplied = (res.rowsAffected ?? 0) > 0;
       }
+
+      // Capture guest-owned rows before re-keying so Step 4 only enqueues
+      // newly migrated items rather than duplicating pre-existing cloud data.
+      const guestTasks =
+        tx.executeSync(
+          'SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL',
+          [GUEST_USER_ID],
+        ).rows ?? [];
+      const guestEvents =
+        tx.executeSync(
+          'SELECT * FROM events WHERE user_id = ? AND deleted_at IS NULL',
+          [GUEST_USER_ID],
+        ).rows ?? [];
+      const guestTimeBlocks =
+        tx.executeSync(
+          'SELECT * FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL',
+          [GUEST_USER_ID],
+        ).rows ?? [];
+      const guestReminders =
+        tx.executeSync(
+          'SELECT * FROM reminders WHERE user_id = ? AND deleted_at IS NULL',
+          [GUEST_USER_ID],
+        ).rows ?? [];
+      const guestNotes =
+        tx.executeSync(
+          'SELECT * FROM notes WHERE user_id = ? AND deleted_at IS NULL',
+          [GUEST_USER_ID],
+        ).rows ?? [];
+      const guestCategories =
+        tx.executeSync(
+          'SELECT * FROM custom_categories WHERE user_id = ? AND deleted_at IS NULL',
+          [GUEST_USER_ID],
+        ).rows ?? [];
 
       // 2. Re-key child entity tables
       tx.executeSync(`UPDATE tasks SET user_id = ? WHERE user_id = ?`, [
@@ -202,9 +243,12 @@ export const guestMigration = {
         [cloudUserId, GUEST_USER_ID],
       );
       tx.executeSync(
-        `UPDATE user_preferences SET user_id = ? WHERE user_id = ?`,
+        `UPDATE OR IGNORE user_preferences SET user_id = ? WHERE user_id = ?`,
         [cloudUserId, GUEST_USER_ID],
       );
+      tx.executeSync(`DELETE FROM user_preferences WHERE user_id = ?`, [
+        GUEST_USER_ID,
+      ]);
       tx.executeSync(
         `UPDATE job_queue_items SET user_id = ? WHERE user_id = ?`,
         [cloudUserId, GUEST_USER_ID],
@@ -337,13 +381,38 @@ export const guestMigration = {
         [GUEST_USER_ID],
       );
 
-      // 3. Remove old guest record if different
+      // 3. Migrate guest alarms up to owner limit, drop extras, then remove guest user
       if (cloudUserId !== GUEST_USER_ID) {
+        const existingAlarmCount = Number(
+          tx.executeSync('SELECT COUNT(*) AS n FROM alarms WHERE user_id = ?', [
+            cloudUserId,
+          ]).rows?.[0]?.n ?? 0,
+        );
+        const remainingAlarms = Math.max(
+          0,
+          MAX_ALARMS_PER_OWNER - existingAlarmCount,
+        );
+        if (remainingAlarms > 0) {
+          tx.executeSync(
+            `UPDATE alarms SET user_id = ?
+             WHERE id IN (
+               SELECT id FROM alarms WHERE user_id = ?
+               ORDER BY hour, minute, created_at
+               LIMIT ?
+             )`,
+            [cloudUserId, GUEST_USER_ID, remainingAlarms],
+          );
+        }
+        tx.executeSync(`DELETE FROM alarms WHERE user_id = ?`, [GUEST_USER_ID]);
         tx.executeSync(`DELETE FROM users WHERE id = ?`, [GUEST_USER_ID]);
       }
 
-      // The guest's session is replaced: its open confirmations are retired.
-      noteSessionChange();
+      // The guest's session is replaced: retire its open confirmations once committed.
+      if (tx.afterCommit) {
+        tx.afterCommit(() => noteSessionChange());
+      } else {
+        noteSessionChange();
+      }
       tx.executeSync('DELETE FROM active_session');
       tx.executeSync(
         `INSERT INTO active_session (user_id, created_at, updated_at) VALUES (?, ?, ?)`,
@@ -363,13 +432,12 @@ export const guestMigration = {
       tx.executeSync(`DELETE FROM sync_control WHERE user_id = ?`, [
         GUEST_USER_ID,
       ]);
+      tx.executeSync(`DELETE FROM sync_conflicts WHERE user_id = ?`, [
+        GUEST_USER_ID,
+      ]);
 
-      // 4. Enqueue a complete snapshot atomically with the ownership migration.
-      const tasks = tx.executeSync(
-        'SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL',
-        [cloudUserId],
-      );
-      tasks.rows?.forEach(row =>
+      // 4. Enqueue newly migrated guest snapshot atomically with the ownership migration.
+      guestTasks.forEach(row =>
         syncOutboxStore.enqueueMutation(
           cloudUserId,
           'task',
@@ -391,11 +459,7 @@ export const guestMigration = {
         ),
       );
 
-      const events = tx.executeSync(
-        'SELECT * FROM events WHERE user_id = ? AND deleted_at IS NULL',
-        [cloudUserId],
-      );
-      events.rows?.forEach(row =>
+      guestEvents.forEach(row =>
         syncOutboxStore.enqueueMutation(
           cloudUserId,
           'event',
@@ -416,11 +480,7 @@ export const guestMigration = {
         ),
       );
 
-      const timeBlocks = tx.executeSync(
-        'SELECT * FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL',
-        [cloudUserId],
-      );
-      timeBlocks.rows?.forEach(row =>
+      guestTimeBlocks.forEach(row =>
         syncOutboxStore.enqueueMutation(
           cloudUserId,
           'time_block',
@@ -442,11 +502,7 @@ export const guestMigration = {
         ),
       );
 
-      const reminders = tx.executeSync(
-        'SELECT * FROM reminders WHERE user_id = ? AND deleted_at IS NULL',
-        [cloudUserId],
-      );
-      reminders.rows?.forEach(row =>
+      guestReminders.forEach(row =>
         syncOutboxStore.enqueueMutation(
           cloudUserId,
           'reminder',
@@ -466,11 +522,7 @@ export const guestMigration = {
         ),
       );
 
-      const notes = tx.executeSync(
-        'SELECT * FROM notes WHERE user_id = ? AND deleted_at IS NULL',
-        [cloudUserId],
-      );
-      notes.rows?.forEach(row =>
+      guestNotes.forEach(row =>
         syncOutboxStore.enqueueMutation(
           cloudUserId,
           'note',
@@ -491,11 +543,7 @@ export const guestMigration = {
         ),
       );
 
-      const categories = tx.executeSync(
-        'SELECT * FROM custom_categories WHERE user_id = ? AND deleted_at IS NULL',
-        [cloudUserId],
-      );
-      categories.rows?.forEach(row =>
+      guestCategories.forEach(row =>
         syncOutboxStore.enqueueMutation(
           cloudUserId,
           'custom_category',
@@ -511,16 +559,25 @@ export const guestMigration = {
         ),
       );
 
-      syncOutboxStore.enqueueMutation(
-        cloudUserId,
-        'profile',
-        'profile',
-        'create',
-        buildProfileSyncPayload(cloudUserId, tx),
-        'account',
-        cloudUserId,
-        tx,
-      );
+      const existingProfileMeta = tx.executeSync(
+        `SELECT 1 FROM sync_metadata
+         WHERE user_id = ? AND scope_type = 'account' AND scope_id = ?
+           AND entity_type = 'profile' AND entity_id = 'profile'
+         LIMIT 1`,
+        [cloudUserId, cloudUserId],
+      ).rows?.[0];
+      if (!existingProfileMeta || guestUsernameApplied) {
+        syncOutboxStore.enqueueMutation(
+          cloudUserId,
+          'profile',
+          'profile',
+          existingProfileMeta ? 'update' : 'create',
+          buildProfileSyncPayload(cloudUserId, tx),
+          'account',
+          cloudUserId,
+          tx,
+        );
+      }
     });
   },
 };

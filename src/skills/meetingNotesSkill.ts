@@ -1,4 +1,4 @@
-import {cloudClient, CloudResult} from '../cloud';
+import {cloudClient, CloudResult, LONG_REQUEST_TIMEOUT_MS} from '../cloud';
 import {normalizeNotes} from '../meetings/meetingNotes';
 import type {MeetingNotes} from '../meetings/meetingNotes';
 import type {NotesSkill, SectionPromptInput} from '../meetings/notesPipeline';
@@ -38,6 +38,7 @@ export const meetingNotesSkill: NotesSkill = {
       '/v1/ai/meeting-notes/section',
       {
         method: 'POST',
+        timeoutMs: LONG_REQUEST_TIMEOUT_MS,
         body: JSON.stringify({
           content: input.transcript,
           index: input.sectionIndex,
@@ -64,6 +65,7 @@ export const meetingNotesSkill: NotesSkill = {
       '/v1/ai/meeting-notes/generate',
       {
         method: 'POST',
+        timeoutMs: LONG_REQUEST_TIMEOUT_MS,
         body: JSON.stringify({
           content,
           source: isDirect ? 'transcript' : 'sections',

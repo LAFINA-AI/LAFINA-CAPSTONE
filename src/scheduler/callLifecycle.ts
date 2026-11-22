@@ -21,10 +21,12 @@ export const sameCall = (a: CallRequest, b: CallRequest): boolean =>
   a.ownerId === b.ownerId &&
   a.generation === b.generation;
 
+type Executor = Pick<DatabaseTransaction, 'executeSync'>;
+
 /** Local-only metadata in lafina.db, never an eighth sync entity. */
 export const callLifecycle = {
-  list(owner: string): CallLease[] {
-    const row = db.executeSync(
+  list(owner: string, executor: Executor = db): CallLease[] {
+    const row = executor.executeSync(
       'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
       [owner, KEY],
     ).rows[0];
@@ -36,8 +38,8 @@ export const callLifecycle = {
         a.receivedAt - b.receivedAt,
     );
   },
-  write(owner: string, entries: CallLease[]): void {
-    db.executeSync(
+  write(owner: string, entries: CallLease[], executor: Executor = db): void {
+    executor.executeSync(
       `INSERT INTO local_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)
       ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       [owner, KEY, JSON.stringify(entries), new Date().toISOString()],
@@ -49,8 +51,8 @@ export const callLifecycle = {
     state: CallLease['state'] = 'queued',
     executor?: DatabaseTransaction,
   ): void {
-    const save = () => {
-      const entries = this.list(owner);
+    const save = (tx: Executor) => {
+      const entries = this.list(owner, tx);
       const existing = entries.find(entry => sameCall(entry.request, request));
       if (existing) {
         if (state !== 'queued') {
@@ -78,16 +80,21 @@ export const callLifecycle = {
           state,
         });
       }
-      this.write(owner, entries);
+      this.write(owner, entries, tx);
     };
-    if (executor) save();
-    else db.transactionSync(save);
+    if (executor) save(executor);
+    else db.transactionSync(tx => save(tx));
   },
-  remove(owner: string, request: CallRequest): void {
-    this.write(
-      owner,
-      this.list(owner).filter(entry => !sameCall(entry.request, request)),
-    );
+  remove(owner: string, request: CallRequest, executor?: Executor): void {
+    const run = (tx: Executor) => {
+      this.write(
+        owner,
+        this.list(owner, tx).filter(entry => !sameCall(entry.request, request)),
+        tx,
+      );
+    };
+    if (executor) run(executor);
+    else db.transactionSync(tx => run(tx));
   },
   expire(owner: string, request: CallRequest): void {
     const reminder = remindersStore.getReminderById(request.reminderId);
@@ -122,7 +129,7 @@ export const callLifecycle = {
               next.triggerAt,
             ).catch(() => undefined);
           });
-        this.remove(owner, request);
+        this.remove(owner, request, tx);
       });
     } else this.remove(owner, request);
   },

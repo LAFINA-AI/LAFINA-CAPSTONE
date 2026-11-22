@@ -70,10 +70,11 @@ interface UseNotesDataOptions {
   userId: string;
   refreshTrigger: number;
   onRefresh: () => void;
+  enabled?: boolean;
 }
 
 export const useNotesData = (options: UseNotesDataOptions) => {
-  const {userId, refreshTrigger, onRefresh} = options;
+  const {userId, refreshTrigger, onRefresh, enabled = true} = options;
 
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     const cats = notesStore.getCustomCategories(userId);
@@ -92,6 +93,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   });
   // Keep AGY's immediate first paint using the bounded, revision-aware page.
   const [initialPage] = useState(() => {
+    if (!enabled) return null;
     try {
       return notesQueryStore.page({
         userId,
@@ -273,13 +275,16 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   );
 
   const loadedQuery = useRef({
+    enabled,
     userId,
     refreshTrigger,
     filter: selectedFilter,
     search: '',
   });
   useEffect(() => {
+    if (!enabled) return;
     const next = {
+      enabled,
       userId,
       refreshTrigger,
       filter: selectedFilter,
@@ -298,13 +303,13 @@ export const useNotesData = (options: UseNotesDataOptions) => {
       loadedQuery.current = next;
       loadNotes();
     };
-    if (!searchChanged) {
+    if (!searchChanged || !previous.enabled) {
       run();
       return;
     }
     const timer = setTimeout(run, 150);
     return () => clearTimeout(timer);
-  }, [userId, refreshTrigger, selectedFilter, searchQuery, loadNotes]);
+  }, [enabled, userId, refreshTrigger, selectedFilter, searchQuery, loadNotes]);
 
   // A different account never sees, saves or deletes the previous one's note.
   const previousOwnerRef = useRef(userId);
@@ -473,7 +478,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
 
   const openEditNote = useCallback(
     (listed: NoteSnapshot) => {
-      if (isDragging) return;
+      if (isDragging || activeDragIdRef.current !== null) return;
       // Open the saved version as it is now, with its revision, not a stale card.
       const note = notesEditStore.getSnapshot(userId, listed.id);
       if (!note) {

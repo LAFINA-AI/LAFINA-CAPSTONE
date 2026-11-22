@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {DeviceEventEmitter, StyleSheet, View} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {ThemeProvider, useTheme} from '../contexts/ThemeContext';
@@ -60,8 +60,11 @@ const OrbColorSync: React.FC = () => {
  */
 export const QuickChatRoot: React.FC = () => {
   const [phase, setPhase] = useState<Phase>({kind: 'loading'});
+  const mountedRef = useRef(true);
+  const resolveGenRef = useRef(0);
 
   const resolve = useCallback(async () => {
+    const gen = ++resolveGenRef.current;
     // Once prepared in this JS runtime, a reopen skips the schema pass; the
     // health check below still runs every time.
     if (!storagePrepared || db.getHealth().status !== 'ready') {
@@ -73,6 +76,7 @@ export const QuickChatRoot: React.FC = () => {
         console.warn('[QuickChat] Storage is not ready:', error);
       }
     }
+    if (!mountedRef.current || resolveGenRef.current !== gen) return;
     const health = db.getHealth();
     if (health.status === 'unavailable' || health.status === 'quarantined') {
       setPhase({kind: 'panel', state: 'storage', userId: null});
@@ -89,6 +93,7 @@ export const QuickChatRoot: React.FC = () => {
     } catch (error) {
       console.warn('[QuickChat] Current student could not be read:', error);
     }
+    if (!mountedRef.current || resolveGenRef.current !== gen) return;
     if (!user || user.isNewUser) {
       setPhase({kind: 'panel', state: 'no_user', userId: null});
       return;
@@ -97,6 +102,7 @@ export const QuickChatRoot: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     // Mounting means the activity was just created and is coming to the front.
     quickChatPresence.setOpen(true);
     void resolve();
@@ -105,6 +111,8 @@ export const QuickChatRoot: React.FC = () => {
       if (quickChatPresence.isOpen()) void resolve();
     });
     return () => {
+      mountedRef.current = false;
+      resolveGenRef.current += 1;
       unsubscribe();
       quickChatPresence.setOpen(false);
     };

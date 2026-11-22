@@ -66,7 +66,7 @@ interface DayIndicators {
   titles: Set<string>;
 }
 
-export const MonthView: React.FC<MonthViewProps> = ({
+export const MonthView: React.FC<MonthViewProps> = React.memo(({
   currentDate,
   selectedDate,
   weekStartsMonday,
@@ -325,8 +325,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 numColor = '#FFFFFF';
               }
 
-              const pillState = isToday ? 'today' : isSelected ? 'sel' : 'idle';
-
               return (
                 <TouchableOpacity
                   key={dateStr}
@@ -337,7 +335,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   accessibilityState={{selected: isSelected}}
                 >
                   <View
-                    key={`pill-${dateStr}-${pillState}`}
+                    key={`pill-${dateStr}`}
                     collapsable={false}
                     style={[styles.dayPill, {backgroundColor: pillBg}]}
                   >
@@ -522,7 +520,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   wrapper: {

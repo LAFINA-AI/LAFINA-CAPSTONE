@@ -90,6 +90,40 @@ export const storageErrorMessage = (error: unknown): string => {
 const describeQuery = (query: string): string =>
   query.replace(/\s+/g, ' ').trim().slice(0, 120);
 
+const extractLocalSettingsNamespace = (
+  query: string,
+  params: unknown[],
+): string | null => {
+  const normalized = query.replace(/\s+/g, ' ').trim();
+  if (
+    /^INSERT(?:\s+OR\s+\w+)?\s+INTO\s+["`[]?local_settings["`\]]?\s*\(\s*user_id\s*,\s*key\b/i.test(
+      normalized,
+    )
+  ) {
+    const key = params[1];
+    return typeof key === 'string' && key ? key.split('.')[0] : null;
+  }
+  if (
+    /^(?:DELETE\s+FROM|UPDATE(?:\s+OR\s+\w+)?)\s+["`[]?local_settings["`\]]?\b/i.test(
+      normalized,
+    )
+  ) {
+    const whereMatch =
+      /\bWHERE\s+user_id\s*=\s*\?\s+AND\s+key\s*=\s*\?(?:\s+LIMIT\s+\d+)?\s*;?$/i.exec(
+        normalized,
+      );
+    if (whereMatch) {
+      const prefix = normalized.slice(0, whereMatch.index);
+      if (!prefix.includes("'")) {
+        const prefixParams = (prefix.match(/\?/g) ?? []).length;
+        const key = params[prefixParams + 1];
+        return typeof key === 'string' && key ? key.split('.')[0] : null;
+      }
+    }
+  }
+  return null;
+};
+
 export class DatabaseService {
   private readonly openConnection: () => NativeSQLiteConnection;
   private dbInstance: NativeSQLiteConnection | null = null;
@@ -103,20 +137,33 @@ export class DatabaseService {
   }
   private readonly tableRevisions = new Map<string, number>();
   private readonly pendingTables = new Set<string>();
+  private readonly externalInvalidations = new Set<string>();
   private readonly dataListeners = new Set<() => void>();
   private notificationPending = false;
 
   /** Native Android writers are reconciled on resume, outside JS executeSync. */
   public invalidateData(tables: readonly string[]): void {
-    for (const table of tables) this.pendingTables.add(table);
+    for (const table of tables) {
+      this.externalInvalidations.add(table);
+      if (table === 'local_settings') {
+        this.externalInvalidations.add('local_settings:*');
+      }
+    }
     if (!this.activeTransaction) this.publishDataChanges();
   }
 
   public getDataRevision(tables: readonly string[]): number {
-    return Math.max(
-      this.tableRevisions.get('*') ?? 0,
-      ...tables.map(table => this.tableRevisions.get(table) ?? 0),
-    );
+    const wildcard = this.tableRevisions.get('*') ?? 0;
+    const localSettingsAll = this.tableRevisions.get('local_settings:*') ?? 0;
+    let maxRevision = wildcard;
+    for (const table of tables) {
+      let rev = this.tableRevisions.get(table) ?? 0;
+      if (table.startsWith('local_settings:') && localSettingsAll > rev) {
+        rev = localSettingsAll;
+      }
+      if (rev > maxRevision) maxRevision = rev;
+    }
+    return maxRevision;
   }
 
   public subscribeDataChanges = (listener: () => void): (() => void) => {
@@ -127,11 +174,14 @@ export class DatabaseService {
   };
 
   private publishDataChanges(): void {
-    if (!this.pendingTables.size) return;
+    if (!this.pendingTables.size && !this.externalInvalidations.size) return;
     const version = ++this.dataSequence;
     for (const table of this.pendingTables)
       this.tableRevisions.set(table, version);
+    for (const table of this.externalInvalidations)
+      this.tableRevisions.set(table, version);
     this.pendingTables.clear();
+    this.externalInvalidations.clear();
     if (this.notificationPending) return;
     this.notificationPending = true;
     // Notify after the complete stack/transaction, never in a render-time read.
@@ -203,6 +253,12 @@ export class DatabaseService {
           ?.toLowerCase();
       if (table && res.rowsAffected) {
         this.pendingTables.add(table);
+        if (table === 'local_settings') {
+          const ns = extractLocalSettingsNamespace(query, sanitizedParams);
+          this.pendingTables.add(
+            ns ? `local_settings:${ns}` : 'local_settings:*',
+          );
+        }
         if (!this.activeTransaction) this.publishDataChanges();
       }
       return {
@@ -289,6 +345,7 @@ export class DatabaseService {
       this.activeTransaction = null;
       this.pendingTables.clear();
       this.rollback();
+      this.publishDataChanges();
       throw error;
     }
     this.activeTransaction = null;

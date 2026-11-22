@@ -99,7 +99,15 @@ export const ThemeProvider: React.FC<{
       () => initialModernAiButtonDesign ?? getSavedModernAiButtonDesign(userId),
     );
 
+  const loadedDarkKeyRef = useRef(
+    `${userId ?? ''}:${systemScheme ?? ''}:${refreshTrigger ?? ''}`,
+  );
   useEffect(() => {
+    const nextKey = `${userId ?? ''}:${systemScheme ?? ''}:${
+      refreshTrigger ?? ''
+    }`;
+    if (loadedDarkKeyRef.current === nextKey) return;
+    loadedDarkKeyRef.current = nextKey;
     if (userId) {
       setIsDarkMode(userStore.getDarkModeEnabled(userId));
     } else {
@@ -107,7 +115,15 @@ export const ThemeProvider: React.FC<{
     }
   }, [userId, systemScheme, refreshTrigger]);
 
+  const loadedVariantKeyRef = useRef(
+    `${userId ?? ''}:${refreshTrigger ?? ''}:${initialUIVariant ?? ''}`,
+  );
   useEffect(() => {
+    const nextKey = `${userId ?? ''}:${refreshTrigger ?? ''}:${
+      initialUIVariant ?? ''
+    }`;
+    if (loadedVariantKeyRef.current === nextKey) return;
+    loadedVariantKeyRef.current = nextKey;
     if (initialUIVariant) {
       setUIVariantState(initialUIVariant);
       return;
@@ -115,7 +131,15 @@ export const ThemeProvider: React.FC<{
     setUIVariantState(getSavedUIVariant(userId));
   }, [userId, refreshTrigger, initialUIVariant]);
 
+  const loadedThemeKeyRef = useRef(
+    `${userId ?? ''}:${refreshTrigger ?? ''}:${initialModernTheme ?? ''}`,
+  );
   useEffect(() => {
+    const nextKey = `${userId ?? ''}:${refreshTrigger ?? ''}:${
+      initialModernTheme ?? ''
+    }`;
+    if (loadedThemeKeyRef.current === nextKey) return;
+    loadedThemeKeyRef.current = nextKey;
     if (initialModernTheme) {
       setModernThemeState(initialModernTheme);
       return;
@@ -123,7 +147,17 @@ export const ThemeProvider: React.FC<{
     setModernThemeState(getSavedModernTheme(userId));
   }, [userId, refreshTrigger, initialModernTheme]);
 
+  const loadedAiDesignKeyRef = useRef(
+    `${userId ?? ''}:${refreshTrigger ?? ''}:${
+      initialModernAiButtonDesign ?? ''
+    }`,
+  );
   useEffect(() => {
+    const nextKey = `${userId ?? ''}:${refreshTrigger ?? ''}:${
+      initialModernAiButtonDesign ?? ''
+    }`;
+    if (loadedAiDesignKeyRef.current === nextKey) return;
+    loadedAiDesignKeyRef.current = nextKey;
     if (initialModernAiButtonDesign) {
       setModernAiButtonDesignState(initialModernAiButtonDesign);
       return;

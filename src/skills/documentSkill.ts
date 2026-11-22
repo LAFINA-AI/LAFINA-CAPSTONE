@@ -230,6 +230,8 @@ export const documentSkill = {
         '/v1/ai/documents',
         {
           method: 'POST',
+          // The skill's own timer above decides; this only lifts the default cap.
+          timeoutMs,
           body: JSON.stringify({
             format: params.format,
             messages,

@@ -108,21 +108,25 @@ const parse = (raw: unknown): EventMemorySnapshot => {
     typeof value.enabled !== 'boolean' ||
     !Number.isFinite(Date.parse(value.createdAt)) ||
     !Number.isFinite(Date.parse(value.updatedAt)) ||
-    (value.value !== null && (typeof value.value !== 'object' || !validValue(value.value)))
+    (value.value !== null &&
+      (typeof value.value !== 'object' || !validValue(value.value)))
   ) {
     throw new EventMemoryError('unreadable', 'Saved preferences unavailable.');
   }
   return value;
 };
 
-const read = (userId: string, tx: DatabaseTransaction = db): EventMemorySnapshot => {
+const read = (
+  userId: string,
+  tx: DatabaseTransaction = db,
+): EventMemorySnapshot => {
   if (!userId || userId.length > 256) {
     throw new EventMemoryError('owner_changed', 'Preference owner required.');
   }
-  const raw = tx.executeSync('SELECT value FROM local_settings WHERE user_id = ? AND key = ?', [
-    userId,
-    EVENT_MEMORY_KEY,
-  ]).rows?.[0]?.value;
+  const raw = tx.executeSync(
+    'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+    [userId, EVENT_MEMORY_KEY],
+  ).rows?.[0]?.value;
   return raw == null ? EMPTY() : parse(raw);
 };
 
@@ -132,16 +136,22 @@ const read = (userId: string, tx: DatabaseTransaction = db): EventMemorySnapshot
  * not treated as a change.
  */
 const assertActive = (userId: string, tx: DatabaseTransaction = db): void => {
-  const owner = tx.executeSync('SELECT user_id FROM active_session LIMIT 1').rows?.[0]?.user_id;
+  const owner = tx.executeSync('SELECT user_id FROM active_session LIMIT 1')
+    .rows?.[0]?.user_id;
   if (!userId || (owner != null && String(owner) !== userId)) {
-    throw new EventMemoryError('owner_changed', 'Account changed. Reopen preferences.');
+    throw new EventMemoryError(
+      'owner_changed',
+      'Account changed. Reopen preferences.',
+    );
   }
 };
 
 const write = (
   userId: string,
   expected: number,
-  change: (before: EventMemorySnapshot) => Pick<EventMemorySnapshot, 'enabled' | 'value'>,
+  change: (
+    before: EventMemorySnapshot,
+  ) => Pick<EventMemorySnapshot, 'enabled' | 'value'>,
 ): EventMemorySnapshot =>
   db.transactionSync(tx => {
     assertActive(userId, tx);
@@ -168,7 +178,9 @@ const write = (
 const describe = (value: EventMemoryValue): string => {
   const start = value.startTime ?? 'not saved';
   const duration =
-    value.durationMinutes === null ? 'not saved' : `${value.durationMinutes} minutes`;
+    value.durationMinutes === null
+      ? 'not saved'
+      : `${value.durationMinutes} minutes`;
   const expiry = value.expiresAt ? value.expiresAt.slice(0, 10) : 'never';
   return `Start ${start}; duration ${duration}; expires ${expiry}.`;
 };
@@ -180,7 +192,10 @@ export const personalMemoryStore = {
   describe,
 
   /** A short-lived private review. Saves nothing and enables nothing. */
-  prepare: (userId: string, input: EventMemoryInput): {token: string; summary: string} => {
+  prepare: (
+    userId: string,
+    input: EventMemoryInput,
+  ): {token: string; summary: string} => {
     assertActive(userId);
     if (!(EXPIRY_CHOICES as readonly number[]).includes(input.expiresDays)) {
       throw new EventMemoryError('invalid', 'Choose an expiry.');
@@ -189,9 +204,14 @@ export const personalMemoryStore = {
     const value: EventMemoryValue = {
       startTime: input.startTime,
       durationMinutes: input.durationMinutes,
-      expiresAt: input.expiresDays ? new Date(now + input.expiresDays * DAY_MS).toISOString() : null,
+      expiresAt: input.expiresDays
+        ? new Date(now + input.expiresDays * DAY_MS).toISOString()
+        : null,
     };
-    if (!validValue(value) || (value.startTime === null && value.durationMinutes === null)) {
+    if (
+      !validValue(value) ||
+      (value.startTime === null && value.durationMinutes === null)
+    ) {
       throw new EventMemoryError(
         'invalid',
         `Enter a start time (HH:MM), a duration of ${MIN_DURATION_MINUTES}–${MAX_DURATION_MINUTES} minutes, or both.`,
@@ -199,7 +219,8 @@ export const personalMemoryStore = {
     }
     const revision = read(userId).revision;
     for (const [key, item] of reviews) {
-      if (now - item.issuedAt > REVIEW_TTL_MS || item.userId === userId) reviews.delete(key);
+      if (now - item.issuedAt > REVIEW_TTL_MS || item.userId === userId)
+        reviews.delete(key);
     }
     while (reviews.size >= MAX_REVIEWS) {
       const oldest = reviews.keys().next().value;
@@ -210,7 +231,9 @@ export const personalMemoryStore = {
     reviews.set(token, {userId, revision, value, issuedAt: now});
     return {
       token,
-      summary: `${describe(value)} Offered on new event drafts on this device; nothing changes until you tap Apply.`,
+      summary: `${describe(
+        value,
+      )} Offered on new event drafts on this device; nothing changes until you tap Apply.`,
     };
   },
 
@@ -220,9 +243,15 @@ export const personalMemoryStore = {
     const age = Date.now() - (review?.issuedAt ?? 0);
     if (!review || review.userId !== userId || age < 0 || age > REVIEW_TTL_MS) {
       reviews.delete(token);
-      throw new EventMemoryError('review_expired', 'Review expired. Review again.');
+      throw new EventMemoryError(
+        'review_expired',
+        'Review expired. Review again.',
+      );
     }
-    const saved = write(userId, review.revision, () => ({enabled: true, value: review.value}));
+    const saved = write(userId, review.revision, () => ({
+      enabled: true,
+      value: review.value,
+    }));
     reviews.delete(token);
     return saved;
   },
@@ -232,7 +261,11 @@ export const personalMemoryStore = {
   },
 
   /** Turns offers on or off. Saved events are never touched. */
-  setEnabled: (userId: string, enabled: boolean, expected?: number): EventMemorySnapshot =>
+  setEnabled: (
+    userId: string,
+    enabled: boolean,
+    expected?: number,
+  ): EventMemorySnapshot =>
     write(userId, expected ?? read(userId).revision, before => ({
       enabled: enabled && before.value !== null,
       value: before.value,
@@ -249,8 +282,11 @@ export const personalMemoryStore = {
     }
     return write(userId, expected ?? read(userId).revision, before => {
       let value: EventMemoryValue | null =
-        field === 'all' || !before.value ? null : {...before.value, [field]: null};
-      if (value && value.startTime === null && value.durationMinutes === null) value = null;
+        field === 'all' || !before.value
+          ? null
+          : {...before.value, [field]: null};
+      if (value && value.startTime === null && value.durationMinutes === null)
+        value = null;
       return {enabled: value !== null && before.enabled, value};
     });
   },
@@ -266,11 +302,17 @@ export const personalMemoryStore = {
       !Number.isFinite(now) ||
       // A clock set back before the last save cannot be trusted with expiry.
       now < Date.parse(current.updatedAt) ||
-      (current.value.expiresAt !== null && Date.parse(current.value.expiresAt) <= now)
+      (current.value.expiresAt !== null &&
+        Date.parse(current.value.expiresAt) <= now)
     ) {
       return null;
     }
-    return {userId, revision: current.revision, value: {...current.value}, issuedAt: now};
+    return {
+      userId,
+      revision: current.revision,
+      value: {...current.value},
+      issuedAt: now,
+    };
   },
 
   /** Revalidates an offer just before it edits a draft. Never writes an event. */
@@ -285,7 +327,10 @@ export const personalMemoryStore = {
       age > REVIEW_TTL_MS ||
       JSON.stringify(offer.value) !== JSON.stringify(current.value)
     ) {
-      throw new EventMemoryError('stale', 'Saved defaults changed. Reopen the new event.');
+      throw new EventMemoryError(
+        'stale',
+        'Saved defaults changed. Reopen the new event.',
+      );
     }
     return {...current.value};
   },
@@ -296,18 +341,19 @@ export const personalMemoryStore = {
    * disabled revision fence so a review or offer issued earlier cannot save or
    * apply them afterwards. Owner-checked; other owners are untouched.
    */
-  clearForDataReset: (userId: string): void => {
-    db.transactionSync(tx => {
+  clearForDataReset: (userId: string, executor?: DatabaseTransaction): void => {
+    const apply = (tx: DatabaseTransaction): void => {
       assertActive(userId, tx);
-      const raw = tx.executeSync('SELECT value FROM local_settings WHERE user_id = ? AND key = ?', [
-        userId,
-        EVENT_MEMORY_KEY,
-      ]).rows?.[0]?.value;
+      const raw = tx.executeSync(
+        'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+        [userId, EVENT_MEMORY_KEY],
+      ).rows?.[0]?.value;
       let revision = 0;
       if (raw != null) {
         try {
           const parsed = JSON.parse(String(raw)) as {revision?: unknown};
-          if (Number.isSafeInteger(parsed?.revision)) revision = Number(parsed.revision);
+          if (Number.isSafeInteger(parsed?.revision))
+            revision = Number(parsed.revision);
         } catch {
           // Unreadable: it is replaced by the fence below.
         }
@@ -326,9 +372,18 @@ export const personalMemoryStore = {
          ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         [userId, EVENT_MEMORY_KEY, JSON.stringify(fence), now],
       );
-    });
-    for (const [token, review] of reviews) {
-      if (review.userId === userId) reviews.delete(token);
+    };
+    const clearReviews = (): void => {
+      for (const [token, review] of reviews) {
+        if (review.userId === userId) reviews.delete(token);
+      }
+    };
+    if (executor) {
+      apply(executor);
+      executor.afterCommit?.(clearReviews);
+    } else {
+      db.transactionSync(apply);
+      clearReviews();
     }
   },
 
@@ -338,12 +393,16 @@ export const personalMemoryStore = {
    * The guest keeps only a disabled revision fence, so an old review cannot
    * bring the values back for a later guest on this device.
    */
-  transferFromGuest: (tx: DatabaseTransaction, cloudUserId: string, now: string): void => {
+  transferFromGuest: (
+    tx: DatabaseTransaction,
+    cloudUserId: string,
+    now: string,
+  ): void => {
     if (cloudUserId === GUEST_USER_ID) return;
-    const raw = tx.executeSync('SELECT value FROM local_settings WHERE user_id = ? AND key = ?', [
-      GUEST_USER_ID,
-      EVENT_MEMORY_KEY,
-    ]).rows?.[0]?.value;
+    const raw = tx.executeSync(
+      'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+      [GUEST_USER_ID, EVENT_MEMORY_KEY],
+    ).rows?.[0]?.value;
     if (raw == null) return;
     tx.executeSync(
       'INSERT OR IGNORE INTO local_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)',
@@ -352,7 +411,8 @@ export const personalMemoryStore = {
     let revision = 0;
     try {
       const parsed = JSON.parse(String(raw)) as {revision?: unknown};
-      if (Number.isSafeInteger(parsed?.revision)) revision = Number(parsed.revision);
+      if (Number.isSafeInteger(parsed?.revision))
+        revision = Number(parsed.revision);
     } catch {
       // A malformed original moved only to an account that had none; the fence still applies.
     }
@@ -364,12 +424,10 @@ export const personalMemoryStore = {
       createdAt: now,
       updatedAt: now,
     };
-    tx.executeSync('UPDATE local_settings SET value = ?, updated_at = ? WHERE user_id = ? AND key = ?', [
-      JSON.stringify(fence),
-      now,
-      GUEST_USER_ID,
-      EVENT_MEMORY_KEY,
-    ]);
+    tx.executeSync(
+      'UPDATE local_settings SET value = ?, updated_at = ? WHERE user_id = ? AND key = ?',
+      [JSON.stringify(fence), now, GUEST_USER_ID, EVENT_MEMORY_KEY],
+    );
   },
 };
 
@@ -385,7 +443,9 @@ export const applyEventMemoryToDraft = (
   };
   const fromMinutes = (total: number): string => {
     const wrapped = ((total % 1440) + 1440) % 1440;
-    return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
+    return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(
+      wrapped % 60,
+    ).padStart(2, '0')}`;
   };
   const start = value.startTime ?? draft.time;
   const startMinutes = toMinutes(start);
@@ -395,7 +455,9 @@ export const applyEventMemoryToDraft = (
     const oldStart = toMinutes(draft.time);
     const oldEnd = toMinutes(draft.endTime);
     duration =
-      oldStart !== null && oldEnd !== null ? ((oldEnd - oldStart + 1440) % 1440) || 60 : 60;
+      oldStart !== null && oldEnd !== null
+        ? (oldEnd - oldStart + 1440) % 1440 || 60
+        : 60;
   }
   return {time: start, endTime: fromMinutes(startMinutes + duration)};
 };

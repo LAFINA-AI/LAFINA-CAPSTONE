@@ -1,12 +1,12 @@
-import { db, DatabaseTransaction } from './database';
-import { syncMetadataStore } from './syncMetadataStore';
+import {db, DatabaseTransaction} from './database';
+import {syncMetadataStore} from './syncMetadataStore';
 import {
   SyncEntityType,
   SyncOperation,
   SyncPayload,
   SyncScopeType,
 } from './syncTypes';
-import { generateId } from '../utils';
+import {generateId} from '../utils';
 
 export interface OutboxItem {
   id: string;
@@ -38,7 +38,7 @@ export type OutboxEnqueueListener = (localUserId: string) => void;
 const enqueueListeners = new Set<OutboxEnqueueListener>();
 
 const notifyEnqueued = (localUserId: string): void => {
-  enqueueListeners.forEach((listener) => {
+  enqueueListeners.forEach(listener => {
     try {
       listener(localUserId);
     } catch (error) {
@@ -133,7 +133,12 @@ export const syncOutboxStore = {
           scopeId,
         ],
       );
-      notifyEnqueued(localUserId);
+      const scheduleNotify = () => notifyEnqueued(localUserId);
+      if (executor?.afterCommit) {
+        executor.afterCommit(scheduleNotify);
+      } else {
+        scheduleNotify();
+      }
       return;
     }
 
@@ -170,7 +175,11 @@ export const syncOutboxStore = {
         now,
       ],
     );
-    notifyEnqueued(localUserId);
+    if (executor?.afterCommit) {
+      executor.afterCommit(() => notifyEnqueued(localUserId));
+    } else {
+      notifyEnqueued(localUserId);
+    }
   },
 
   onEnqueue: (listener: OutboxEnqueueListener): (() => void) => {
@@ -254,7 +263,7 @@ export const syncOutboxStore = {
       [localUserId, scopeType, scopeId, ...(entityTypes ?? []), limit],
     );
 
-    return (result.rows ?? []).map((row) => ({
+    return (result.rows ?? []).map(row => ({
       id: String(row.id),
       localUserId: String(row.user_id),
       scopeType: row.scope_type as SyncScopeType,

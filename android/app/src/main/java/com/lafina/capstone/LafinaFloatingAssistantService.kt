@@ -326,7 +326,7 @@ class LafinaFloatingAssistantService : Service(), FloatingOrbView.Listener {
         return START_NOT_STICKY
       }
       // Runs after the window's first traversal, when it is on screen.
-      view.post { if (!startForegroundSafely()) shutDown() }
+      view.post { if (!shuttingDown && !startForegroundSafely()) shutDown() }
       return START_STICKY
     }
     if (!startForegroundSafely()) {

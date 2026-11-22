@@ -1,3 +1,4 @@
+import {useScreenActive} from '../../navigation/RetainedTab';
 import {SkillHalo} from './SkillMotion';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
@@ -57,16 +58,28 @@ export function PomodoroSkill({
   onLaunchHandled?: (id: string) => void;
 }) {
   const p = useSkillsPalette();
+  const screenActive = useScreenActive();
   const native = NativeModules.LafinaFocus as FocusNative | undefined;
-  const [timer, setTimer] = useState<PomodoroState>(() =>
-    reconcilePomodoro(
-      readSkillState(userId, 'pomodoro', newPomodoro()),
-      Date.now(),
-    ),
-  );
+  const completedOnMountRef = useRef(false);
+  const [timer, setTimer] = useState<PomodoroState>(() => {
+    const stored = readSkillState(userId, 'pomodoro', newPomodoro());
+    const reconciled = reconcilePomodoro(stored, Date.now());
+    if (stored.deadline && reconciled.deadline === null) {
+      completedOnMountRef.current = true;
+    }
+    return reconciled;
+  });
   const ref = useRef(timer);
   ref.current = timer;
   const busy = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  const [appState, setAppState] = useState(AppState.currentState);
   const [notice, setNotice] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [pickTask, setPickTask] = useState(false);
@@ -81,39 +94,53 @@ export function PomodoroSkill({
     (state: PomodoroState) => {
       try {
         writeSkillState(userId, 'pomodoro', state);
+        if (!mountedRef.current) return;
         ref.current = state;
         setTimer(state);
       } catch (e) {
-        setErrorMsg((e as Error).message || 'Could not save timer.');
+        if (mountedRef.current) {
+          setErrorMsg((e as Error).message || 'Could not save timer.');
+        }
       }
     },
     [userId],
   );
-  useEffect(() => {
-    const refresh = () => {
-      const current = ref.current;
-      const next = reconcilePomodoro(current, Date.now());
-      if (current.deadline && next.deadline === null) {
-        save(next);
+  const refresh = useCallback(() => {
+    const current = ref.current;
+    const next = reconcilePomodoro(current, Date.now());
+    if (current.deadline && next.deadline === null) {
+      save(next);
+      if (mountedRef.current) {
         setNotice('Session complete. Choose when to start the next session.');
-      } else setTimer(next);
-    };
-    // Persist any completion reconciled from a session that ended with JS suspended.
-    save(ref.current);
-    const t = setInterval(refresh, 1000);
+      }
+    } else if (mountedRef.current) {
+      setTimer(next);
+    }
+  }, [save]);
+  useEffect(() => {
+    if (completedOnMountRef.current) {
+      completedOnMountRef.current = false;
+      save(ref.current);
+    }
+  }, [save]);
+  useEffect(() => {
     const sub = AppState.addEventListener('change', s => {
+      setAppState(s);
       if (s === 'active') refresh();
     });
-    return () => {
-      clearInterval(t);
-      sub.remove();
-    };
-  }, [save]);
+    return () => sub.remove();
+  }, [refresh]);
+  useEffect(() => {
+    if (!timer.deadline || !screenActive || appState !== 'active') return;
+    refresh();
+    const t = setInterval(refresh, 1000);
+    return () => clearInterval(t);
+  }, [timer.deadline, screenActive, appState, refresh]);
   // LAFINA can pause or resume the timer during a call; show what she did.
   useEffect(
     () =>
       subscribePomodoro(userId, () => {
-        if (busy.current) return;
+        if (busy.current || !mountedRef.current) return;
         const next = readPomodoro(userId);
         ref.current = next;
         setTimer(next);
@@ -131,12 +158,16 @@ export function PomodoroSkill({
     try {
       // Save first; a failed local write must not start a timer the UI cannot restore.
       const result = await applyPomodoro(userId, draft, options);
-      save(result.state);
+      if (!mountedRef.current) return false;
+      ref.current = result.state;
+      setTimer(result.state);
       if (result.notice) setNotice(result.notice);
       if (result.error) setErrorMsg(result.error);
       return true;
     } catch (e) {
-      setErrorMsg((e as Error).message || 'Could not save timer.');
+      if (mountedRef.current) {
+        setErrorMsg((e as Error).message || 'Could not save timer.');
+      }
       return false;
     } finally {
       busy.current = false;

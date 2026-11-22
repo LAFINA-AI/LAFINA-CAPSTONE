@@ -1,5 +1,5 @@
 import {ScreenOverlays} from '../navigation/RetainedTab';
-import React, {useCallback, useState, useEffect, useRef} from 'react';
+import React, {useCallback, useMemo, useState, useEffect, useRef} from 'react';
 import {
   Alert,
   DeviceEventEmitter,
@@ -21,7 +21,12 @@ import {
   Shadows,
 } from '../theme';
 import {LafinaSynthOrb} from '../components/CustomTabBar';
-import {preferencesStore, userStore, avatarSeedStore} from '../../storage';
+import {
+  localSettingsStore,
+  preferencesStore,
+  userStore,
+  avatarSeedStore,
+} from '../../storage';
 import type {UserPreferences, User, AcademicProfileRecord} from '../../storage';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
@@ -236,6 +241,35 @@ const readCallSettingsSummary = (userId: string): string => {
   }
 };
 
+const readEventDefaultsSummary = (userId: string): string => {
+  try {
+    const saved = personalMemoryStore.read(userId);
+    return saved.enabled && saved.value ? 'On' : 'Off';
+  } catch {
+    return 'Unavailable';
+  }
+};
+
+const readVoiceSummary = (userId: string): string => {
+  try {
+    return speechSettingsStore.read(userId).explicit ? 'Custom' : 'Default';
+  } catch {
+    return 'Unavailable';
+  }
+};
+
+const DETAILED_SUMMARIES_KEY = 'ai.detailedSummaries';
+
+const readDetailedSummariesEnabled = (userId: string): boolean => {
+  try {
+    return (
+      localSettingsStore.get(userId, DETAILED_SUMMARIES_KEY, 'false') === 'true'
+    );
+  } catch {
+    return false;
+  }
+};
+
 interface ProfileScreenProps {
   userId: string;
   refreshTrigger: number;
@@ -359,9 +393,13 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   const [chatMemorySummary, setChatMemorySummary] = useState(
     readChatMemorySummary,
   );
-  const [eventDefaultsSummary, setEventDefaultsSummary] = useState('Off');
+  const [eventDefaultsSummary, setEventDefaultsSummary] = useState(() =>
+    readEventDefaultsSummary(userId),
+  );
   const [voiceVisible, setVoiceVisible] = useState(false);
-  const [voiceSummary, setVoiceSummary] = useState('Default');
+  const [voiceSummary, setVoiceSummary] = useState(() =>
+    readVoiceSummary(userId),
+  );
   const [onlineVoiceVisible, setOnlineVoiceVisible] = useState(false);
   const [onlineVoiceSummary, setOnlineVoiceSummary] = useState(() => {
     try {
@@ -391,7 +429,17 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       return false;
     }
   });
-  const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(false);
+  const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(() =>
+    readDetailedSummariesEnabled(userId),
+  );
+  const handleDetailedSummariesChange = (enabled: boolean) => {
+    setSummaryStyleDetailed(enabled);
+    localSettingsStore.set(
+      userId,
+      DETAILED_SUMMARIES_KEY,
+      enabled ? 'true' : 'false',
+    );
+  };
   const replyFormat = useChatReplyFormat(userId);
   const handleMarkdownRepliesChange = (enabled: boolean) => {
     if (!chatReplyFormatStore.save(userId, enabled ? 'markdown' : 'plain')) {
@@ -553,9 +601,13 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     avatarSeedStore.getOrCreate(userId),
   );
 
+  const prevUserSetupRef = useRef(userId);
   useEffect(() => {
-    setSubjectsExpanded(false);
-    setAvatarSeed(avatarSeedStore.getOrCreate(userId));
+    if (prevUserSetupRef.current !== userId) {
+      prevUserSetupRef.current = userId;
+      setSubjectsExpanded(false);
+      setAvatarSeed(avatarSeedStore.getOrCreate(userId));
+    }
     const memorySub = DeviceEventEmitter.addListener(
       CHAT_MEMORY_CHANGED_EVENT,
       (event: {userId?: string} | undefined) => {
@@ -592,6 +644,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     setStudentSetup(studentSetupStore.get(userId));
     setAvatarSeed(avatarSeedStore.getOrCreate(userId));
     setChatMemorySummary(readChatMemorySummary());
+    setSummaryStyleDetailed(readDetailedSummariesEnabled(userId));
 
     const mondayStart = userStore.getWeekStartsMonday(userId);
     setWeekStartsMonday(mondayStart);
@@ -610,22 +663,11 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   };
 
   const loadVoiceSummary = () => {
-    try {
-      setVoiceSummary(
-        speechSettingsStore.read(userId).explicit ? 'Custom' : 'Default',
-      );
-    } catch {
-      setVoiceSummary('Unavailable');
-    }
+    setVoiceSummary(readVoiceSummary(userId));
   };
 
   const loadEventDefaultsSummary = () => {
-    try {
-      const saved = personalMemoryStore.read(userId);
-      setEventDefaultsSummary(saved.enabled && saved.value ? 'On' : 'Off');
-    } catch {
-      setEventDefaultsSummary('Unavailable');
-    }
+    setEventDefaultsSummary(readEventDefaultsSummary(userId));
   };
 
   const handleToggleWeekStart = (value: boolean) => {
@@ -1070,18 +1112,16 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     ]);
   };
 
-  if (preferencesVisible) {
-    return (
-      <PreferencesSettingsScreen
-        userId={userId}
-        onBack={() => setPreferencesVisible(false)}
-        onSaved={(_preferences: UserPreferences) => {
-          loadSettings();
-          onRefresh();
-        }}
-      />
-    );
-  }
+  const hasLatestCorImport = useMemo(() => {
+    void refreshTrigger;
+    void academicProfile;
+    void studentSetup;
+    try {
+      return Boolean(corImportStore.latestActiveImport(userId));
+    } catch {
+      return false;
+    }
+  }, [userId, refreshTrigger, academicProfile, studentSetup]);
 
   const academicSection =
     academicProfile?.primarySection || academicProfile?.section || '';
@@ -1965,7 +2005,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                 }
                 onPress={handleStudentSetup}
               />
-              {corImportStore.latestActiveImport(userId) ? (
+              {hasLatestCorImport ? (
                 <>
                   <View
                     style={[styles.settingDivider, themed.settingDivider]}
@@ -2003,7 +2043,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                 text="Detailed AI Summaries"
                 type="toggle"
                 value={summaryStyleDetailed}
-                onValueChange={setSummaryStyleDetailed}
+                onValueChange={handleDetailedSummariesChange}
               />
               <View style={[styles.settingDivider, themed.settingDivider]} />
               <SettingItem
@@ -2845,6 +2885,22 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
         </View>
 
         <ScreenOverlays>
+          {preferencesVisible && (
+            <Modal
+              visible={preferencesVisible}
+              animationType="slide"
+              onRequestClose={() => setPreferencesVisible(false)}
+            >
+              <PreferencesSettingsScreen
+                userId={userId}
+                onBack={() => setPreferencesVisible(false)}
+                onSaved={(_preferences: UserPreferences) => {
+                  loadSettings();
+                  onRefresh();
+                }}
+              />
+            </Modal>
+          )}
           {corReviewOpen && (
             <Modal
               visible
@@ -2861,117 +2917,139 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
               onClose={() => setPrivacyModalVisible(false)}
             />
           )}
-          <ClearAllDataModal
-            visible={clearDataModalVisible}
-            onCancel={handleCancelClearData}
-            onConfirm={handleConfirmClearData}
-          />
-          <ClearDataResultModal
-            visible={Boolean(clearDataResult)}
-            result={clearDataResult}
-            onClose={() => setClearDataResult(null)}
-          />
-          <ProfileStatsModal
-            visible={statsModalVisible}
-            statistics={statistics}
-            onClose={() => setStatsModalVisible(false)}
-          />
-          <ReminderHealth
-            userId={userId}
-            visible={healthVisible}
-            onClose={() => setHealthVisible(false)}
-          />
-          <AlertAndNotificationSettings
-            userId={userId}
-            visible={alertSettingsVisible}
-            onClose={() => {
-              setAlertSettingsVisible(false);
-              setAlertSummary(readAlertSettingsSummary(userId));
-            }}
-            onChanged={() => {
-              setAlertSummary(readAlertSettingsSummary(userId));
-              setCallSettingsSummary(readCallSettingsSummary(userId));
-            }}
-          />
-          <ReminderCallSettings
-            userId={userId}
-            visible={callSettingsVisible}
-            onClose={() => {
-              setCallSettingsVisible(false);
-              setCallSettingsSummary(readCallSettingsSummary(userId));
-            }}
-            onChanged={() => {
-              setCallSettingsSummary(readCallSettingsSummary(userId));
-              setAlertSummary(readAlertSettingsSummary(userId));
-            }}
-            onOpenOfflineVoice={() => {
-              setCallSettingsVisible(false);
-              setVoiceVisible(true);
-            }}
-            onOpenOnlineVoice={() => {
-              setCallSettingsVisible(false);
-              setOnlineVoiceVisible(true);
-            }}
-            onPreviewCall={() => {
-              setCallSettingsVisible(false);
-              void developerTestService
-                .triggerImmediateCall(
-                  userId,
-                  'Sample Reminder: Review Capstone Notes',
-                )
-                .then(res => {
-                  if (!res.success) {
-                    Alert.alert('Call Preview Unavailable', res.message);
-                  }
-                });
-            }}
-          />
-          <ChatMemorySettings
-            userId={userId}
-            isGuest={isGuest}
-            visible={chatMemoryVisible}
-            onClose={() => {
-              setChatMemoryVisible(false);
-              setChatMemorySummary(readChatMemorySummary());
-            }}
-            onChanged={() => {
-              setChatMemorySummary(readChatMemorySummary());
-              setStudentSetup(studentSetupStore.get(userId));
-            }}
-            onUpdateCor={() => {
-              setChatMemoryVisible(false);
-              handleUploadCor();
-            }}
-          />
-          <PersonalMemory
-            userId={userId}
-            visible={memoryVisible}
-            onClose={() => setMemoryVisible(false)}
-            onChanged={loadEventDefaultsSummary}
-          />
-          <OnlineVoice
-            key={`online-${userId}`}
-            userId={userId}
-            visible={onlineVoiceVisible}
-            onClose={() => setOnlineVoiceVisible(false)}
-            onChanged={loadOnlineVoiceSummary}
-          />
-          <OfflineVoice
-            userId={userId}
-            visible={voiceVisible}
-            onClose={() => setVoiceVisible(false)}
-            onChanged={loadVoiceSummary}
-          />
-          <FloatingAssistantSettings
-            key={`floating-${userId}`}
-            userId={userId}
-            visible={floatingVisible}
-            onClose={() => {
-              setFloatingVisible(false);
-              refreshFloatingSummary();
-            }}
-            onChanged={refreshFloatingSummary}
-          />
+          {clearDataModalVisible && (
+            <ClearAllDataModal
+              visible={clearDataModalVisible}
+              onCancel={handleCancelClearData}
+              onConfirm={handleConfirmClearData}
+            />
+          )}
+          {Boolean(clearDataResult) && (
+            <ClearDataResultModal
+              visible={Boolean(clearDataResult)}
+              result={clearDataResult}
+              onClose={() => setClearDataResult(null)}
+            />
+          )}
+          {statsModalVisible && (
+            <ProfileStatsModal
+              visible={statsModalVisible}
+              statistics={statistics}
+              onClose={() => setStatsModalVisible(false)}
+            />
+          )}
+          {healthVisible && (
+            <ReminderHealth
+              userId={userId}
+              visible={healthVisible}
+              onClose={() => setHealthVisible(false)}
+            />
+          )}
+          {alertSettingsVisible && (
+            <AlertAndNotificationSettings
+              userId={userId}
+              visible={alertSettingsVisible}
+              onClose={() => {
+                setAlertSettingsVisible(false);
+                setAlertSummary(readAlertSettingsSummary(userId));
+              }}
+              onChanged={() => {
+                setAlertSummary(readAlertSettingsSummary(userId));
+                setCallSettingsSummary(readCallSettingsSummary(userId));
+              }}
+            />
+          )}
+          {callSettingsVisible && (
+            <ReminderCallSettings
+              userId={userId}
+              visible={callSettingsVisible}
+              onClose={() => {
+                setCallSettingsVisible(false);
+                setCallSettingsSummary(readCallSettingsSummary(userId));
+              }}
+              onChanged={() => {
+                setCallSettingsSummary(readCallSettingsSummary(userId));
+                setAlertSummary(readAlertSettingsSummary(userId));
+              }}
+              onOpenOfflineVoice={() => {
+                setCallSettingsVisible(false);
+                setVoiceVisible(true);
+              }}
+              onOpenOnlineVoice={() => {
+                setCallSettingsVisible(false);
+                setOnlineVoiceVisible(true);
+              }}
+              onPreviewCall={() => {
+                setCallSettingsVisible(false);
+                void developerTestService
+                  .triggerImmediateCall(
+                    userId,
+                    'Sample Reminder: Review Capstone Notes',
+                  )
+                  .then(res => {
+                    if (!res.success) {
+                      Alert.alert('Call Preview Unavailable', res.message);
+                    }
+                  });
+              }}
+            />
+          )}
+          {chatMemoryVisible && (
+            <ChatMemorySettings
+              userId={userId}
+              isGuest={isGuest}
+              visible={chatMemoryVisible}
+              onClose={() => {
+                setChatMemoryVisible(false);
+                setChatMemorySummary(readChatMemorySummary());
+              }}
+              onChanged={() => {
+                setChatMemorySummary(readChatMemorySummary());
+                setStudentSetup(studentSetupStore.get(userId));
+              }}
+              onUpdateCor={() => {
+                setChatMemoryVisible(false);
+                handleUploadCor();
+              }}
+            />
+          )}
+          {memoryVisible && (
+            <PersonalMemory
+              userId={userId}
+              visible={memoryVisible}
+              onClose={() => setMemoryVisible(false)}
+              onChanged={loadEventDefaultsSummary}
+            />
+          )}
+          {onlineVoiceVisible && (
+            <OnlineVoice
+              key={`online-${userId}`}
+              userId={userId}
+              visible={onlineVoiceVisible}
+              onClose={() => setOnlineVoiceVisible(false)}
+              onChanged={loadOnlineVoiceSummary}
+            />
+          )}
+          {voiceVisible && (
+            <OfflineVoice
+              userId={userId}
+              visible={voiceVisible}
+              onClose={() => setVoiceVisible(false)}
+              onChanged={loadVoiceSummary}
+            />
+          )}
+          {floatingVisible && (
+            <FloatingAssistantSettings
+              key={`floating-${userId}`}
+              userId={userId}
+              visible={floatingVisible}
+              onClose={() => {
+                setFloatingVisible(false);
+                refreshFloatingSummary();
+              }}
+              onChanged={refreshFloatingSummary}
+            />
+          )}
           {isDevMode && developerModalVisible && (
             <DeveloperModal
               visible={developerModalVisible}

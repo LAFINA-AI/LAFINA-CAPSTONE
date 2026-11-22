@@ -59,6 +59,7 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
         val snapshot = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
         PixelCopy.request(window, snapshot, { result ->
           if (result != PixelCopy.SUCCESS || !decor.isAttachedToWindow) {
+            if (!snapshot.isRecycled) snapshot.recycle()
             promise.resolve(false)
             return@request
           }
@@ -116,6 +117,7 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
     }
 
     override fun onDraw(canvas: Canvas) {
+      if (snapshot.isRecycled) return
       if (radius <= 0f) {
         canvas.drawBitmap(snapshot, 0f, 0f, null)
         return
@@ -160,7 +162,18 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
       animator?.removeAllListeners()
       animator?.cancel()
       (parent as? ViewGroup)?.removeView(this)
+      paint.shader = null
+      if (!snapshot.isRecycled) snapshot.recycle()
     }
+  }
+
+  override fun invalidate() {
+    main.removeCallbacksAndMessages(null)
+    main.post {
+      overlay?.remove()
+      overlay = null
+    }
+    super.invalidate()
   }
 
   companion object {

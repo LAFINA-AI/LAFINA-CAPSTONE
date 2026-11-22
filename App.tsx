@@ -54,6 +54,8 @@ import {backendSelection} from './src/cloud/backendSelection';
 import {startMorningBriefing} from './src/ai/briefing/morningBriefing';
 import {ThemeProvider, useTheme} from './src/ui/contexts/ThemeContext';
 import type {ThemeColors} from './src/ui/contexts/ThemeContext';
+import {MeetingsProvider} from './src/ui/contexts/MeetingsContext';
+import {useStorageRevision} from './src/ui/hooks/useStorageRevision';
 import {
   startAlarmLifecycle,
   rescheduleUserReminders,
@@ -123,20 +125,37 @@ const TAB_DATA_TABLES = {
     'event_time_local',
     'time_blocks',
     'reminders',
-    'local_settings',
     'users',
     'custom_categories',
+    'local_settings:schedule',
+    'local_settings:academic',
+    'local_settings:student',
+    'local_settings:cor',
   ],
-  chat: ['messages', 'chat_sessions', 'local_settings', 'users'],
+  chat: [
+    'messages',
+    'chat_sessions',
+    'users',
+    'local_settings:chat',
+    'local_settings:academic',
+    'local_settings:student',
+    'local_settings:cor',
+    'local_settings:onboarding',
+    'local_settings:offline_ai_model_id',
+  ],
   notes: [
     'notes',
     'tasks',
     'reminders',
     'alarms',
+    'recorded_meetings',
     'custom_categories',
-    'local_settings',
     'user_materials',
     'user_material_qa_messages',
+    'local_settings:notes',
+    'local_settings:skills',
+    'local_settings:academic',
+    'local_settings:student',
   ],
   profile: [
     'users',
@@ -147,21 +166,74 @@ const TAB_DATA_TABLES = {
     'reminders',
     'alarms',
     'recorded_meetings',
-    'local_settings',
     'chat_memories',
+    'local_settings:profile',
+    'local_settings:academic',
+    'local_settings:student',
+    'local_settings:cor',
+    'local_settings:alert_preferences_v1',
+    'local_settings:memory',
+    'local_settings:chat',
+    'local_settings:ai',
+    'local_settings:onboarding',
+    'local_settings:speech_tts_v1',
+    'local_settings:speech',
+    'local_settings:event_memory_v1',
+    'local_settings:modern_theme',
+    'local_settings:modern_ai_button_design',
+    'local_settings:ui_variant',
   ],
 } as const;
+
+const THEME_DATA_TABLES = [
+  'users',
+  'local_settings:modern_theme',
+  'local_settings:modern_ai_button_design',
+  'local_settings:ui_variant',
+] as const;
+
+const MEETINGS_DATA_TABLES = ['recorded_meetings'] as const;
+
+const AppThemeProvider = React.memo(function AppThemeProviderView({
+  userId,
+  children,
+}: {
+  userId: string | null;
+  children: React.ReactNode;
+}) {
+  const themeRevision = useStorageRevision(THEME_DATA_TABLES);
+  return (
+    <ThemeProvider userId={userId} refreshTrigger={themeRevision}>
+      {children}
+    </ThemeProvider>
+  );
+});
+
+const AppMeetingsProvider = React.memo(function AppMeetingsProviderView({
+  userId,
+  children,
+}: {
+  userId: string;
+  children: React.ReactNode;
+}) {
+  const meetingsRevision = useStorageRevision(MEETINGS_DATA_TABLES);
+  return (
+    <MeetingsProvider
+      key={userId}
+      userId={userId}
+      syncRevision={meetingsRevision}
+    >
+      {children}
+    </MeetingsProvider>
+  );
+});
 
 function AppContent({
   userId,
   setUserId,
-  refreshTrigger,
-  setRefreshTrigger,
 }: {
   userId: string | null;
   setUserId: React.Dispatch<React.SetStateAction<string | null>>;
-  refreshTrigger: number;
-  setRefreshTrigger: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [authScreen, setAuthScreen] = useState<
@@ -213,8 +285,7 @@ function AppContent({
   );
   const closeMiniCall = useCallback(() => {
     setCallLafinaMinimized(false);
-    setRefreshTrigger(prev => prev + 1);
-  }, [setRefreshTrigger]);
+  }, []);
   useEffect(() => {
     if (!callLafinaVisible) return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -223,12 +294,11 @@ function AppContent({
       setCallLafinaMinimized(stillLive);
       if (!stillLive) {
         setActiveTab('chat');
-        setRefreshTrigger(prev => prev + 1);
       }
       return true;
     });
     return () => listener.remove();
-  }, [callLafinaVisible, setRefreshTrigger]);
+  }, [callLafinaVisible]);
 
   // Incoming Call State
   const [callVisible, setCallVisible] = useState(false);
@@ -324,7 +394,7 @@ function AppContent({
             userId,
             identity.generation,
             true,
-          );
+          ).catch(() => undefined);
         }
         return false;
       }
@@ -395,11 +465,10 @@ function AppContent({
       (event: QuickChatDataChangedEvent) => {
         if (!userId || event?.ownerId !== userId) return;
         db.invalidateData(['alarms', 'reminders', 'tasks']);
-        setRefreshTrigger(previous => previous + 1);
       },
     );
     return () => subscription.remove();
-  }, [userId, setRefreshTrigger]);
+  }, [userId]);
 
   // Floating LAFINA: "Open LAFINA" / "View in LAFINA" from Quick Chat, once,
   // for the same student only, after Quick Chat has left the front.
@@ -453,30 +522,46 @@ function AppContent({
     if (userId) void syncAlertPreferencesToNative(userId);
   }, [userId]);
 
+  const presentCallRef = useRef(presentCall);
+  presentCallRef.current = presentCall;
+
   useEffect(() => {
     if (!userId) {
       stopReminderPoller();
       return undefined;
     }
-    void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
-    startReminderPoller(userId);
+    let cancelled = false;
+    const runStartup = async () => {
+      if (!quickChatPresence.isOpen()) {
+        try {
+          const payloads = await consumePendingNativeCalls();
+          if (cancelled) return;
+          for (const payload of payloads) {
+            if (presentCallRef.current(payload)) setIsLoading(false);
+          }
+        } catch {
+          // Non-fatal: durable call queue recovery still runs.
+        }
+      }
+      if (cancelled) return;
+      await rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+      if (!cancelled) startReminderPoller(userId);
+    };
+    void runStartup();
     return () => {
+      cancelled = true;
       stopReminderPoller();
     };
   }, [userId]);
 
-  // Reconcile exact alarms, verify reminder permissions, and consume cold-start call intents
+  // Verify reminder permissions once onboarding and the walkthrough are done.
   useEffect(() => {
     if (!userId) return;
-
-    void reconcileReminderDelivery(userId);
+    if (isOnboarding || tourOpen || productTourStore.isPending(userId)) {
+      return;
+    }
 
     void (async (): Promise<void> => {
-      // Onboarding redesign: no permission prompt while first-use setup or
-      // the walkthrough is open. Reminder permissions are asked after, in context.
-      if (isOnboarding || tourOpen || productTourStore.isPending(userId)) {
-        return;
-      }
       try {
         let status = await getReminderPermissionStatus();
         if (
@@ -503,13 +588,7 @@ function AppContent({
         console.warn('[App] Failed to check reminder permissions:', error);
       }
     })();
-
-    if (quickChatPresence.isOpen()) return;
-    void consumePendingNativeCalls().then(payloads => {
-      for (const payload of payloads)
-        if (presentCall(payload)) setIsLoading(false);
-    });
-  }, [userId, presentCall, isOnboarding, tourOpen]);
+  }, [userId, isOnboarding, tourOpen]);
 
   // Recover durable queue entries after a close/restart; never auto-answer recovery.
   useEffect(() => {
@@ -574,24 +653,19 @@ function AppContent({
           importedBatchesStore.getImportedBatches(currentUser.id),
           calendarVisibilityStore.getVisibilityMap(currentUser.id),
         ]);
-        syncWorker
-          .performSync()
-          .then(() => {
-            setRefreshTrigger(previous => previous + 1);
-          })
-          .catch(() => undefined);
       }
 
       setStartupReady(true);
 
       void appUpdater
         .markLaunchSuccessful()
-        .then(() => appUpdater.check({quiet: true}));
+        .then(() => appUpdater.check({quiet: true}))
+        .catch(() => undefined);
     } catch (error) {
       console.error('Failed application startup setup:', error);
       setIsLoading(false);
     }
-  }, [setUserId, setRefreshTrigger]);
+  }, [setUserId]);
 
   // Subscribed before setup runs so no health change is missed.
   useEffect(() => db.subscribeHealth(setStorageHealth), []);
@@ -605,6 +679,10 @@ function AppContent({
     await setupApp();
   }, [setupApp]);
 
+  const syncSchedulerRef = useRef<ReturnType<
+    typeof createSyncScheduler
+  > | null>(null);
+
   useEffect(() => {
     if (!userId) return undefined;
     const scheduler = createSyncScheduler({
@@ -613,7 +691,9 @@ function AppContent({
         return syncWorker.takeRemoteChangeCount() > 0;
       },
       onRemoteChanges: () => undefined,
+      getBackoffAttempt: () => syncWorker.getRetryAttempt?.() ?? 0,
     });
+    syncSchedulerRef.current = scheduler;
     if (AppState.currentState === 'active') {
       scheduler.start();
       void scheduler.runNow();
@@ -644,23 +724,20 @@ function AppContent({
       // the visible screen this root is hidden, so reminders stay with
       // Android exactly as when LAFINA is in the background.
       const quickChatInFront = quickChatPresence.isOpen();
-      if (!quickChatInFront) startReminderPoller(userId);
-      void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
-      if (!quickChatInFront) {
-        void consumePendingNativeCalls().then(payloads => {
-          payloads.forEach(presentCall);
-        });
-      }
-      void getReminderPermissionStatus().then(status => {
-        if (status) setPermissionStatus(status);
-      });
-      syncWorker
-        .performSync()
-        .then(() => {
-          setRefreshTrigger(previous => previous + 1);
-          void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+      void (async () => {
+        if (!quickChatInFront) {
+          const payloads = await consumePendingNativeCalls().catch(() => []);
+          payloads.forEach(p => presentCallRef.current(p));
+        }
+        await rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+        if (!quickChatPresence.isOpen()) startReminderPoller(userId);
+      })();
+      void getReminderPermissionStatus()
+        .then(status => {
+          if (status) setPermissionStatus(status);
         })
         .catch(() => undefined);
+      void scheduler.runNow();
     };
 
     // Opening Quick Chat also makes this hidden root "active". That refresh
@@ -691,6 +768,7 @@ function AppContent({
     });
 
     return () => {
+      syncSchedulerRef.current = null;
       appStateSubscription.remove();
       cancelForegroundWork();
       unsubscribeOutbox();
@@ -698,11 +776,9 @@ function AppContent({
       unsubscribeNetInfo();
       scheduler.dispose();
     };
-  }, [userId, setRefreshTrigger, presentCall]);
+  }, [userId]);
 
-  const triggerRefresh = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
-  }, [setRefreshTrigger]);
+  const triggerRefresh = useCallback(() => undefined, []);
 
   const applyPendingOnboardingReset = useCallback((uid: string): boolean => {
     if (!onboardingProgressStore.consumeResetPending()) return false;
@@ -734,12 +810,6 @@ function AppContent({
     const user = userStore.getUserById(uid);
     setIsOnboarding(resetPending || (user ? user.isNewUser : false));
     setActiveTab('dashboard');
-    syncWorker
-      .performSync()
-      .then(() => {
-        setRefreshTrigger(previous => previous + 1);
-      })
-      .catch(() => undefined);
   };
 
   const handleRegisterSuccess = (uid: string) => {
@@ -769,12 +839,7 @@ function AppContent({
     if (!startTour) {
       setActiveTab(goalTab);
     }
-    syncWorker
-      .performSync()
-      .then(() => {
-        setRefreshTrigger(previous => previous + 1);
-      })
-      .catch(() => undefined);
+    void syncSchedulerRef.current?.runNow();
   };
 
   useEffect(() => {
@@ -802,6 +867,10 @@ function AppContent({
       tourReturnTabRef.current = 'dashboard';
       setTourOpen(false);
       setActiveTourStep(null);
+      setCallLafinaVisible(false);
+      setCallLafinaMinimized(false);
+      setCallNavigation(null);
+      setSkillsPageOpen(false);
       setUserId(null);
       setAuthScreen(isGuestParam ? 'welcome' : 'login');
       setIsOnboarding(false);
@@ -889,6 +958,13 @@ function AppContent({
   // every tab switch.
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
+  const handleTabPress = useCallback(
+    (tab: TabType) => {
+      if (tab !== activeTabRef.current) beginTabSwitch(tab, userId);
+      setActiveTab(tab);
+    },
+    [userId],
+  );
   const replayTour = useCallback(() => {
     tourReturnTabRef.current = activeTabRef.current;
     Keyboard.dismiss();
@@ -931,8 +1007,7 @@ function AppContent({
     setActiveTab('dashboard');
     setAuthScreen('welcome');
     setUserId(null);
-    setRefreshTrigger(previous => previous + 1);
-  }, [setUserId, setRefreshTrigger]);
+  }, [setUserId]);
   const finishOpenRequest = useCallback((requestId: string) => {
     setCallNavigation(current =>
       current?.requestId === requestId ? null : current,
@@ -954,7 +1029,7 @@ function AppContent({
         return (
           <ChatScreen
             userId={userId}
-            refreshTrigger={refreshTrigger}
+            refreshTrigger={0}
             onRefresh={triggerRefresh}
             onCallLafina={openCallLafina}
             onOpenSkill={openSkillFromChat}
@@ -971,7 +1046,7 @@ function AppContent({
                 : undefined
             }
             userId={userId}
-            refreshTrigger={refreshTrigger}
+            refreshTrigger={0}
             onRefresh={triggerRefresh}
           />
         );
@@ -992,7 +1067,7 @@ function AppContent({
                 : undefined
             }
             userId={userId}
-            refreshTrigger={refreshTrigger}
+            refreshTrigger={0}
             onOpenProfile={openProfileTab}
             onNavigateToRegister={handleGuestCreateAccount}
             onRefresh={triggerRefresh}
@@ -1002,7 +1077,7 @@ function AppContent({
         return (
           <ProfileScreen
             userId={userId}
-            refreshTrigger={refreshTrigger}
+            refreshTrigger={0}
             onRefresh={triggerRefresh}
             onLogout={handleLogout}
             onNavigateToRegister={handleGuestCreateAccount}
@@ -1142,57 +1217,53 @@ function AppContent({
         backgroundColor={colors.background}
       />
 
-      <View style={styles.content}>
-        {userId ? (
-          <View
-            style={[
-              styles.tabScreenLayer,
-              activeTab !== 'dashboard' && styles.hiddenTabLayer,
-            ]}
-            pointerEvents={activeTab === 'dashboard' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'dashboard'}
-            importantForAccessibility={
-              activeTab === 'dashboard' ? 'auto' : 'no-hide-descendants'
-            }
-          >
-            <DashboardScreen
-              key={userId}
-              userId={userId}
-              isActive={activeTab === 'dashboard' && !callLafinaVisible}
-              tourAnchor={
-                tourOpen && activeTourStep?.tab === 'dashboard'
-                  ? activeTourStep.anchor ?? null
-                  : null
+      <AppMeetingsProvider userId={userId}>
+        <View style={styles.content}>
+          {userId ? (
+            <View
+              style={[
+                styles.tabScreenLayer,
+                activeTab !== 'dashboard' && styles.hiddenTabLayer,
+              ]}
+              pointerEvents={activeTab === 'dashboard' ? 'auto' : 'none'}
+              accessibilityElementsHidden={activeTab !== 'dashboard'}
+              importantForAccessibility={
+                activeTab === 'dashboard' ? 'auto' : 'no-hide-descendants'
               }
-              refreshTrigger={0}
-              onRefresh={triggerRefresh}
-              onOpenCalendarTab={handleOpenCalendarFromDashboard}
-              onOpenNotesTab={handleOpenNotesFromDashboard}
-              onOpenChatTab={handleOpenChatFromDashboard}
-            />
-          </View>
-        ) : null}
-        {(['calendar', 'chat', 'notes', 'profile'] as const).map(tab => (
-          <RetainedTab
-            key={`${userId}:${tab}`}
-            // The full-screen call covers every tab: none of them refreshes
-            // under it (each saved call turn used to reload Chat).
-            active={activeTab === tab && !callLafinaVisible}
-            tables={TAB_DATA_TABLES[tab]}
-          >
-            {renderScreen(tab)}
-          </RetainedTab>
-        ))}
-      </View>
+            >
+              <DashboardScreen
+                key={userId}
+                userId={userId}
+                isActive={activeTab === 'dashboard' && !callLafinaVisible}
+                tourAnchor={
+                  tourOpen && activeTourStep?.tab === 'dashboard'
+                    ? activeTourStep.anchor ?? null
+                    : null
+                }
+                refreshTrigger={0}
+                onRefresh={triggerRefresh}
+                onOpenCalendarTab={handleOpenCalendarFromDashboard}
+                onOpenNotesTab={handleOpenNotesFromDashboard}
+                onOpenChatTab={handleOpenChatFromDashboard}
+              />
+            </View>
+          ) : null}
+          {(['calendar', 'chat', 'notes', 'profile'] as const).map(tab => (
+            <RetainedTab
+              key={`${userId}:${tab}`}
+              // The full-screen call covers every tab: none of them refreshes
+              // under it (each saved call turn used to reload Chat).
+              active={activeTab === tab && !callLafinaVisible}
+              tables={TAB_DATA_TABLES[tab]}
+            >
+              {renderScreen(tab)}
+            </RetainedTab>
+          ))}
+        </View>
+      </AppMeetingsProvider>
 
       {!isKeyboardVisible && !(activeTab === 'notes' && skillsPageOpen) && (
-        <CustomTabBar
-          activeTab={activeTab}
-          onTabPress={tab => {
-            if (tab !== activeTab) beginTabSwitch(tab, userId);
-            setActiveTab(tab);
-          }}
-        />
+        <CustomTabBar activeTab={activeTab} onTabPress={handleTabPress} />
       )}
 
       {callLafinaMinimized && (
@@ -1252,7 +1323,9 @@ function AppContent({
         status={permissionStatus}
         onClose={() => setPermissionModalVisible(false)}
         onRefreshStatus={() => {
-          void getReminderPermissionStatus().then(setPermissionStatus);
+          void getReminderPermissionStatus()
+            .then(setPermissionStatus)
+            .catch(() => undefined);
         }}
       />
     </View>
@@ -1283,18 +1356,12 @@ const getThemedStyles = (colors: ThemeColors) => ({
 
 export function App() {
   const [userId, setUserId] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider userId={userId} refreshTrigger={refreshTrigger}>
-        <AppContent
-          userId={userId}
-          setUserId={setUserId}
-          refreshTrigger={refreshTrigger}
-          setRefreshTrigger={setRefreshTrigger}
-        />
-      </ThemeProvider>
+      <AppThemeProvider userId={userId}>
+        <AppContent userId={userId} setUserId={setUserId} />
+      </AppThemeProvider>
     </SafeAreaProvider>
   );
 }

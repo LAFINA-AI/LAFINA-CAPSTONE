@@ -30,7 +30,7 @@ const words = (text: string): string[] =>
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 1);
+    .filter(w => w.length > 1 || /^\d+$/.test(w));
 
 /**
  * Finds the one saved lesson whose title has every word of the hint

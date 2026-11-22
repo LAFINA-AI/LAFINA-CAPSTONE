@@ -94,6 +94,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
     userId,
     refreshTrigger,
     onRefresh: handleCombinedRefresh,
+    enabled: activeSubTab === 'notes',
   });
   const todo = useTodoData({
     enabled: activeSubTab === 'todo',
@@ -146,6 +147,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
       return;
     }
     setActiveSubTab('notes');
+    if (!openRequest.entityId) return;
     try {
       const resolved = resolveCallTarget(userId, openRequest);
       if (resolved?.kind === 'note') data.openEditNote(resolved.item);
@@ -196,39 +198,55 @@ export const NotesScreen = React.memo(function NotesScreenView({
   );
   const hasPinned = firstPinnedId !== null;
 
+  const {
+    isGridView: notesIsGridView,
+    canReorder: notesCanReorder,
+    activeDragId: notesActiveDragId,
+    dragXRef,
+    dragYRef,
+    openEditNote,
+    handleDragStart,
+    handleDragMove,
+    handleDragRelease,
+    onCardLayout,
+    toggleNoteChecklist,
+    hasMore: notesHasMore,
+    loadMoreNotes,
+  } = data;
+
   const renderItem = useCallback(
     ({item, index}: {item: NoteSnapshot; index: number}) => {
       const isItemPinned = item.isPinned;
       // AGY-PORT 07: only the complete, unfiltered collection can be reordered.
-      const canDrag = !isItemPinned && data.canReorder;
-      const isActive = item.id === data.activeDragId;
+      const canDrag = !isItemPinned && notesCanReorder;
+      const isActive = item.id === notesActiveDragId;
       const showPinnedHeader =
-        hasPinned && item.id === firstPinnedId && !data.isGridView;
+        hasPinned && item.id === firstPinnedId && !notesIsGridView;
       const showOtherHeader =
-        hasPinned && item.id === firstOtherId && !data.isGridView;
+        hasPinned && item.id === firstOtherId && !notesIsGridView;
 
       const card = (
         <NoteCardWithDrag
           key={item.id}
           item={item}
           index={index}
-          isGridView={data.isGridView}
+          isGridView={notesIsGridView}
           isActive={isActive}
           canDrag={canDrag}
-          dragX={data.dragXRef.current}
-          dragY={data.dragYRef.current}
-          onPress={() => data.openEditNote(item)}
-          onDragStart={data.handleDragStart}
-          onDragMove={data.handleDragMove}
-          onDragRelease={data.handleDragRelease}
-          onLayout={data.onCardLayout}
+          dragX={dragXRef.current}
+          dragY={dragYRef.current}
+          onPress={() => openEditNote(item)}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragRelease={handleDragRelease}
+          onLayout={onCardLayout}
           onToggleChecklist={(_shown, checklistIndex) =>
-            data.toggleNoteChecklist(item, checklistIndex)
+            toggleNoteChecklist(item, checklistIndex)
           }
         />
       );
 
-      if (data.isGridView) {
+      if (notesIsGridView) {
         return card;
       }
 
@@ -267,7 +285,24 @@ export const NotesScreen = React.memo(function NotesScreenView({
         </View>
       );
     },
-    [data, hasPinned, firstPinnedId, firstOtherId, colors],
+    [
+      notesCanReorder,
+      notesActiveDragId,
+      notesIsGridView,
+      dragXRef,
+      dragYRef,
+      openEditNote,
+      handleDragStart,
+      handleDragMove,
+      handleDragRelease,
+      onCardLayout,
+      toggleNoteChecklist,
+      hasPinned,
+      firstPinnedId,
+      firstOtherId,
+      colors.red,
+      colors.textSecondary,
+    ],
   );
 
   const handleAttachImage = async () => {
@@ -288,19 +323,23 @@ export const NotesScreen = React.memo(function NotesScreenView({
   };
 
   // AGY-PORT 07: notes arrive in pages; the rest stay one tap away.
-  const loadMoreButton = data.hasMore ? (
-    <TouchableOpacity
-      style={styles.loadMore}
-      onPress={data.loadMoreNotes}
-      accessibilityRole="button"
-      accessibilityLabel="Show more notes"
-      testID="notes-load-more"
-    >
-      <Text style={[styles.loadMoreText, {color: colors.red}]}>
-        Show more notes
-      </Text>
-    </TouchableOpacity>
-  ) : null;
+  const loadMoreButton = useMemo(
+    () =>
+      notesHasMore ? (
+        <TouchableOpacity
+          style={styles.loadMore}
+          onPress={loadMoreNotes}
+          accessibilityRole="button"
+          accessibilityLabel="Show more notes"
+          testID="notes-load-more"
+        >
+          <Text style={[styles.loadMoreText, {color: colors.red}]}>
+            Show more notes
+          </Text>
+        </TouchableOpacity>
+      ) : null,
+    [colors.red, loadMoreNotes, notesHasMore],
+  );
 
   return (
     <View style={[styles.container, {backgroundColor: palette.bg}]}>

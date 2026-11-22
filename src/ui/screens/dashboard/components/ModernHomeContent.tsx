@@ -120,7 +120,7 @@ interface ProgressRingProps {
   textColor: string;
 }
 
-const ProgressRing: React.FC<ProgressRingProps> = ({
+const ProgressRing: React.FC<ProgressRingProps> = React.memo(({
   progress,
   label,
   hasItems = false,
@@ -169,7 +169,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({
       <Text style={[styles.ringLabel, {color: textColor}]}>{label}</Text>
     </View>
   );
-};
+});
 
 export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   userId,
@@ -208,23 +208,27 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
 
   const {photoSource, avatarSeed} = useMemo(() => {
     void refreshTrigger;
-    let avatarUri: string | null = null;
-    try {
-      avatarUri = userStore.getUserById(userId)?.avatarUri ?? null;
-    } catch {
-      avatarUri = null;
+    let avatarUri: string | null = data.avatarUri ?? null;
+    if (data.avatarUri === undefined) {
+      try {
+        avatarUri = userStore.getUserById(userId)?.avatarUri ?? null;
+      } catch {
+        avatarUri = null;
+      }
     }
-    let seed = userId || 'student';
-    try {
-      seed = avatarSeedStore.get(userId) || userId || 'student';
-    } catch {
-      seed = userId || 'student';
+    let seed = data.avatarSeed ?? (userId || 'student');
+    if (data.avatarSeed === undefined) {
+      try {
+        seed = avatarSeedStore.get(userId) || userId || 'student';
+      } catch {
+        seed = userId || 'student';
+      }
     }
     return {
       photoSource: avatarSource(avatarUri),
       avatarSeed: seed,
     };
-  }, [userId, refreshTrigger]);
+  }, [userId, refreshTrigger, data.avatarUri, data.avatarSeed]);
 
   const activeAlarm = useMemo(() => {
     void refreshTrigger;
@@ -350,10 +354,14 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
       };
     }
 
+    const ustpEnabled =
+      data.ustpSchoolEnabled !== undefined
+        ? data.ustpSchoolEnabled
+        : isUstpSchoolEnabled(userId);
     return {
       badge: 'ALL CLEAR',
       title: 'No more classes or events today',
-      subtitle: isUstpSchoolEnabled(userId)
+      subtitle: ustpEnabled
         ? 'Ask LAFINA about your handbook or plan your study day'
         : 'Ask LAFINA to help plan your day',
       cta: 'ASK LAFINA',
@@ -362,6 +370,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   }, [
     data.upNext,
     data.todayStr,
+    data.ustpSchoolEnabled,
     activeAlarm,
     timeFormat24h,
     allPendingTasks,

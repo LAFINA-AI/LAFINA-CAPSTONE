@@ -22,7 +22,7 @@ export const QWEN_MODEL_INFO = {
   filename: 'qwen2.5-0.5b-instruct-q4_k_m.gguf',
   // Official Hugging Face direct download endpoint
   url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf',
-  approximateSizeBytes: 397800000, // ~398 MB
+  approximateSizeBytes: 491400000, // ~491 MB
 };
 
 export const OFFLINE_MODEL_CATALOG: readonly OfflineModelPreset[] = [
@@ -57,13 +57,13 @@ export const OFFLINE_MODEL_CATALOG: readonly OfflineModelPreset[] = [
     name: 'Gemma-3-270M-Instruct',
     shortLabel: 'Gemma 3 270M',
     filename: 'gemma-3-270m-it-Q4_K_M.gguf',
-    url: 'https://huggingface.co/ggml-org/gemma-3-270m-it-GGUF/resolve/main/gemma-3-270m-it-Q4_K_M.gguf',
-    approximateSizeBytes: 185000000,
+    url: 'https://huggingface.co/unsloth/gemma-3-270m-it-GGUF/resolve/main/gemma-3-270m-it-Q4_K_M.gguf',
+    approximateSizeBytes: 253000000,
     minValidSizeBytes: 80000000,
     promptFormat: 'gemma',
     recommendedRamGb: 4,
     description:
-      'Fast Google Gemma 3 270M model (~185 MB) for accurate title distillation and schedule phrasing.',
+      'Fast Google Gemma 3 270M model (~253 MB) for accurate title distillation and schedule phrasing.',
   },
   {
     id: 'qwen2.5-0.5b',
@@ -76,7 +76,7 @@ export const OFFLINE_MODEL_CATALOG: readonly OfflineModelPreset[] = [
     promptFormat: 'chatml',
     recommendedRamGb: 4,
     description:
-      'Balanced 500M multilingual NLU model (~398 MB) for conversational English and Taglish commands.',
+      'Balanced 500M multilingual NLU model (~491 MB) for conversational English and Taglish commands.',
   },
   {
     id: 'gemma-3-1b',

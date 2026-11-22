@@ -74,6 +74,13 @@ const androidConnectivity = (): AndroidConnectivityModule | undefined =>
     | undefined;
 
 const DNS_CHECK_TIMEOUT_MS = 5_000;
+/** Default limit for a plain request. Slow AI work passes its own `timeoutMs`. */
+const REQUEST_TIMEOUT_MS = 25_000;
+/** Limit for generation work (documents, meeting notes, transcription). */
+export const LONG_REQUEST_TIMEOUT_MS = 90_000;
+
+/** `fetch` options plus an optional time limit for this request. */
+export type CloudRequestOptions = RequestInit & {timeoutMs?: number};
 
 const hostOf = (baseUrl: string): string =>
   baseUrl.replace(/^[a-z]+:\/\//i, '').replace(/[/:].*$/, '');
@@ -254,14 +261,24 @@ const postStreaming = (
     const xhr = new Xhr();
     let delivered = 0;
     let settled = false;
+    const detachHandlers = () => {
+      xhr.onprogress = null;
+      xhr.onreadystatechange = null;
+      xhr.onload = null;
+      xhr.onerror = null;
+      xhr.ontimeout = null;
+      xhr.onabort = null;
+    };
     const finish = (outcome: StreamOutcome) => {
       if (settled) return;
       settled = true;
       options.signal?.removeEventListener('abort', onAbort);
+      detachHandlers();
       resolve(outcome);
     };
     const onAbort = () => xhr.abort();
     const deliver = () => {
+      if (settled) return;
       if (xhr.status < 200 || xhr.status >= 300) return;
       const text = xhr.responseText || '';
       if (text.length > delivered) {
@@ -270,6 +287,7 @@ const postStreaming = (
         options.onText(chunk);
         if (options.isComplete?.()) {
           finish({kind: 'response', status: xhr.status, text});
+          xhr.abort();
         }
       }
     };
@@ -313,97 +331,112 @@ const shouldRenew = (
   (result.httpStatus === 401 || result.httpStatus === undefined) &&
   !signal?.aborted;
 
-let renewal: Promise<RenewalOutcome> | null = null;
+const renewals = new Map<string, Promise<RenewalOutcome>>();
 
 /**
  * Exchanges the stored refresh token for new tokens. The server rotates the
  * refresh token on every use and rejects the old one, so every renewal in
- * the app goes through here and concurrent callers share one: a second
- * renewal with the same token would be rejected and look like a sign-out.
+ * the app goes through here and concurrent callers for the same owner share one:
+ * a second renewal with the same token would be rejected and look like a sign-out.
  * Never signs out itself; `authService.getMe` does that for `ended`.
  */
-const renewAccessToken = (): Promise<RenewalOutcome> => {
-  if (!renewal) {
-    renewal = (async (): Promise<RenewalOutcome> => {
-      // Why renewal failed, for the device log; never includes token values.
-      const fail = (
-        outcome: RenewalOutcome,
-        reason: string,
-      ): RenewalOutcome => {
-        console.warn(`[cloud] Sign-in renewal failed: ${reason}`);
-        return outcome;
-      };
+const renewAccessToken = (
+  expectedOwner?: string | null,
+): Promise<RenewalOutcome> => {
+  const fail = (outcome: RenewalOutcome, reason: string): RenewalOutcome => {
+    console.warn(`[cloud] Sign-in renewal failed: ${reason}`);
+    return outcome;
+  };
+  const owner = expectedOwner ?? userStore.getActiveSessionToken().userId;
+  if (!owner) return Promise.resolve(fail('ended', 'no active account'));
+  if (userStore.getActiveSessionToken().userId !== owner) {
+    return Promise.resolve(fail('failed', 'account changed during renewal'));
+  }
+  const existing = renewals.get(owner);
+  if (existing) return existing;
+
+  let task: Promise<RenewalOutcome> | null = null;
+  task = (async (): Promise<RenewalOutcome> => {
+    try {
+      let refreshToken: string | null;
       try {
-        const owner = userStore.getActiveSessionToken().userId;
-        if (!owner) return fail('ended', 'no active account');
-        let refreshToken: string | null;
-        try {
-          refreshToken = await cloudClient.getEncryptedRefreshToken();
-        } catch (error) {
-          return fail(
-            'ended',
-            `stored refresh token unreadable (${
-              error instanceof Error ? error.message : 'error'
-            })`,
-          );
-        }
-        if (!refreshToken)
-          return fail('ended', 'no refresh token stored; sign in again');
-        const result = await cloudClient.requestOnce<{
-          access_token?: unknown;
-          refresh_token?: unknown;
-        }>(
-          '/v1/auth/refresh',
-          {method: 'POST', body: JSON.stringify({refresh_token: refreshToken})},
-          false,
-        );
-        const access = result.data?.access_token;
-        const refresh = result.data?.refresh_token;
-        if (
-          result.status === 'auth_required' ||
-          result.status === 'account_disabled'
-        ) {
-          return fail(
-            'ended',
-            `server answered ${result.httpStatus ?? result.status}`,
-          );
-        }
-        if (
-          result.status !== 'success' ||
-          typeof access !== 'string' ||
-          typeof refresh !== 'string'
-        ) {
-          return fail(
-            'failed',
-            `server answered ${result.httpStatus ?? result.status}`,
-          );
-        }
-        // Signed out or switched account meanwhile: keep the tokens off it.
-        if (userStore.getActiveSessionToken().userId !== owner) {
-          return fail('failed', 'account changed during renewal');
-        }
-        await cloudClient.establishSession(owner, access, refresh);
-        return 'renewed';
+        refreshToken = await cloudClient.getEncryptedRefreshToken();
       } catch (error) {
         return fail(
-          'failed',
-          error instanceof Error ? error.message : 'unexpected error',
+          'ended',
+          `stored refresh token unreadable (${
+            error instanceof Error ? error.message : 'error'
+          })`,
         );
-      } finally {
-        renewal = null;
       }
-    })();
-  }
-  return renewal;
+      if (userStore.getActiveSessionToken().userId !== owner) {
+        return fail('failed', 'account changed during renewal');
+      }
+      if (!refreshToken)
+        return fail('ended', 'no refresh token stored; sign in again');
+      const result = await cloudClient.requestOnce<{
+        access_token?: unknown;
+        refresh_token?: unknown;
+      }>(
+        '/v1/auth/refresh',
+        {method: 'POST', body: JSON.stringify({refresh_token: refreshToken})},
+        false,
+      );
+      const access = result.data?.access_token;
+      const refresh = result.data?.refresh_token;
+      if (
+        result.status === 'auth_required' ||
+        result.status === 'account_disabled'
+      ) {
+        return fail(
+          'ended',
+          `server answered ${result.httpStatus ?? result.status}`,
+        );
+      }
+      if (
+        result.status !== 'success' ||
+        typeof access !== 'string' ||
+        typeof refresh !== 'string'
+      ) {
+        return fail(
+          'failed',
+          `server answered ${result.httpStatus ?? result.status}`,
+        );
+      }
+      // Signed out or switched account meanwhile: keep the tokens off it.
+      if (userStore.getActiveSessionToken().userId !== owner) {
+        return fail('failed', 'account changed during renewal');
+      }
+      await cloudClient.establishSession(owner, access, refresh);
+      return 'renewed';
+    } catch (error) {
+      return fail(
+        'failed',
+        error instanceof Error ? error.message : 'unexpected error',
+      );
+    } finally {
+      if (task && renewals.get(owner) === task) {
+        renewals.delete(owner);
+      }
+    }
+  })();
+
+  renewals.set(owner, task);
+  return task;
 };
 
 /** `renewed` when a newer access token exists than `usedToken`, renewing if needed. */
 const renewedSince = async (
   usedToken: string | null,
+  expectedOwner?: string | null,
 ): Promise<RenewalOutcome> => {
+  const activeOwner = userStore.getActiveSessionToken().userId;
+  if (expectedOwner && activeOwner !== expectedOwner) {
+    return 'failed';
+  }
   const current = cloudClient.getAccessToken();
   if (current && current !== usedToken) return 'renewed'; // another request renewed it
-  return renewAccessToken();
+  return renewAccessToken(expectedOwner ?? activeOwner);
 };
 
 /**
@@ -415,12 +448,21 @@ const withRenewal = async <T>(
   signal: AbortSignal | null | undefined,
   once: () => Promise<CloudResult<T>>,
 ): Promise<CloudResult<T>> => {
+  const ownerAtStart = requiresAuth
+    ? userStore.getActiveSessionToken().userId
+    : null;
   const usedToken = requiresAuth ? cloudClient.getAccessToken() : null;
   const first = await once();
   if (!shouldRenew(first, requiresAuth, signal)) return first;
-  const outcome = await renewedSince(usedToken);
+  const outcome = await renewedSince(usedToken, ownerAtStart);
   if (outcome === 'ended') return {...first, sessionEnded: true};
   if (outcome === 'failed') return first;
+  if (
+    ownerAtStart &&
+    userStore.getActiveSessionToken().userId !== ownerAtStart
+  ) {
+    return first;
+  }
   const retried = await once();
   // A brand-new token rejected too: the account itself is signed out.
   return retried.status === 'auth_required' && retried.httpStatus === 401
@@ -489,6 +531,11 @@ export const cloudClient = {
     const encryptedRefreshToken = await secureKeystore.encryptString(
       refreshToken,
     );
+    if (userStore.getActiveSessionToken().userId !== localUserId) {
+      throw new Error(
+        'Cloud credentials could not be associated with the active local account.',
+      );
+    }
     userStore.saveSessionTokens(
       localUserId,
       accessToken,
@@ -560,7 +607,7 @@ export const cloudClient = {
    */
   request: async <T>(
     endpoint: string,
-    options: RequestInit = {},
+    options: CloudRequestOptions = {},
     requiresAuth: boolean = true,
   ): Promise<CloudResult<T>> => {
     return withRenewal(requiresAuth, options.signal, () =>
@@ -574,12 +621,13 @@ export const cloudClient = {
   /** A single request with the current token and no renewal. */
   requestOnce: async <T>(
     endpoint: string,
-    options: RequestInit = {},
+    options: CloudRequestOptions = {},
     requiresAuth: boolean = true,
   ): Promise<CloudResult<T>> => {
     if (options.signal?.aborted) {
       return {status: 'server_unavailable', error: 'Request cancelled.'};
     }
+    const {timeoutMs = REQUEST_TIMEOUT_MS, ...fetchOptions} = options;
 
     const online = await cloudClient.isOnline();
     if (!online) {
@@ -611,11 +659,23 @@ export const cloudClient = {
     for (let index = 0; index < apiBaseUrls.length; index += 1) {
       const baseUrl = apiBaseUrls[index];
       const hasFallback = index < apiBaseUrls.length - 1;
+      const timeoutController =
+        typeof AbortController !== 'undefined' ? new AbortController() : null;
+      let timedOut = false;
+      const onCallerAbort = () => timeoutController?.abort();
+      options.signal?.addEventListener('abort', onCallerAbort, {once: true});
+      const timeoutId = timeoutController
+        ? setTimeout(() => {
+            timedOut = true;
+            timeoutController.abort();
+          }, timeoutMs)
+        : null;
 
       try {
         const candidateResponse = await fetch(`${baseUrl}${endpoint}`, {
-          ...options,
+          ...fetchOptions,
           headers,
+          ...(timeoutController ? {signal: timeoutController.signal} : {}),
         });
 
         const isTemporarilyUnavailable = [502, 503, 504].includes(
@@ -628,16 +688,20 @@ export const cloudClient = {
         response = candidateResponse;
         break;
       } catch (error: unknown) {
-        lastConnectionError = error;
+        lastConnectionError = timedOut ? new Error('timed out') : error;
         if (
-          options.signal?.aborted ||
-          (error instanceof Error && error.name === 'AbortError')
+          !timedOut &&
+          (options.signal?.aborted ||
+            (error instanceof Error && error.name === 'AbortError'))
         ) {
           return {status: 'server_unavailable', error: 'Request cancelled.'};
         }
         if (!hasFallback) {
           break;
         }
+      } finally {
+        if (timeoutId !== null) clearTimeout(timeoutId);
+        options.signal?.removeEventListener('abort', onCallerAbort);
       }
     }
 
@@ -665,8 +729,39 @@ export const cloudClient = {
       );
     }
 
-    const data = await response.json().catch(() => ({}));
-    return {status: 'success', data: data as T, httpStatus: response.status};
+    if (response.status === 204) {
+      return {status: 'success', data: {} as T, httpStatus: response.status};
+    }
+
+    try {
+      if (typeof response.text === 'function') {
+        const raw = await response.text();
+        if (!raw.trim()) {
+          return {
+            status: 'success',
+            data: {} as T,
+            httpStatus: response.status,
+          };
+        }
+        return {
+          status: 'success',
+          data: JSON.parse(raw) as T,
+          httpStatus: response.status,
+        };
+      }
+      const data = await response.json();
+      return {
+        status: 'success',
+        data: (data ?? {}) as T,
+        httpStatus: response.status,
+      };
+    } catch {
+      return {
+        status: 'server_error',
+        error: 'Received an invalid response from the server.',
+        httpStatus: response.status,
+      };
+    }
   },
 
   /**

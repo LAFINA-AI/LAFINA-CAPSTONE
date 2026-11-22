@@ -355,6 +355,7 @@ export function LessonQaSkill({
         setStreamingReply('');
       }
       setSelectedId(nextScope);
+      activeScopeRef.current = nextScope;
       persistScope(nextScope);
       isNearBottomRef.current = true;
     },
@@ -378,6 +379,7 @@ export function LessonQaSkill({
         nextScope = 'all';
       }
       setSelectedId(nextScope);
+      activeScopeRef.current = nextScope;
       persistScope(nextScope);
     },
     [persistScope, selectedId, userId],
@@ -579,14 +581,19 @@ export function LessonQaSkill({
     }
   };
 
-  const handleAsk = async (override?: string) => {
+  const handleAsk = async (
+    override?: string,
+    scopeOverride?: {scopeKey: string; materialIds: string[] | null},
+  ) => {
     const trimmed = (override ?? question).trim();
     if (!trimmed || asking || materials.length === 0) return;
     setNotice(null);
     if (!override) setQuestion('');
     const reqId = ++requestIdRef.current;
-    const reqScope = scopeKey;
-    const reqMaterialIds = activeMaterialIds;
+    const reqScope = scopeOverride?.scopeKey ?? scopeKey;
+    const reqMaterialIds = scopeOverride
+      ? scopeOverride.materialIds
+      : activeMaterialIds;
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -1155,7 +1162,10 @@ export function LessonQaSkill({
                             onPress={() => {
                               selectScope(mat.id);
                               setViewMode('qa');
-                              void handleAsk(`Explain "${entry.heading}"`);
+                              void handleAsk(`Explain "${entry.heading}"`, {
+                                scopeKey: mat.id,
+                                materialIds: [mat.id],
+                              });
                             }}
                             style={[
                               styles.outlineChip,

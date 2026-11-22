@@ -155,12 +155,35 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = React.memo(
 
     const stillStrands = useMemo(
       () =>
-        buildStrands(
-          0,
-          modulate(phase, 0, targetFor(phase, muted, userLevel, outputLevel)),
-          size,
-        ),
-      [phase, muted, userLevel, outputLevel, size],
+        animated
+          ? []
+          : buildStrands(
+              0,
+              modulate(phase, 0, targetFor(phase, muted, userLevel, outputLevel)),
+              size,
+            ),
+      [animated, phase, muted, userLevel, outputLevel, size],
+    );
+
+    const animatedSeedStrands = useMemo(
+      () =>
+        animated
+          ? buildStrands(
+              0,
+              modulate(
+                phase,
+                0,
+                targetFor(
+                  phase,
+                  muted,
+                  levelsRef.current.userLevel,
+                  levelsRef.current.outputLevel,
+                ),
+              ),
+              size,
+            )
+          : null,
+      [animated, phase, muted, size],
     );
 
     const [movingStrands, setMovingStrands] = useState<string[] | null>(null);
@@ -202,7 +225,9 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = React.memo(
       };
     }, [animated, phase, muted, size]);
 
-    const strands = (animated && movingStrands) || stillStrands;
+    const strands = animated
+      ? movingStrands ?? animatedSeedStrands ?? []
+      : stillStrands;
 
     const centerIndex = Math.floor(STRAND_COUNT / 2);
     const centerStrand = strands[centerIndex] ?? '';

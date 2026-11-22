@@ -396,7 +396,7 @@ async function startAutomaticAttempt(
   if (!isCurrentSession(session) || !session.voiceEnabled) return;
   if (!hasOfflineSpeechCapture()) {
     session.voiceEnabled = false;
-    void stopActiveCallSession();
+    void stopActiveCallSession().catch(() => undefined);
     publishCallState(
       'connected',
       'Offline speech recognition is unavailable. Use the buttons below.',
@@ -428,7 +428,7 @@ async function startAutomaticAttempt(
     });
   } catch (error) {
     session.voiceEnabled = false;
-    void stopActiveCallSession();
+    void stopActiveCallSession().catch(() => undefined);
     console.error('[CallDispatcher] Could not start capture:', error);
     publishCallState(
       'connected',

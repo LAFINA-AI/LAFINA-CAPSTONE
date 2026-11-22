@@ -15,30 +15,23 @@ import {
 import {generateId} from '../../../utils';
 import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 import {useReducedMotion} from '../../hooks/useReducedMotion';
+import {useScreenActive} from '../../navigation/RetainedTab';
 import {SkillButton, SkillCard, SkillInput, SkillText, ui} from './SkillUI';
 
-export function MeetingsSkill({
-  userId,
-  onSaved,
+const MeetingLevelMeter = React.memo(function MeetingLevelMeterView({
+  active,
+  color,
 }: {
-  userId: string;
-  onSaved: () => void;
+  active: boolean;
+  color: string;
 }) {
-  const p = useSkillsPalette();
-  const reduced = useReducedMotion();
-  const meetings = useMeetings();
-  const [title, setTitle] = useState('');
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{text: string; danger?: boolean} | null>(
-    null,
-  );
-  const [savedNoteKey, setSavedNoteKey] = useState('');
   const [levels, setLevels] = useState<number[]>([]);
-  const recording = meetings.recorder;
-  const recordingId = recording?.meetingId;
-  const open = meetings.meetings.find(m => m.id === (openId ?? recordingId));
   useEffect(() => {
-    if (!recordingId || reduced) return;
+    if (!active) {
+      setLevels([]);
+      return;
+    }
+    setLevels([]);
     let alive = true;
     let waiting = false;
     const interval = setInterval(() => {
@@ -65,7 +58,53 @@ export function MeetingsSkill({
       alive = false;
       clearInterval(interval);
     };
-  }, [recordingId, reduced]);
+  }, [active]);
+  return (
+    <View
+      accessible={false}
+      style={{
+        height: 64,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+      }}
+    >
+      {levels.map((level, i) => (
+        <View
+          key={i}
+          style={{
+            width: 5,
+            height: Math.max(3, level * 64),
+            borderRadius: 3,
+            backgroundColor: color,
+          }}
+        />
+      ))}
+    </View>
+  );
+});
+
+export function MeetingsSkill({
+  userId,
+  onSaved,
+}: {
+  userId: string;
+  onSaved: () => void;
+}) {
+  const p = useSkillsPalette();
+  const reduced = useReducedMotion();
+  const screenActive = useScreenActive();
+  const meetings = useMeetings();
+  const [title, setTitle] = useState('');
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{text: string; danger?: boolean} | null>(
+    null,
+  );
+  const [savedNoteKey, setSavedNoteKey] = useState('');
+  const recording = meetings.recorder;
+  const recordingId = recording?.meetingId;
+  const open = meetings.meetings.find(m => m.id === (openId ?? recordingId));
   const run = (operation: () => Promise<unknown>) => {
     setNotice(null);
     void operation().catch(e =>
@@ -216,7 +255,6 @@ export function MeetingsSkill({
             label="Start recording"
             onPress={() => {
               setOpenId(null);
-              setLevels([]);
               run(() => meetings.startRecording({title}));
             }}
           />
@@ -275,28 +313,10 @@ export function MeetingsSkill({
             {String(seconds % 60).padStart(2, '0')}
           </Text>
           {!reduced && (
-            <View
-              accessible={false}
-              style={{
-                height: 64,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-              }}
-            >
-              {levels.map((level, i) => (
-                <View
-                  key={i}
-                  style={{
-                    width: 5,
-                    height: Math.max(3, level * 64),
-                    borderRadius: 3,
-                    backgroundColor: p.accent,
-                  }}
-                />
-              ))}
-            </View>
+            <MeetingLevelMeter
+              active={recording.status === 'recording' && screenActive}
+              color={p.accent}
+            />
           )}
           <View style={ui.row}>
             <View style={ui.fill}>

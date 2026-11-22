@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   Linking,
   PixelRatio,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
   type StyleProp,
   type TextStyle,
 } from 'react-native';
@@ -169,30 +170,39 @@ const takesTrailing = (block: ChatBlock): boolean =>
  * thousand characters at most, well under a millisecond, so streaming stays
  * as smooth as unformatted text.
  */
-export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
-  content,
-  format,
-  textStyle,
-  streaming = false,
-  trailing,
-  testID,
-}) => {
-  const {colors, isModern, modernPalette} = useTheme();
-  const [availableWidth, setAvailableWidth] = useState(0);
-  const accent = isModern ? modernPalette.accent : colors.primary;
-  const softBg = isModern ? modernPalette.softViolet : colors.inputBg;
-  const textInk = isModern ? modernPalette.text : colors.textPrimary;
-  const borderInk = isModern ? modernPalette.border : colors.border;
-  const blocks = useMemo(
-    () =>
-      format === 'markdown' ? parseChatMarkdown(content, {streaming}) : [],
-    [content, format, streaming],
-  );
-  const plain = useMemo(
-    () =>
-      format === 'plain' ? chatMarkdownToPlainText(content, {streaming}) : '',
-    [content, format, streaming],
-  );
+export const ChatReplyText: React.FC<ChatReplyTextProps> = React.memo(
+  function ChatReplyTextView({
+    content,
+    format,
+    textStyle,
+    streaming = false,
+    trailing,
+    testID,
+  }) {
+    const {colors, isModern, modernPalette} = useTheme();
+    const [availableWidth, setAvailableWidth] = useState(0);
+    const accent = isModern ? modernPalette.accent : colors.primary;
+    const softBg = isModern ? modernPalette.softViolet : colors.inputBg;
+    const textInk = isModern ? modernPalette.text : colors.textPrimary;
+    const borderInk = isModern ? modernPalette.border : colors.border;
+    const blocks = useMemo(
+      () =>
+        format === 'markdown' ? parseChatMarkdown(content, {streaming}) : [],
+      [content, format, streaming],
+    );
+    const hasTableBlock = useMemo(
+      () => blocks.some(block => block.kind === 'table'),
+      [blocks],
+    );
+    const handleLayout = useCallback((event: LayoutChangeEvent) => {
+      const next = Math.floor(event.nativeEvent.layout.width);
+      setAvailableWidth(prev => (prev === next ? prev : next));
+    }, []);
+    const plain = useMemo(
+      () =>
+        format === 'plain' ? chatMarkdownToPlainText(content, {streaming}) : '',
+      [content, format, streaming],
+    );
 
   if (format === 'plain') {
     return (
@@ -397,9 +407,7 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
     <View
       testID={testID}
       accessibilityLiveRegion={streaming ? 'polite' : undefined}
-      onLayout={event =>
-        setAvailableWidth(Math.floor(event.nativeEvent.layout.width))
-      }
+      onLayout={hasTableBlock ? handleLayout : undefined}
     >
       {blocks.map(renderBlock)}
       {!trailingInline && trailing ? (
@@ -407,7 +415,7 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
       ) : null}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   blank: {height: 10},

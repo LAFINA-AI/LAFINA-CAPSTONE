@@ -153,6 +153,36 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       migrateChatMemoriesV2(tx);
     },
   },
+  {
+    version: 31,
+    description:
+      'Partial/lookup indexes for recurring planner queries, undated tasks, categories, email lookup, and redundant index cleanup',
+    up: tx => {
+      tx.executeSync(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_user_recurrence ON tasks(user_id) WHERE deleted_at IS NULL AND recurrence_rule IS NOT NULL',
+      );
+      tx.executeSync(
+        'CREATE INDEX IF NOT EXISTS idx_events_user_recurrence ON events(user_id) WHERE deleted_at IS NULL AND recurrence_rule IS NOT NULL',
+      );
+      tx.executeSync(
+        'CREATE INDEX IF NOT EXISTS idx_time_blocks_user_recurrence ON time_blocks(user_id) WHERE deleted_at IS NULL AND recurrence_rule IS NOT NULL',
+      );
+      tx.executeSync(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_user_undated_open ON tasks(user_id, created_at) WHERE deleted_at IS NULL AND is_completed = 0 AND due_date IS NULL',
+      );
+      tx.executeSync(
+        'CREATE INDEX IF NOT EXISTS idx_custom_categories_user_active ON custom_categories(user_id, name) WHERE deleted_at IS NULL',
+      );
+      tx.executeSync(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_user_due_range ON tasks(user_id, due_date, due_time) WHERE deleted_at IS NULL',
+      );
+      tx.executeSync(
+        'CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(lower(trim(email))) WHERE email IS NOT NULL',
+      );
+      tx.executeSync('DROP INDEX IF EXISTS idx_notes_user_sort');
+      tx.executeSync('DROP INDEX IF EXISTS idx_messages_session');
+    },
+  },
 ];
 
 const targetVersionOf = (migrations: readonly SchemaMigration[]): number =>
@@ -729,6 +759,20 @@ export const initDatabase = async (
     }
     assertFileIsUsable(database);
     selectDurabilityProtocol(database);
+
+    if (
+      installedVersion === targetVersion &&
+      installedVersion >= BASELINE_SCHEMA_VERSION
+    ) {
+      const hasUsersTable = Boolean(
+        database.executeSync(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users' LIMIT 1",
+        ).rows[0],
+      );
+      if (hasUsersTable) {
+        return;
+      }
+    }
 
     database.transactionSync(tx => {
       applyBaselineSchema(tx);

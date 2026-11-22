@@ -33,7 +33,7 @@ interface WeekViewProps {
   onToggleTask?: (task: Task) => void;
 }
 
-export const WeekView: React.FC<WeekViewProps> = ({
+export const WeekView: React.FC<WeekViewProps> = React.memo(({
   weekDays,
   selectedDate,
   timeFormat24h,
@@ -119,7 +119,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import { cloudClient } from './cloudClient';
+import { cloudClient, LONG_REQUEST_TIMEOUT_MS } from './cloudClient';
 import type { TranscriptSegment } from '../ai/native/meetingRecorder';
 
 interface SttResponse {
@@ -37,6 +37,7 @@ export const transcribeChunkWithElevenLabs = async (
       '/v1/ai/stt',
       {
         method: 'POST',
+        timeoutMs: LONG_REQUEST_TIMEOUT_MS,
         body: JSON.stringify({
           audio: base64Audio,
           mimeType: 'audio/wav',

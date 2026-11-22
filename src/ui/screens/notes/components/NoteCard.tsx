@@ -1,6 +1,6 @@
 import {SkillFonts} from '../../../theme/skills';
 import {useGridRowLayout} from './VirtualNoteGrid';
-import React, {useRef} from 'react';
+import React, {useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -383,6 +383,16 @@ export const NoteCardWithDrag = React.memo<NoteCardWithDragProps>(
     const panRef = useRef<ReturnType<typeof PanResponder.create> | null>(null);
     const itemRef = useRef(item);
     itemRef.current = item;
+    const onPressRef = useRef(onPress);
+    onPressRef.current = onPress;
+    const onToggleChecklistRef = useRef(onToggleChecklist);
+    onToggleChecklistRef.current = onToggleChecklist;
+    const handlePress = useCallback((note: Note) => {
+      onPressRef.current(note);
+    }, []);
+    const handleToggleChecklist = useCallback((note: Note, index: number) => {
+      onToggleChecklistRef.current(note, index);
+    }, []);
     const onDragStartRef = useRef(onDragStart);
     onDragStartRef.current = onDragStart;
     const onDragMoveRef = useRef(onDragMove);
@@ -432,14 +442,14 @@ export const NoteCardWithDrag = React.memo<NoteCardWithDragProps>(
       <NoteCardBase
         item={item}
         isGridView={isGridView}
-        onPress={onPress}
+        onPress={handlePress}
         isActive={isActive}
         canDrag={canDrag}
         panHandlers={panHandlers}
         dragX={dragX}
         dragY={dragY}
         onLayout={onLayout}
-        onToggleChecklist={onToggleChecklist}
+        onToggleChecklist={handleToggleChecklist}
       />
     );
   },

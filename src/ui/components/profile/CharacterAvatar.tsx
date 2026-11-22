@@ -723,7 +723,7 @@ function renderAccessory(traits: CharacterTraits): React.ReactNode {
   }
 }
 
-export const CharacterAvatar: React.FC<CharacterAvatarProps> = ({
+export const CharacterAvatar: React.FC<CharacterAvatarProps> = React.memo(({
   seed,
   size = 112,
   testID = 'character-avatar',
@@ -834,7 +834,7 @@ export const CharacterAvatar: React.FC<CharacterAvatarProps> = ({
       </Svg>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

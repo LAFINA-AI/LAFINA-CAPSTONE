@@ -37,7 +37,7 @@ export const recoverNativeCall = (
       request.reminderId,
       request.ownerId ?? owner,
       request.generation,
-    );
+    ).catch(() => undefined);
     return null;
   }
   const preferences = getReminderPreferences(owner);
@@ -66,7 +66,7 @@ export const recoverNativeCall = (
       tx,
     );
     const entries = callLifecycle
-      .list(owner)
+      .list(owner, tx)
       .filter(entry => entry.request.reminderId !== reminder.id);
     if (ringing) {
       adopted = {
@@ -82,12 +82,14 @@ export const recoverNativeCall = (
         state: 'queued',
       });
     }
-    callLifecycle.write(owner, entries);
+    callLifecycle.write(owner, entries, tx);
     if (missed)
       next = createNextRecurringReminder(reminder, owner, tx, new Date());
   });
   // A replay sees a different/retired SQLite generation and cannot increment again.
-  void finishNativeIncomingCall(reminder.id, owner, request.generation);
+  void finishNativeIncomingCall(reminder.id, owner, request.generation).catch(
+    () => undefined,
+  );
   const future = next as {id: string; task: string; triggerAt: string} | null;
   if (future)
     void scheduleReminderAlarm(future.id, future.task, future.triggerAt).catch(

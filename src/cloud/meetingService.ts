@@ -1,4 +1,8 @@
-import {cloudClient, CloudResult} from './cloudClient';
+import {
+  cloudClient,
+  CloudResult,
+  LONG_REQUEST_TIMEOUT_MS,
+} from './cloudClient';
 import {TranscriptSegment} from '../ai/native/meetingRecorder';
 
 export interface MeetingActionItem {
@@ -88,6 +92,7 @@ export const requestMeetingSummary = async (
     '/v1/meetings/summary',
     {
       method: 'POST',
+      timeoutMs: LONG_REQUEST_TIMEOUT_MS,
       body: JSON.stringify({
         meetingTitle: input.title.trim() || 'Lecture Notes',
         transcript,

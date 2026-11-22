@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
   type LayoutChangeEvent,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -658,7 +659,7 @@ function buildCurvedTabBarPath(width: number, totalHeight: number): string {
   ].join(' ');
 }
 
-export const CustomTabBar: React.FC<CustomTabBarProps> = ({
+export const CustomTabBar: React.FC<CustomTabBarProps> = React.memo(({
   activeTab,
   onTabPress,
 }) => {
@@ -674,7 +675,10 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
   } = useTheme();
   const themed = useThemedStyles(getTabThemedStyles);
   const insets = useSafeAreaInsets();
-  const [barWidth, setBarWidth] = useState(360);
+  const windowWidth = useWindowDimensions().width;
+  const [barWidth, setBarWidth] = useState(() =>
+    Math.round(windowWidth > 0 ? windowWidth : 360),
+  );
 
   const handleModernLayout = (event: LayoutChangeEvent) => {
     const measured = Math.round(event.nativeEvent.layout.width);
@@ -683,11 +687,15 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
     }
   };
 
+  const bottomInset = Math.max(insets.bottom, 8);
+  const contentHeight = ModernLayout.navbarContentHeight;
+  const totalHeight = contentHeight + bottomInset;
+  const navPath = useMemo(
+    () => buildCurvedTabBarPath(barWidth, totalHeight),
+    [barWidth, totalHeight],
+  );
+
   if (isModern) {
-    const bottomInset = Math.max(insets.bottom, 8);
-    const contentHeight = ModernLayout.navbarContentHeight;
-    const totalHeight = contentHeight + bottomInset;
-    const navPath = buildCurvedTabBarPath(barWidth, totalHeight);
 
     return (
       <View
@@ -940,7 +948,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const getTabThemedStyles = (colors: ThemeColors) => ({
   container: {backgroundColor: colors.cardBg, borderColor: colors.border},

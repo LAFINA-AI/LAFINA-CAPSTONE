@@ -229,16 +229,22 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     }
   }, [userId]);
 
+  const loadedAttachedKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
+    const nextKey = `${userId}:${refreshTrigger}`;
+    if (loadedAttachedKeyRef.current === nextKey) return;
+    loadedAttachedKeyRef.current = nextKey;
     reloadAttachedEntries();
-  }, [reloadAttachedEntries, refreshTrigger]);
+  }, [userId, refreshTrigger, reloadAttachedEntries]);
+
+  const refreshSidebarGroupsRef = useRef<() => void>(() => undefined);
 
   const blockModal = useTimeBlockModal({
     userId,
     selectedDate: calendar.selectedDate,
     onSaved: () => {
       calendar.loadBlocks();
-      refreshGroupSummaries();
+      refreshSidebarGroupsRef.current();
       reloadAttachedEntries();
     },
     onRefresh,
@@ -249,7 +255,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     selectedDate: calendar.selectedDate,
     onSaved: () => {
       calendar.loadScheduleData();
-      refreshGroupSummaries();
+      refreshSidebarGroupsRef.current();
       reloadAttachedEntries();
     },
     onRefresh,
@@ -261,10 +267,16 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
   const syncScrollOnContentResizeRef = useRef<number | null>(null);
   const dayContainerYRef = useRef<number>(0);
   const selectedDayKey = calendar.selectedDate.toDateString();
+  const prevDayKeyRef = useRef<string>(selectedDayKey);
 
   useEffect(() => {
     const prevMode = prevViewModeRef.current;
+    const prevDay = prevDayKeyRef.current;
+    if (prevMode === calendar.viewMode && prevDay === selectedDayKey) {
+      return;
+    }
     prevViewModeRef.current = calendar.viewMode;
+    prevDayKeyRef.current = selectedDayKey;
 
     if (calendar.viewMode === 'day') {
       pendingDayAutoScrollRef.current = true;
@@ -286,13 +298,17 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     scrollViewRef.current?.scrollTo?.({y: targetY, animated: false});
   }, []);
 
-  const refreshGroupSummaries = React.useCallback(() => {
+  const refreshHasUndated = React.useCallback(() => {
     try {
       const page = tasksStore.getUndatedTasksPage(userId, {limit: 1});
       setHasUndated(page.items.length > 0);
     } catch {
       setHasUndated(false);
     }
+  }, [userId]);
+
+  const refreshGroupSummaries = React.useCallback(() => {
+    refreshHasUndated();
     try {
       const count = groupClassBlocks(timeBlocksStore.getClasses(userId)).length;
       const profile = getConfirmedAcademicProfile(userId);
@@ -319,15 +335,38 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     } catch {
       setCustomGroups([]);
     }
-  }, [userId]);
+  }, [userId, refreshHasUndated]);
+  refreshSidebarGroupsRef.current = refreshGroupSummaries;
 
+  const loadedUndatedRef = useRef('');
+  useEffect(() => {
+    const key = `${userId}:${refreshTrigger}`;
+    if (loadedUndatedRef.current === key) return;
+    loadedUndatedRef.current = key;
+    refreshHasUndated();
+  }, [userId, refreshTrigger, refreshHasUndated]);
+
+  const sidebarGroupsOpen =
+    calendarMenuVisible ||
+    blockModal.visible ||
+    customGroupModalState.visible ||
+    viewClassesVisible ||
+    birthdaysModalVisible;
   const loadedClassSummary = useRef('');
   useEffect(() => {
+    if (!sidebarGroupsOpen) return;
     const key = `${userId}:${refreshTrigger}`;
     if (loadedClassSummary.current === key) return;
     loadedClassSummary.current = key;
     refreshGroupSummaries();
-  }, [userId, refreshTrigger, refreshGroupSummaries]);
+  }, [userId, refreshTrigger, sidebarGroupsOpen, refreshGroupSummaries]);
+
+  const calendarRef = useRef(calendar);
+  calendarRef.current = calendar;
+  const scheduleModalRef = useRef(scheduleModal);
+  scheduleModalRef.current = scheduleModal;
+  const blockModalRef = useRef(blockModal);
+  blockModalRef.current = blockModal;
 
   const handledRequest = useRef<string | null>(null);
   useEffect(() => {
@@ -360,9 +399,9 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           : openRequest.date;
       if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
         const chosen = new Date(`${date}T12:00:00`);
-        calendar.setSelectedDate(chosen);
-        calendar.setCurrentDate(chosen);
-        calendar.setViewMode('week');
+        calendarRef.current.setSelectedDate(chosen);
+        calendarRef.current.setCurrentDate(chosen);
+        calendarRef.current.setViewMode('week');
       }
       if (resolved?.kind === 'event' && isBirthdayEvent(resolved.item)) {
         const at = resolved.item.id.indexOf('_occur_');
@@ -371,9 +410,9 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
         );
         setBirthdaysModalVisible(true);
       } else if (resolved?.kind === 'task' || resolved?.kind === 'event') {
-        scheduleModal.openEdit(resolved.item, resolved.kind);
+        scheduleModalRef.current.openEdit(resolved.item, resolved.kind);
       } else if (resolved?.kind === 'block')
-        blockModal.openEditBlock(resolved.item);
+        blockModalRef.current.openEditBlock(resolved.item);
       else if (resolved?.kind === 'reminder')
         Alert.alert(
           resolved.item.task,
@@ -387,18 +426,11 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
         'Could not read this item. Please try again.',
       );
     }
-  }, [
-    openRequest,
-    userId,
-    calendar,
-    scheduleModal,
-    blockModal,
-    onOpenRequestHandled,
-  ]);
+  }, [openRequest, userId, onOpenRequestHandled]);
 
-  const handleFABPress = () => {
+  const handleFABPress = React.useCallback(() => {
     setFabMenuVisible(true);
-  };
+  }, []);
 
   const handleSaveNote = () => {
     if (!noteTitle.trim() && !noteBody.trim()) {
@@ -424,31 +456,37 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     onRefresh();
   };
 
-  const toggleTaskCompletion = (task: Task) => {
-    const baseId = baseScheduleEntityId(task.id);
-    const nextCompleted = !task.isCompleted;
-    tasksStore.updateTask({id: baseId, isCompleted: nextCompleted});
-    setSelectedDetailItem(prev => {
-      if (
-        !prev ||
-        prev.kind !== 'task' ||
-        !prev.rawTask ||
-        baseScheduleEntityId(prev.rawTask.id) !== baseId
-      ) {
-        return prev;
-      }
-      return {
-        ...prev,
-        rawTask: {...prev.rawTask, isCompleted: nextCompleted},
-      };
-    });
-    calendar.loadScheduleData();
-    onRefresh();
-  };
+  const toggleTaskCompletion = React.useCallback(
+    (task: Task) => {
+      const baseId = baseScheduleEntityId(task.id);
+      const nextCompleted = !task.isCompleted;
+      tasksStore.updateTask({id: baseId, isCompleted: nextCompleted});
+      setSelectedDetailItem(prev => {
+        if (
+          !prev ||
+          prev.kind !== 'task' ||
+          !prev.rawTask ||
+          baseScheduleEntityId(prev.rawTask.id) !== baseId
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          rawTask: {...prev.rawTask, isCompleted: nextCompleted},
+        };
+      });
+      calendarRef.current.loadScheduleData();
+      onRefresh();
+    },
+    [onRefresh],
+  );
 
-  const handlePressTimelineItem = (item: ScheduleTimelineItem) => {
-    setSelectedDetailItem(item);
-  };
+  const handlePressTimelineItem = React.useCallback(
+    (item: ScheduleTimelineItem) => {
+      setSelectedDetailItem(item);
+    },
+    [],
+  );
 
   const handleEditScheduleFromDetail = (item: ScheduleTimelineItem) => {
     setSelectedDetailItem(null);
@@ -483,8 +521,8 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             const remId = baseScheduleEntityId(rem.id);
             remindersStore.deleteReminder(remId);
             scheduleEntriesStore.removeEntriesForTarget(userId, remId);
-            void cancelReminderAlarm(remId);
-            void finishNativeIncomingCall(remId);
+            void cancelReminderAlarm(remId).catch(() => undefined);
+            void finishNativeIncomingCall(remId).catch(() => undefined);
             reloadAttachedEntries();
             calendar.loadScheduleData();
             onRefresh();
@@ -494,10 +532,16 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     }
   };
 
-  const handleSelectStripDate = (date: Date) => {
-    calendar.setSelectedDate(date);
-    calendar.setCurrentDate(date);
-  };
+  const handleSelectStripDate = React.useCallback((date: Date) => {
+    calendarRef.current.setSelectedDate(date);
+    calendarRef.current.setCurrentDate(date);
+  }, []);
+
+  const selectedDateRef = useRef(calendar.selectedDate);
+  selectedDateRef.current = calendar.selectedDate;
+  const handleAddDayBlock = React.useCallback((hour: number) => {
+    blockModalRef.current.openNewBlock(hour, selectedDateRef.current);
+  }, []);
 
   const overdueTasks = calendar.getOverdueTasks();
   const overdueMore = Math.max(
@@ -785,9 +829,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
               reminders={calendar.reminders}
               attachedEntries={attachedEntries}
               onSelectDate={handleSelectStripDate}
-              onAddBlock={hour =>
-                blockModal.openNewBlock(hour, calendar.selectedDate)
-              }
+              onAddBlock={handleAddDayBlock}
               onPressItem={handlePressTimelineItem}
               onToggleTask={toggleTaskCompletion}
               onCurrentTimeLayout={handleDayCurrentTimeLayout}
@@ -873,143 +915,159 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             timeFormat24h={calendar.timeFormat24h}
           />
         )}
-        <UndatedTasksModal
-          visible={undatedVisible}
-          userId={userId}
-          refreshTrigger={refreshTrigger}
-          onClose={() => setUndatedVisible(false)}
-          onToggleTask={toggleTaskCompletion}
-        />
+        {undatedVisible && (
+          <UndatedTasksModal
+            visible={undatedVisible}
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            onClose={() => setUndatedVisible(false)}
+            onToggleTask={toggleTaskCompletion}
+          />
+        )}
 
-        <ClassScheduleModal
-          visible={classScheduleVisible}
-          userId={userId}
-          timeFormat24h={calendar.timeFormat24h}
-          onClose={() => setClassScheduleVisible(false)}
-          onSaved={() => {
-            calendar.loadBlocks();
-            refreshGroupSummaries();
-            onRefresh();
-          }}
-        />
+        {classScheduleVisible && (
+          <ClassScheduleModal
+            visible={classScheduleVisible}
+            userId={userId}
+            timeFormat24h={calendar.timeFormat24h}
+            onClose={() => setClassScheduleVisible(false)}
+            onSaved={() => {
+              calendar.loadBlocks();
+              refreshGroupSummaries();
+              onRefresh();
+            }}
+          />
+        )}
 
-        <ViewClassesModal
-          visible={viewClassesVisible}
-          userId={userId}
-          refreshTrigger={refreshTrigger}
-          timeFormat24h={calendar.timeFormat24h}
-          initialEditBlock={initialEditClassBlock}
-          onClose={() => {
-            setViewClassesVisible(false);
-            setInitialEditClassBlock(null);
-          }}
-          onChanged={() => {
-            calendar.loadBlocks();
-            refreshGroupSummaries();
-            reloadAttachedEntries();
-            onRefresh();
-          }}
-          onAddClassSchedule={() => setClassScheduleVisible(true)}
-        />
+        {viewClassesVisible && (
+          <ViewClassesModal
+            visible={viewClassesVisible}
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            timeFormat24h={calendar.timeFormat24h}
+            initialEditBlock={initialEditClassBlock}
+            onClose={() => {
+              setViewClassesVisible(false);
+              setInitialEditClassBlock(null);
+            }}
+            onChanged={() => {
+              calendar.loadBlocks();
+              refreshGroupSummaries();
+              reloadAttachedEntries();
+              onRefresh();
+            }}
+            onAddClassSchedule={() => setClassScheduleVisible(true)}
+          />
+        )}
 
-        <ScheduleItemDetailModal
-          visible={selectedDetailItem !== null}
-          userId={userId}
-          item={selectedDetailItem}
-          selectedDate={calendar.selectedDate}
-          allBlocks={calendar.blocks}
-          onClose={() => setSelectedDetailItem(null)}
-          onEditSchedule={handleEditScheduleFromDetail}
-          onToggleTask={toggleTaskCompletion}
-          onEntriesChanged={reloadAttachedEntries}
-        />
+        {selectedDetailItem !== null && (
+          <ScheduleItemDetailModal
+            visible={selectedDetailItem !== null}
+            userId={userId}
+            item={selectedDetailItem}
+            selectedDate={calendar.selectedDate}
+            allBlocks={calendar.blocks}
+            onClose={() => setSelectedDetailItem(null)}
+            onEditSchedule={handleEditScheduleFromDetail}
+            onToggleTask={toggleTaskCompletion}
+            onEntriesChanged={reloadAttachedEntries}
+          />
+        )}
 
-        <BirthdaysGroupModal
-          visible={birthdaysModalVisible}
-          userId={userId}
-          refreshTrigger={refreshTrigger}
-          initialBirthdayId={highlightBirthdayId}
-          onClose={() => {
-            setBirthdaysModalVisible(false);
-            setHighlightBirthdayId(null);
-          }}
-          onChanged={() => {
-            calendar.loadScheduleData();
-            refreshGroupSummaries();
-            onRefresh();
-          }}
-        />
+        {birthdaysModalVisible && (
+          <BirthdaysGroupModal
+            visible={birthdaysModalVisible}
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            initialBirthdayId={highlightBirthdayId}
+            onClose={() => {
+              setBirthdaysModalVisible(false);
+              setHighlightBirthdayId(null);
+            }}
+            onChanged={() => {
+              calendar.loadScheduleData();
+              refreshGroupSummaries();
+              onRefresh();
+            }}
+          />
+        )}
 
-        <HolidaysGroupModal
-          visible={holidaysModalVisible}
-          initialYear={(calendar.viewMode === 'month'
-            ? calendar.currentDate
-            : calendar.selectedDate
-          ).getFullYear()}
-          holidaysVisible={calendar.showHolidays}
-          onToggleVisibility={isVisible => {
-            void calendar.handleToggleVisibility(
-              HOLIDAY_CALENDAR_ID,
-              isVisible,
-            );
-          }}
-          onSelectHolidayDate={dateStr => {
-            const chosen = new Date(`${dateStr}T12:00:00`);
-            if (!Number.isNaN(chosen.getTime())) {
-              calendar.setSelectedDate(chosen);
-              calendar.setCurrentDate(chosen);
+        {holidaysModalVisible && (
+          <HolidaysGroupModal
+            visible={holidaysModalVisible}
+            initialYear={(calendar.viewMode === 'month'
+              ? calendar.currentDate
+              : calendar.selectedDate
+            ).getFullYear()}
+            holidaysVisible={calendar.showHolidays}
+            onToggleVisibility={isVisible => {
+              void calendar.handleToggleVisibility(
+                HOLIDAY_CALENDAR_ID,
+                isVisible,
+              );
+            }}
+            onSelectHolidayDate={dateStr => {
+              const chosen = new Date(`${dateStr}T12:00:00`);
+              if (!Number.isNaN(chosen.getTime())) {
+                calendar.setSelectedDate(chosen);
+                calendar.setCurrentDate(chosen);
+              }
+            }}
+            onClose={() => setHolidaysModalVisible(false)}
+          />
+        )}
+
+        {customGroupModalState.visible && (
+          <CustomGroupModal
+            visible={customGroupModalState.visible}
+            userId={userId}
+            timeFormat24h={calendar.timeFormat24h}
+            initialGroupName={customGroupModalState.groupName}
+            onClose={() =>
+              setCustomGroupModalState({visible: false, groupName: null})
             }
-          }}
-          onClose={() => setHolidaysModalVisible(false)}
-        />
+            onSaved={() => {
+              calendar.loadBlocks();
+              refreshGroupSummaries();
+              onRefresh();
+            }}
+          />
+        )}
 
-        <CustomGroupModal
-          visible={customGroupModalState.visible}
-          userId={userId}
-          timeFormat24h={calendar.timeFormat24h}
-          initialGroupName={customGroupModalState.groupName}
-          onClose={() =>
-            setCustomGroupModalState({visible: false, groupName: null})
-          }
-          onSaved={() => {
-            calendar.loadBlocks();
-            refreshGroupSummaries();
-            onRefresh();
-          }}
-        />
-
-        <CalendarOptionsSidebar
-          visible={calendarMenuVisible}
-          onClose={() => setCalendarMenuVisible(false)}
-          classCount={classSummary.count}
-          birthdayCount={birthdayCount}
-          customGroups={customGroups}
-          visibilityMap={calendar.visibilityMap}
-          profileSummary={classSummary.profileText}
-          hasUndated={hasUndated}
-          onViewClasses={() => setViewClassesVisible(true)}
-          onAddClassSchedule={() => setClassScheduleVisible(true)}
-          onGoToToday={calendar.handleGoToToday}
-          onOpenLayers={() => calendar.setLayersModalVisible(true)}
-          onOpenUndated={() => setUndatedVisible(true)}
-          onImportCalendar={calendar.handleImportCalendar}
-          onRemoveImportedCalendar={calendar.startRemoveFlow}
-          onExportCalendar={calendar.handleExportCalendar}
-          onToggleLayer={(layerId, isVisible) => {
-            void calendar.handleToggleVisibility(layerId, isVisible);
-          }}
-          onOpenBirthdays={() => {
-            setHighlightBirthdayId(null);
-            setBirthdaysModalVisible(true);
-          }}
-          onOpenHolidays={() => setHolidaysModalVisible(true)}
-          onOpenCustomGroup={groupName =>
-            setCustomGroupModalState({
-              visible: true,
-              groupName: groupName ?? null,
-            })
-          }
-        />
+        {calendarMenuVisible && (
+          <CalendarOptionsSidebar
+            visible={calendarMenuVisible}
+            onClose={() => setCalendarMenuVisible(false)}
+            classCount={classSummary.count}
+            birthdayCount={birthdayCount}
+            customGroups={customGroups}
+            visibilityMap={calendar.visibilityMap}
+            profileSummary={classSummary.profileText}
+            hasUndated={hasUndated}
+            onViewClasses={() => setViewClassesVisible(true)}
+            onAddClassSchedule={() => setClassScheduleVisible(true)}
+            onGoToToday={calendar.handleGoToToday}
+            onOpenLayers={() => calendar.setLayersModalVisible(true)}
+            onOpenUndated={() => setUndatedVisible(true)}
+            onImportCalendar={calendar.handleImportCalendar}
+            onRemoveImportedCalendar={calendar.startRemoveFlow}
+            onExportCalendar={calendar.handleExportCalendar}
+            onToggleLayer={(layerId, isVisible) => {
+              void calendar.handleToggleVisibility(layerId, isVisible);
+            }}
+            onOpenBirthdays={() => {
+              setHighlightBirthdayId(null);
+              setBirthdaysModalVisible(true);
+            }}
+            onOpenHolidays={() => setHolidaysModalVisible(true)}
+            onOpenCustomGroup={groupName =>
+              setCustomGroupModalState({
+                visible: true,
+                groupName: groupName ?? null,
+              })
+            }
+          />
+        )}
 
         {calendar.layersModalVisible && (
           <CalendarLayersModal

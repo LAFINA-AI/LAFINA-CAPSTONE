@@ -69,7 +69,12 @@ class LafinaAlarmService : Service() {
 
     /** Dismiss or Snooze from the ringing screen, the notification or JS. */
     fun finish(context: Context, kind: String) {
-      instance?.stop(kind)
+      val active = instance ?: return
+      if (Looper.myLooper() == Looper.getMainLooper()) {
+        active.stop(kind)
+      } else {
+        active.handler.post { active.stop(kind) }
+      }
     }
 
     fun createChannel(context: Context) {
@@ -101,7 +106,26 @@ class LafinaAlarmService : Service() {
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     if (intent?.action != ACTION_RING) {
-      stopSelf()
+      if (ringing == null) {
+        try {
+          createChannel(this)
+          val fallback = RingRequest(LafinaAlarms.TEST_ALARM_ID, 0L, "Alarm", false, null, true)
+          val notification = buildNotification(fallback)
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+          } else {
+            startForeground(NOTIFICATION_ID, notification)
+          }
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+          } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+          }
+        } catch (_: Exception) {
+        }
+        stopSelf()
+      }
       return START_NOT_STICKY
     }
     val request = RingRequest(
@@ -185,23 +209,8 @@ class LafinaAlarmService : Service() {
         RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM),
         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
-    for (uri in candidates) {
-      try {
-        player = MediaPlayer().apply {
-          setAudioAttributes(attributes)
-          setDataSource(this@LafinaAlarmService, uri)
-          isLooping = true
-          setVolume(initialVolume, initialVolume)
-          prepare()
-          start()
-        }
-        break
-      } catch (_: Exception) {
-        player?.release()
-        player = null
-      }
-    }
-    if (rampMs > 0L && player != null) {
+    fun startRamp() {
+      if (rampMs <= 0L || player == null) return
       rampStartedAt = System.currentTimeMillis()
       handler.post(object : Runnable {
         override fun run() {
@@ -217,7 +226,70 @@ class LafinaAlarmService : Service() {
         }
       })
     }
-    // Vibration also runs when no tone could play, so the alarm is never silent and still.
+
+    fun ensureVibrationFallback() {
+      if (vibrator != null) return
+      val chosenWaveform = AlertPreferencesContract.alarmWaveform(prefs.alarmVibrationPattern)
+      val waveform = chosenWaveform ?: AlertPreferencesContract.STANDARD_ALARM_WAVEFORM
+      vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+      } else {
+        @Suppress("DEPRECATION")
+        getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+      }
+      @Suppress("DEPRECATION")
+      vibrator?.vibrate(VibrationEffect.createWaveform(waveform, 0), attributes)
+    }
+
+    fun tryCandidate(index: Int) {
+      if (ringing !== request) return
+      if (index >= candidates.size) {
+        player = null
+        ensureVibrationFallback()
+        return
+      }
+      val uri = candidates[index]
+      try {
+        val mp = MediaPlayer()
+        player = mp
+        mp.apply {
+          setAudioAttributes(attributes)
+          setDataSource(this@LafinaAlarmService, uri)
+          isLooping = true
+          setVolume(initialVolume, initialVolume)
+          setOnPreparedListener { prepared ->
+            if (player === prepared && ringing === request) {
+              try {
+                prepared.start()
+                startRamp()
+              } catch (_: Exception) {
+                try { prepared.release() } catch (_: Exception) {}
+                player = null
+                tryCandidate(index + 1)
+              }
+            } else {
+              try { prepared.release() } catch (_: Exception) {}
+            }
+          }
+          setOnErrorListener { failed, _, _ ->
+            if (player === failed) {
+              try { failed.release() } catch (_: Exception) {}
+              player = null
+              tryCandidate(index + 1)
+            }
+            true
+          }
+          prepareAsync()
+        }
+      } catch (_: Exception) {
+        player?.release()
+        player = null
+        tryCandidate(index + 1)
+      }
+    }
+
+    tryCandidate(0)
+    // Vibration also runs when requested or when no tone candidate could be opened.
     val chosenWaveform = AlertPreferencesContract.alarmWaveform(prefs.alarmVibrationPattern)
     if ((request.vibrate && chosenWaveform != null) || player == null) {
       val waveform = chosenWaveform ?: AlertPreferencesContract.STANDARD_ALARM_WAVEFORM
