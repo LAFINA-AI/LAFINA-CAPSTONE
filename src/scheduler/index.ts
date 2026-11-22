@@ -1,6 +1,29 @@
+export {
+  buildNativeAlertPayload,
+  isWithinQuietHours,
+  syncAlertPreferencesToNative,
+} from './alertPreferencesSync';
+export { resolveReminderDeliveryStyle } from './reminderDeliveryPolicy';
+export {
+  defaultToneLabelForKind,
+  FALLBACK_BUNDLED_TONES,
+  isSoundPickerAvailable,
+  listBundledTones,
+  openChannelNotificationSettings,
+  pickSystemTone,
+  previewTone,
+  resolveToneTitle,
+  stopTonePreview,
+} from './soundPicker';
+export type {
+  BundledToneOption,
+  PickedToneResult,
+  SoundPickerKind,
+} from './soundPicker';
 export { getReminderPreferences } from './userPreferences';
 export type { ReminderPreferences } from './userPreferences';
 export {
+  getActiveNotificationChannelId,
   scheduleReminderAlarm,
   cancelReminderAlarm,
   consumePendingNativeCall,
@@ -33,6 +56,7 @@ export type { DeliveryReconcileSummary } from './deliveryReconciler';
 export { admitReminderCall } from './callAdmission';
 export {
   NOTIFY_SNOOZE_MINUTES,
+  getNotifySnoozeMinutes,
   applyNotificationAction,
   isNotificationAction,
   isNotifyOnlyReminder,
@@ -77,6 +101,8 @@ export type { ReminderPreferenceRefreshResult } from './reminderPreferenceSync';
 export { defaultCallSpeechProvider } from './speechProvider';
 export type { CallSpeechProvider, CallSpeechResult } from './speechProvider';
 export {
+  buildAnnouncement,
+  buildOnlineAnnouncement,
   prepareCallSpeech,
   speakText,
   detectCallKeyword,

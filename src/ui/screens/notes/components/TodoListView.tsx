@@ -1,3 +1,4 @@
+import {SkillFonts} from '../../../theme/skills';
 import React, {useState} from 'react';
 import {
   ScrollView,
@@ -19,7 +20,6 @@ import {
 import type {Task} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {
-  Fonts,
   FontSize,
   Layout,
   ModernLayout,
@@ -766,24 +766,26 @@ const styles = StyleSheet.create({
   },
   quickInput: {
     flex: 1,
-    fontFamily: Fonts.body,
-    fontSize: FontSize.body,
+    fontFamily: SkillFonts.body,
+    fontSize: 15,
     paddingVertical: 4,
   },
   prioChip: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Layout.borderRadiusPill,
     borderWidth: 1,
   },
   prioChipText: {
-    fontFamily: Fonts.heading,
-    fontSize: FontSize.caption,
+    fontFamily: SkillFonts.semibold,
+    fontSize: 12,
     fontWeight: '700',
   },
   addBtn: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -795,13 +797,15 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   filterChip: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: Layout.borderRadiusPill,
     marginRight: 6,
   },
   filterChipText: {
-    fontFamily: Fonts.body,
+    fontFamily: SkillFonts.body,
     fontSize: FontSize.small,
   },
   scrollContent: {
@@ -817,7 +821,7 @@ const styles = StyleSheet.create({
     rowGap: 10,
   },
   sectionHeader: {
-    fontFamily: Fonts.heading,
+    fontFamily: SkillFonts.semibold,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.7,
@@ -863,7 +867,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: 22,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -879,8 +883,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   taskTitle: {
-    fontFamily: Fonts.heading,
-    fontSize: FontSize.body,
+    fontFamily: SkillFonts.semibold,
+    fontSize: 15,
     fontWeight: '600',
     lineHeight: 20,
   },
@@ -889,7 +893,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   taskNotes: {
-    fontFamily: Fonts.body,
+    fontFamily: SkillFonts.body,
     fontSize: FontSize.small,
     marginTop: 2,
   },
@@ -919,11 +923,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaPillText: {
-    fontFamily: Fonts.body,
+    fontFamily: SkillFonts.body,
     fontSize: 11,
     fontWeight: '600',
   },
   completedToggleRow: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -936,14 +941,14 @@ const styles = StyleSheet.create({
     paddingTop: 48,
   },
   emptyTitle: {
-    fontFamily: Fonts.heading,
+    fontFamily: SkillFonts.semibold,
     fontSize: FontSize.subtitle,
     fontWeight: '700',
     marginBottom: 6,
     textAlign: 'center',
   },
   emptySub: {
-    fontFamily: Fonts.body,
+    fontFamily: SkillFonts.body,
     fontSize: FontSize.small,
     textAlign: 'center',
     lineHeight: 18,

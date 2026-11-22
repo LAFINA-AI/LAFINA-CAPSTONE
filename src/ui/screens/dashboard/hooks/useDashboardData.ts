@@ -334,17 +334,25 @@ export const useDashboardData = ({
     if (!wasActive && isActive) {
       syncVisibilityFromCache();
       const freshNow = new Date();
+      // A new day must not paint yesterday's plan: reload before paint.
       if (formatLocalDateStr(freshNow) !== formatLocalDateStr(nowRef.current)) {
         setNow(freshNow);
         loadRawData(freshNow);
-      } else if (
-        Math.floor(freshNow.getTime() / 60_000) !==
-        Math.floor(nowRef.current.getTime() / 60_000)
-      ) {
-        setNow(freshNow);
       }
     }
   }, [isActive, syncVisibilityFromCache, loadRawData]);
+  // A new minute only moves countdowns: it updates right after the switch
+  // paints, so returning Home is not held for a second render.
+  useEffect(() => {
+    if (!isActive) return;
+    const freshNow = new Date();
+    if (
+      Math.floor(freshNow.getTime() / 60_000) !==
+      Math.floor(nowRef.current.getTime() / 60_000)
+    ) {
+      setNow(freshNow);
+    }
+  }, [isActive]);
 
   // Keep live countdowns & current-class progress fresh while active.
   useEffect(() => {
@@ -569,38 +577,55 @@ export const useDashboardData = ({
     [loadRawData, onRefresh],
   );
 
-  const openStudyBlockSlot = useCallback(
-    (slot: FreeStudyBlock) => {
-      if (blockModal.openNewSlot) {
-        blockModal.openNewSlot({
-          date: formatLocalDateStr(new Date()),
-          startTime: slot.startTime,
-          endTime: slot.suggestedEndTime,
-          title: 'Study Block',
-          category: 'Learning',
-          color: Colors.blue,
-        });
-      } else {
-        const startH = Math.floor(slot.startMinutes / 60);
-        blockModal.openNewBlock(startH, new Date());
-      }
-    },
-    [blockModal],
-  );
+  // Read through a ref: the modal hook returns a new object each render, and
+  // a stable handler lets Home's memoized widgets skip re-rendering.
+  const blockModalRef = useRef(blockModal);
+  blockModalRef.current = blockModal;
+  const openStudyBlockSlot = useCallback((slot: FreeStudyBlock) => {
+    const modal = blockModalRef.current;
+    if (modal.openNewSlot) {
+      modal.openNewSlot({
+        date: formatLocalDateStr(new Date()),
+        startTime: slot.startTime,
+        endTime: slot.suggestedEndTime,
+        title: 'Study Block',
+        category: 'Learning',
+        color: Colors.blue,
+      });
+    } else {
+      const startH = Math.floor(slot.startMinutes / 60);
+      modal.openNewBlock(startH, new Date());
+    }
+  }, []);
 
-  const actions: DashboardActions = {
-    config,
-    setConfig: updateConfig,
-    applyPreset,
-    resetConfig,
-    moveWidget,
-    toggleWidgetVisibility,
-    setMinFreeGapMinutes,
-    setScheduleFilter,
-    toggleTaskComplete,
-    openStudyBlockSlot,
-    refresh,
-  };
+  const actions: DashboardActions = useMemo(
+    () => ({
+      config,
+      setConfig: updateConfig,
+      applyPreset,
+      resetConfig,
+      moveWidget,
+      toggleWidgetVisibility,
+      setMinFreeGapMinutes,
+      setScheduleFilter,
+      toggleTaskComplete,
+      openStudyBlockSlot,
+      refresh,
+    }),
+    [
+      config,
+      updateConfig,
+      applyPreset,
+      resetConfig,
+      moveWidget,
+      toggleWidgetVisibility,
+      setMinFreeGapMinutes,
+      setScheduleFilter,
+      toggleTaskComplete,
+      openStudyBlockSlot,
+      refresh,
+    ],
+  );
 
   return {
     now,

@@ -1,0 +1,30 @@
+
+body{margin:0}
+a{color:#4433C9}a:hover{color:#3B2CB8}
+button,input,textarea{font-family:inherit}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}60%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@keyframes deal{from{opacity:0;transform:translateY(24px) rotate(-3deg)}to{opacity:1;transform:none}}
+@keyframes draw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@keyframes halo{0%{transform:scale(1);opacity:.4}100%{transform:scale(1.7);opacity:0}}
+@keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes breatheSoft{0%,100%{transform:scale(.96);opacity:.55}50%{transform:scale(1.04);opacity:1}}
+@keyframes scoreIn{from{stroke-dashoffset:452.4}}
+.a-up{animation:up .45s cubic-bezier(.2,.8,.2,1) both}
+.a-pop{animation:pop .4s cubic-bezier(.2,.8,.2,1) both}
+.a-deal{animation:deal .5s cubic-bezier(.2,.8,.2,1) both}
+.draw{stroke-dasharray:24;stroke-dashoffset:24;animation:draw .35s ease .05s forwards}
+.halo{animation:halo 2.2s ease-out infinite}
+.wave{animation:wave 1s ease-in-out infinite;transform-origin:center}
+.blink{animation:blink 1.2s ease-in-out infinite}
+.breathe-soft{animation:breatheSoft 4s ease-in-out infinite}
+.score-ring{animation:scoreIn 1.2s cubic-bezier(.2,.8,.2,1) .2s both}
+.press{transition:transform .12s ease}.press:active{transform:scale(.94)}
+.track{transition:background .2s ease}.knob{transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.card3d{transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.back{transform:rotateY(180deg)}
+.field{transition:border-color .2s ease, box-shadow .2s ease}
+.field:focus-within{border-color:#5442E0 !important;box-shadow:0 0 0 4px #EEECFD}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition:none!important}}

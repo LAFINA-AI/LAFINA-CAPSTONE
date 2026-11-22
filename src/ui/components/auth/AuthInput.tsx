@@ -1,16 +1,18 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
-  View,
+  KeyboardTypeOptions,
+  StyleSheet,
   Text,
   TextInput,
+  TextInputProps,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardTypeOptions,
+  View,
+  ViewStyle,
 } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
-import {Fonts, Layout, ModernLayout, useThemedStyles} from '../../theme';
-import { useTheme } from '../../contexts/ThemeContext';
-import type { ThemeColors } from '../../contexts/ThemeContext';
+import {Eye, EyeOff} from 'lucide-react-native';
+import {Fonts} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {IntroColors} from '../../screens/onboarding/intro/introTokens';
 
 interface AuthInputProps {
   label: string;
@@ -21,10 +23,17 @@ interface AuthInputProps {
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
+  autoComplete?: TextInputProps['autoComplete'];
+  textContentType?: TextInputProps['textContentType'];
+  returnKeyType?: TextInputProps['returnKeyType'];
+  onSubmitEditing?: TextInputProps['onSubmitEditing'];
+  renderIcon?: (color: string) => React.ReactNode;
   icon?: React.ReactNode;
   showPasswordToggle?: boolean;
   showPassword?: boolean;
   onPasswordToggle?: () => void;
+  containerStyle?: ViewStyle;
+  testID?: string;
 }
 
 export const AuthInput: React.FC<AuthInputProps> = ({
@@ -36,46 +45,76 @@ export const AuthInput: React.FC<AuthInputProps> = ({
   keyboardType = 'default',
   autoCapitalize = 'none',
   autoCorrect = false,
+  autoComplete,
+  textContentType,
+  returnKeyType,
+  onSubmitEditing,
+  renderIcon,
   icon,
   showPasswordToggle = false,
   showPassword = false,
   onPasswordToggle,
+  containerStyle,
+  testID,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
-  const themed = useThemedStyles(getThemedStyles);
+  const [focused, setFocused] = useState(false);
+  const {colors, isDarkMode} = useTheme();
+
+  const labelColor = isDarkMode ? colors.textPrimary : '#26243B';
+  const inputBg = isDarkMode ? colors.surface : focused ? '#F8F7FD' : '#F3F2F8';
+  const borderColor = focused ? IntroColors.brand : 'transparent';
+  const iconColor = focused
+    ? IntroColors.brand
+    : isDarkMode
+    ? colors.textSecondary
+    : '#7B7890';
+  const textColor = isDarkMode ? colors.textPrimary : IntroColors.ink;
+  const placeholderColor = isDarkMode ? colors.placeholder : '#8E8BA3';
 
   return (
-    <View>
-      <Text style={[styles.fieldLabel, themed.fieldLabel]}>{label}</Text>
+    <View style={[styles.group, containerStyle]}>
+      <Text style={[styles.fieldLabel, {color: labelColor}]}>{label}</Text>
       <View
-        style={[
-          styles.inputContainer,
-          themed.inputContainer,
-          isModern && {
-            borderRadius: ModernLayout.borderRadiusInput,
-            borderColor: modernPalette.border,
-            backgroundColor: modernPalette.surface,
-          },
-        ]}
+        style={[styles.inputContainer, {backgroundColor: inputBg, borderColor}]}
       >
-        {icon && <View style={styles.inputIcon}>{icon}</View>}
+        {(renderIcon || icon) && (
+          <View style={styles.inputIcon}>
+            {renderIcon ? renderIcon(iconColor) : icon}
+          </View>
+        )}
         <TextInput
-          style={[styles.input, themed.input]}
+          style={[styles.input, {color: textColor}]}
           placeholder={placeholder}
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={placeholderColor}
           secureTextEntry={secureTextEntry}
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           autoCorrect={autoCorrect}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          testID={testID}
         />
         {showPasswordToggle && onPasswordToggle && (
-          <TouchableOpacity onPress={onPasswordToggle} style={styles.eyeIcon}>
+          <TouchableOpacity
+            onPress={onPasswordToggle}
+            style={styles.eyeIcon}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={
+              showPassword ? 'Hide password' : 'Show password'
+            }
+            hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}
+          >
             {showPassword ? (
-              <EyeOff size={20} color={colors.textSecondary} />
+              <Eye size={19} color={iconColor} />
             ) : (
-              <Eye size={20} color={colors.textSecondary} />
+              <EyeOff size={19} color={iconColor} />
             )}
           </TouchableOpacity>
         )}
@@ -85,45 +124,38 @@ export const AuthInput: React.FC<AuthInputProps> = ({
 };
 
 const styles = StyleSheet.create({
+  group: {
+    marginBottom: 16,
+  },
   fieldLabel: {
-    fontFamily: Fonts.body,
-    fontSize: 12,
+    fontFamily: Fonts.heading,
+    fontSize: 13.5,
     fontWeight: '600',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderRadius: Layout.borderRadiusButton,
-    marginBottom: 16,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 52,
   },
   inputIcon: {
-    marginRight: 8,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
-    height: 48,
+    height: '100%',
     fontFamily: Fonts.body,
-    fontSize: 14,
+    fontSize: 15,
+    paddingVertical: 0,
   },
   eyeIcon: {
-    padding: 8,
-  },
-});
-
-const getThemedStyles = (colors: ThemeColors) => ({
-  fieldLabel: {
-    color: colors.textPrimary,
-  },
-  inputContainer: {
-    borderColor: colors.border,
-    backgroundColor: colors.inputBg,
-  },
-  input: {
-    color: colors.textPrimary,
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

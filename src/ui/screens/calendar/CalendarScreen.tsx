@@ -599,7 +599,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             style={styles.iconChevronBtn}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Calendar options and tools"
+            accessibilityLabel="Calendar options"
             testID="calendar-more-menu-button"
           >
             <MoreVertical size={18} color={palette.text} />

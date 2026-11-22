@@ -41,11 +41,19 @@ import {useThemedStyles} from '../theme/createThemedStyles';
 import type {ThemeColors} from '../contexts/ThemeContext';
 import {
   chatStore,
+  isChatLimitReachedError,
+  isRemoteOnlyAttachment,
   isUstpSessionId,
   type ChatAttachment,
   type ChatMessage,
 } from '../../storage/chatStore';
 import {userStore} from '../../storage/userStore';
+import {chatSyncStore} from '../../storage/chatSyncStore';
+import {chatHistorySync} from '../../sync/chatHistorySync';
+import {
+  CHAT_REMOTE_CHANGED_EVENT,
+  type ChatRemoteChangedEvent,
+} from '../../sync/chatSyncEvents';
 import {mergeChatPages} from './chat/chatPaging';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {accountLinkService} from '../../cloud';
@@ -90,6 +98,8 @@ import {
 import {TypingBubble} from '../components/chat/TypingBubble';
 import {CommandReviewCard} from '../components/chat/CommandReviewCard';
 import {UndoSnackbar} from '../components/chat/UndoSnackbar';
+import {skillTitle} from '../../skills/skillLaunch';
+import type {SkillLaunch} from '../../skills/skillLaunch';
 import {CommandGuide} from '../components/chat/CommandGuide';
 import {EndTemporaryChatModal} from '../components/chat/EndTemporaryChatModal';
 import {useCommandReview} from '../hooks/useCommandReview';
@@ -106,6 +116,7 @@ import {shareAttachment} from '../components/chat/chatFiles';
 import {ToolSheet} from '../components/tools';
 import {MultiActionCard} from '../components/callLafina/cards/MultiActionCard';
 import {actionService} from '../../ai/voiceActions/actionService';
+import {reviseMultiItem} from '../../ai/voiceActions/multiActionService';
 import {tourTargetRef} from '../tour/tourTargets';
 import type {
   MultiActionBatchData,
@@ -280,6 +291,8 @@ export interface ChatScreenProps {
   refreshTrigger?: number;
   onRefresh?: () => void;
   onCallLafina?: () => void;
+  /** Opens a skill the student asked for in Chat (ADR-041), on their tap. */
+  onOpenSkill?: (launch: SkillLaunch) => void;
 }
 
 export const ChatScreen = React.memo(function ChatScreenView({
@@ -287,6 +300,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
   refreshTrigger = 0,
   onRefresh,
   onCallLafina,
+  onOpenSkill,
 }: ChatScreenProps) {
   const [initialPage] = useState(() => {
     try {
@@ -330,6 +344,12 @@ export const ChatScreen = React.memo(function ChatScreenView({
       'true',
   );
   const [isTemporaryChat, setIsTemporaryChat] = useState(false);
+  const isTemporaryChatRef = useRef(false);
+  isTemporaryChatRef.current = isTemporaryChat;
+  // One-time notice that a signed-in account's chats sync (ADR-040).
+  const [chatSyncNoticeVisible, setChatSyncNoticeVisible] = useState(() =>
+    chatSyncStore.needsNotice(userId),
+  );
   const [tempMessages, setTempMessages] = useState<ChatMessage[]>([]);
   const [endTempConfirmVisible, setEndTempConfirmVisible] = useState(false);
   const [chatTitle, setChatTitle] = useState('New chat');
@@ -393,6 +413,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const [isSending, setIsSending] = useState(false);
   // "Marked done · Undo" after an immediate action (audit finding 10).
   const [undoOffer, setUndoOffer] = useState<UndoOffer | null>(null);
+  /** ADR-041: the skill the last reply offers to open. */
+  const [skillOffer, setSkillOffer] = useState<SkillLaunch | null>(null);
   const hideUndo = useCallback(() => setUndoOffer(null), []);
   const [chatMultiBatch, setChatMultiBatch] =
     useState<MultiActionBatchData | null>(null);
@@ -869,34 +891,35 @@ export const ChatScreen = React.memo(function ChatScreenView({
     if (prevUserIdRef.current === userId) return;
     prevUserIdRef.current = userId;
     messagesLengthRef.current = 0;
+    isTemporaryChatRef.current = false;
     setIsTemporaryChat(false);
     setTempMessages([]);
     setEndTempConfirmVisible(false);
+    setChatMultiBatch(null);
+    setChatMultiBusy(false);
+    setUndoOffer(null);
     setMessages([]);
     setOlderCursor(null);
     setHandbookNotes({});
     setLoadError(null);
-    setCurrentChatId(readCurrentChat());
+    const nextChatId = readCurrentChat();
+    shownChatIdRef.current = nextChatId;
+    setCurrentChatId(nextChatId);
     setHistoryVisible(false);
     setLegacyHiddenCount(chatStore.getLegacyQuarantineSummary().messageCount);
     setLegacyNoticeDismissed(
       localSettingsStore.get(userId, 'chat.legacyNoticeDismissed', null) ===
         'true',
     );
+    setChatSyncNoticeVisible(chatSyncStore.needsNotice(userId));
     beginInitialScroll(false);
   }, [userId, readCurrentChat, beginInitialScroll]);
 
-  const loadedChatRevision = useRef({userId, refreshTrigger});
+  // The sync notice is due once the server is known to store chat, which the
+  // first sync pass after an update learns.
   useEffect(() => {
-    const previous = loadedChatRevision.current;
-    if (
-      previous.userId === userId &&
-      previous.refreshTrigger === refreshTrigger
-    )
-      return;
-    loadedChatRevision.current = {userId, refreshTrigger};
-    loadMessages();
-  }, [userId, loadMessages, refreshTrigger]);
+    setChatSyncNoticeVisible(chatSyncStore.needsNotice(userId));
+  }, [userId, refreshTrigger]);
 
   // Automatically detect Wi-Fi / data connection and sync online mode
   useEffect(() => {
@@ -1009,8 +1032,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
     if (nextChatId !== shownChatIdRef.current) {
       cancelOpenReviewRef.current({silent: true});
       reviewSourceRef.current = null;
+      setChatMultiBatch(null);
     }
     shownChatIdRef.current = nextChatId;
+    isTemporaryChatRef.current = false;
     setIsTemporaryChat(false);
     setTempMessages([]);
     setCurrentChatId(nextChatId);
@@ -1021,15 +1046,122 @@ export const ChatScreen = React.memo(function ChatScreenView({
     refreshChatTitle();
   }, [loadMessages, readCurrentChat, refreshChatTitle]);
 
-  const ensureGeneralSessionForTool = () => {
-    if (!isTemporaryChat && !isUstpChat) return;
-    setIsTemporaryChat(false);
-    setTempMessages([]);
+  const loadedChatRevision = useRef({userId, refreshTrigger});
+  useEffect(() => {
+    const previous = loadedChatRevision.current;
+    if (
+      previous.userId === userId &&
+      previous.refreshTrigger === refreshTrigger
+    )
+      return;
+    loadedChatRevision.current = {userId, refreshTrigger};
+    if (previous.userId !== userId) {
+      loadMessages({replace: true});
+      refreshChatTitle();
+      return;
+    }
+    if (isSendingRef.current || isTemporaryChatRef.current) return;
+    if (readCurrentChat() !== shownChatIdRef.current) {
+      showCurrentChat();
+      return;
+    }
+    const hadMessages = messagesLengthRef.current > 0;
+    loadMessages();
+    refreshChatTitle();
+    // If history was cleared in Profile while on Default Chat, dismiss stale cards.
+    if (hadMessages && chatStore.getMessagesPage(userId).items.length === 0) {
+      if (!reviewSourceRef.current?.isTemporary) {
+        cancelOpenReviewRef.current({silent: true});
+        reviewSourceRef.current = null;
+      }
+      setChatMultiBatch(null);
+    }
+  }, [
+    userId,
+    loadMessages,
+    readCurrentChat,
+    refreshChatTitle,
+    refreshTrigger,
+    showCurrentChat,
+  ]);
+
+  // Chats synced from another phone (ADR-040). A send in progress or an open
+  // Temporary Chat is left alone; the next load or reopen shows the changes.
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      CHAT_REMOTE_CHANGED_EVENT,
+      (event: ChatRemoteChangedEvent) => {
+        if (event?.userId === userId) {
+          setChatSyncNoticeVisible(chatSyncStore.needsNotice(userId));
+        }
+        if (
+          event?.userId !== userId ||
+          isSendingRef.current ||
+          isTemporaryChatRef.current
+        )
+          return;
+        if (readCurrentChat() !== shownChatIdRef.current) {
+          // The open chat was deleted on another phone.
+          showCurrentChat();
+          return;
+        }
+        loadMessages();
+        refreshChatTitle();
+      },
+    );
+    return () => subscription.remove();
+  }, [
+    userId,
+    loadMessages,
+    readCurrentChat,
+    refreshChatTitle,
+    showCurrentChat,
+  ]);
+
+  /**
+   * Opens a general chat: a new one, or at the chat limit the latest general
+   * chat (the student is told). False when neither is possible.
+   */
+  const openGeneralChat = (announceFallback: boolean): boolean => {
     try {
       chatStore.startNewChat(userId, 'general');
+      return true;
+    } catch (error) {
+      if (!isChatLimitReachedError(error)) throw error;
+      const opened = chatStore.openLatestGeneralChat(userId);
+      if (!opened || announceFallback) {
+        Alert.alert(
+          'Chat Limit Reached',
+          opened
+            ? `${error.message} Your latest chat is open instead.`
+            : error.message,
+        );
+      }
+      return opened !== null;
+    }
+  };
+
+  /** Before a scan or call: leaves a USTP or Temporary Chat. False to stop the action. */
+  const ensureGeneralSessionForTool = (): boolean => {
+    const currentlyTemp = isTemporaryChatRef.current;
+    const currentlyUstp =
+      !currentlyTemp && isUstpSessionId(shownChatIdRef.current);
+    if (!currentlyTemp && !currentlyUstp) return true;
+    try {
+      if (!openGeneralChat(false)) return false;
+      isTemporaryChatRef.current = false;
+      setIsTemporaryChat(false);
+      setTempMessages([]);
+      setChatMultiBatch(null);
       showCurrentChat();
+      return true;
     } catch (error) {
       console.error('[ChatScreen] Could not switch to general chat:', error);
+      Alert.alert(
+        'Could Not Switch Chat',
+        'Could not open a regular chat right now. Try again.',
+      );
+      return false;
     }
   };
 
@@ -1042,8 +1174,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const handleLeaveBlockedUstpChat = () => {
     try {
-      chatStore.startNewChat(userId, 'general');
-      showCurrentChat();
+      if (openGeneralChat(true)) showCurrentChat();
     } catch (error) {
       console.error('[ChatScreen] Could not open a scheduling chat:', error);
     }
@@ -1062,6 +1193,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
     try {
       chatStore.startNewUstpChat(userId);
     } catch (error) {
+      if (isChatLimitReachedError(error)) {
+        Alert.alert('Chat Limit Reached', error.message);
+        return;
+      }
       console.error('[ChatScreen] Could not start Ask USTP chat:', error);
       Alert.alert(
         'Could Not Start',
@@ -1072,13 +1207,22 @@ export const ChatScreen = React.memo(function ChatScreenView({
     showCurrentChat();
   };
 
-  const handleStartTemporaryFromSidebar = () => {
-    if (isSending) return;
+  const enterTemporaryChat = useCallback(() => {
+    if (isSendingRef.current) return;
     setHistoryVisible(false);
     setEndTempConfirmVisible(false);
+    cancelOpenReviewRef.current({silent: true});
+    reviewSourceRef.current = null;
+    setChatMultiBatch(null);
+    setUndoOffer(null);
+    isTemporaryChatRef.current = true;
     setIsTemporaryChat(true);
     setTempMessages([]);
     beginInitialScroll(false);
+  }, [beginInitialScroll]);
+
+  const handleStartTemporaryFromSidebar = () => {
+    enterTemporaryChat();
   };
 
   const handleConfirmEndTemporaryChat = useCallback(() => {
@@ -1087,6 +1231,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
       cancelOpenReviewRef.current({silent: true});
       reviewSourceRef.current = null;
     }
+    setChatMultiBatch(null);
+    setUndoOffer(null);
+    isTemporaryChatRef.current = false;
     setIsTemporaryChat(false);
     setTempMessages([]);
     showCurrentChat();
@@ -1144,6 +1291,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const handleScanCamera = async () => {
     setFormatPickerOpen(false);
+    if (!ensureGeneralSessionForTool()) return;
     try {
       const photo = await visionService.takePhoto();
       if (!photo?.uri) return;
@@ -1160,7 +1308,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
         return;
       }
 
-      await handleSend(`Scan schedule:\n\n${ocrResult.rawText}`);
+      await handleSend(`Scan schedule:\n\n${ocrResult.rawText}`, {
+        preserveDraft: true,
+      });
     } catch (err: any) {
       setIsSending(false);
       Alert.alert(
@@ -1172,6 +1322,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const handleScanGallery = async () => {
     setFormatPickerOpen(false);
+    if (!ensureGeneralSessionForTool()) return;
     try {
       const photo = await visionService.pickImageFromGallery();
       if (!photo?.uri) return;
@@ -1188,7 +1339,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
         return;
       }
 
-      await handleSend(`Scan schedule:\n\n${ocrResult.rawText}`);
+      await handleSend(`Scan schedule:\n\n${ocrResult.rawText}`, {
+        preserveDraft: true,
+      });
     } catch (err: any) {
       setIsSending(false);
       Alert.alert(
@@ -1200,6 +1353,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const handleOpenAttachment = useCallback(
     async (attachment: ChatAttachment) => {
+      if (isRemoteOnlyAttachment(attachment)) {
+        Alert.alert(
+          'File on Another Phone',
+          `${attachment.fileName} is saved on the phone where this chat happened. Synced chats keep the text, not the file.`,
+        );
+        return;
+      }
       if (!chatStore.hasAttachment(userId, attachment.uri)) {
         Alert.alert(
           'File Not Available',
@@ -1223,13 +1383,20 @@ export const ChatScreen = React.memo(function ChatScreenView({
     [userId],
   );
 
-  const handleSend = async (overrideText?: string) => {
+  const handleSend = async (
+    overrideText?: string,
+    sendOptions?: {preserveDraft?: boolean},
+  ) => {
     const query = (overrideText || inputText).trim();
-    if (!query || isSending) return;
+    if (!query || isSendingRef.current) return;
 
     const requestUser = userId;
     const requestChatId = shownChatIdRef.current;
-    setInputText('');
+    const tempMode = isTemporaryChatRef.current;
+    const ustpMode = !tempMode && isUstpSessionId(requestChatId);
+    if (!sendOptions?.preserveDraft) {
+      setInputText('');
+    }
     isSendingRef.current = true;
     needsInitialScrollRef.current = false;
     initialSettleUntilRef.current = 0;
@@ -1244,7 +1411,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     let shownFirst = false;
     const startedAt = new Date().toISOString();
     let userTempMsg: ChatMessage | null = null;
-    if (isTemporaryChat) {
+    if (tempMode) {
       userTempMsg = {
         id: `temp_user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         sessionId: 'temp_chat',
@@ -1266,7 +1433,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       if (!shownFirst) {
         // The question is saved before the reply starts; show it above.
         shownFirst = true;
-        if (!isTemporaryChat) {
+        if (!tempMode) {
           loadMessages();
         }
         showLatest();
@@ -1280,14 +1447,15 @@ export const ChatScreen = React.memo(function ChatScreenView({
     try {
       const result = await chatOrchestrator.processMessage(userId, query, {
         onlineMode: isOnlineMode,
-        useHandbook: isUstpChat,
-        ustpRagOnly: isUstpChat,
+        useHandbook: ustpMode,
+        ustpRagOnly: ustpMode,
         onReplyText,
         isCurrent: () =>
           activeUserRef.current === requestUser &&
-          shownChatIdRef.current === requestChatId,
-        temporaryChat: isTemporaryChat,
-        temporaryHistory: isTemporaryChat
+          shownChatIdRef.current === requestChatId &&
+          isTemporaryChatRef.current === tempMode,
+        temporaryChat: tempMode,
+        temporaryHistory: tempMode
           ? userTempMsg
             ? [...tempMessages, userTempMsg]
             : tempMessages
@@ -1297,6 +1465,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       // for the account that sent it and must not appear in this one.
       if (activeUserRef.current !== requestUser) return;
       setUndoOffer(result.undo ?? null);
+      setSkillOffer(result.skillLaunch ?? null);
       if (result.handbookNote && result.assistantMessage) {
         setHandbookNotes(prev => ({
           ...prev,
@@ -1308,6 +1477,20 @@ export const ChatScreen = React.memo(function ChatScreenView({
         review.dismiss();
         setChatMultiBatch(result.multiBatch);
       } else if (result.resolvedReview) {
+        const prevSource = reviewSourceRef.current;
+        if (
+          tempMode &&
+          (result.resolvedReview.status === 'applied' ||
+            result.resolvedReview.status === 'cancelled')
+        ) {
+          updateTempReviewMessage(
+            result.resolvedReview.status === 'applied'
+              ? 'confirmed'
+              : 'cancelled',
+            result.reply,
+            prevSource?.messageId,
+          );
+        }
         reviewSourceRef.current = null;
         review.dismiss();
       } else {
@@ -1317,12 +1500,12 @@ export const ChatScreen = React.memo(function ChatScreenView({
             operationId: result.review.proposal.operationId,
             text: query,
             messageId: result.assistantMessage?.id,
-            isTemporary: isTemporaryChat,
+            isTemporary: tempMode,
           };
         }
         review.present(result.review);
       }
-      if (isTemporaryChat) {
+      if (tempMode) {
         setTempMessages(prev => [...prev, result.assistantMessage]);
       } else {
         loadMessages();
@@ -1330,9 +1513,23 @@ export const ChatScreen = React.memo(function ChatScreenView({
       }
       onRefresh?.();
     } catch (err) {
-      console.error('[ChatScreen] Error processing chat message:', err);
+      if (tempMode && userTempMsg && activeUserRef.current === requestUser) {
+        const failedId = userTempMsg.id;
+        setTempMessages(prev => prev.filter(msg => msg.id !== failedId));
+      }
+      if (isChatLimitReachedError(err)) {
+        // Nothing was saved: this chat would have been one too many.
+        Alert.alert('Chat Limit Reached', err.message);
+      } else {
+        console.error('[ChatScreen] Error processing chat message:', err);
+        Alert.alert(
+          'Message Not Sent',
+          'Could not send your message right now. Try again.',
+        );
+      }
       // Nothing was answered: give the text back unless the student typed more.
       if (
+        !sendOptions?.preserveDraft &&
         activeUserRef.current === requestUser &&
         !chatDraftStore.get(requestUser).trim()
       ) {
@@ -1478,23 +1675,56 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const handleConfirmChatMultiAll = async () => {
     if (!chatMultiBatch || chatMultiBusy) return;
+    const requestUser = userId;
+    const confirmedInTemp = isTemporaryChatRef.current;
     setChatMultiBusy(true);
     try {
       const {batch, spokenSummary} =
-        await actionService.confirmMultiActionBatch(userId, chatMultiBatch);
+        await actionService.confirmMultiActionBatch(
+          requestUser,
+          chatMultiBatch,
+          undefined,
+          () => activeUserRef.current === requestUser,
+          {onDevice: true},
+        );
+      if (activeUserRef.current !== requestUser) return;
       setChatMultiBatch(batch);
-      chatStore.addMessage(
-        userId,
-        'assistant',
-        spokenSummary,
-        null,
-        {localReply: true},
-        readCurrentChat(),
-      );
-      loadMessages();
+      if (confirmedInTemp) {
+        const now = new Date().toISOString();
+        setTempMessages(prev => [
+          ...prev,
+          {
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
+            sessionId: 'temp_chat',
+            sender: 'assistant',
+            content: spokenSummary,
+            localReply: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ]);
+      } else {
+        chatStore.addMessage(
+          requestUser,
+          'assistant',
+          spokenSummary,
+          null,
+          {localReply: true},
+          readCurrentChat(),
+        );
+        loadMessages();
+      }
       onRefresh?.();
     } catch (err) {
       console.warn('[ChatScreen] Multi-action confirm failed:', err);
+      Alert.alert(
+        'Could Not Save',
+        err instanceof Error
+          ? err.message
+          : 'Could not save these items right now. Try again.',
+      );
     } finally {
       setChatMultiBusy(false);
     }
@@ -1522,18 +1752,31 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const handleRetryChatMultiItem = async (itemId: string) => {
     if (!chatMultiBatch || chatMultiBusy) return;
+    const requestUser = userId;
+    const confirmedInTemp = isTemporaryChatRef.current;
     setChatMultiBusy(true);
     try {
       const {batch} = await actionService.confirmMultiActionBatch(
-        userId,
+        requestUser,
         chatMultiBatch,
         itemId,
+        () => activeUserRef.current === requestUser,
+        {onDevice: true},
       );
+      if (activeUserRef.current !== requestUser) return;
       setChatMultiBatch(batch);
-      loadMessages();
+      if (!confirmedInTemp) {
+        loadMessages();
+      }
       onRefresh?.();
     } catch (err) {
       console.warn('[ChatScreen] Multi-action item retry failed:', err);
+      Alert.alert(
+        'Retry Failed',
+        err instanceof Error
+          ? err.message
+          : 'Could not retry this item right now. Try again.',
+      );
     } finally {
       setChatMultiBusy(false);
     }
@@ -1545,19 +1788,34 @@ export const ChatScreen = React.memo(function ChatScreenView({
       Pick<MultiActionItemData, 'date' | 'time' | 'endTime' | 'body'>
     >,
   ) => {
-    if (!chatMultiBatch) return;
-    setChatMultiBatch({
-      ...chatMultiBatch,
-      revision: chatMultiBatch.revision + 1,
-      items: chatMultiBatch.items.map(item =>
-        item.id === itemId ? {...item, ...patch} : item,
-      ),
+    setChatMultiBatch(prev => {
+      if (!prev) return prev;
+      const updated = reviseMultiItem(prev, itemId, patch);
+      return {...updated, items: [...updated.items]};
+    });
+  };
+
+  const handleEditChatMultiItemTitle = (itemId: string, newTitle: string) => {
+    setChatMultiBatch(prev => {
+      if (!prev) return prev;
+      const updated = reviseMultiItem(prev, itemId, {title: newTitle});
+      return {...updated, items: [...updated.items]};
     });
   };
 
   const dismissLegacyNotice = () => {
     setLegacyNoticeDismissed(true);
     localSettingsStore.set(userId, 'chat.legacyNoticeDismissed', 'true');
+  };
+
+  const acknowledgeChatSync = (keepSyncing: boolean) => {
+    setChatSyncNoticeVisible(false);
+    try {
+      if (keepSyncing) chatSyncStore.markNoticeSeen(userId);
+      else chatHistorySync.setEnabled(userId, false);
+    } catch (error) {
+      console.warn('[ChatScreen] Chat sync choice was not saved:', error);
+    }
   };
 
   const displayedMessages = useMemo(() => {
@@ -1571,6 +1829,45 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const renderListHeader = () => (
     <View>
+      {chatSyncNoticeVisible && !isTemporaryChat ? (
+        <View
+          style={[
+            styles.noticeCard,
+            themed.headerButton,
+            isModern && styles.modernNoticeCard,
+          ]}
+          testID="chat-sync-notice"
+        >
+          <Text style={[styles.noticeText, themed.emptySubtitle]}>
+            Your chats are now saved to your LAFINA account, so they appear on
+            your other phones and come back if you reinstall. Chats you write
+            offline sync when you reconnect. Attached files stay on this phone.
+            You can change this in Preferences.
+          </Text>
+          <View style={styles.noticeActions}>
+            <TouchableOpacity
+              onPress={() => acknowledgeChatSync(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Keep syncing chat history"
+              testID="chat-sync-notice-keep"
+            >
+              <Text style={[styles.noticeAction, {color: colors.primary}]}>
+                Got it
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => acknowledgeChatSync(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Keep chat history on this phone only"
+              testID="chat-sync-notice-off"
+            >
+              <Text style={[styles.noticeAction, {color: colors.primary}]}>
+                Keep on this phone only
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
       {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
         <View
           style={[
@@ -1668,7 +1965,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
                       borderColor: cardBorder,
                     },
                   ]}
-                  onPress={() => handleSend(card.prompt)}
+                  onPress={() => handleSend(card.prompt, {preserveDraft: true})}
                   accessibilityRole="button"
                   accessibilityLabel={card.prompt}
                   testID={`${testIdPrefix}-${index}`}
@@ -1974,7 +2271,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
           ]}
           onPress={() => setHistoryVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Open chats, USTP Handbook, and tools sidebar"
+          accessibilityLabel="Open chats, USTP Handbook, and skills sidebar"
           testID="chat-history-button"
         >
           <Menu size={20} color={themed.headerTitle.color} strokeWidth={2.2} />
@@ -2042,21 +2339,24 @@ export const ChatScreen = React.memo(function ChatScreenView({
               },
             ]}
             onPress={() => {
+              if (isSending) return;
               if (isTemporaryChat) {
                 setEndTempConfirmVisible(true);
               } else {
-                setIsTemporaryChat(true);
-                setTempMessages([]);
-                beginInitialScroll(false);
+                enterTemporaryChat();
               }
             }}
+            disabled={isSending}
             accessibilityRole="button"
             accessibilityLabel={
               isTemporaryChat
                 ? 'Turn off temporary chat'
                 : 'Turn on temporary chat'
             }
-            accessibilityState={{selected: isTemporaryChat}}
+            accessibilityState={{
+              selected: isTemporaryChat,
+              disabled: isSending,
+            }}
             testID="chat-temporary-toggle-button"
           >
             <MessageCircleDashed
@@ -2074,8 +2374,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
       </View>
 
       {(isUstpChat ||
-        (isTemporaryChat && messages.length > 0) ||
-        (chatTitle &&
+        (isTemporaryChat && tempMessages.length > 0) ||
+        (!isTemporaryChat &&
+          chatTitle &&
           chatTitle !== 'New chat' &&
           chatTitle !== messages[0]?.content)) && (
         <View style={styles.contextStrip}>
@@ -2251,6 +2552,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
               void handleRetryChatMultiItem(itemId);
             }}
             onDismiss={() => setChatMultiBatch(null)}
+            onEditItemTitle={handleEditChatMultiItemTitle}
             onEditItemFields={handleEditChatMultiItemFields}
           />
         </View>
@@ -2284,6 +2586,37 @@ export const ChatScreen = React.memo(function ChatScreenView({
         </View>
       ) : null}
 
+      {skillOffer && onOpenSkill ? (
+        <View style={[styles.reviewContainer, styles.skillOfferRow]}>
+          <TouchableOpacity
+            style={[styles.skillOfferButton, {backgroundColor: colors.primary}]}
+            onPress={() => {
+              const launch = skillOffer;
+              setSkillOffer(null);
+              onOpenSkill(launch);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${skillTitle(skillOffer.skill)}`}
+            testID="chat-skill-open"
+          >
+            <Text
+              style={[styles.skillOfferText, {color: colors.textOnPrimary}]}
+            >
+              {`Open ${skillTitle(skillOffer.skill)}`}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.skillOfferDismiss}
+            onPress={() => setSkillOffer(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Not now"
+            testID="chat-skill-dismiss"
+          >
+            <Text style={{color: colors.textSecondary}}>Not now</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {/* Bottom Input */}
       <ChatInput
         inputText={inputText}
@@ -2291,7 +2624,15 @@ export const ChatScreen = React.memo(function ChatScreenView({
         onSend={text => handleSend(text)}
         isSending={isSending}
         isOnlineMode={isOnlineMode}
-        onCallLafina={onCallLafina}
+        onCallLafina={
+          onCallLafina && !isTemporaryChat
+            ? () => {
+                if (isSending) return;
+                if (!ensureGeneralSessionForTool()) return;
+                onCallLafina();
+              }
+            : undefined
+        }
         onOpenFormatPicker={
           isUstpChat
             ? undefined
@@ -2299,7 +2640,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
                 void handleOpenFormatPicker();
               }
         }
-        onSelectPrompt={prompt => handleSend(prompt)}
+        onSelectPrompt={prompt => handleSend(prompt, {preserveDraft: true})}
         showSuggestions={false}
         placeholderOverride={
           isUstpChat && schoolEnabled
@@ -2398,13 +2739,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
           onStartTemporaryChat={handleStartTemporaryFromSidebar}
           onScanCamera={() => {
             setHistoryVisible(false);
-            ensureGeneralSessionForTool();
-            void handleScanCamera();
+            if (ensureGeneralSessionForTool()) void handleScanCamera();
           }}
           onScanGallery={() => {
             setHistoryVisible(false);
-            ensureGeneralSessionForTool();
-            void handleScanGallery();
+            if (ensureGeneralSessionForTool()) void handleScanGallery();
           }}
           onOpenGuide={() => {
             setHistoryVisible(false);
@@ -2461,6 +2800,26 @@ const styles = StyleSheet.create({
   reviewContainer: {
     paddingHorizontal: Spacing.lg,
   },
+  skillOfferRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  skillOfferButton: {
+    minHeight: 44,
+    paddingHorizontal: 18,
+    borderRadius: 22,
+    justifyContent: 'center',
+  },
+  skillOfferText: {
+    fontWeight: '600',
+  },
+  skillOfferDismiss: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
   noticeCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -2476,6 +2835,11 @@ const styles = StyleSheet.create({
   noticeAction: {
     fontFamily: Fonts.heading,
     fontSize: FontSize.small,
+  },
+  noticeActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
   },
   loadEarlierButton: {
     alignSelf: 'center',

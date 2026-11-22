@@ -1,3 +1,4 @@
+import {SkillFonts} from '../../../theme/skills';
 import React, {useState} from 'react';
 import {
   Alert,
@@ -17,7 +18,6 @@ import type {Task} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {
   CUSTOM_CATEGORY_SWATCHES,
-  Fonts,
   FontSize,
   Layout,
   Spacing,
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   heading: {
-    fontFamily: Fonts.heading,
+    fontFamily: SkillFonts.semibold,
     fontSize: FontSize.subtitle,
     fontWeight: '700',
   },
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   label: {
-    fontFamily: Fonts.heading,
+    fontFamily: SkillFonts.semibold,
     fontSize: FontSize.small,
     fontWeight: '600',
     marginTop: Spacing.md,
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadiusButton,
     paddingHorizontal: Spacing.md,
     paddingVertical: 10,
-    fontFamily: Fonts.body,
+    fontFamily: SkillFonts.body,
     fontSize: FontSize.body,
   },
   notesInput: {
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   chipText: {
-    fontFamily: Fonts.body,
+    fontFamily: SkillFonts.body,
     fontSize: FontSize.small,
   },
   timeRow: {
@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   helperText: {
-    fontFamily: Fonts.body,
+    fontFamily: SkillFonts.body,
     fontSize: FontSize.caption,
     marginTop: 6,
   },
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: {
-    fontFamily: Fonts.heading,
+    fontFamily: SkillFonts.semibold,
     fontSize: FontSize.body,
     fontWeight: '600',
   },
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtnText: {
-    fontFamily: Fonts.heading,
+    fontFamily: SkillFonts.semibold,
     fontSize: FontSize.body,
     fontWeight: '700',
   },

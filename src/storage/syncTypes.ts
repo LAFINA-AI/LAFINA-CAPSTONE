@@ -9,7 +9,10 @@ export type SyncEntityType =
   | 'time_block'
   | 'reminder'
   | 'note'
-  | 'custom_category';
+  | 'custom_category'
+  // Chat history (ADR-040): declared only to a server that lists them.
+  | 'chat_session'
+  | 'chat_message';
 
 /** Mutation verbs accepted by the cloud sync API. */
 export type SyncOperation = 'create' | 'update' | 'delete';

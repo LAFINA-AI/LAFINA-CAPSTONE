@@ -44,6 +44,79 @@ export interface RegisteredToolDefinition {
 
 export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
   {
+    name: 'open_lafina_skill',
+    kind: 'skill.open',
+    description:
+      'Opens one study skill in the Skills tab when the student asks to use it ("start a pomodoro", "make flashcards", "quiz me", "make a reaction paper"). The app ends the call and opens the skill. It never generates, records or saves anything: the student uploads material and taps on that page. After it succeeds, say only the line in the result, then stop.',
+    parameters: {
+      type: 'object',
+      properties: {
+        skill: {
+          type: 'string',
+          enum: [
+            'pomodoro',
+            'flashcards',
+            'quiz',
+            'summarizer',
+            'materials',
+            'docgen',
+            'meetings',
+            'gwa',
+            'alarms',
+            'todo',
+            'notes',
+            'hub',
+          ],
+          description:
+            'Which skill: pomodoro (focus timer), flashcards, quiz, summarizer, materials (Lesson Q&A), docgen (essays, reports, slides, spreadsheets), meetings (class recorder), gwa (grade calculator), alarms, todo, notes, or hub (the Skills tab).',
+        },
+        action: {
+          type: 'string',
+          enum: ['open', 'start', 'break', 'create', 'review'],
+          description:
+            'start: start a focus session (pomodoro). break: start a break (pomodoro). create: open the maker ready for material (flashcards, quiz, summarizer, docgen). review: review due flashcards. open: just open it.',
+        },
+        breakKind: {
+          type: 'string',
+          enum: ['short', 'long'],
+          description: 'Pomodoro break length, for action break.',
+        },
+        count: {
+          type: 'number',
+          description: 'Questions or cards the student asked for (1..30).',
+        },
+        topic: {
+          type: 'string',
+          description:
+            'docgen or quiz only: the topic the student said, to pre-fill the field. Plain words, at most 200 characters.',
+        },
+        material: {
+          type: 'string',
+          description:
+            'The name of a saved lesson the student mentioned ("Chem 101"), to pre-select it.',
+        },
+      },
+      required: ['skill'],
+    },
+  },
+  {
+    name: 'read_skill_status',
+    kind: 'skill.read',
+    description:
+      'Reads the student’s study skills from the device: time left on the Pomodoro, flashcards due, GWA, or the last quiz score. Read only.',
+    parameters: {
+      type: 'object',
+      properties: {
+        topic: {
+          type: 'string',
+          enum: ['pomodoro', 'flashcards', 'gwa', 'quiz'],
+          description: 'What to read.',
+        },
+      },
+      required: ['topic'],
+    },
+  },
+  {
     name: 'read_lafina_data',
     kind: 'legacy.read_data',
     description:

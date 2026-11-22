@@ -8,30 +8,15 @@
  */
 
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import {
-  Bot,
-  Mic,
-  MicOff,
-  PhoneOff,
-  Maximize2,
-} from 'lucide-react-native';
-import {
-  Fonts,
-  FontSize,
-  Layout,
-  ModernLayout,
-  Spacing,
-} from '../../theme';
+import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Mic, MicOff, PhoneOff, Maximize2} from 'lucide-react-native';
+import {Fonts, FontSize, Layout, ModernLayout, Spacing} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import type {ConversationPhase} from '../../../cloud/voiceConversation';
+
+const LAFINA_MASCOT = require('../../../assets/new_lafina_app_logo/lafina_app_logo.png');
 
 export interface MiniCallBarProps {
   phase: ConversationPhase;
@@ -61,7 +46,11 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
-  const isLive = phase === 'speaking' || phase === 'listening' || phase === 'thinking' || phase === 'tool_working';
+  const isLive =
+    phase === 'speaking' ||
+    phase === 'listening' ||
+    phase === 'thinking' ||
+    phase === 'tool_working';
   const statusText = muted
     ? 'Muted'
     : phase === 'speaking'
@@ -114,7 +103,13 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
           ]}
           testID="mini-call-avatar"
         >
-          <Bot size={18} color={muted ? colors.warning : colors.primary} />
+          <Image
+            source={LAFINA_MASCOT}
+            style={styles.avatarImage}
+            resizeMode="contain"
+            testID="mini-call-avatar-image"
+            accessibilityLabel="LAFINA mascot"
+          />
         </View>
 
         {/* Info Column */}
@@ -138,13 +133,20 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
               </View>
             )}
           </View>
-          <Text style={[styles.subtitle, themed.secondaryText]} numberOfLines={1}>
+          <Text
+            style={[styles.subtitle, themed.secondaryText]}
+            numberOfLines={1}
+          >
             {statusText}
           </Text>
         </View>
 
         {/* Expand Icon Hint */}
-        <Maximize2 size={16} color={colors.textSecondary} style={styles.expandHintIcon} />
+        <Maximize2
+          size={16}
+          color={colors.textSecondary}
+          style={styles.expandHintIcon}
+        />
       </TouchableOpacity>
 
       {/* Action Controls */}
@@ -224,6 +226,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 30,
+    height: 30,
   },
   infoCol: {
     flex: 1,

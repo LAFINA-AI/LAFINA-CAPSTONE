@@ -175,6 +175,22 @@ export interface ConversationClock {
   clearTimeout(handle: unknown): void;
 }
 
+/**
+ * What the app-wide call registry, the mini bar and the call screen need from
+ * a running call. The online ElevenLabs controller and the on-device offline
+ * controller both provide it, so either one can be the active call.
+ */
+export interface ConversationController {
+  getSnapshot(): ConversationSnapshot;
+  subscribe(listener: (snapshot: ConversationSnapshot) => void): () => void;
+  isActive(): boolean;
+  start(): Promise<void>;
+  end(): void;
+  endAndWait(): Promise<boolean>;
+  stopForSystem(reason: string): void;
+  setMuted(muted: boolean): Promise<void> | void;
+}
+
 /** Where finished turns go (the account's chat history). Called once per turn. */
 export interface ConversationPersistence {
   userTurn(text: string): void;

@@ -16,6 +16,7 @@ import {verifyReminderDelivery} from '../../scheduler/verifyReminderDelivery';
  */
 
 import {generateId} from '../../utils';
+import {addMinutesToTime} from '../nlu/actionExecutor';
 import {parseDateAndTime} from '../nlu/fastPathParser';
 import {tasksStore} from '../../storage/tasksStore';
 import {remindersStore} from '../../storage/remindersStore';
@@ -105,7 +106,9 @@ export function parseGroupedRequest(
     const parsedDt = parseDateAndTime(clause, referenceDate);
     const date = parsedDt.date || undefined;
     const time = parsedDt.time || undefined;
-    const endTime = parsedDt.endTime || undefined;
+    const endTime =
+      parsedDt.endTime ||
+      (kind === 'event' && time ? addMinutesToTime(time, 60) : undefined);
 
     // 4. Extract title if not explicitly quoted
     if (!title) {
@@ -333,6 +336,21 @@ export async function executeMultiActionBatch(
         throw new Error('Please specify the date and time before saving.');
       if (item.kind === 'event' && (!item.endTime || !isWallTime(item.endTime)))
         throw new Error('Please specify a valid end time.');
+      if (item.kind === 'event' && item.endTime === item.time)
+        throw new Error('Please specify an end time after the start time.');
+      let reminderTriggerIso: string | null = null;
+      if (item.kind === 'reminder') {
+        const [year, month, day] = item.date!.split('-').map(Number);
+        const [hour, minute] = item.time!.split(':').map(Number);
+        const localDt = new Date(year, month - 1, day, hour, minute, 0, 0);
+        if (!Number.isFinite(localDt.getTime())) {
+          throw new Error('Please provide a valid date and time.');
+        }
+        if (localDt.getTime() <= Date.now()) {
+          throw new Error('Reminder time must be in the future.');
+        }
+        reminderTriggerIso = localDt.toISOString();
+      }
       if (item.kind === 'event') {
         const reviewedWarning = item.scheduleWarning;
         refreshMultiItemConflict(ownerId, item);
@@ -400,16 +418,14 @@ export async function executeMultiActionBatch(
           item.error = null;
         } else if (item.kind === 'reminder') {
           const reminderId = generateId();
-          const triggerDate = item.date!;
-          const triggerTime = item.time!;
           remindersStore.insertReminder(
             {
               id: reminderId,
               userId: ownerId,
               task: item.title,
               description: item.body || null,
-              scheduledAt: `${triggerDate}T${triggerTime}:00`,
-              triggerAt: `${triggerDate}T${triggerTime}:00`,
+              scheduledAt: reminderTriggerIso!,
+              triggerAt: reminderTriggerIso!,
               status: 'pending',
               preCastAudioPath: null,
             },

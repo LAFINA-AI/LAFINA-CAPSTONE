@@ -1,5 +1,5 @@
 import {useStorageRevision} from '../../hooks/useStorageRevision';
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -30,6 +30,7 @@ import {
 import {useDashboardData} from './hooks/useDashboardData';
 import {NextAlarmCard} from './components/NextAlarmCard';
 import type {DashboardScheduleItem, DashboardScreenProps} from './types';
+import type {Reminder, Task} from '../../../storage';
 
 export const DashboardScreen = React.memo(function Dashboard({
   userId,
@@ -116,13 +117,62 @@ export const DashboardScreen = React.memo(function Dashboard({
   const pendingTasksCount =
     data.tasksSummary.overdueTotal + data.tasksSummary.dueTodayTasks.length;
 
-  const handleOpenScheduleItem = (item: DashboardScheduleItem) => {
-    onOpenCalendarTab({
-      entityId: item.baseId,
-      entityKind: item.kind === 'event' ? 'event' : 'block',
-      date: item.date,
-    });
-  };
+  // Stable handlers: the memoized widgets then skip the re-render Home gets
+  // each time it is shown or hidden.
+  const handleOpenScheduleItem = useCallback(
+    (item: DashboardScheduleItem) => {
+      onOpenCalendarTab({
+        entityId: item.baseId,
+        entityKind: item.kind === 'event' ? 'event' : 'block',
+        date: item.date,
+      });
+    },
+    [onOpenCalendarTab],
+  );
+  const openCalendar = useCallback(
+    () => onOpenCalendarTab(),
+    [onOpenCalendarTab],
+  );
+  const openAlarms = useCallback(
+    () => onOpenCalendarTab({scheduleSection: 'alarms'}),
+    [onOpenCalendarTab],
+  );
+  const todayStr = data.todayStr;
+  const pressTask = useCallback(
+    (task: Task) =>
+      onOpenCalendarTab({
+        entityId: task.id,
+        entityKind: 'task',
+        date: task.dueDate || todayStr,
+      }),
+    [onOpenCalendarTab, todayStr],
+  );
+  const pressReminder = useCallback(
+    (rem: Reminder) =>
+      onOpenCalendarTab({
+        entityId: rem.id,
+        entityKind: 'reminder',
+        date: rem.triggerAt.slice(0, 10),
+      }),
+    [onOpenCalendarTab],
+  );
+  const pressNote = useCallback(
+    (noteId: string) => onOpenNotesTab(noteId),
+    [onOpenNotesTab],
+  );
+  const openAllNotes = useCallback(() => onOpenNotesTab(), [onOpenNotesTab]);
+  const openCustomize = useCallback(() => setCustomizeVisible(true), []);
+  const closeCustomize = useCallback(() => setCustomizeVisible(false), []);
+  const askLafina = useCallback(
+    () =>
+      onOpenChatTab("What's on my schedule today and when am I free to study?"),
+    [onOpenChatTab],
+  );
+  const refreshData = actions.refresh;
+  const pullToRefresh = useCallback(() => {
+    refreshData();
+    onRefresh();
+  }, [refreshData, onRefresh]);
 
   const renderWidget = (id: DashboardWidgetId) => {
     switch (id) {
@@ -132,7 +182,7 @@ export const DashboardScreen = React.memo(function Dashboard({
             key={id}
             summary={data.upNext}
             onPressItem={handleOpenScheduleItem}
-            onOpenCalendar={() => onOpenCalendarTab()}
+            onOpenCalendar={openCalendar}
           />
         );
       case 'free_study_blocks':
@@ -142,7 +192,7 @@ export const DashboardScreen = React.memo(function Dashboard({
             summary={data.freeStudy}
             minGapMinutes={actions.config.minFreeGapMinutes}
             onAddStudyBlock={actions.openStudyBlockSlot}
-            onOpenCustomize={() => setCustomizeVisible(true)}
+            onOpenCustomize={openCustomize}
           />
         );
       case 'today_schedule':
@@ -154,7 +204,7 @@ export const DashboardScreen = React.memo(function Dashboard({
             filter={scheduleFilter}
             onChangeFilter={setScheduleFilter}
             onPressItem={handleOpenScheduleItem}
-            onOpenCalendar={() => onOpenCalendarTab()}
+            onOpenCalendar={openCalendar}
           />
         );
       case 'tasks_due':
@@ -164,14 +214,8 @@ export const DashboardScreen = React.memo(function Dashboard({
             summary={data.tasksSummary}
             todayStr={data.todayStr}
             onToggleTask={actions.toggleTaskComplete}
-            onPressTask={task =>
-              onOpenCalendarTab({
-                entityId: task.id,
-                entityKind: 'task',
-                date: task.dueDate || data.todayStr,
-              })
-            }
-            onOpenCalendar={() => onOpenCalendarTab()}
+            onPressTask={pressTask}
+            onOpenCalendar={openCalendar}
           />
         );
       case 'upcoming_reminders':
@@ -180,14 +224,8 @@ export const DashboardScreen = React.memo(function Dashboard({
             key={id}
             reminders={data.pendingReminders}
             todayStr={data.todayStr}
-            onPressReminder={rem =>
-              onOpenCalendarTab({
-                entityId: rem.id,
-                entityKind: 'reminder',
-                date: rem.triggerAt.slice(0, 10),
-              })
-            }
-            onOpenCalendar={() => onOpenCalendarTab()}
+            onPressReminder={pressReminder}
+            onOpenCalendar={openCalendar}
           />
         );
       case 'pinned_notes':
@@ -196,8 +234,8 @@ export const DashboardScreen = React.memo(function Dashboard({
             key={id}
             notes={data.highlightedNotes}
             hasPinnedNotes={data.pinnedNotesCount > 0}
-            onPressNote={noteId => onOpenNotesTab(noteId)}
-            onOpenAllNotes={() => onOpenNotesTab()}
+            onPressNote={pressNote}
+            onOpenAllNotes={openAllNotes}
           />
         );
       default:
@@ -222,10 +260,7 @@ export const DashboardScreen = React.memo(function Dashboard({
         refreshControl={
           <RefreshControl
             refreshing={false}
-            onRefresh={() => {
-              actions.refresh();
-              onRefresh();
-            }}
+            onRefresh={pullToRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />
@@ -240,28 +275,16 @@ export const DashboardScreen = React.memo(function Dashboard({
             data={data}
             visibleWidgets={visibleWidgets}
             onToggleTask={actions.toggleTaskComplete}
-            onPressTask={task =>
-              onOpenCalendarTab({
-                entityId: task.id,
-                entityKind: 'task',
-                date: task.dueDate || data.todayStr,
-              })
-            }
+            onPressTask={pressTask}
             onPressScheduleItem={handleOpenScheduleItem}
-            onPressReminder={rem =>
-              onOpenCalendarTab({
-                entityId: rem.id,
-                entityKind: 'reminder',
-                date: rem.triggerAt.slice(0, 10),
-              })
-            }
-            onPressNote={noteId => onOpenNotesTab(noteId)}
+            onPressReminder={pressReminder}
+            onPressNote={pressNote}
             onAddStudyBlock={actions.openStudyBlockSlot}
             onOpenCalendarTab={onOpenCalendarTab}
             onOpenNotesTab={onOpenNotesTab}
             onOpenChatTab={onOpenChatTab}
-            onOpenAlarms={() => onOpenCalendarTab({scheduleSection: 'alarms'})}
-            onOpenCustomize={() => setCustomizeVisible(true)}
+            onOpenAlarms={openAlarms}
+            onOpenCustomize={openCustomize}
             onRefresh={actions.refresh}
           />
         ) : (
@@ -273,12 +296,8 @@ export const DashboardScreen = React.memo(function Dashboard({
               todayItemsCount={data.todayItems.length}
               usableFreeMinutes={data.freeStudy.totalRemainingFreeMinutes}
               pendingTasksCount={pendingTasksCount}
-              onOpenCustomize={() => setCustomizeVisible(true)}
-              onAskLafina={() =>
-                onOpenChatTab(
-                  "What's on my schedule today and when am I free to study?",
-                )
-              }
+              onOpenCustomize={openCustomize}
+              onAskLafina={askLafina}
             />
 
             {data.readError && (
@@ -312,9 +331,7 @@ export const DashboardScreen = React.memo(function Dashboard({
               userId={userId}
               timeFormat24h={timeFormat24h}
               now={now}
-              onOpenAlarms={() =>
-                onOpenCalendarTab({scheduleSection: 'alarms'})
-              }
+              onOpenAlarms={openAlarms}
             />
 
             {visibleWidgets.map(renderWidget)}
@@ -327,7 +344,7 @@ export const DashboardScreen = React.memo(function Dashboard({
       <CustomizeDashboardModal
         visible={customizeVisible}
         config={actions.config}
-        onClose={() => setCustomizeVisible(false)}
+        onClose={closeCustomize}
         onApplyPreset={actions.applyPreset}
         onMoveWidget={actions.moveWidget}
         onToggleWidget={actions.toggleWidgetVisibility}

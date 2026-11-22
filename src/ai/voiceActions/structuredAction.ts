@@ -266,7 +266,7 @@ export const prepareStructuredReview = (
 
 /** What the agent is told when a card it described is on screen. */
 export const SUGGESTED_CARD_NOTE =
-  'The card was prepared from our conversation, so the student must confirm it themselves (by saying yes or tapping Confirm). Do not call confirm_draft for it.';
+  'The card was prepared from our conversation, so the student must confirm it themselves (by saying yes or save it, or tapping Confirm). Do not call confirm_draft before they answer. Once they say to save it, the app saves it and confirm_draft returns the save receipt.';
 
 /** Free windows on one day, answered from the local calendar. Read-only. */
 export const answerFreeTime = (

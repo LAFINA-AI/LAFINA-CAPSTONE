@@ -1,0 +1,70 @@
+
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; font-family: 'Lexend', system-ui, sans-serif; color: #14142B; background: #FAFAFD">
+  <div style="height: 64px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px">
+    <a href="ToolsHubA.dc.html" aria-label="Back to Tools" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #14142B"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg></a>
+    <h1 style="flex: 1; min-width: 0; margin: 0; font-size: 20px; font-weight: 600">IT Elective 3</h1>
+    <span style="font-size: 14px; color: #626277; font-variant-numeric: tabular-nums; padding-right: 8px">{{counter}}</span>
+  </div>
+
+  <div aria-hidden="true" style="margin: 4px 20px 0; height: 6px; border-radius: 3px; background: #ECEBF4; overflow: hidden">
+    <div style="height: 6px; border-radius: 3px; background: #5442E0; width: {{progress}}; transition: width .4s cubic-bezier(.2,.8,.2,1)"></div>
+  </div>
+
+  <sc-if value="{{studying}}" hint-placeholder-val="{{true}}">
+  <div>
+    <sc-for list="{{current}}" as="c" hint-placeholder-count="1">
+      <div class="a-deal" style="margin: 26px 24px 0; height: 400px; perspective: 1200px">
+        <button class="card3d" aria-label="{{c.aria}}" onClick="{{flip}}" style="position: relative; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; transform: {{flipT}}">
+          <span class="face" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 28px; background: #FFFFFF; border: 1px solid #ECEBF4; box-shadow: 0 18px 40px rgba(38,28,120,.10); display: flex; flex-direction: column; padding: 24px; box-sizing: border-box; text-align: left">
+            <span style="font-size: 12px; font-weight: 600; letter-spacing: .1em; color: #4433C9">QUESTION</span>
+            <span style="margin: auto 0; font-size: 26px; font-weight: 600; line-height: 1.3; color: #14142B">{{c.q}}</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #626277"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#626277" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"></path></svg>Tap to flip</span>
+          </span>
+          <span class="face back" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 28px; background: #1B1640; box-shadow: 0 18px 40px rgba(27,22,64,.25); display: flex; flex-direction: column; padding: 24px; box-sizing: border-box; text-align: left">
+            <span style="font-size: 12px; font-weight: 600; letter-spacing: .1em; color: #C9C2F7">ANSWER</span>
+            <span style="margin: auto 0; font-size: 21px; font-weight: 500; line-height: 1.45; color: #FFFFFF">{{c.a}}</span>
+            <span style="font-size: 12px; color: rgba(255,255,255,.75)">From: Lecture 4 – Cloud models</span>
+          </span>
+        </button>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{front}}" hint-placeholder-val="{{true}}">
+      <div class="a-up" style="margin: 24px 24px 0">
+        <button onClick="{{flip}}" style="width: 100%; height: 56px; border: 0; border-radius: 18px; background: #5442E0; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 24px rgba(84,66,224,.28)">Show answer</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{back}}" hint-placeholder-val="{{false}}">
+      <div style="margin: 24px 24px 0">
+        <p class="a-up" style="margin: 0 0 10px; text-align: center; font-size: 13px; color: #626277">How well did you know it?</p>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{ratings}}" as="r" hint-placeholder-count="4">
+            <button class="a-pop" onClick="{{r.pick}}" style="height: 64px; border: 0; border-radius: 16px; background: {{r.bg}}; color: {{r.ink}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; animation-delay: {{r.delay}}">
+              <span style="font-size: 14px; font-weight: 600">{{r.label}}</span>
+              <span style="font-size: 11px">{{r.next}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{finished}}" hint-placeholder-val="{{false}}">
+    <div class="a-up" style="padding: 60px 28px 0; display: flex; flex-direction: column; align-items: center; text-align: center">
+      <div class="a-pop" style="width: 88px; height: 88px; border-radius: 50%; background: #E5F5EC; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1F8A5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="draw" d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+      </div>
+      <p style="margin: 22px 0 0; font-size: 24px; font-weight: 600">Review done</p>
+      <p style="margin: 8px 0 0; font-size: 15px; color: #626277">{{summary}}</p>
+      <div style="margin-top: 24px; width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{tally}}" as="t" hint-placeholder-count="4">
+          <div style="height: 70px; border-radius: 16px; background: {{t.bg}}; color: {{t.ink}}; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-size: 22px; font-weight: 600">{{t.n}}</span><span style="font-size: 12px">{{t.label}}</span></div>
+        </sc-for>
+      </div>
+      <button onClick="{{restart}}" style="margin-top: 28px; width: 100%; height: 56px; border: 0; border-radius: 18px; background: #5442E0; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer">Study again</button>
+      <a href="Quiz.dc.html" style="margin-top: 10px; height: 44px; display: flex; align-items: center; font-size: 14px; font-weight: 500; text-decoration: none">Test yourself with a quiz</a>
+    </div>
+  </sc-if>
+
+</div>

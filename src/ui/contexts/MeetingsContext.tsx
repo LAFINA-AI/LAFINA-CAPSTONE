@@ -7,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Alert } from 'react-native';
 import {
   errorCodes,
   isErrorWithCode,
@@ -21,7 +20,7 @@ import {
   meetingRecorder,
   transcribeMeetingChunks,
 } from '../../ai';
-import { hasProEntitlement, requestMeetingSummary } from '../../cloud';
+import { requestMeetingSummary } from '../../cloud';
 import { meetingNotesSkill } from '../../skills/meetingNotesSkill';
 import {
   MeetingError,
@@ -285,7 +284,8 @@ export const MeetingsProvider: React.FC<{
         } else if (code === 'plan_required' || code === 'unauthorized') {
           update(id, {
             status: 'transcription_complete',
-            errorCode: hasProEntitlement(userId) ? code : 'unauthorized',
+            errorCode: code,
+            errorDetail: detailOf(error),
           });
         } else {
           update(id, {
@@ -296,7 +296,7 @@ export const MeetingsProvider: React.FC<{
         }
       }
     },
-    [update, userId],
+    [update],
   );
 
   const runTranscription = useCallback(
@@ -323,11 +323,11 @@ export const MeetingsProvider: React.FC<{
       }
 
       const startedAt = Date.now();
-      // ponytail: transcribe meeting chunks using ElevenLabs cloud STT with local Whisper fallback
+      // Audio and Whisper transcription stay strictly on this phone unless cloud STT is configured.
       const result = await transcribeMeetingChunks({
         meetingId: id,
         userId: userId || undefined,
-        useElevenLabs: true,
+        useElevenLabs: false,
         chunkFiles: audio.chunks.map((chunk) => chunk.path),
         chunkDurationsMs: audio.chunks.map((chunk) => chunk.durationMs),
         keepAudio,
@@ -455,6 +455,7 @@ export const MeetingsProvider: React.FC<{
 
   const cancelProcessing = useCallback(() => {
     job.current?.controller.abort();
+    void meetingRecorder.cancelAudioImport().catch(() => false);
   }, []);
 
   const finishActive = useCallback(
@@ -828,14 +829,13 @@ export const MeetingsProvider: React.FC<{
         return null;
       }
       console.error('[MeetingsContext] Failed to import audio recording:', err);
-      Alert.alert(
-        'Audio Import Failed',
-        err instanceof Error
-          ? err.message
-          : 'Could not decode or import the audio file.',
-      );
       setProcessing(null);
-      return null;
+      if (err?.code === 'IMPORT_CANCELLED') {
+        return null;
+      }
+      throw err instanceof Error
+        ? err
+        : new Error('Could not decode or import the audio file.');
     }
   }, [userId, refresh, transcribeMeeting]);
 

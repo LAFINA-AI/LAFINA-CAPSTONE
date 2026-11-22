@@ -21,6 +21,9 @@ import {
   X,
   Pin,
   CheckSquare,
+  ArrowLeft,
+  BookOpen,
+  Mic,
 } from 'lucide-react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -35,13 +38,11 @@ import {
 } from './components';
 import {NoteEditor} from './components/NoteEditor';
 import {AlarmsView} from '../calendar/components/AlarmsView';
-import {
-  useSchedulePalette,
-  scheduleCardShadow,
-} from '../calendar/components/schedulePalette';
+import {scheduleCardShadow} from '../calendar/components/schedulePalette';
 import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
 import {tourTargetRef} from '../../tour/tourTargets';
+import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 
 export const NotesScreen = React.memo(function NotesScreenView({
   userId,
@@ -50,14 +51,17 @@ export const NotesScreen = React.memo(function NotesScreenView({
   openRequest,
   onOpenRequestHandled,
   tourSubTab,
+  initialSubTab = 'notes',
+  onBackToSkills,
+  onRecordMeeting,
 }: NotesScreenProps) {
   const {colors, isModern} = useTheme();
   const insets = useSafeAreaInsets();
-  const palette = useSchedulePalette();
+  const palette = useSkillsPalette();
   const tabBarClearance = isModern
     ? ModernLayout.navbarContentHeight + Math.max(insets.bottom, 8) + 40
     : Math.max(insets.bottom, 12) + 14 + Layout.navbarHeight + 8;
-  const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
+  const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>(initialSubTab);
   const preTourSubTabRef = useRef<NotesSubTab | null>(null);
 
   useEffect(() => {
@@ -98,6 +102,11 @@ export const NotesScreen = React.memo(function NotesScreenView({
     searchQuery: data.searchQuery,
     onRefresh,
   });
+  useEffect(() => {
+    if (onBackToSkills) data.setIsGridView(initialSubTab === 'notes');
+    // Set the initial presentation once for each pushed essential page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   todoReloadRef.current = todo.loadTodos;
   const {setHighlightedTaskId} = todo;
   const handledRequest = useRef<string | null>(null);
@@ -296,7 +305,24 @@ export const NotesScreen = React.memo(function NotesScreenView({
   return (
     <View style={[styles.container, {backgroundColor: palette.bg}]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={styles.header}
+        ref={
+          onBackToSkills
+            ? tourTargetRef(`tools-subtab-${activeSubTab}`)
+            : undefined
+        }
+      >
+        {onBackToSkills && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Back to Skills"
+            onPress={onBackToSkills}
+            style={styles.headerIconBtn}
+          >
+            <ArrowLeft size={24} color={palette.text} />
+          </TouchableOpacity>
+        )}
         {data.searchActive && activeSubTab !== 'alarms' ? (
           <View
             style={[
@@ -327,6 +353,8 @@ export const NotesScreen = React.memo(function NotesScreenView({
               onChangeText={data.setSearchQuery}
             />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
               onPress={() => {
                 data.setSearchActive(false);
                 data.setSearchQuery('');
@@ -339,7 +367,13 @@ export const NotesScreen = React.memo(function NotesScreenView({
         ) : (
           <>
             <Text style={[styles.headerTitle, {color: palette.text}]}>
-              Tools
+              {onBackToSkills
+                ? activeSubTab === 'todo'
+                  ? 'To-do'
+                  : activeSubTab === 'alarms'
+                  ? 'Alarms'
+                  : 'Notes'
+                : 'Skills'}
             </Text>
             <View style={styles.headerIcons}>
               {activeSubTab !== 'alarms' && (
@@ -393,15 +427,17 @@ export const NotesScreen = React.memo(function NotesScreenView({
                     ? 'todo-fab-add'
                     : 'notes-fab-add'
                 }
-                accessibilityRole={
-                  activeSubTab === 'alarms' ? 'button' : undefined
-                }
+                accessibilityRole="button"
                 accessibilityLabel={
-                  activeSubTab === 'alarms' ? 'Add alarm' : undefined
+                  activeSubTab === 'alarms'
+                    ? 'Add alarm'
+                    : activeSubTab === 'todo'
+                    ? 'Add detailed to-do'
+                    : 'Add note'
                 }
                 style={[styles.headerAddBtn, {backgroundColor: palette.accent}]}
               >
-                <Plus size={20} color="#FFFFFF" strokeWidth={2.4} />
+                <Plus size={20} color={palette.onAccent} strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
           </>
@@ -409,122 +445,130 @@ export const NotesScreen = React.memo(function NotesScreenView({
       </View>
 
       {/* Segmented Switcher: Alarms | Todo | Notes */}
-      <View
-        style={[styles.segmentedBar, {backgroundColor: palette.surface}]}
-        accessibilityRole="tablist"
-      >
-        <TouchableOpacity
-          ref={tourTargetRef('tools-subtab-alarms')}
-          onPress={() => {
-            data.setSearchActive(false);
-            data.setSearchQuery('');
-            setActiveSubTab('alarms');
-          }}
-          accessibilityRole="tab"
-          accessibilityState={{selected: activeSubTab === 'alarms'}}
-          testID="notes-subtab-alarms"
-          style={[
-            styles.segmentBtn,
-            activeSubTab === 'alarms' && [
-              styles.segmentBtnActive,
-              {backgroundColor: palette.card},
-              !palette.isDarkMode && scheduleCardShadow,
-            ],
-          ]}
+      {!onBackToSkills && (
+        <View
+          style={[styles.segmentedBar, {backgroundColor: palette.surface}]}
+          accessibilityRole="tablist"
         >
-          <Text
+          <TouchableOpacity
+            ref={tourTargetRef('tools-subtab-alarms')}
+            onPress={() => {
+              data.setSearchActive(false);
+              data.setSearchQuery('');
+              setActiveSubTab('alarms');
+            }}
+            accessibilityRole="tab"
+            accessibilityState={{selected: activeSubTab === 'alarms'}}
+            testID="notes-subtab-alarms"
             style={[
-              styles.segmentText,
-              {
-                color: activeSubTab === 'alarms' ? palette.text : palette.muted,
-                fontWeight: activeSubTab === 'alarms' ? '700' : '500',
-              },
+              styles.segmentBtn,
+              activeSubTab === 'alarms' && [
+                styles.segmentBtnActive,
+                {backgroundColor: palette.card},
+                !palette.isDarkMode && scheduleCardShadow,
+              ],
             ]}
           >
-            Alarms
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          ref={tourTargetRef('tools-subtab-todo')}
-          onPress={() => setActiveSubTab('todo')}
-          accessibilityRole="tab"
-          accessibilityState={{selected: activeSubTab === 'todo'}}
-          testID="notes-subtab-todo"
-          style={[
-            styles.segmentBtn,
-            activeSubTab === 'todo' && [
-              styles.segmentBtnActive,
-              {backgroundColor: palette.card},
-              !palette.isDarkMode && scheduleCardShadow,
-            ],
-          ]}
-        >
-          <View style={styles.segmentLabelRow}>
             <Text
               style={[
                 styles.segmentText,
                 {
-                  color: activeSubTab === 'todo' ? palette.text : palette.muted,
-                  fontWeight: activeSubTab === 'todo' ? '700' : '500',
+                  color:
+                    activeSubTab === 'alarms' ? palette.text : palette.muted,
+                  fontWeight: activeSubTab === 'alarms' ? '700' : '500',
                 },
               ]}
             >
-              Todo
+              Alarms
             </Text>
-            {todo.pendingCount > 0 || todo.checklistsLoading ? (
-              <View
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            ref={tourTargetRef('tools-subtab-todo')}
+            onPress={() => setActiveSubTab('todo')}
+            accessibilityRole="tab"
+            accessibilityState={{selected: activeSubTab === 'todo'}}
+            testID="notes-subtab-todo"
+            style={[
+              styles.segmentBtn,
+              activeSubTab === 'todo' && [
+                styles.segmentBtnActive,
+                {backgroundColor: palette.card},
+                !palette.isDarkMode && scheduleCardShadow,
+              ],
+            ]}
+          >
+            <View style={styles.segmentLabelRow}>
+              <Text
                 style={[
-                  styles.segmentBadge,
+                  styles.segmentText,
                   {
-                    backgroundColor:
-                      activeSubTab === 'todo' ? palette.accent : palette.border,
+                    color:
+                      activeSubTab === 'todo' ? palette.text : palette.muted,
+                    fontWeight: activeSubTab === 'todo' ? '700' : '500',
                   },
                 ]}
               >
-                <Text
+                Todo
+              </Text>
+              {todo.pendingCount > 0 || todo.checklistsLoading ? (
+                <View
                   style={[
-                    styles.segmentBadgeText,
+                    styles.segmentBadge,
                     {
-                      color: activeSubTab === 'todo' ? '#FFFFFF' : palette.text,
+                      backgroundColor:
+                        activeSubTab === 'todo'
+                          ? palette.accent
+                          : palette.border,
                     },
                   ]}
                 >
-                  {todo.checklistsLoading ? '…' : todo.pendingCount}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.segmentBadgeText,
+                      {
+                        color:
+                          activeSubTab === 'todo' ? '#FFFFFF' : palette.text,
+                      },
+                    ]}
+                  >
+                    {todo.checklistsLoading ? '…' : todo.pendingCount}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          ref={tourTargetRef('tools-subtab-notes')}
-          onPress={() => setActiveSubTab('notes')}
-          accessibilityRole="tab"
-          accessibilityState={{selected: activeSubTab === 'notes'}}
-          testID="notes-subtab-notes"
-          style={[
-            styles.segmentBtn,
-            activeSubTab === 'notes' && [
-              styles.segmentBtnActive,
-              {backgroundColor: palette.card},
-              !palette.isDarkMode && scheduleCardShadow,
-            ],
-          ]}
-        >
-          <Text
+          <TouchableOpacity
+            ref={tourTargetRef('tools-subtab-notes')}
+            onPress={() => setActiveSubTab('notes')}
+            accessibilityRole="tab"
+            accessibilityState={{selected: activeSubTab === 'notes'}}
+            testID="notes-subtab-notes"
             style={[
-              styles.segmentText,
-              {
-                color: activeSubTab === 'notes' ? palette.text : palette.muted,
-                fontWeight: activeSubTab === 'notes' ? '700' : '500',
-              },
+              styles.segmentBtn,
+              activeSubTab === 'notes' && [
+                styles.segmentBtnActive,
+                {backgroundColor: palette.card},
+                !palette.isDarkMode && scheduleCardShadow,
+              ],
             ]}
           >
-            Notes
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                styles.segmentText,
+                {
+                  color:
+                    activeSubTab === 'notes' ? palette.text : palette.muted,
+                  fontWeight: activeSubTab === 'notes' ? '700' : '500',
+                },
+              ]}
+            >
+              Notes
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {activeSubTab === 'alarms' ? (
         <AlarmsView
@@ -534,6 +578,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
           showHeader={false}
           isGridView={data.isGridView}
           createTrigger={alarmCreateTick}
+          skillsPresentation={Boolean(onBackToSkills)}
         />
       ) : activeSubTab === 'todo' ? (
         <TodoListView
@@ -568,6 +613,150 @@ export const NotesScreen = React.memo(function NotesScreenView({
             onFilterChange={data.setSelectedFilter}
             customCategories={data.customCategories}
           />
+          {onBackToSkills && (
+            <View
+              testID="notes-quick-actions-row"
+              style={styles.quickActionsRow}
+            >
+              <TouchableOpacity
+                testID="notes-quick-note-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Quick note"
+                style={[
+                  styles.quickActionBtn,
+                  {
+                    borderColor: palette.border,
+                    backgroundColor: palette.card,
+                  },
+                  !palette.isDarkMode && scheduleCardShadow,
+                ]}
+                onPress={data.openNewNote}
+              >
+                <View
+                  style={[
+                    styles.quickActionIconWrap,
+                    {backgroundColor: palette.blueSoft},
+                  ]}
+                >
+                  <FileText size={15} color={palette.accent} />
+                </View>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={[styles.quickActionLabel, {color: palette.text}]}
+                >
+                  Quick note
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="notes-quick-checklist-btn"
+                accessibilityRole="button"
+                accessibilityLabel="New checklist"
+                style={[
+                  styles.quickActionBtn,
+                  {
+                    borderColor: palette.border,
+                    backgroundColor: palette.card,
+                  },
+                  !palette.isDarkMode && scheduleCardShadow,
+                ]}
+                onPress={() => {
+                  data.openNewNote();
+                  data.setNoteBody('- [ ] ');
+                  data.setSelection({start: 6, end: 6});
+                }}
+              >
+                <View
+                  style={[
+                    styles.quickActionIconWrap,
+                    {backgroundColor: palette.mint},
+                  ]}
+                >
+                  <CheckSquare size={15} color={palette.mintInk} />
+                </View>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={[styles.quickActionLabel, {color: palette.text}]}
+                >
+                  Checklist
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="notes-quick-lecture-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Lecture note template"
+                style={[
+                  styles.quickActionBtn,
+                  {
+                    borderColor: palette.border,
+                    backgroundColor: palette.card,
+                  },
+                  !palette.isDarkMode && scheduleCardShadow,
+                ]}
+                onPress={() => {
+                  data.openNewNote();
+                  data.setNoteTitle('Lecture notes');
+                  data.setNoteCategory('Learning');
+                  data.setNoteBody(
+                    '## Key points\n\n## Questions\n\n## Next steps\n- [ ] ',
+                  );
+                }}
+              >
+                <View
+                  style={[
+                    styles.quickActionIconWrap,
+                    {backgroundColor: palette.peach},
+                  ]}
+                >
+                  <BookOpen size={15} color={palette.peachInk} />
+                </View>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={[styles.quickActionLabel, {color: palette.text}]}
+                >
+                  Lecture
+                </Text>
+              </TouchableOpacity>
+              {onRecordMeeting && (
+                <TouchableOpacity
+                  testID="notes-quick-record-btn"
+                  accessibilityRole="button"
+                  accessibilityLabel="Record a meeting"
+                  style={[
+                    styles.quickActionBtn,
+                    {
+                      borderColor: palette.border,
+                      backgroundColor: palette.card,
+                    },
+                    !palette.isDarkMode && scheduleCardShadow,
+                  ]}
+                  onPress={onRecordMeeting}
+                >
+                  <View
+                    style={[
+                      styles.quickActionIconWrap,
+                      {backgroundColor: palette.dangerSoft},
+                    ]}
+                  >
+                    <Mic size={15} color={palette.danger} />
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    style={[styles.quickActionLabel, {color: palette.text}]}
+                  >
+                    Record
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {data.indexing && (
             <Text
@@ -757,7 +946,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 12,
   },
   modalFill: {
@@ -768,7 +957,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-    height: 44,
+    minHeight: 64,
   },
   segmentedBar: {
     flexDirection: 'row',
@@ -832,13 +1021,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 14,
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
     paddingVertical: 0,
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    flex: 1,
+    fontFamily: SkillFonts.semibold,
+    fontSize: 20,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -846,16 +1035,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerAddBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -908,6 +1097,34 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 18,
     justifyContent: 'center',
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  quickActionBtn: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  quickActionIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontFamily: SkillFonts.medium,
+    fontSize: 11.5,
+    textAlign: 'center',
   },
   starterChip: {
     flexDirection: 'row',

@@ -33,6 +33,15 @@ interface NativeAlarmModule {
   ): Promise<{id: string; nextTriggerMs: number | null}[]>;
   drainEvents(): Promise<AlarmNativeEvent[]>;
   testAlarm(seconds: number): Promise<number>;
+  testAlarmWithSound?: (
+    seconds: number,
+    soundUri: string | null,
+  ) => Promise<number>;
+  setAlarmAudioPreferences?: (options: {
+    defaultAlarmSoundUri: string | null;
+    alarmVibrationPattern: string;
+    alarmVolumeRampSec: number;
+  }) => Promise<boolean>;
   stopRinging(): Promise<boolean>;
   getStatus(): Promise<Omit<AlarmHealth, 'available'>>;
   openBatterySettings(): Promise<boolean>;
@@ -184,10 +193,16 @@ export const getAlarmHealth = async (): Promise<AlarmHealth> => {
 };
 
 /** Rings a test alarm (default 60 s from now). Resolves the time, or null. */
-export const ringTestAlarm = async (seconds = 60): Promise<Date | null> => {
+export const ringTestAlarm = async (
+  seconds = 60,
+  soundUri?: string | null,
+): Promise<Date | null> => {
   const module = native();
   if (!module) return null;
   try {
+    if (soundUri !== undefined && module.testAlarmWithSound) {
+      return new Date(await module.testAlarmWithSound(seconds, soundUri));
+    }
     return new Date(await module.testAlarm(seconds));
   } catch (error) {
     console.warn('[alarmService] Test alarm failed:', error);

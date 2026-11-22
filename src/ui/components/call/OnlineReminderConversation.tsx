@@ -130,9 +130,21 @@ export const OnlineReminderConversation = forwardRef<
       current.current.end();
     };
   }, []);
+  // The reminder call screen draws its own avatar from these snapshots, so
+  // the live levels (kept apart from the hook's snapshot) are put back in.
+  const {snapshot, meter} = conversation;
+  const latestSnapshot = useRef(snapshot);
+  latestSnapshot.current = snapshot;
   useEffect(() => {
-    snapshotCallback.current(conversation.snapshot);
-  }, [conversation.snapshot]);
+    snapshotCallback.current({...snapshot, ...meter.get()});
+  }, [snapshot, meter]);
+  useEffect(
+    () =>
+      meter.subscribe(() =>
+        snapshotCallback.current({...latestSnapshot.current, ...meter.get()}),
+      ),
+    [meter],
+  );
 
   return null;
 });

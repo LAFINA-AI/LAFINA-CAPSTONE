@@ -14,5 +14,11 @@ export interface NotesScreenProps {
   openRequest?: CallNavigationRequest;
   onOpenRequestHandled?: (requestId: string) => void;
   tourSubTab?: NotesSubTab;
+  initialSubTab?: NotesSubTab;
+  onBackToSkills?: () => void;
+  onSkillsPageChange?: (open: boolean) => void;
+  onRecordMeeting?: () => void;
+  onOpenProfile?: () => void;
+  onNavigateToRegister?: () => void;
   onRefresh: () => void;
 }

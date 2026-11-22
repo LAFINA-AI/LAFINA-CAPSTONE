@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import {NativeModules, Platform} from 'react-native';
 import {
   parseIntentFastPath,
   isTitleNoisy,
@@ -6,8 +6,8 @@ import {
   toTitleCase,
   detectCategory,
 } from './fastPathParser';
-import { getActiveOfflineModelReadyConfig } from './modelManager';
-import { executeNluAction, type ActionExecutorOptions } from './actionExecutor';
+import {getActiveOfflineModelReadyConfig} from './modelManager';
+import {executeNluAction, type ActionExecutorOptions} from './actionExecutor';
 import {
   validateIntent,
   type ExtractedIntent,
@@ -20,7 +20,29 @@ export interface IntentExtractionOptions {
   referenceDate?: Date;
   preferOnDeviceSlm?: boolean;
   userId?: string;
+  /**
+   * Longest wait for the on-device model before the parser's reading is
+   * used instead (a live call cannot wait). No limit when left out.
+   */
+  slmTimeoutMs?: number;
 }
+
+/** The model's answer, or null once `ms` has passed. */
+const withinLimit = <T>(
+  work: Promise<T>,
+  ms: number | undefined,
+): Promise<T | null> => {
+  if (!ms || ms <= 0) return work;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return Promise.race([
+    work,
+    new Promise<null>(resolve => {
+      timer = setTimeout(() => resolve(null), ms);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+};
 
 const SCHEDULE_INTENTS: ReadonlySet<ParsedIntentType> = new Set([
   'create_task',
@@ -45,7 +67,11 @@ function isUnstructuredOfflineScheduleCandidate(
     return false;
   }
   const trimmed = transcript.trim();
-  if (!trimmed || trimmed.endsWith('?') || QUESTION_PREFIX_REGEX.test(trimmed)) {
+  if (
+    !trimmed ||
+    trimmed.endsWith('?') ||
+    QUESTION_PREFIX_REGEX.test(trimmed)
+  ) {
     return false;
   }
   return UNSTRUCTURED_TAGLISH_SCHEDULE_REGEX.test(trimmed);
@@ -124,7 +150,10 @@ export class IntentService {
 
     // Non-creation intents (query_schedule, CRUD update/delete, create_note, call responses, chat)
     // must NEVER be sent to the SLM title distiller (except explicit unstructured scheduling phrases in `chat`).
-    if (!SCHEDULE_INTENTS.has(fastPathResult.intent) && !unstructuredCandidate) {
+    if (
+      !SCHEDULE_INTENTS.has(fastPathResult.intent) &&
+      !unstructuredCandidate
+    ) {
       return validateIntent(fastPathResult);
     }
 
@@ -150,14 +179,27 @@ export class IntentService {
           options.userId,
         );
         if (activeModel) {
-          const rawNativeJson = await extractor.extractIntent({
-            transcript: trimmed,
-            modelPath: activeModel.modelPath,
-            promptFormat: activeModel.promptFormat,
-            minValidBytes: activeModel.minValidSizeBytes,
-          });
+          const askedAt = Date.now();
+          const rawNativeJson = await withinLimit<string | null>(
+            extractor.extractIntent({
+              transcript: trimmed,
+              modelPath: activeModel.modelPath,
+              promptFormat: activeModel.promptFormat,
+              minValidBytes: activeModel.minValidSizeBytes,
+            }),
+            options.slmTimeoutMs,
+          );
+          if (rawNativeJson === null && options.slmTimeoutMs)
+            console.log(
+              `[IntentService] On-device model took over ${options.slmTimeoutMs}ms; using the parser`,
+            );
 
           const parsed = rawNativeJson ? JSON.parse(rawNativeJson) : null;
+          console.log(
+            `[IntentService] ${activeModel.modelId}: ${
+              parsed?.engine === 'slm' ? 'model answered' : 'no model answer'
+            } in ${Date.now() - askedAt}ms`,
+          );
           // Only a real model answer may override the fast path (audit H4):
           // the native Kotlin regex fallback is weaker than the TypeScript
           // parser and must never be labelled on_device_slm.
@@ -172,8 +214,8 @@ export class IntentService {
               fastPathResult.intent === 'create_reminder'
                 ? fastPathResult.intent
                 : SCHEDULE_INTENTS.has(parsed.intent)
-                  ? parsed.intent
-                  : fastPathResult.intent;
+                ? parsed.intent
+                : fastPathResult.intent;
 
             const fusedTitle = formatSlmTitle(
               parsed.title,
@@ -192,7 +234,9 @@ export class IntentService {
               time: fastPathResult.time || parsed.time || null,
               endTime: fastPathResult.endTime || parsed.endTime || null,
               durationMinutes:
-                fastPathResult.durationMinutes ?? parsed.duration_minutes ?? null,
+                fastPathResult.durationMinutes ??
+                parsed.duration_minutes ??
+                null,
               category:
                 fastPathResult.category === 'Academic'
                   ? 'Academic'
@@ -252,3 +296,33 @@ export class IntentService {
 }
 
 export const intentService = new IntentService();
+
+/**
+ * Loads the student's installed offline model and reads its instructions
+ * ahead of the first request (an offline call starts this as it connects).
+ * Resolves false when no model is installed or this build cannot load one.
+ */
+export async function warmUpOfflineModel(userId?: string): Promise<boolean> {
+  const extractor = NativeModules.LafinaIntentExtractor;
+  if (Platform.OS !== 'android' || typeof extractor?.warmupModel !== 'function')
+    return false;
+  try {
+    const activeModel = await getActiveOfflineModelReadyConfig(userId);
+    if (!activeModel) return false;
+    const startedAt = Date.now();
+    const ready: boolean = await extractor.warmupModel(
+      activeModel.modelPath,
+      activeModel.promptFormat,
+      activeModel.minValidSizeBytes,
+    );
+    console.log(
+      `[IntentService] ${activeModel.modelId} ${
+        ready ? 'ready' : 'not ready'
+      } after ${Date.now() - startedAt}ms`,
+    );
+    return ready === true;
+  } catch (error) {
+    console.warn('[IntentService] Offline model warmup failed:', error);
+    return false;
+  }
+}

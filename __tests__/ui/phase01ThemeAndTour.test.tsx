@@ -86,7 +86,7 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
     expect(onTabPress).toHaveBeenCalledWith('dashboard');
     fireEvent.press(getByLabelText('Schedule tab'));
     expect(onTabPress).toHaveBeenCalledWith('calendar');
-    fireEvent.press(getByLabelText('Tools tab'));
+    fireEvent.press(getByLabelText('Skills tab'));
     expect(onTabPress).toHaveBeenCalledWith('notes');
 
     fireEvent.press(getByLabelText('AI tab'));
@@ -104,7 +104,7 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
       'Home',
       'Schedule',
       'AI',
-      'Tools',
+      'Skills',
       'Profile',
     ]);
     expect(TAB_ORDER[2]).toBe('chat');

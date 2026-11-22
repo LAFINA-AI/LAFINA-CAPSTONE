@@ -303,7 +303,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
         {/* Header */}
         <View style={[styles.header, themed.header]}>
           <View style={styles.headerLeft}>
-            <Text style={[styles.title, themed.textPrimary]}>Developer Tools</Text>
+            <Text style={[styles.title, themed.textPrimary]}>Developer options</Text>
             <View style={styles.devBadge}>
               <Text style={styles.devBadgeText}>DEV MODE</Text>
             </View>
@@ -311,7 +311,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
           <TouchableOpacity
             onPress={onClose}
             style={[styles.closeBtn, themed.cardBg]}
-            accessibilityLabel="Close developer tools"
+            accessibilityLabel="Close developer options"
           >
             <X size={20} color={colors.textPrimary} />
           </TouchableOpacity>

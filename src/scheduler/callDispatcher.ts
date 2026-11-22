@@ -3,6 +3,8 @@ export {detectCallKeyword} from './callCommand';
 import {DeviceEventEmitter} from 'react-native';
 import {remindersStore} from '../storage/remindersStore';
 import {deliveryStore} from '../storage/deliveryStore';
+import {alertPreferencesStore} from '../storage/alertPreferencesStore';
+import type {CallGreetingStyle} from '../storage/alertPreferencesStore';
 import {db} from '../storage/database';
 import {alertSuppression} from '../storage/sourceReminders';
 import {initTts, stopSpeechPlayback} from '../ai/tts/ttsService';
@@ -81,6 +83,7 @@ interface CallDispatcherSession {
   speechProvider: CallSpeechProvider;
   isResolving: boolean;
   externalVoice?: boolean;
+  buttonsOnly?: boolean;
 }
 
 interface EventSubscription {
@@ -116,16 +119,40 @@ const OUTCOME_SPEECH_LIMIT_MS = 8_000;
 
 const getSnoozeConfirmation = snoozeMessage;
 
-const buildAnnouncement = (task: string): string =>
-  `Hey! This is lafina. Your scheduled reminder is "${task}". Choose one of the two responses shown on screen at any time.`;
+export const buildAnnouncement = (
+  task: string,
+  style: CallGreetingStyle = 'friendly',
+): string => {
+  switch (style) {
+    case 'concise':
+      return `Reminder: "${task}". Say got it or snooze.`;
+    case 'urgent':
+      return `Attention! Time for "${task}". Please acknowledge or snooze now.`;
+    case 'friendly':
+    default:
+      return `Hey! This is lafina. Your scheduled reminder is "${task}". Choose one of the two responses shown on screen at any time.`;
+  }
+};
 
 /**
  * The online reminder call has no Acknowledge or Snooze buttons: it is a
  * conversation, ended by hanging up. The opening line says how to get more
  * time, because there is nothing on screen to tap for it.
  */
-export const buildOnlineAnnouncement = (task: string): string =>
-  `Hi, it's lafina. Your reminder: "${task}". Need more time? Just tell me when to call you back. Otherwise, hang up whenever you're ready.`;
+export const buildOnlineAnnouncement = (
+  task: string,
+  style: CallGreetingStyle = 'friendly',
+): string => {
+  switch (style) {
+    case 'concise':
+      return `Reminder: "${task}". Tell me if you want to snooze, or hang up when ready.`;
+    case 'urgent':
+      return `Urgent reminder: "${task}". Tell me when to call back if you need time, or hang up now.`;
+    case 'friendly':
+    default:
+      return `Hi, it's lafina. Your reminder: "${task}". Need more time? Just tell me when to call you back. Otherwise, hang up whenever you're ready.`;
+  }
+};
 
 const warmCallResponseAudio = async (): Promise<void> => {
   try {
@@ -143,6 +170,7 @@ export const prepareCallSpeech = async (
   task: string,
   defaultSnoozeMinutes: number,
   online = false,
+  greetingStyle: CallGreetingStyle = 'friendly',
 ): Promise<void> => {
   if (!provider.prepareText) return;
   const preparePhrase = async (phrase: string): Promise<void> => {
@@ -154,7 +182,9 @@ export const prepareCallSpeech = async (
   };
 
   await preparePhrase(
-    online ? buildOnlineAnnouncement(task) : buildAnnouncement(task),
+    online
+      ? buildOnlineAnnouncement(task, greetingStyle)
+      : buildAnnouncement(task, greetingStyle),
   );
   await Promise.all([
     preparePhrase(ACKNOWLEDGE_CONFIRMATION),
@@ -510,6 +540,7 @@ export const answerCall = async (
   speechProvider?: CallSpeechProvider,
   expectedGeneration?: number | null,
   externalVoice = false,
+  options?: {buttonsOnly?: boolean; greetingStyle?: CallGreetingStyle},
 ): Promise<boolean> => {
   const reminder = remindersStore.getReminderById(reminderId);
   if (!reminder || reminder.userId !== userId) {
@@ -559,6 +590,11 @@ export const answerCall = async (
   await audioRelease;
   await stopActiveAudioAndCapture(previousSession);
   if (answerSequence !== sessionSequence) return false;
+  const buttonsOnly = options?.buttonsOnly === true;
+  if (buttonsOnly) {
+    voiceEnabled = false;
+    externalVoice = false;
+  }
   const session: CallDispatcherSession = {
     id: sessionSequence,
     reminderId,
@@ -571,6 +607,7 @@ export const answerCall = async (
     speechProvider: speechProvider || defaultCallSpeechProvider,
     isResolving: false,
     externalVoice: externalVoice && voiceEnabled,
+    buttonsOnly,
   };
   activeSession = session;
 
@@ -593,24 +630,35 @@ export const answerCall = async (
   remindersStore.updateReminderStatus(reminderId, 'triggered');
   publishCallState('connected');
 
+  if (buttonsOnly) {
+    publishCallState('connected', 'Tap Acknowledge or Snooze below.');
+    return true;
+  }
+
+  const greetingStyle =
+    options?.greetingStyle ??
+    alertPreferencesStore.read(userId).callGreetingStyle;
+
   if (session.externalVoice) {
     // Deliver the actual reminder before handing the speaker and microphone to
     // the conversation. No offline capture runs during the online session.
     // The pre-cast audio is the offline wording (it names on-screen choices
     // this call does not show), so it is not used as the fallback here.
-    await speakText(buildOnlineAnnouncement(reminder.task));
+    await speakText(buildOnlineAnnouncement(reminder.task, greetingStyle));
     if (!isCurrentSession(session)) return false;
     publishCallState('connected', 'Connecting to online conversation…');
     return true;
   }
 
   const preferences = getReminderPreferences(userId);
-  const announcement = buildAnnouncement(reminder.task);
+  const announcement = buildAnnouncement(reminder.task, greetingStyle);
   void warmCallResponseAudio();
   void prepareCallSpeech(
     session.speechProvider,
     reminder.task,
     preferences.snoozeDurationMinutes,
+    false,
+    greetingStyle,
   );
 
   if (!voiceEnabled) {
@@ -799,7 +847,16 @@ const settleCallManually = async (
     await stopActiveAudioAndCapture(session);
     const action = await act(session.generation);
     if (!isCurrentSession(session)) return action.ok ? 'done' : 'failed';
-    await speakOutcome(action, session);
+    if (session.buttonsOnly) {
+      const resolution = resolutionFromAction(action);
+      if (resolution) {
+        publishCallState('connected', action.message, resolution);
+      } else {
+        publishCallState('connected', action.message);
+      }
+    } else {
+      await speakOutcome(action, session);
+    }
     if (!isCurrentSession(session)) return action.ok ? 'done' : 'failed';
     if (action.ok && isCurrentSession(session)) {
       disconnectCall(resolutionFromAction(action), session);

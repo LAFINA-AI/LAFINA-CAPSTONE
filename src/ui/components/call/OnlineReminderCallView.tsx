@@ -28,6 +28,9 @@ import {Fonts, Layout, ModernLayout, Shadows} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {SynthWaveAvatar} from '../callLafina/SynthWaveAvatar';
 import {CallWaveform} from '../callLafina/CallWaveform';
+import {ChatReplyText} from '../chat/ChatReplyText';
+import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
+import {formatCallReplyMarkdown} from '../../../utils';
 import {CallResultView} from './CallAnsweredView';
 import type {CallPendingAction} from './CallAnsweredView';
 
@@ -39,6 +42,7 @@ interface OnlineReminderCallViewProps {
   callState: CallState;
   resolution: CallResolution | null;
   reply: string;
+  replyFormat?: ChatReplyFormat;
   transcript: string;
   notice?: string;
   pendingAction?: CallPendingAction | null;
@@ -78,6 +82,7 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
   callState,
   resolution,
   reply,
+  replyFormat = 'markdown',
   transcript,
   notice = '',
   pendingAction = null,
@@ -308,11 +313,14 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
                     <Text style={[styles.cardLabel, {color: colors.textMuted}]}>
                       LAFINA
                     </Text>
-                    <Text
-                      style={[styles.replyText, {color: colors.textPrimary}]}
-                    >
-                      {reply}
-                    </Text>
+                    <ChatReplyText
+                      content={formatCallReplyMarkdown(reply)}
+                      format={replyFormat}
+                      textStyle={[
+                        styles.replyText,
+                        {color: colors.textPrimary},
+                      ]}
+                    />
                   </>
                 ) : null}
                 {reply && transcript ? (

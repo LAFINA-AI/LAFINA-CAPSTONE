@@ -89,6 +89,8 @@ export const ChatMessageItem = React.memo(function MessageRow({
     ? [
         attachmentMeta?.label || attachment.format.toUpperCase(),
         formatFileSize(attachment.sizeBytes),
+        // Synced chat (ADR-040): the file stayed on the phone that has it.
+        attachment.uri ? '' : 'On another phone',
       ]
         .filter(Boolean)
         .join(' · ')

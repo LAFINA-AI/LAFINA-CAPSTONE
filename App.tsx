@@ -4,6 +4,7 @@ import {
   finishNativeIncomingCall,
   consumePendingNativeCalls,
 } from './src/scheduler/reminderAlarm';
+import {cancelFocusTimer} from './src/scheduler/focusTimer';
 import {preparePerformanceFixture} from './src/utils/performanceFixture';
 import {beginTabSwitch, finishTabSwitch} from './src/utils/tabPerformance';
 import {generateId} from './src/utils';
@@ -66,6 +67,7 @@ import {
   isNotificationAction,
   isNotifyOnlyReminder,
   showNotifyOnlyReminderAlert,
+  syncAlertPreferencesToNative,
   EVENT_CALL_TRIGGER,
 } from './src/scheduler';
 import type {
@@ -83,7 +85,8 @@ import {ChatScreen} from './src/ui/screens/ChatScreen';
 import {ProfileScreen} from './src/ui/screens/ProfileScreen';
 import {CalendarScreen} from './src/ui/screens/calendar';
 import {DashboardScreen} from './src/ui/screens/dashboard';
-import {NotesScreen} from './src/ui/screens/notes';
+import {SkillsScreen as NotesScreen} from './src/ui/screens/skills/SkillsScreen';
+import type {SkillLaunch} from './src/skills/skillLaunch';
 import {SynthSplash} from './src/ui/splash';
 import {WelcomeScreen} from './src/ui/screens/WelcomeScreen';
 import {LoginScreen} from './src/ui/screens/LoginScreen';
@@ -91,15 +94,12 @@ import {RegisterScreen} from './src/ui/screens/RegisterScreen';
 import {OnboardingScreen} from './src/ui/screens/OnboardingScreen';
 import {IncomingCallScreen} from './src/ui/screens/IncomingCallScreen';
 import {ReminderPermissionModal} from './src/ui/components/call/ReminderPermissionModal';
-import {AuthBackdrop} from './src/ui/components/auth/AuthBackdrop';
 import {ProductTour} from './src/ui/tour/ProductTour';
-import {
-  buildWalkthroughSteps,
-  type TourStep,
-} from './src/ui/tour/tourSteps';
+import {buildWalkthroughSteps, type TourStep} from './src/ui/tour/tourSteps';
 import {isGuestAccount} from './src/cloud/entitlements';
 import {getUstpEligibility} from './src/storage/ustpEligibility';
 import {studentSetupStore} from './src/storage/studentSetupStore';
+import {onboardingProgressStore} from './src/storage/onboardingProgressStore';
 import type {OnboardingCompletion} from './src/ui/screens/OnboardingScreen';
 
 import {CallLafinaScreen} from './src/ui/screens/CallLafinaScreen';
@@ -109,6 +109,7 @@ import {isVoiceConversationActive} from './src/cloud/voiceConversation';
 import {getCallLafinaSettings} from './src/cloud/voiceConversation/callLafinaSettingsStore';
 import {endReviewSession} from './src/ai/nlu/commandReview';
 import {chatDraftStore} from './src/ui/drafts/chatDraftStore';
+import {docGenDraftStore} from './src/ui/drafts/docGenDraftStore';
 import {applySpeechPreferences} from './src/ai/tts/speechPreferences';
 import {QUICK_CHAT_DATA_CHANGED_EVENT} from './src/ai/quickChat/quickChatController';
 import type {QuickChatDataChangedEvent} from './src/ai/quickChat/quickChatController';
@@ -134,6 +135,8 @@ const TAB_DATA_TABLES = {
     'alarms',
     'custom_categories',
     'local_settings',
+    'user_materials',
+    'user_material_qa_messages',
   ],
   profile: [
     'users',
@@ -167,6 +170,7 @@ function AppContent({
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [skillsPageOpen, setSkillsPageOpen] = useState(false);
   useLayoutEffect(() => finishTabSwitch(activeTab), [activeTab]);
 
   const [tourOpen, setTourOpen] = useState(false);
@@ -177,16 +181,40 @@ function AppContent({
   const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
   const [callNavigation, setCallNavigation] =
     useState<CallNavigationRequest | null>(null);
-  const navigateFromCall = (target: CallNavigationTarget) => {
-    if (target.ownerId !== userId) return;
-    setCallNavigation({...target, requestId: generateId('call-nav')});
-    setActiveTab(target.screen);
-    setCallLafinaVisible(false);
-    setCallLafinaMinimized(isVoiceConversationActive());
-  };
   const [callLafinaVisible, setCallLafinaVisible] = useState(false);
   const [callLafinaMinimized, setCallLafinaMinimized] = useState(false);
-  const closeMiniCall = useCallback(() => setCallLafinaMinimized(false), []);
+  const callLafinaMinimizedRef = useRef(callLafinaMinimized);
+  callLafinaMinimizedRef.current = callLafinaMinimized;
+  // Stable, so the memoized call screen skips unrelated app renders.
+  const navigateFromCall = useCallback(
+    (target: CallNavigationTarget) => {
+      if (target.ownerId !== userId) return;
+      setCallNavigation({...target, requestId: generateId('call-nav')});
+      setActiveTab(target.screen);
+      setCallLafinaVisible(false);
+      // A skill handoff (ADR-041) ends the call; other links keep it minimized.
+      setCallLafinaMinimized(!target.skill && isVoiceConversationActive());
+    },
+    [userId],
+  );
+  // ADR-041: a skill the student tapped open from Chat.
+  const openSkillFromChat = useCallback(
+    (launch: SkillLaunch) => {
+      if (!userId) return;
+      setCallNavigation({
+        ownerId: userId,
+        screen: 'notes',
+        skill: launch,
+        requestId: generateId('chat-skill'),
+      });
+      setActiveTab('notes');
+    },
+    [userId],
+  );
+  const closeMiniCall = useCallback(() => {
+    setCallLafinaMinimized(false);
+    setRefreshTrigger(prev => prev + 1);
+  }, [setRefreshTrigger]);
   useEffect(() => {
     if (!callLafinaVisible) return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -195,11 +223,12 @@ function AppContent({
       setCallLafinaMinimized(stillLive);
       if (!stillLive) {
         setActiveTab('chat');
+        setRefreshTrigger(prev => prev + 1);
       }
       return true;
     });
     return () => listener.remove();
-  }, [callLafinaVisible]);
+  }, [callLafinaVisible, setRefreshTrigger]);
 
   // Incoming Call State
   const [callVisible, setCallVisible] = useState(false);
@@ -266,7 +295,7 @@ function AppContent({
       }
       if (
         admission.action === 'call' &&
-        isNotifyOnlyReminder(admission.reminder.id)
+        isNotifyOnlyReminder(admission.reminder.id, userId, Date.now())
       ) {
         showNotifyOnlyReminderAlert(
           admission.reminder.id,
@@ -331,6 +360,7 @@ function AppContent({
     );
     // AGY-PORT 05: the previous owner's unsent Chat text and open voice sheet go too.
     chatDraftStore.retainOnly(userId);
+    docGenDraftStore.retainOnly(userId);
 
     if (callOwnerRef.current && callOwnerRef.current !== userId) {
       activeCallRequest.current = null;
@@ -419,6 +449,9 @@ function AppContent({
   // (registered first, so the first event read finds it).
   useEffect(() => startMorningBriefing(), []);
   useEffect(() => startAlarmLifecycle(userId ?? null), [userId]);
+  useEffect(() => {
+    if (userId) void syncAlertPreferencesToNative(userId);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -671,11 +704,20 @@ function AppContent({
     setRefreshTrigger(prev => prev + 1);
   }, [setRefreshTrigger]);
 
+  const applyPendingOnboardingReset = useCallback((uid: string): boolean => {
+    if (!onboardingProgressStore.consumeResetPending()) return false;
+    userStore.markOnboardingPending(uid);
+    onboardingProgressStore.clear(uid);
+    productTourStore.reset(uid);
+    return true;
+  }, []);
+
   const handleGetStarted = (uid: string) => {
     tourReturnTabRef.current = 'dashboard';
+    const resetPending = applyPendingOnboardingReset(uid);
     setUserId(uid);
     const user = userStore.getUserById(uid);
-    setIsOnboarding(user ? user.isNewUser : false);
+    setIsOnboarding(resetPending || (user ? user.isNewUser : false));
     setActiveTab('dashboard');
   };
 
@@ -687,9 +729,10 @@ function AppContent({
 
   const handleLoginSuccess = (uid: string) => {
     tourReturnTabRef.current = 'dashboard';
+    const resetPending = applyPendingOnboardingReset(uid);
     setUserId(uid);
     const user = userStore.getUserById(uid);
-    setIsOnboarding(user ? user.isNewUser : false);
+    setIsOnboarding(resetPending || (user ? user.isNewUser : false));
     setActiveTab('dashboard');
     syncWorker
       .performSync()
@@ -700,6 +743,7 @@ function AppContent({
   };
 
   const handleRegisterSuccess = (uid: string) => {
+    applyPendingOnboardingReset(uid);
     setUserId(uid);
     setIsOnboarding(true);
     setActiveTab('dashboard');
@@ -754,6 +798,7 @@ function AppContent({
 
   const handleLogout = useCallback(
     (isGuestParam?: boolean) => {
+      void cancelFocusTimer();
       tourReturnTabRef.current = 'dashboard';
       setTourOpen(false);
       setActiveTourStep(null);
@@ -821,12 +866,35 @@ function AppContent({
   );
 
   const openCallLafina = useCallback(() => setCallLafinaVisible(true), []);
+  const closeCallLafina = useCallback(() => {
+    setCallLafinaVisible(false);
+    setCallLafinaMinimized(false);
+    setActiveTab('chat');
+    triggerRefresh();
+  }, [triggerRefresh]);
+  const minimizeCallLafina = useCallback(() => {
+    setCallLafinaVisible(false);
+    setCallLafinaMinimized(isVoiceConversationActive());
+  }, []);
+  const callLafinaNeedsAttention = useCallback(() => {
+    // LAFINA just put up a card that needs an answer. A minimized call
+    // comes forward so the card is on screen when she says so.
+    if (callLafinaMinimizedRef.current) {
+      setCallLafinaMinimized(false);
+      setCallLafinaVisible(true);
+    }
+  }, []);
+  const openProfileTab = useCallback(() => setActiveTab('profile'), []);
+  // Read through a ref so Profile (which gets this) is not re-rendered by
+  // every tab switch.
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
   const replayTour = useCallback(() => {
-    tourReturnTabRef.current = activeTab;
+    tourReturnTabRef.current = activeTabRef.current;
     Keyboard.dismiss();
     setPermissionModalVisible(false);
     setTourOpen(true);
-  }, [activeTab]);
+  }, []);
   const handleTourStepChange = useCallback((step: TourStep) => {
     setActiveTourStep(step);
   }, []);
@@ -845,6 +913,7 @@ function AppContent({
     setIsOnboarding(true);
   }, []);
   const resetFromOnboarding = useCallback(() => {
+    void cancelFocusTimer();
     activeCallRequest.current = null;
     callOwnerRef.current = null;
     previousUserRef.current = null;
@@ -888,6 +957,7 @@ function AppContent({
             refreshTrigger={refreshTrigger}
             onRefresh={triggerRefresh}
             onCallLafina={openCallLafina}
+            onOpenSkill={openSkillFromChat}
           />
         );
       case 'calendar':
@@ -908,6 +978,7 @@ function AppContent({
       case 'notes':
         return (
           <NotesScreen
+            onSkillsPageChange={setSkillsPageOpen}
             onOpenRequestHandled={finishOpenRequest}
             openRequest={
               callNavigation?.ownerId === userId &&
@@ -922,6 +993,8 @@ function AppContent({
             }
             userId={userId}
             refreshTrigger={refreshTrigger}
+            onOpenProfile={openProfileTab}
+            onNavigateToRegister={handleGuestCreateAccount}
             onRefresh={triggerRefresh}
           />
         );
@@ -994,21 +1067,18 @@ function AppContent({
   }
 
   if (!userId) {
-    return (
-      <AuthBackdrop>
-        {authScreen === 'login' && (
-          <LoginScreen
-            onLoginSuccess={handleLoginSuccess}
-            onNavigateToRegister={() => setAuthScreen('register')}
-          />
-        )}
-        {authScreen === 'register' && (
-          <RegisterScreen
-            onRegisterSuccess={handleRegisterSuccess}
-            onNavigateToLogin={() => setAuthScreen('login')}
-          />
-        )}
-      </AuthBackdrop>
+    return authScreen === 'register' ? (
+      <RegisterScreen
+        onRegisterSuccess={handleRegisterSuccess}
+        onNavigateToLogin={() => setAuthScreen('login')}
+        onBack={() => setAuthScreen('welcome')}
+      />
+    ) : (
+      <LoginScreen
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateToRegister={() => setAuthScreen('register')}
+        onBack={() => setAuthScreen('welcome')}
+      />
     );
   }
 
@@ -1088,7 +1158,7 @@ function AppContent({
             <DashboardScreen
               key={userId}
               userId={userId}
-              isActive={activeTab === 'dashboard'}
+              isActive={activeTab === 'dashboard' && !callLafinaVisible}
               tourAnchor={
                 tourOpen && activeTourStep?.tab === 'dashboard'
                   ? activeTourStep.anchor ?? null
@@ -1105,7 +1175,9 @@ function AppContent({
         {(['calendar', 'chat', 'notes', 'profile'] as const).map(tab => (
           <RetainedTab
             key={`${userId}:${tab}`}
-            active={activeTab === tab}
+            // The full-screen call covers every tab: none of them refreshes
+            // under it (each saved call turn used to reload Chat).
+            active={activeTab === tab && !callLafinaVisible}
             tables={TAB_DATA_TABLES[tab]}
           >
             {renderScreen(tab)}
@@ -1113,7 +1185,7 @@ function AppContent({
         ))}
       </View>
 
-      {!isKeyboardVisible && (
+      {!isKeyboardVisible && !(activeTab === 'notes' && skillsPageOpen) && (
         <CustomTabBar
           activeTab={activeTab}
           onTabPress={tab => {
@@ -1154,24 +1226,10 @@ function AppContent({
           <CallLafinaScreen
             onNavigate={navigateFromCall}
             userId={userId || 'local_guest_user'}
-            onClose={() => {
-              setCallLafinaVisible(false);
-              setCallLafinaMinimized(false);
-              setActiveTab('chat');
-              triggerRefresh();
-            }}
-            onMinimize={() => {
-              setCallLafinaVisible(false);
-              setCallLafinaMinimized(isVoiceConversationActive());
-            }}
-            onAttention={() => {
-              // LAFINA just put up a card that needs an answer. A minimized
-              // call comes forward so the card is on screen when she says so.
-              if (callLafinaMinimized) {
-                setCallLafinaMinimized(false);
-                setCallLafinaVisible(true);
-              }
-            }}
+            onClose={closeCallLafina}
+            onMinimize={minimizeCallLafina}
+            onAttention={callLafinaNeedsAttention}
+            paused={!callLafinaVisible}
           />
         </View>
       )}

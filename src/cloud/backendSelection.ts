@@ -14,6 +14,8 @@ import {
   LOCAL_API_BASE_URL,
   cloudClient,
 } from './cloudClient';
+import {resetChatMemorySupport} from './chatMemoryService';
+import {resetChatStreamSupport} from '../skills/onlineChatSkill';
 
 export type BackendChoice = 'vercel' | 'local';
 
@@ -90,6 +92,8 @@ export const backendSelection = {
     );
     if (!isChoice(saved)) return null;
     cloudClient.setBaseUrl(backendUrlFor(saved));
+    resetChatMemorySupport();
+    resetChatStreamSupport();
     return saved;
   },
 
@@ -103,6 +107,8 @@ export const backendSelection = {
       return {switched: false, saved: false};
     }
     cloudClient.setBaseUrl(backendUrlFor(choice));
+    resetChatMemorySupport();
+    resetChatStreamSupport();
     const saved = localSettingsStore.set(
       DEVICE_SETTINGS_OWNER,
       BACKEND_CHOICE_KEY,

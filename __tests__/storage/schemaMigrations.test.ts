@@ -162,6 +162,15 @@ describe('schema migrations', () => {
       'reminder_delivery_jobs',
       // Schema 26 (agent audit 16): per-reminder call/notify choice; no row means call.
       'reminder_delivery_styles',
+      // Schema 29: owner-scoped user lesson materials, chunks, FTS5 index & Q&A history.
+      'user_material_chunks',
+      'user_material_chunks_fts',
+      'user_material_chunks_fts_config',
+      'user_material_chunks_fts_data',
+      'user_material_chunks_fts_docsize',
+      'user_material_chunks_fts_idx',
+      'user_material_qa_messages',
+      'user_materials',
     ]);
     // Schema 20 (AGY-PORT 04) starts empty: a missing revision row means 0, and
     // no receipt exists before a reviewed command is confirmed.
@@ -175,6 +184,10 @@ describe('schema migrations', () => {
     expect(afterUpgrade.handbook_meta).toEqual([]);
     expect(afterUpgrade.handbook_chunks).toEqual([]);
     expect(afterUpgrade.handbook_chunks_fts).toEqual([]);
+    expect(afterUpgrade.user_materials).toEqual([]);
+    expect(afterUpgrade.user_material_chunks).toEqual([]);
+    expect(afterUpgrade.user_material_chunks_fts).toEqual([]);
+    expect(afterUpgrade.user_material_qa_messages).toEqual([]);
     // Schema 19 backfills one delivery job per reminder, owned by its owner,
     // with no events and nothing added to the outbox.
     expect(

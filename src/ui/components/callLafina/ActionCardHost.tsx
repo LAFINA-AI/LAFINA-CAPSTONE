@@ -47,6 +47,8 @@ export interface ActionCardHostProps {
   alternatives?: string[];
   expired?: boolean;
   busy?: boolean;
+  /** The review card was just saved; it shows "Saved" while it leaves. */
+  saved?: boolean;
   status?: ActionCardStatus;
   unknownKind?: string | null;
   onConfirm?: () => void;
@@ -81,6 +83,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   alternatives = [],
   expired = false,
   busy = false,
+  saved = false,
   status = 'prepare',
   unknownKind = null,
   onConfirm = () => {},
@@ -242,6 +245,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           proposal={proposal}
           expired={expired || status === 'expired'}
           busy={busy || status === 'confirm'}
+          saved={saved}
           onConfirm={onConfirm}
           onCancel={onCancel}
           onDismiss={onDismiss}
@@ -252,6 +256,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           proposal={proposal}
           expired={expired || status === 'expired'}
           busy={busy || status === 'confirm'}
+          saved={saved}
           alternatives={
             alternatives.length
               ? alternatives
@@ -272,6 +277,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           proposal={proposal}
           expired={expired || status === 'expired'}
           busy={busy || status === 'confirm'}
+          saved={saved}
           onConfirm={onConfirm}
           onCancel={onCancel}
           onDismiss={onDismiss}

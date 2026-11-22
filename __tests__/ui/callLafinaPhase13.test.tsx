@@ -101,6 +101,12 @@ describe('Phase 13 — In-App Mini-Call and Feasibility Analysis', () => {
       );
 
       expect(getByTestId('mini-call-bar-container')).toBeTruthy();
+      expect(getByTestId('mini-call-avatar')).toBeTruthy();
+      const avatarImage = getByTestId('mini-call-avatar-image');
+      expect(avatarImage.props.source).toEqual(
+        require('../../src/assets/new_lafina_app_logo/lafina_app_logo.png'),
+      );
+      expect(avatarImage.props.accessibilityLabel).toBe('LAFINA mascot');
       expect(getByText('Call Lafina')).toBeTruthy();
       expect(getByText('Lafina is speaking…')).toBeTruthy();
       expect(getByTestId('mini-call-timer')).toBeTruthy();

@@ -1,4 +1,4 @@
-import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
+import {NativeModules, PermissionsAndroid, Platform} from 'react-native';
 
 export interface MeetingRecordingResult {
   meetingId: string;
@@ -61,6 +61,7 @@ interface LafinaMeetingRecorderNative {
     fileUri: string,
     meetingId: string,
   ): Promise<ImportedAudioResult>;
+  cancelAudioImport?: () => Promise<boolean>;
 }
 
 const getNative = (): LafinaMeetingRecorderNative | null => {
@@ -139,7 +140,7 @@ export const meetingRecorder = {
     const mod = getNative();
     if (!mod) {
       recordingClaimed = false;
-      return { meetingId: '', chunkFiles: [], chunkDurationsMs: [] };
+      return {meetingId: '', chunkFiles: [], chunkDurationsMs: []};
     }
     try {
       return await mod.stopRecording();
@@ -190,7 +191,7 @@ export const meetingRecorder = {
   listMeetingAudio: async (meetingId: string): Promise<MeetingAudioListing> => {
     const mod = getNative();
     if (!mod || typeof mod.listMeetingAudio !== 'function') {
-      return { chunks: [], totalBytes: 0 };
+      return {chunks: [], totalBytes: 0};
     }
     return mod.listMeetingAudio(meetingId);
   },
@@ -210,5 +211,11 @@ export const meetingRecorder = {
       throw new Error('Audio import is not available in this build');
     }
     return mod.importAudioFile(fileUri, meetingId);
+  },
+
+  cancelAudioImport: async (): Promise<boolean> => {
+    const mod = getNative();
+    if (!mod || typeof mod.cancelAudioImport !== 'function') return false;
+    return mod.cancelAudioImport();
   },
 };

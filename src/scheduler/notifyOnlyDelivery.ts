@@ -1,5 +1,5 @@
 import {Alert} from 'react-native';
-import {reminderDeliveryStyleStore} from '../storage/reminderDeliveryStyleStore';
+import {alertPreferencesStore} from '../storage/alertPreferencesStore';
 import {
   acknowledgeReminderAction,
   snoozeReminderAction,
@@ -7,6 +7,7 @@ import {
 import type {ReminderActionResult} from './reminderActions';
 import {finishNativeIncomingCall} from './reminderAlarm';
 import type {NativeCallAction} from './reminderAlarm';
+import {resolveReminderDeliveryStyle} from './reminderDeliveryPolicy';
 
 /**
  * "Notify only" reminders (agent audit finding 16). The native engine posts an
@@ -16,6 +17,9 @@ import type {NativeCallAction} from './reminderAlarm';
  * student received the reminder, not that the task is done.
  */
 export const NOTIFY_SNOOZE_MINUTES = 10;
+
+export const getNotifySnoozeMinutes = (userId: string): number =>
+  alertPreferencesStore.read(userId).notificationSnoozeMinutes;
 
 export type NotificationAction = Extract<
   NativeCallAction,
@@ -27,8 +31,12 @@ export const isNotificationAction = (
 ): action is NotificationAction =>
   action === 'acknowledge' || action === 'snooze';
 
-export const isNotifyOnlyReminder = (reminderId: string): boolean =>
-  reminderDeliveryStyleStore.get(reminderId) === 'notify';
+export const isNotifyOnlyReminder = (
+  reminderId: string,
+  userId?: string,
+  triggerAtMs?: number,
+): boolean =>
+  resolveReminderDeliveryStyle(reminderId, userId, triggerAtMs) === 'notify';
 
 export const applyNotificationAction = async (
   reminderId: string,
@@ -36,12 +44,13 @@ export const applyNotificationAction = async (
   action: NotificationAction,
   generation: number | null,
 ): Promise<ReminderActionResult> => {
+  const snoozeMinutes = getNotifySnoozeMinutes(userId);
   const result =
     action === 'snooze'
       ? await snoozeReminderAction(
           reminderId,
           userId,
-          NOTIFY_SNOOZE_MINUTES,
+          snoozeMinutes,
           generation,
         )
       : await acknowledgeReminderAction(reminderId, userId, generation);
@@ -61,12 +70,13 @@ export const showNotifyOnlyReminderAlert = (
   task: string,
   generation: number | null,
 ): void => {
+  const snoozeMinutes = getNotifySnoozeMinutes(userId);
   Alert.alert(
     'LAFINA Reminder',
     task || 'Scheduled academic reminder',
     [
       {
-        text: `Snooze ${NOTIFY_SNOOZE_MINUTES} min`,
+        text: `Snooze ${snoozeMinutes} min`,
         onPress: () =>
           void applyNotificationAction(reminderId, userId, 'snooze', generation),
       },

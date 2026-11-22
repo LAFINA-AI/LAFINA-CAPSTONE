@@ -1,0 +1,20 @@
+
+> lafina-capstone@1.3.4 lint
+> eslint src __tests__ App.tsx index.js --max-warnings 0
+
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\callPerformance.test.tsx
+  78:40  warning  'Reader' is already declared in the upper scope on line 78 column 11  @typescript-eslint/no-shadow
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\skills\QuizSkill.tsx
+    1:27  error  'useMemo' is defined but never used                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   27:3   error  'parseDeckFromQuizSource' is defined but never used                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   67:3   error  'initialSource' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   69:3   error  'onInitialSourceConsumed' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  192:6   error  React Hook useEffect has unnecessary dependencies: 'initialHandoff' and 'onHandoffConsumed'. Either exclude them or remove the dependency array. Outer scope values like 'initialHandoff' aren't valid dependencies because mutating them doesn't re-render the component  react-hooks/exhaustive-deps
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\skills\SourcePicker.tsx
+  45:9  error  'useStorageRevision' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 7 problems (6 errors, 1 warning)
+

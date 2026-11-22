@@ -63,6 +63,10 @@ class LafinaMeetingService : Service() {
         var isRunning: Boolean = false
             private set
 
+        /** Read-only PCM peak for the recording UI. Does not own or open a mic. */
+        @Volatile var audioLevel: Double = 0.0
+            private set
+
         @Volatile
         var isPausedState: Boolean = false
             private set
@@ -387,6 +391,11 @@ class LafinaMeetingService : Service() {
                             continue
                         }
                         val read = recorder.read(readBuf, 0, readBuf.size)
+                        if (read > 0) {
+                            var peak = 0
+                            for (i in 0 until read) peak = maxOf(peak, kotlin.math.abs(readBuf[i].toInt()))
+                            audioLevel = peak / 32768.0
+                        }
                         if (read > 0) {
                             byteBuf.clear()
                             for (i in 0 until read) {

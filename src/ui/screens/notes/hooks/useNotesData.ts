@@ -759,11 +759,49 @@ export const useNotesData = (options: UseNotesDataOptions) => {
         if (editorTokenRef.current !== token || ownerRef.current !== owner)
           return;
         if (action === 'summarize') {
+          const stripped = noteBodyToMarkdown(noteBody)
+            .split(/\n###\s+(?:AI\s+)?[Ss]ummary\b/)[0]
+            .trim();
+          const lines = stripped
+            .split('\n')
+            .map(l =>
+              l
+                .replace(/^\s*-\s*\[[xX\s]\]\s*/, '')
+                .replace(/^\s*(?:[-*+>]+|\d+[.)]|#{1,6})\s*/, '')
+                .trim(),
+            )
+            .filter(l => l.length >= 2 && !/^[-*_]{3,}$/.test(l));
+          const bullets: string[] = [];
+          const seenSummary = new Set<string>();
+          for (const line of lines) {
+            const parts =
+              line.length > 140
+                ? line
+                    .split(/(?<=[.!?])\s+/)
+                    .map(s => s.trim())
+                    .filter(Boolean)
+                : [line];
+            for (const part of parts) {
+              const clipped =
+                part.length > 160 ? `${part.slice(0, 157).trimEnd()}…` : part;
+              const key = clipped.toLowerCase();
+              if (!key || seenSummary.has(key)) continue;
+              seenSummary.add(key);
+              bullets.push(`- ${clipped}`);
+              if (bullets.length >= 4) break;
+            }
+            if (bullets.length >= 4) break;
+          }
+          if (!bullets.length) {
+            Alert.alert(
+              'Nothing to summarize',
+              'Write a bit more in the note body first.',
+            );
+            return;
+          }
           setNoteBody(
             prev =>
-              `${prev}\n\n### AI summary\n` +
-              '- Key focus of this note centers on productivity details.\n' +
-              '- Critical path action items should be extracted and scheduled.',
+              `${prev.replace(/\s+$/, '')}\n\n### Summary\n${bullets.join('\n')}`,
           );
         } else if (action === 'clean') {
           setNoteBody(prev =>
@@ -782,40 +820,73 @@ export const useNotesData = (options: UseNotesDataOptions) => {
           const checklist = extractChecklistItems(noteBody).filter(
             item => !item.done,
           );
-          const candidates =
+          const rawCandidates =
             checklist.length > 0
               ? checklist.map(item => item.text)
               : noteBodyToMarkdown(noteBody)
                   .split('\n')
                   .map(line => line.replace(/^[-*#>\s]+/, '').trim())
-                  .filter(line => line.length > 5);
+                  .filter(line => line.length >= 2 && !/^[-*_]{3,}$/.test(line));
+          const openTitles = new Set(
+            tasksStore
+              .getAllTasks(userId)
+              .filter(t => !t.isCompleted)
+              .map(t => t.title.trim().toLowerCase()),
+          );
+          const dedupedCandidates: string[] = [];
+          for (const raw of rawCandidates) {
+            const cleanTitle = raw.trim();
+            const key = cleanTitle.toLowerCase();
+            if (!cleanTitle || openTitles.has(key)) continue;
+            openTitles.add(key);
+            dedupedCandidates.push(cleanTitle);
+          }
 
-          candidates.forEach(title => {
-            tasksStore.insertTask({
-              id: generateId('task'),
-              userId,
-              title,
-              dueDate: null,
-              dueTime: null,
-              isCompleted: false,
-              priority: 'Medium',
-              category: noteCategory,
-              notes: `Extracted from note: ${noteTitle}`,
+          if (rawCandidates.length > 0) {
+            if (!dedupedCandidates.length) {
+              Alert.alert(
+                'AI Task Extractor',
+                'Those tasks are already in Notes → To-Do.',
+              );
+              return;
+            }
+            dedupedCandidates.forEach(title => {
+              tasksStore.insertTask({
+                id: generateId('task'),
+                userId,
+                title,
+                dueDate: null,
+                dueTime: null,
+                isCompleted: false,
+                priority: 'Medium',
+                category: noteCategory,
+                notes: `Extracted from note: ${noteTitle}`,
+              });
             });
-          });
-
-          if (candidates.length > 0) {
+            const skipped = rawCandidates.length - dedupedCandidates.length;
             Alert.alert(
               'AI Task Extractor',
-              `Successfully added ${candidates.length} to-do item${
-                candidates.length === 1 ? '' : 's'
-              } to Notes → To-Do!`,
+              skipped > 0
+                ? `Added ${dedupedCandidates.length} new to-do item${
+                    dedupedCandidates.length === 1 ? '' : 's'
+                  } (${skipped} already existed).`
+                : `Successfully added ${dedupedCandidates.length} to-do item${
+                    dedupedCandidates.length === 1 ? '' : 's'
+                  } to Notes → To-Do!`,
             );
           } else {
+            const fallbackTitle = (noteTitle || 'Untitled Note').trim();
+            if (openTitles.has(fallbackTitle.toLowerCase())) {
+              Alert.alert(
+                'AI Task Extractor',
+                'This task is already in Notes → To-Do.',
+              );
+              return;
+            }
             tasksStore.insertTask({
               id: generateId('task'),
               userId,
-              title: noteTitle || 'Untitled Note',
+              title: fallbackTitle,
               dueDate: null,
               dueTime: null,
               isCompleted: false,
@@ -825,7 +896,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
             });
             Alert.alert(
               'AI Task Extractor',
-              `Added 1 to-do item based on note: "${noteTitle}".`,
+              `Added 1 to-do item based on note: "${fallbackTitle}".`,
             );
           }
           onRefresh();

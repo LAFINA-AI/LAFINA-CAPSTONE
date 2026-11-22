@@ -47,6 +47,7 @@ import type {
   SpeechStream,
 } from '../../scheduler/speechProvider';
 import {localSettingsStore} from '../../storage/localSettingsStore';
+import {isChatLimitReachedError} from '../../storage/chatStore';
 import {handbookPreference} from '../../skills/onlineChatSkill';
 import {isUstpSchoolEnabled} from '../../storage/ustpEligibility';
 import type {PrepareResult} from '../../ai/nlu/commandReview';
@@ -143,6 +144,7 @@ const executeDefaultCommand = async (
       review: result.review,
     };
   } catch (err) {
+    if (isChatLimitReachedError(err)) return {reply: err.message};
     console.error('Chat orchestrator execution error:', err);
     return {reply: `Heard: "${trimmed}"`};
   }

@@ -1,0 +1,34 @@
+
+> lafina-capstone@1.3.4 typecheck
+> tsc --noEmit
+
+__tests__/skills/docGenSkill.test.tsx(23,3): error TS2305: Module '"../../src/storage"' has no exported member 'studentSetupStore'.
+__tests__/skills/docGenSkill.test.tsx(128,44): error TS2353: Object literal may only specify known properties, and 'user' does not exist in type 'AccountFlowResult | Promise<AccountFlowResult>'.
+src/ui/screens/skills/DocGenSkill.tsx(593,11): error TS2322: Type 'string' is not assignable to type 'DocumentFormat'.
+src/ui/screens/skills/DocGenSkill.tsx(605,18): error TS2339: Property 'aborted' does not exist on type 'StudyJobContext'.
+src/ui/screens/skills/DocGenSkill.tsx(625,20): error TS2339: Property 'aborted' does not exist on type 'StudyJobContext'.
+src/ui/screens/skills/DocGenSkill.tsx(686,18): error TS2339: Property 'aborted' does not exist on type 'StudyJobContext'.
+src/ui/screens/skills/DocGenSkill.tsx(713,9): error TS2739: Type 'StudyJobContext' is missing the following properties from type 'AbortSignal': aborted, onabort, addEventListener, dispatchEvent, removeEventListener
+src/ui/screens/skills/DocGenSkill.tsx(715,18): error TS2339: Property 'aborted' does not exist on type 'StudyJobContext'.
+src/ui/screens/skills/DocGenSkill.tsx(739,18): error TS2339: Property 'aborted' does not exist on type 'StudyJobContext'.
+src/ui/screens/skills/DocGenSkill.tsx(943,5): error TS2322: Type 'string' is not assignable to type 'DocumentFormat'.
+src/ui/screens/skills/DocGenSkill.tsx(998,7): error TS2345: Argument of type 'string' is not assignable to parameter of type 'DocumentFormat'.
+src/ui/screens/skills/DocGenSkill.tsx(1215,21): error TS2345: Argument of type 'string' is not assignable to parameter of type 'DocumentFormat'.
+src/ui/screens/skills/DocGenSkill.tsx(1218,22): error TS2345: Argument of type 'string' is not assignable to parameter of type 'DocumentFormat'.
+src/ui/screens/skills/DocGenSkill.tsx(1502,17): error TS2322: Type 'string' is not assignable to type 'DocumentFormat'.
+src/ui/screens/skills/DocGenSkill.tsx(1710,36): error TS2345: Argument of type 'string' is not assignable to parameter of type 'DocumentFormat'.
+src/ui/screens/skills/DocGenSkill.tsx(1711,40): error TS2345: Argument of type 'string' is not assignable to parameter of type 'DocumentFormat'.
+src/ui/screens/skills/QuizSkill.tsx(129,8): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(130,37): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(134,33): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(156,11): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(157,22): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(168,18): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/ui/screens/skills/QuizSkill.tsx(178,18): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(181,19): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(190,7): error TS2304: Cannot find name 'onHandoffConsumed'.
+src/ui/screens/skills/QuizSkill.tsx(192,7): error TS2304: Cannot find name 'initialHandoff'.
+src/ui/screens/skills/QuizSkill.tsx(192,23): error TS2304: Cannot find name 'onHandoffConsumed'.
+src/ui/screens/skills/SkillsScreen.tsx(15,14): error TS2305: Module '"./QuizSkill"' has no exported member 'QuizInitialHandoff'.
+src/ui/screens/skills/SkillsScreen.tsx(249,15): error TS2322: Type '{ userId: string; onFlashcards: () => void; initialHandoff: any; initialMaterialId: string | undefined; onHandoffConsumed: () => void; onNote: (id: string) => void; }' is not assignable to type 'IntrinsicAttributes & { userId: string; onFlashcards: () => void; onNote: (id: string) => void; initialSource?: SkillSource | null | undefined; initialMaterialId?: string | undefined; onInitialSourceConsumed?: (() => void) | undefined; }'.
+  Property 'initialHandoff' does not exist on type 'IntrinsicAttributes & { userId: string; onFlashcards: () => void; onNote: (id: string) => void; initialSource?: SkillSource | null | undefined; initialMaterialId?: string | undefined; onInitialSourceConsumed?: (() => void) | undefined; }'.

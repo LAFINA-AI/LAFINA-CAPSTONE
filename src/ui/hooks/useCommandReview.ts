@@ -34,6 +34,11 @@ export interface CommandReviewState {
   confirm: (options?: {
     speakReply?: boolean;
     temporaryChat?: boolean;
+    /**
+     * The card to apply when it may be newer than the one rendered (a spoken
+     * change just replaced it). Defaults to the card on screen.
+     */
+    operationId?: string;
   }) => Promise<ReviewDecisionResult | null>;
   /** Discards the proposal. `silent` skips the transcript line (used when a sheet closes). */
   cancel: (options?: {
@@ -62,6 +67,10 @@ export const useCommandReview = (
   const [busy, setBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const busyRef = useRef(false);
+  const inFlightRef = useRef<{
+    operationId: string;
+    done: Promise<ReviewDecisionResult | null>;
+  } | null>(null);
   const ownerRef = useRef(userId);
   ownerRef.current = userId;
 
@@ -141,16 +150,42 @@ export const useCommandReview = (
     async (options?: {
       speakReply?: boolean;
       temporaryChat?: boolean;
+      operationId?: string;
     }): Promise<ReviewDecisionResult | null> => {
-      const current = proposal;
-      if (!current || expired || busyRef.current) return null;
+      const shown = proposal;
+      const targetId = options?.operationId ?? shown?.operationId;
+      if (!targetId) return null;
+      if (busyRef.current) {
+        // The same card is already being saved (a tap and a spoken "save it"
+        // together): share that save's answer instead of "no draft found".
+        const running = inFlightRef.current;
+        return running && running.operationId === targetId
+          ? running.done
+          : null;
+      }
+      if (!options?.operationId && expired) return null;
+      const current = {
+        ownerId: shown?.ownerId ?? ownerRef.current,
+        operationId: targetId,
+      };
       busyRef.current = true;
       setBusy(true);
+      let finish: (value: ReviewDecisionResult | null) => void = () => {};
+      inFlightRef.current = {
+        operationId: targetId,
+        done: new Promise(resolve => {
+          finish = resolve;
+        }),
+      };
+      let result: ReviewDecisionResult | null = null;
       try {
         const decision = await chatOrchestrator.confirmReview(
           current.ownerId,
           current.operationId,
-          options,
+          {
+            speakReply: options?.speakReply,
+            temporaryChat: options?.temporaryChat,
+          },
         );
         const outcome = decision.outcome;
         // A failed write keeps the card so the student can try again; anything
@@ -158,15 +193,24 @@ export const useCommandReview = (
         const retry =
           outcome?.status === 'refused' && outcome.reason === 'failed';
         if (!retry && ownerRef.current === current.ownerId) {
-          setProposal(shown =>
-            shown?.operationId === current.operationId ? null : shown,
+          // An older version of the applied card still rendered goes too
+          // (there is one open card per surface).
+          setProposal(onScreen =>
+            onScreen?.operationId === current.operationId ||
+            (options?.operationId !== undefined &&
+              onScreen?.operationId === shown?.operationId)
+              ? null
+              : onScreen,
           );
           setEditError(null);
         }
+        result = decision;
         return decision;
       } finally {
         busyRef.current = false;
+        inFlightRef.current = null;
         setBusy(false);
+        finish(result);
       }
     },
     [proposal, expired],

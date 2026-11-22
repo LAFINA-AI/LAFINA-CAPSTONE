@@ -13,6 +13,12 @@ import type {
   ConversationSnapshot,
   VoiceConversationDeps,
 } from '../../cloud/voiceConversation';
+import {createCallMeter, levelsOf, routeSnapshot} from './callMeter';
+import type {CallMeter} from './callMeter';
+
+/** Why an online call stops when the connection drops; the call screen offers offline. */
+export const NETWORK_DROP_REASON =
+  'The internet connection dropped, so the online call stopped.';
 
 /** How often a running conversation re-checks Online Mode and the signed-in account. */
 const GATE_CHECK_MS = 3000;
@@ -34,7 +40,14 @@ const IDLE: ConversationSnapshot = {
 };
 
 export interface VoiceConversationHandle {
+  /**
+   * Everything but the live audio levels, which can lag here; read those
+   * from `meter` (only the avatar and waveform need them).
+   */
   snapshot: ConversationSnapshot;
+  meter: CallMeter;
+  /** Readies the next start where it can (see the controller's prepare). */
+  prepare: () => void;
   start: () => void;
   end: () => void;
   endAndWait: () => Promise<boolean>;
@@ -46,6 +59,9 @@ export interface VoiceConversationHandle {
   stopResponse: () => void;
   sendText: (text: string) => Promise<boolean>;
   sendContext: (information: string) => Promise<boolean>;
+  /** Ends the call once LAFINA's next spoken answer has finished. */
+  endAfterReply: (maxMs?: number) => void;
+  cancelEndAfterReply: () => void;
   setPreferences: (preferences: Partial<VoicePersonaPreferences>) => void;
 }
 
@@ -78,6 +94,7 @@ export const useVoiceConversation = (
   } = {},
 ): VoiceConversationHandle => {
   const [snapshot, setSnapshot] = useState<ConversationSnapshot>(IDLE);
+  const [meter] = useState(createCallMeter);
   const controllerRef = useRef<VoiceConversationController | null>(null);
   const finalTextRef = useRef(options.onFinalUserText);
   finalTextRef.current = options.onFinalUserText;
@@ -117,8 +134,12 @@ export const useVoiceConversation = (
     });
     controller.setPreferences(getCallLafinaSettings(userId));
     controllerRef.current = controller;
-    setSnapshot(controller.getSnapshot());
-    const unsubscribe = controller.subscribe(setSnapshot);
+    const first = controller.getSnapshot();
+    setSnapshot(first);
+    meter.set(levelsOf(first));
+    const unsubscribe = controller.subscribe(next =>
+      routeSnapshot(meter, setSnapshot, next),
+    );
     const unregister = registerVoiceConversation(controller);
 
     const app = AppState.addEventListener('change', state => {
@@ -134,9 +155,7 @@ export const useVoiceConversation = (
     });
     const net = NetInfo.addEventListener(state => {
       if (controller.isActive() && state.isConnected === false) {
-        controller.stopForSystem(
-          'The internet connection dropped, so the conversation stopped. Offline push-to-talk still works.',
-        );
+        controller.stopForSystem(NETWORK_DROP_REASON);
       }
     });
     const gates = setInterval(() => {
@@ -165,10 +184,12 @@ export const useVoiceConversation = (
       controller.dispose();
       if (controllerRef.current === controller) controllerRef.current = null;
     };
-  }, [userId]);
+  }, [userId, meter]);
 
   return {
     snapshot,
+    meter,
+    prepare: () => controllerRef.current?.prepare(),
     setPreferences: preferences =>
       controllerRef.current?.setPreferences(preferences),
     start: () => {
@@ -191,5 +212,7 @@ export const useVoiceConversation = (
       (await controllerRef.current?.sendText(text)) ?? false,
     sendContext: async information =>
       (await controllerRef.current?.sendContext(information)) ?? false,
+    endAfterReply: maxMs => controllerRef.current?.endAfterReply(maxMs),
+    cancelEndAfterReply: () => controllerRef.current?.cancelEndAfterReply(),
   };
 };

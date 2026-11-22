@@ -444,12 +444,12 @@ export const buildStudentVoiceContext = (
     // best-effort
   }
 
-  // 4. Saved Memories
+  // 4. Saved Memories (prioritized: pinned/core first, then preferences and recent episodic facts)
   try {
     if (chatMemoryStore.isEnabled(userId)) {
       const memories = memoriesForPrompt(userId);
       if (memories.length > 0) {
-        const facts = memories.slice(0, 5).map(m => m.text);
+        const facts = memories.slice(0, 12).map(m => m.text);
         sections.push(`Student Memories & Preferences: ${facts.join('; ')}`);
       }
     }

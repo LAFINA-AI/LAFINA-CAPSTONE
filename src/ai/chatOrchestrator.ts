@@ -1,3 +1,4 @@
+import {DeviceEventEmitter} from 'react-native';
 import {
   chatStore,
   type ChatAttachment,
@@ -6,14 +7,20 @@ import {
 } from '../storage/chatStore';
 import {chatReplyFormatStore} from '../storage/chatReplyFormatStore';
 import {chatMemoryStore} from '../storage/chatMemoryStore';
-import {memoriesForPrompt} from '../storage/onboardingMemory';
+import {
+  memoriesForPrompt,
+  reconcileClearedMemories,
+} from '../storage/onboardingMemory';
 import {
   captureUstpEligibility,
   getUstpEligibility,
   ustpUnavailableMessage,
 } from '../storage/ustpEligibility';
 import {replyPreferenceInstruction} from './personalization';
-import {chatMemoryService} from '../cloud/chatMemoryService';
+import {
+  CHAT_MEMORY_CHANGED_EVENT,
+  chatMemoryService,
+} from '../cloud/chatMemoryService';
 import {directProviderTestEnabled} from '../cloud/directProviderTest';
 import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
 import {studyPreference} from './studyPreference';
@@ -30,7 +37,7 @@ import {
 import {buildStudentVoiceContext} from '../cloud/voiceConversation/localVoiceData';
 import {parseScannedSchedule} from './vision/scheduleParser';
 import {intentService} from './nlu/intentService';
-import {executeNluAction} from './nlu/actionExecutor';
+import {addMinutesToTime, executeNluAction} from './nlu/actionExecutor';
 import {routeIntent} from './nlu/intentRoutes';
 import type {ResolvedIntentRoute, RingingCallContext} from './nlu/intentRoutes';
 import {
@@ -91,6 +98,15 @@ import {
   localHandbookService,
   type OnlineHandbookContext,
 } from '../handbook';
+import {detectSkillIntent} from './skills/skillIntent';
+import type {SkillIntent} from './skills/skillIntent';
+import {
+  prepareSkillLaunch,
+  skillControlLine,
+  skillStatusLine,
+} from './skills/skillHandoff';
+import {skillTitle} from '../skills/skillLaunch';
+import type {SkillLaunch} from '../skills/skillLaunch';
 
 export interface ScheduleConflict {
   hasConflict: boolean;
@@ -173,6 +189,11 @@ export interface ChatOrchestratorResult {
   reply: string;
   /** A natural sentence to speak instead of the Markdown `reply` (audit M6). */
   spokenReply?: string;
+  /**
+   * ADR-041: the student asked to use a Skill. Chat shows a button that opens
+   * it; nothing is opened, generated or saved until they tap.
+   */
+  skillLaunch?: SkillLaunch;
 }
 
 /** What the device made of a spoken conversation turn (see `reviewSpokenTurn`). */
@@ -332,7 +353,7 @@ const readDay = (userId: string, date: string): PlannerWindow => {
  * plainly that the online answer is missing and that offline tools still work.
  */
 export const describeOnlineChatFailure = (status: string): string => {
-  const offlineNote = ' Your offline scheduling tools are still available.';
+  const offlineNote = ' Your offline scheduling features are still available.';
   switch (status) {
     case 'auth_required':
       return (
@@ -515,6 +536,8 @@ export class ChatOrchestrator {
       onlineMode?: boolean;
       actionSessionId?: string;
       isCurrent?: () => boolean;
+      /** See IntentExtractionOptions.slmTimeoutMs. */
+      slmTimeoutMs?: number;
     } = {},
   ): Promise<SpokenTurnReview> {
     const trimmed = (text || '').trim();
@@ -538,6 +561,9 @@ export class ChatOrchestrator {
     const localValidated = await intentService.extractIntent(trimmed, {
       referenceDate: refDate,
       userId,
+      // Offline, the student's installed model reads every request.
+      preferOnDeviceSlm: !options.onlineMode,
+      slmTimeoutMs: options.slmTimeoutMs,
     });
     // Extraction may finish after the conversation or owning screen closes.
     if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
@@ -685,10 +711,77 @@ export class ChatOrchestrator {
       };
     }
 
-    const preference = isTemp || ustpRagOnly ? null : explicitMemory(trimmed);
+    // ADR-041: "make flashcards", "start a pomodoro", "how many cards are
+    // due?" are answered on the device; a launch is a button to tap.
+    const skillIntent = ustpRagOnly ? null : detectSkillIntent(trimmed);
+    const skillAnswer = skillIntent
+      ? await chatSkillReply(userId, skillIntent, options.onlineMode === true)
+      : null;
+    if (skillAnswer) {
+      const {reply, launch} = skillAnswer;
+      const assistantMessage: ChatMessage = isTemp
+        ? {
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
+            sessionId: 'temp_chat',
+            sender: 'assistant',
+            content: reply,
+            localReply: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        : chatStore.addMessage(
+            userId,
+            'assistant',
+            reply,
+            null,
+            {localReply: true},
+            sessionId,
+          );
+      return {
+        userMessage,
+        assistantMessage,
+        reply,
+        usedOnline: false,
+        intent: plainChatIntent(trimmed),
+        ...(launch ? {skillLaunch: launch} : {}),
+      };
+    }
+
+    const preference = ustpRagOnly ? null : explicitMemory(trimmed);
     if (preference) {
       const enabled = chatMemoryStore.isEnabled(userId);
       const isStudy = !!studyPreference(trimmed);
+      if (isTemp && options.reviewSurface !== 'quick') {
+        const reply =
+          "Temporary chats don't save new memories. Turn off Temporary Chat or add this in Profile -> Chat Memory.";
+        const assistantMessage: ChatMessage = {
+          id: `temp_asst_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
+          sessionId: 'temp_chat',
+          sender: 'assistant',
+          content: reply,
+          localReply: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        if (options.speakReply) {
+          try {
+            await ttsService.speak(reply);
+          } catch (error) {
+            console.warn('[ChatOrchestrator] TTS playback error:', error);
+          }
+        }
+        return {
+          userMessage,
+          assistantMessage,
+          reply,
+          usedOnline: false,
+          intent: plainChatIntent(trimmed),
+        };
+      }
       const reply = enabled
         ? isStudy
           ? "I'll remember your study preference."
@@ -696,31 +789,71 @@ export class ChatOrchestrator {
         : isStudy
         ? 'Your study preference was not saved because memory is turned off.'
         : 'Memory is turned off, so I did not save that.';
-      const assistantMessage = db.transactionSync(tx => {
-        const message = chatStore.addMessage(
-          userId,
-          'assistant',
-          reply,
-          null,
-          {localReply: true},
-          sessionId,
-          tx,
-        );
-        if (!enabled) return message;
-        const changes = chatMemoryStore.applyChanges(
-          userId,
-          {add: [preference], remove: []},
-          sessionId,
-          tx,
-        );
-        if (changes.added.length || changes.removed.length) {
-          if (!chatStore.setMemoryChanges(userId, message.id, changes, tx)) {
-            throw new Error('The memory notice could not be saved.');
-          }
-          return {...message, memoryChanges: changes};
+      let assistantMessage: ChatMessage;
+      if (isTemp) {
+        const changes = enabled
+          ? chatMemoryStore.applyChanges(
+              userId,
+              {add: [preference], remove: []},
+              null,
+            )
+          : null;
+        const msgId = `temp_asst_${Date.now()}_${Math.random()
+          .toString(36)
+          .slice(2, 7)}`;
+        if (changes && (changes.added.length || changes.removed.length)) {
+          DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+            userId,
+            messageId: msgId,
+            changes,
+          });
         }
-        return message;
-      });
+        assistantMessage = {
+          id: msgId,
+          sessionId: 'temp_chat',
+          sender: 'assistant',
+          content: reply,
+          localReply: true,
+          ...(changes && (changes.added.length || changes.removed.length)
+            ? {memoryChanges: changes}
+            : {}),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        assistantMessage = db.transactionSync(tx => {
+          const message = chatStore.addMessage(
+            userId,
+            'assistant',
+            reply,
+            null,
+            {localReply: true},
+            sessionId,
+            tx,
+          );
+          if (!enabled) return message;
+          const changes = chatMemoryStore.applyChanges(
+            userId,
+            {add: [preference], remove: []},
+            sessionId,
+            tx,
+          );
+          if (changes.added.length || changes.removed.length) {
+            if (!chatStore.setMemoryChanges(userId, message.id, changes, tx)) {
+              throw new Error('The memory notice could not be saved.');
+            }
+            tx.afterCommit?.(() =>
+              DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+                userId,
+                messageId: message.id,
+                changes,
+              }),
+            );
+            return {...message, memoryChanges: changes};
+          }
+          return message;
+        });
+      }
       if (options.speakReply) {
         try {
           await ttsService.speak(reply);
@@ -751,26 +884,58 @@ export class ChatOrchestrator {
       };
     }
 
-    if (!isTemp && !ustpRagOnly && isForgetAllMemoriesRequest(trimmed)) {
+    if (!ustpRagOnly && isForgetAllMemoriesRequest(trimmed)) {
       const reply =
         "I've forgotten all saved memories on this phone. Your chats are kept.";
-      const assistantMessage = db.transactionSync(tx => {
-        const message = chatStore.addMessage(
-          userId,
-          'assistant',
-          reply,
-          null,
-          {localReply: true},
-          sessionId,
-          tx,
-        );
-        chatMemoryService.forgetAll(userId, sessionId, message.id, tx);
-        return {
-          ...message,
-          memoryChanges:
-            chatStore.getMemoryChanges(userId, message.id, tx) ?? null,
+      let assistantMessage: ChatMessage;
+      if (isTemp) {
+        const prevCount = chatMemoryStore.list(userId).length;
+        db.transactionSync(tx => {
+          chatMemoryStore.clear(userId, tx);
+        });
+        reconcileClearedMemories(userId);
+        const tempId = `temp_asst_${Date.now()}_${Math.random()
+          .toString(36)
+          .slice(2, 7)}`;
+        if (prevCount > 0) {
+          DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+            userId,
+            messageId: tempId,
+            changes: {
+              added: [],
+              removed: [],
+              revision: chatMemoryStore.revision(userId),
+            },
+          });
+        }
+        assistantMessage = {
+          id: tempId,
+          sessionId: 'temp_chat',
+          sender: 'assistant',
+          content: reply,
+          localReply: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
-      });
+      } else {
+        assistantMessage = db.transactionSync(tx => {
+          const message = chatStore.addMessage(
+            userId,
+            'assistant',
+            reply,
+            null,
+            {localReply: true},
+            sessionId,
+            tx,
+          );
+          chatMemoryService.forgetAll(userId, sessionId, message.id, tx);
+          return {
+            ...message,
+            memoryChanges:
+              chatStore.getMemoryChanges(userId, message.id, tx) ?? null,
+          };
+        });
+      }
       if (options.speakReply) {
         try {
           await ttsService.speak(reply);
@@ -816,9 +981,30 @@ export class ChatOrchestrator {
     let learnFromReply = false;
 
     // Step 1.5: Conversational Confirm / Cancel / Revise on an active Chat review card
+    const makeLocalAssistantMessage = (content: string): ChatMessage =>
+      isTemp
+        ? {
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
+            sessionId: 'temp_chat',
+            sender: 'assistant',
+            content,
+            localReply: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        : chatStore.addMessage(
+            userId,
+            'assistant',
+            content,
+            null,
+            {localReply: true},
+            sessionId,
+          );
     const activeSurface: ReviewSurface = options.reviewSurface ?? 'chat';
     const openProposal =
-      !isTemp && !ustpRagOnly && !options.ringingCall
+      !ustpRagOnly && !options.ringingCall
         ? latestPendingReview(userId, activeSurface)
         : null;
     // A card answers only to the chat that offered it (audit M1).
@@ -833,11 +1019,15 @@ export class ChatOrchestrator {
     // question; it decides the card only when the card was the last reply.
     const bareDecision =
       BARE_CONFIRM_RE.test(trimmed) || BARE_CANCEL_RE.test(trimmed);
+    const lastAssistantId = isTemp
+      ? [...(options.temporaryHistory ?? [])]
+          .reverse()
+          .find(msg => msg.sender === 'assistant')?.id ?? null
+      : lastAssistantMessageId(userId, sessionId);
     const cardWasLastTurn = Boolean(
       pendingProposal &&
         openTurn &&
-        lastAssistantMessageId(userId, sessionId) ===
-          openTurn.assistantMessageId,
+        lastAssistantId === openTurn.assistantMessageId,
     );
     const decisionAllowed = !bareDecision || cardWasLastTurn;
     if (pendingProposal) {
@@ -847,21 +1037,18 @@ export class ChatOrchestrator {
           pendingProposal.operationId,
         );
         if (outcome.status === 'applied') {
-          markReviewMessageResolved(
-            userId,
-            pendingProposal.operationId,
-            'confirmed',
-            sessionId,
-          );
+          if (isTemp) {
+            reviewTurns.delete(pendingProposal.operationId);
+          } else {
+            markReviewMessageResolved(
+              userId,
+              pendingProposal.operationId,
+              'confirmed',
+              sessionId,
+            );
+          }
         }
-        const assistantMessage = chatStore.addMessage(
-          userId,
-          'assistant',
-          outcome.reply,
-          null,
-          {localReply: true},
-          sessionId,
-        );
+        const assistantMessage = makeLocalAssistantMessage(outcome.reply);
         return {
           userMessage,
           assistantMessage,
@@ -891,20 +1078,17 @@ export class ChatOrchestrator {
       if (decisionAllowed && CHAT_REVIEW_CANCEL_RE.test(trimmed)) {
         cancelReviewedCommand(userId, pendingProposal.operationId);
         const cancelMsg = 'Cancelled. Nothing was changed.';
-        markReviewMessageResolved(
-          userId,
-          pendingProposal.operationId,
-          'cancelled',
-          sessionId,
-        );
-        const assistantMessage = chatStore.addMessage(
-          userId,
-          'assistant',
-          cancelMsg,
-          null,
-          {localReply: true},
-          sessionId,
-        );
+        if (isTemp) {
+          reviewTurns.delete(pendingProposal.operationId);
+        } else {
+          markReviewMessageResolved(
+            userId,
+            pendingProposal.operationId,
+            'cancelled',
+            sessionId,
+          );
+        }
+        const assistantMessage = makeLocalAssistantMessage(cancelMsg);
         return {
           userMessage,
           assistantMessage,
@@ -938,13 +1122,11 @@ export class ChatOrchestrator {
           trimmed,
         );
         if (revised.status === 'proposal') {
-          const assistantMessage = chatStore.addMessage(
-            userId,
-            'assistant',
-            revised.reply,
-            null,
-            {localReply: true},
+          const assistantMessage = makeLocalAssistantMessage(revised.reply);
+          rememberReviewTurn(
+            revised.proposal.operationId,
             sessionId,
+            assistantMessage.id,
           );
           return {
             userMessage,
@@ -1181,6 +1363,9 @@ export class ChatOrchestrator {
       const localValidated = await intentService.extractIntent(trimmed, {
         referenceDate: refDate,
         userId,
+        // Offline (or offline model chosen in Chat), the installed model
+        // reads every scheduling request, not only unclear ones.
+        preferOnDeviceSlm: !options.onlineMode,
       });
       validated = localValidated;
       if (
@@ -1717,7 +1902,7 @@ export class ChatOrchestrator {
           sessionId,
         );
 
-    if (review?.status === 'proposal' && !isTemp) {
+    if (review?.status === 'proposal') {
       rememberReviewTurn(
         review.proposal.operationId,
         sessionId,
@@ -1727,6 +1912,10 @@ export class ChatOrchestrator {
 
     // Background: never delays or changes the reply. Chat hears about any
     // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
+    if (usedOnline && chatMemoryStore.isEnabled(userId)) {
+      const promptIds = memoriesForPrompt(userId).map(m => m.id);
+      if (promptIds.length > 0) chatMemoryStore.markUsed(userId, promptIds);
+    }
     if (learnFromReply && !isTemp && !directProviderTestEnabled()) {
       void chatMemoryService.afterExchange({
         userId,
@@ -1879,6 +2068,31 @@ export class ChatOrchestrator {
     }
     return {cancelled, assistantMessage, reply};
   }
+}
+
+/** A Skill request answered in Chat (ADR-041), or null when it is not one. */
+async function chatSkillReply(
+  userId: string,
+  intent: SkillIntent,
+  online: boolean,
+): Promise<{reply: string; launch?: SkillLaunch} | null> {
+  if (intent.kind === 'status')
+    return {reply: skillStatusLine(userId, intent.topic)};
+  if (intent.kind === 'control')
+    return {reply: await skillControlLine(userId, intent.control)};
+  const prepared = prepareSkillLaunch(userId, intent.launch, {
+    online,
+    materialHint: intent.materialHint,
+  });
+  if (!prepared) return null;
+  // In Chat nothing opens by itself: the line points at the button.
+  const lead = prepared.line
+    .replace(/^Got it, starting/, 'Ready to start')
+    .replace(/^Got it, opening/, 'I can open');
+  return {
+    reply: `${lead} Tap **Open ${skillTitle(prepared.launch.skill)}** below.`,
+    launch: prepared.launch,
+  };
 }
 
 export const chatOrchestrator = new ChatOrchestrator();
@@ -2151,7 +2365,11 @@ function validatedIntentToMultiItem(
     title: v.title || `Action ${index + 1}`,
     date: v.date || undefined,
     time: v.time || undefined,
-    endTime: v.endTime || undefined,
+    endTime:
+      v.endTime ||
+      (kind === 'event' && v.time
+        ? addMinutesToTime(v.time, v.durationMinutes ?? 60)
+        : undefined),
     priority:
       v.priority?.toLowerCase() === 'high'
         ? 'high'

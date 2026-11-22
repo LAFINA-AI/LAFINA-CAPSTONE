@@ -22,7 +22,8 @@ class AlarmFireReceiver : BroadcastReceiver() {
     val alarmId = intent.getStringExtra(LafinaAlarms.EXTRA_ALARM_ID) ?: return
     val now = System.currentTimeMillis()
     if (intent.getBooleanExtra(LafinaAlarms.EXTRA_IS_TEST, false)) {
-      LafinaAlarmService.start(context, RingRequest(alarmId, 0L, "Test alarm", vibrate = true, soundUri = null, isTest = true))
+      val soundUri = intent.getStringExtra(LafinaAlarms.EXTRA_SOUND_URI)
+      LafinaAlarmService.start(context, RingRequest(alarmId, 0L, "Test alarm", vibrate = true, soundUri = soundUri, isTest = true))
       return
     }
     val generation = intent.getLongExtra(LafinaAlarms.EXTRA_GENERATION, -1L)

@@ -1,3 +1,4 @@
+import { db } from './database';
 import { localSettingsStore } from './localSettingsStore';
 
 const KEY = 'product_tour';
@@ -25,6 +26,14 @@ export const productTourStore = {
         completed,
         seenAt: new Date().toISOString(),
       }),
+    );
+  },
+
+  reset: (userId: string): void => {
+    if (!userId) return;
+    db.executeSync(
+      'DELETE FROM local_settings WHERE user_id = ? AND key = ?',
+      [userId, KEY],
     );
   },
 };

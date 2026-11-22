@@ -1,5 +1,8 @@
+import RNFS from 'react-native-fs';
 import {db} from './database';
+import {GUEST_USER_ID} from '../constants';
 import type {DatabaseTransaction} from './database';
+import {cancelFocusTimer} from '../scheduler/focusTimer';
 import {readSessionEpoch} from './sessionEpoch';
 import {notesStore} from './notesStore';
 import {tasksStore} from './tasksStore';
@@ -13,6 +16,7 @@ import {academicProfileStore} from './academicProfileStore';
 import {corImportStore} from './corImportStore';
 import {scheduleEntriesStore} from './scheduleEntriesStore';
 import {studentSetupStore} from './studentSetupStore';
+import {materialStore} from './materialStore';
 import {
   attachmentCleanupTarget,
   pendingAttachmentCleanup,
@@ -230,14 +234,32 @@ export const resetPersonalData = (
       scheduleEntriesStore.clear(userId);
       // The reviewed COR import goes with the academic profile; the declared
       // affiliation stays, so USTP students return to "COR pending".
+      // Also clear personal onboarding identity/goal so deleted facts never haunt greetings.
       corImportStore.clear(userId);
-      if (studentSetupStore.get(userId).corStatus === 'confirmed') {
-        studentSetupStore.update(userId, {
-          corStatus: 'pending',
-          confirmedImportId: null,
-          confirmedAt: null,
-        });
-      }
+      const currentSetup = studentSetupStore.get(userId);
+      studentSetupStore.update(userId, {
+        ...(currentSetup.corStatus === 'confirmed'
+          ? {
+              corStatus: 'pending' as const,
+              confirmedImportId: null,
+              confirmedAt: null,
+            }
+          : {}),
+        preferredName: '',
+        tone: null,
+        goal: null,
+        responseStyle: null,
+        explicit: [],
+      });
+      db.executeSync(
+        `DELETE FROM local_settings WHERE user_id = ? AND (key LIKE 'skills.%' OR key = 'onboarding.memory.v1')`,
+        [userId],
+      );
+      db.executeSync(`DELETE FROM recorded_meetings WHERE user_id = ?`, [
+        userId,
+      ]);
+      materialStore.clearForUser(userId);
+      void cancelFocusTimer();
       defaults = 'cleared';
     } catch (error) {
       console.warn(
@@ -277,3 +299,66 @@ export const finishAttachmentCleanup = (
   runAttachmentCleanup(authority.userId, () =>
     stillAdmitted(authority, () => true),
   );
+
+/**
+ * Reads the owner's persisted Skills document file paths (`skills.files.v1`)
+ * before `resetPersonalData` clears `local_settings`, scoped strictly to
+ * `skills_documents/<encodedUserId>/`. Files made as a guest keep their
+ * guest-folder path after sign-in, so a path in the guest folder is accepted
+ * too, but only when this owner's own list names it.
+ */
+export const readSkillsDocumentPaths = (userId: string): string[] => {
+  const root = String(RNFS.DocumentDirectoryPath ?? '').replace(/\/+$/, '');
+  if (!root) return [];
+  const prefixFor = (owner: string) =>
+    `${root}/skills_documents/${encodeURIComponent(owner)}/`;
+  const allowedPrefixes = [prefixFor(userId), prefixFor(GUEST_USER_ID)];
+  try {
+    const row = db.executeSync(
+      `SELECT value FROM local_settings WHERE user_id = ? AND key = 'skills.files.v1' LIMIT 1`,
+      [userId],
+    ).rows[0] as {value?: unknown} | undefined;
+    if (typeof row?.value !== 'string' || !row.value.trim()) return [];
+    const parsed = JSON.parse(row.value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const paths: string[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const uri = (item as {attachment?: {uri?: unknown}}).attachment?.uri;
+      if (typeof uri !== 'string') continue;
+      const filePath = uri.startsWith('file://')
+        ? uri.slice('file://'.length)
+        : uri;
+      if (
+        allowedPrefixes.some(prefix => filePath.startsWith(prefix)) &&
+        !filePath.includes('..')
+      ) {
+        paths.push(filePath);
+      }
+    }
+    return paths;
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Best-effort cleanup of Skills-generated document files for `authority`'s owner.
+ * Stops if the sign-in changed after Clear All Data was authorized.
+ */
+export const clearSkillsDocumentsForUser = async (
+  authority: DataResetAuthority,
+  paths: readonly string[],
+): Promise<void> => {
+  if (!paths.length || !stillAdmitted(authority, () => true)) return;
+  for (const filePath of paths) {
+    if (!stillAdmitted(authority, () => true)) return;
+    try {
+      if (await RNFS.exists(filePath)) {
+        await RNFS.unlink(filePath);
+      }
+    } catch (error) {
+      console.warn('[DataReset] Skills document could not be removed:', error);
+    }
+  }
+};

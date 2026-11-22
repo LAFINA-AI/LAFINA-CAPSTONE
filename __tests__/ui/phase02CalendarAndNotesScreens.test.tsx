@@ -39,7 +39,9 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
   describe('CalendarScreen', () => {
     test('renders week view, displays scheduled tasks/events, and toggles to Month view', async () => {
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const todayStr = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+      ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
       tasksStore.insertTask({
         id: 'task-test-ui-1',
@@ -64,7 +66,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
 
       const onRefresh = jest.fn();
 
-      const { getByText } = render(
+      const {getByText} = render(
         <ThemeProvider userId={userId}>
           <CalendarScreen
             userId={userId}
@@ -88,7 +90,9 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
 
     test('switches between Month, Week, and Day views showing Today’s Plan, pastel items, reminders, and hourly slots', async () => {
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const todayStr = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+      ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const triggerAtLocal = new Date(
         now.getFullYear(),
         now.getMonth(),
@@ -149,9 +153,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       // Switch to Week view
       fireEvent.press(getByText('Week'));
       expect(getByText('Reminder · 7:30 AM')).toBeTruthy();
-      expect(
-        getByText('ICT Bldg · Rm 302 · 9:00 AM - 10:30 AM'),
-      ).toBeTruthy();
+      expect(getByText('ICT Bldg · Rm 302 · 9:00 AM - 10:30 AM')).toBeTruthy();
       expect(getByText('To Do · 5:00 PM')).toBeTruthy();
 
       // Switch to Day view
@@ -166,7 +168,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
     });
 
     test('opens FAB actions menu when plus icon is tapped', async () => {
-      const { getByLabelText, getByText } = render(
+      const {getByLabelText, getByText} = render(
         <ThemeProvider userId={userId}>
           <CalendarScreen
             userId={userId}
@@ -189,7 +191,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
 
     test('allows adding a time block manually via FAB and persists with correct local date', async () => {
       const onRefresh = jest.fn();
-      const { getByLabelText, getByText, getByPlaceholderText } = render(
+      const {getByLabelText, getByText, getByPlaceholderText} = render(
         <ThemeProvider userId={userId}>
           <CalendarScreen
             userId={userId}
@@ -226,7 +228,9 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       expect(savedBlocks.rows.length).toBe(1);
 
       const now = new Date();
-      const expectedLocalDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const expectedLocalDate = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+      ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       expect(savedBlocks.rows[0].date).toBe(expectedLocalDate);
       expect(savedBlocks.rows[0].start_time).toBe('09:00');
       expect(savedBlocks.rows[0].end_time).toBe('10:00');
@@ -384,7 +388,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
 
       const onRefresh = jest.fn();
 
-      const { getByText, queryByText } = render(
+      const {getByText, queryByText} = render(
         <ThemeProvider userId={userId}>
           <NotesScreen
             userId={userId}
@@ -416,7 +420,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
     test('allows creating a new note via the NoteEditor modal', async () => {
       const onRefresh = jest.fn();
 
-      const { getAllByLabelText, getByText, getByPlaceholderText } = render(
+      const {getAllByLabelText, getByText, getByPlaceholderText} = render(
         <ThemeProvider userId={userId}>
           <NotesScreen
             userId={userId}
@@ -435,7 +439,10 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       const bodyInput = getByPlaceholderText('Start writing...');
 
       fireEvent.changeText(titleInput, 'Software Engineering Principles');
-      fireEvent.changeText(bodyInput, 'SOLID principles and Clean Architecture');
+      fireEvent.changeText(
+        bodyInput,
+        'SOLID principles and Clean Architecture',
+      );
 
       // Press Done (save button)
       const doneButton = getByText('Done');
@@ -444,7 +451,9 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       await waitFor(() => {
         expect(onRefresh).toHaveBeenCalled();
         const notes = notesStore.getAll(userId);
-        expect(notes.some((n) => n.title === 'Software Engineering Principles')).toBe(true);
+        expect(
+          notes.some(n => n.title === 'Software Engineering Principles'),
+        ).toBe(true);
       });
     });
 
@@ -460,7 +469,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
         isVoiceTranscribed: false,
       });
 
-      const { queryByText, getByText } = render(
+      const {queryByText, getByText} = render(
         <ThemeProvider userId={userId}>
           <NotesScreen
             userId={userId}
@@ -478,7 +487,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
     });
 
     test('renders Tools header with Alarms | Todo | Notes tabs and opens Alarms view', () => {
-      const { getByText, getByTestId } = render(
+      const {getByText, getByTestId} = render(
         <ThemeProvider userId={userId}>
           <NotesScreen
             userId={userId}
@@ -488,7 +497,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
         </ThemeProvider>,
       );
 
-      expect(getByText('Tools')).toBeTruthy();
+      expect(getByText('Skills')).toBeTruthy();
       const alarmsTab = getByTestId('notes-subtab-alarms');
       const todoTab = getByTestId('notes-subtab-todo');
       const notesTab = getByTestId('notes-subtab-notes');
@@ -502,7 +511,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
     });
 
     test('opens Alarms sub-tab directly when openRequest specifies alarms', () => {
-      const { getByTestId } = render(
+      const {getByTestId} = render(
         <ThemeProvider userId={userId}>
           <NotesScreen
             userId={userId}
@@ -538,6 +547,78 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       );
       expect(emptyStyle.paddingTop).toBeUndefined();
       expect(emptyStyle.paddingBottom).toBeGreaterThanOrEqual(100);
+    });
+
+    test('opens existing note in Preview mode by default and switches to Write when tapped', () => {
+      notesStore.insert({
+        id: 'note-preview-default-1',
+        userId,
+        title: 'Midterm Study Guide',
+        body: '## Week 1\n- [ ] Review notes',
+        category: 'Learning',
+        isPinned: false,
+        tags: [],
+        isVoiceTranscribed: false,
+      });
+
+      const {
+        getByText,
+        getByTestId,
+        queryByPlaceholderText,
+        getByPlaceholderText,
+      } = render(
+        <ThemeProvider userId={userId}>
+          <NotesScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      fireEvent.press(getByText('Midterm Study Guide'));
+
+      expect(getByTestId('note-preview')).toBeTruthy();
+      expect(queryByPlaceholderText('Start writing...')).toBeNull();
+      expect(
+        getByTestId('note-mode-preview').props.accessibilityState.selected,
+      ).toBe(true);
+      expect(
+        getByTestId('note-mode-write').props.accessibilityState.selected,
+      ).toBe(false);
+
+      fireEvent.press(getByTestId('note-mode-write'));
+      expect(getByPlaceholderText('Start writing...')).toBeTruthy();
+    });
+
+    test('renders quick note, checklist, lecture, and record buttons in one equal-width row', () => {
+      const {getByTestId, getByText} = render(
+        <ThemeProvider userId={userId}>
+          <NotesScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+            onBackToSkills={jest.fn()}
+            onRecordMeeting={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      const row = getByTestId('notes-quick-actions-row');
+      const rowStyle = StyleSheet.flatten(row.props.style);
+      expect(rowStyle.flexDirection).toBe('row');
+      expect(rowStyle.flexWrap).not.toBe('wrap');
+
+      for (const [testID, label] of [
+        ['notes-quick-note-btn', 'Quick note'],
+        ['notes-quick-checklist-btn', 'Checklist'],
+        ['notes-quick-lecture-btn', 'Lecture'],
+        ['notes-quick-record-btn', 'Record'],
+      ] as const) {
+        expect(getByText(label)).toBeTruthy();
+        const btnStyle = StyleSheet.flatten(getByTestId(testID).props.style);
+        expect(btnStyle.flex).toBe(1);
+      }
     });
   });
 });

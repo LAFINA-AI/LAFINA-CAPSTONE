@@ -2,6 +2,7 @@ import React from 'react';
 import {act, render} from '@testing-library/react-native';
 import {OnlineReminderConversation} from '../../src/ui/components/call/OnlineReminderConversation';
 import {useVoiceConversation} from '../../src/ui/hooks/useVoiceConversation';
+import {createCallMeter} from '../../src/ui/hooks/callMeter';
 
 jest.mock('../../src/ui/hooks/useVoiceConversation', () => ({useVoiceConversation: jest.fn()}));
 jest.mock('../../src/ui/contexts/ThemeContext', () => ({
@@ -13,9 +14,10 @@ it('starts after mounting with the reminder in the start-of-call context and end
   const end = jest.fn();
   const sendContext = jest.fn(async () => true);
   let phase = 'connecting';
+  const meter = createCallMeter();
   (useVoiceConversation as jest.Mock).mockImplementation(() => ({
     start, end, endAndWait: async () => undefined, setMuted: jest.fn(),
-    sendContext, snapshot: {phase, muted: false, turns: []},
+    sendContext, snapshot: {phase, muted: false, turns: []}, meter,
   }));
   const props = {userId: 'student', task: 'Review math', onSnapshot: jest.fn(), onSpokenTurn: jest.fn()};
   const screen = render(<OnlineReminderConversation {...props} />);
@@ -44,6 +46,7 @@ it('lets the agent read and snooze during a reminder call, but not change the pl
     setMuted: jest.fn(),
     sendContext: jest.fn(),
     snapshot: {phase: 'listening', muted: false, turns: []},
+    meter: createCallMeter(),
   }));
   const execute = jest
     .spyOn(actionService, 'executeTool')

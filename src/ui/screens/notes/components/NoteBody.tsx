@@ -1,3 +1,4 @@
+import {SkillFonts} from '../../../theme/skills';
 import React, {useMemo} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {CheckSquare, Image as ImageIcon, Square} from 'lucide-react-native';
@@ -273,21 +274,21 @@ const styles = StyleSheet.create({
 });
 
 const compactText = StyleSheet.create({
-  body: {fontFamily: 'sans-serif', fontSize: 12, lineHeight: 16},
+  body: {fontFamily: SkillFonts.body, fontSize: 12, lineHeight: 16},
   h1: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 2,
   },
   h2: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 13,
     fontWeight: 'bold',
     marginBottom: 2,
   },
   h3: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 12,
     fontWeight: 'bold',
     marginBottom: 2,
@@ -295,21 +296,21 @@ const compactText = StyleSheet.create({
 });
 
 const gridPreviewText = StyleSheet.create({
-  body: {fontFamily: 'sans-serif', fontSize: 12, lineHeight: 16},
+  body: {fontFamily: SkillFonts.body, fontSize: 12, lineHeight: 16},
   h1: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 12.5,
     fontWeight: '700',
     marginBottom: 1,
   },
   h2: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 12.5,
     fontWeight: '600',
     marginBottom: 1,
   },
   h3: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 1,
@@ -317,23 +318,23 @@ const gridPreviewText = StyleSheet.create({
 });
 
 const fullText = StyleSheet.create({
-  body: {fontFamily: 'sans-serif', fontSize: 15, lineHeight: 22},
+  body: {fontFamily: SkillFonts.body, fontSize: 15, lineHeight: 22},
   h1: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 22,
     fontWeight: 'bold',
     marginTop: 8,
     marginBottom: 4,
   },
   h2: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 8,
     marginBottom: 4,
   },
   h3: {
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     fontSize: 15,
     fontWeight: 'bold',
     marginTop: 6,

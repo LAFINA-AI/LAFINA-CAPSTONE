@@ -6,8 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { useTheme } from '../../../contexts/ThemeContext';
-import { FilterType } from '../types';
+import {useTheme} from '../../../contexts/ThemeContext';
+import {FilterType} from '../types';
+import {SkillFonts} from '../../../theme/skills';
 
 interface NoteFiltersProps {
   selectedFilter: FilterType;
@@ -20,36 +21,67 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
   onFilterChange,
   customCategories,
 }) => {
-  const { colors, isModern, modernPalette } = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
 
-  const categories = ['Personal', 'Work', 'Health', 'Learning', ...customCategories];
-  const allFilters: FilterType[] = ['All', 'AI Transcribed', 'Pinned', ...categories];
+  const categories = [
+    'Personal',
+    'Work',
+    'Health',
+    'Learning',
+    ...customCategories,
+  ];
+  const allFilters: FilterType[] = [
+    'All',
+    'AI Transcribed',
+    'Pinned',
+    ...categories,
+  ];
 
   return (
-    <View style={styles.filterContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroller}>
-        {allFilters.map((filter) => (
+    <View
+      style={styles.filterContainer}
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Filter notes"
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterScroller}
+      >
+        {allFilters.map(filter => (
           <TouchableOpacity
             key={filter}
             style={[
               styles.filterChip,
               {
-                backgroundColor: isModern ? modernPalette.surface : colors.inputBg,
+                backgroundColor: isModern
+                  ? modernPalette.surface
+                  : colors.inputBg,
                 borderWidth: isModern ? 1 : 0,
                 borderColor: modernPalette.border,
               },
               selectedFilter === filter && {
-                backgroundColor: isModern ? modernPalette.darkInkBtn : colors.red,
+                backgroundColor: isModern
+                  ? modernPalette.darkInkBtn
+                  : colors.red,
                 borderColor: isModern ? modernPalette.darkInkBtn : colors.red,
               },
             ]}
             onPress={() => onFilterChange(filter)}
+            accessibilityRole="radio"
+            accessibilityState={{checked: selectedFilter === filter}}
+            accessibilityLabel={`${filter} notes`}
           >
-            <Text style={[
-              styles.filterChipText,
-              { color: colors.textSecondary },
-              selectedFilter === filter && { color: colors.white, fontWeight: 'bold' },
-            ]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                {color: colors.textSecondary},
+                selectedFilter === filter && {
+                  color: colors.white,
+                  fontWeight: 'bold',
+                },
+              ]}
+            >
               {filter}
             </Text>
           </TouchableOpacity>
@@ -60,8 +92,15 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
 };
 
 const styles = StyleSheet.create({
-  filterContainer: { marginBottom: 12 },
-  filterScroller: { paddingRight: 16 },
-  filterChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, marginRight: 6 },
-  filterChipText: { fontFamily: 'sans-serif', fontSize: 12 },
+  filterContainer: {marginBottom: 12},
+  filterScroller: {paddingRight: 16},
+  filterChip: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    marginRight: 8,
+  },
+  filterChipText: {fontFamily: SkillFonts.body, fontSize: 13},
 });

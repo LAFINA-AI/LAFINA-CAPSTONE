@@ -1,3 +1,4 @@
+import {db, type DatabaseTransaction} from './database';
 import {localSettingsStore} from './localSettingsStore';
 import {DEVICE_SETTINGS_SCOPE} from './deviceScope';
 
@@ -8,6 +9,12 @@ import {DEVICE_SETTINGS_SCOPE} from './deviceScope';
 export const ONBOARDING_PROGRESS_KEY = 'onboarding.progress.v1';
 /** Device-wide: the introduction is shown before anyone signs in. */
 export const INTRO_SEEN_KEY = 'onboarding.intro_seen.v1';
+/**
+ * Device-wide: set when "Clear all data & reset onboarding" runs so the next
+ * sign-in (even restoring an existing cloud account) still runs user setup
+ * and offers the walkthrough.
+ */
+export const ONBOARDING_RESET_PENDING_KEY = 'onboarding.reset_pending.v1';
 
 export type OnboardingStage = 'intro' | 'details' | 'ready';
 
@@ -89,5 +96,41 @@ export const onboardingProgressStore = {
       INTRO_SEEN_KEY,
       new Date().toISOString(),
     );
+  },
+
+  isResetPending: (): boolean =>
+    localSettingsStore.get(
+      DEVICE_SETTINGS_SCOPE,
+      ONBOARDING_RESET_PENDING_KEY,
+    ) === 'true',
+
+  markResetPending: (
+    executor: Pick<DatabaseTransaction, 'executeSync'> = db,
+  ): void => {
+    executor.executeSync(
+      `INSERT INTO local_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      [
+        DEVICE_SETTINGS_SCOPE,
+        ONBOARDING_RESET_PENDING_KEY,
+        'true',
+        new Date().toISOString(),
+      ],
+    );
+  },
+
+  consumeResetPending: (): boolean => {
+    const pending =
+      localSettingsStore.get(
+        DEVICE_SETTINGS_SCOPE,
+        ONBOARDING_RESET_PENDING_KEY,
+      ) === 'true';
+    if (pending) {
+      db.executeSync(
+        'DELETE FROM local_settings WHERE user_id = ? AND key = ?',
+        [DEVICE_SETTINGS_SCOPE, ONBOARDING_RESET_PENDING_KEY],
+      );
+    }
+    return pending;
   },
 };

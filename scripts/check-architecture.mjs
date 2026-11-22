@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
+import {createRequire} from 'node:module';
 import ts from 'typescript';
 
 const root = path.resolve('src');
-const walk = (dir) =>
-  fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+const walk = dir =>
+  fs.readdirSync(dir, {withFileTypes: true}).flatMap(entry => {
     const name = path.join(dir, entry.name);
     return entry.isDirectory()
       ? walk(name)
@@ -15,13 +15,15 @@ const walk = (dir) =>
   });
 
 const files = walk(root);
-const graph = new Map(files.map((file) => [file, []]));
+const graph = new Map(files.map(file => [file, []]));
 const errors = [];
 
 const FORBIDDEN_SPECIFIER_PATTERNS = [
   {
-    pattern: /(^|\/)(businessStore|businessService|CompanyChatScreen|ManagerOverviewScreen|EmployeeTodayScreen|WorkScreen|TeamManagementModal)(\/|$)/,
-    reason: 'business dashboard/workspace module is out of student capstone scope',
+    pattern:
+      /(^|\/)(businessStore|businessService|CompanyChatScreen|ManagerOverviewScreen|EmployeeTodayScreen|WorkScreen|TeamManagementModal)(\/|$)/,
+    reason:
+      'business dashboard/workspace module is out of student capstone scope',
   },
   {
     pattern: /(^|\/)(gmailService|GmailInboxScreen)(\/|$)/,
@@ -71,7 +73,10 @@ for (const file of files) {
   }
   if (/kokoro-v0_19|af_bella\.bin|LafinaTTSModule/.test(content)) {
     errors.push(
-      `${path.relative(root, file)}: references forbidden Kokoro 82M TTS artifact or module`,
+      `${path.relative(
+        root,
+        file,
+      )}: references forbidden Kokoro 82M TTS artifact or module`,
     );
   }
 
@@ -89,14 +94,14 @@ for (const file of files) {
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
       const isTypeOnly = Boolean(node.importClause?.isTypeOnly);
-      imports.push({ specifier: node.moduleSpecifier.text, isTypeOnly });
+      imports.push({specifier: node.moduleSpecifier.text, isTypeOnly});
     } else if (
       ts.isExportDeclaration(node) &&
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
       const isTypeOnly = Boolean(node.isTypeOnly);
-      imports.push({ specifier: node.moduleSpecifier.text, isTypeOnly });
+      imports.push({specifier: node.moduleSpecifier.text, isTypeOnly});
     } else if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
@@ -104,17 +109,19 @@ for (const file of files) {
       node.arguments[0] &&
       ts.isStringLiteral(node.arguments[0])
     ) {
-      imports.push({ specifier: node.arguments[0].text, isTypeOnly: false });
+      imports.push({specifier: node.arguments[0].text, isTypeOnly: false});
     }
     ts.forEachChild(node, visit);
   }
   visit(source);
 
-  for (const { specifier, isTypeOnly } of imports) {
+  for (const {specifier, isTypeOnly} of imports) {
     for (const rule of FORBIDDEN_SPECIFIER_PATTERNS) {
       if (rule.pattern.test(specifier)) {
         errors.push(
-          `${path.relative(root, file)}: forbidden import "${specifier}" (${rule.reason})`,
+          `${path.relative(root, file)}: forbidden import "${specifier}" (${
+            rule.reason
+          })`,
         );
       }
     }
@@ -123,7 +130,9 @@ for (const file of files) {
       const base = path.resolve(path.dirname(file), specifier);
       if (/\.(png|jpg|jpeg|svg|onnx|bin|gguf|json)$/.test(specifier)) {
         if (!fs.existsSync(base)) {
-          errors.push(`${path.relative(root, file)}: missing file ${specifier}`);
+          errors.push(
+            `${path.relative(root, file)}: missing file ${specifier}`,
+          );
         }
         continue;
       }
@@ -132,9 +141,11 @@ for (const file of files) {
         base + '.tsx',
         path.join(base, 'index.ts'),
         path.join(base, 'index.tsx'),
-      ].find((candidate) => graph.has(candidate));
+      ].find(candidate => graph.has(candidate));
       if (!target) {
-        errors.push(`${path.relative(root, file)}: unresolved import ${specifier}`);
+        errors.push(
+          `${path.relative(root, file)}: unresolved import ${specifier}`,
+        );
       } else if (!isTypeOnly) {
         graph.get(file).push(target);
       }
@@ -148,7 +159,7 @@ function visitGraph(file, chain) {
   if (active.has(file)) {
     errors.push(
       `Import cycle: ${[...chain, file]
-        .map((item) => path.relative(root, item))
+        .map(item => path.relative(root, item))
         .join(' -> ')}`,
     );
     return;
@@ -175,6 +186,9 @@ const allowedPermissions = new Set([
   'INTERNET',
   'ACCESS_NETWORK_STATE',
   'POST_NOTIFICATIONS',
+  // Skills hub owner request (2026-11-20; docs/design/skills/DECISIONS.md):
+  // optional Pomodoro silence, enabled only after the student grants DND access.
+  'ACCESS_NOTIFICATION_POLICY',
   'SCHEDULE_EXACT_ALARM',
   'USE_EXACT_ALARM',
   'USE_FULL_SCREEN_INTENT',
@@ -202,7 +216,7 @@ for (const [, permission] of manifest.matchAll(
 
 // AGY-PORT 12: offline leaves must not reach the network or an online module,
 // transitively, except through an exact approved composition edge.
-const { findViolations, readSources } = createRequire(import.meta.url)(
+const {findViolations, readSources} = createRequire(import.meta.url)(
   './offline-boundary.cjs',
 );
 const boundary = findViolations(readSources(path.resolve('.')));
@@ -213,7 +227,9 @@ for (const finding of boundary.dynamic) {
   errors.push(`Unchecked dynamic import: ${finding}`);
 }
 for (const edge of boundary.unusedApprovals) {
-  errors.push(`Stale online-composition approval (edge no longer exists): ${edge}`);
+  errors.push(
+    `Stale online-composition approval (edge no longer exists): ${edge}`,
+  );
 }
 
 if (errors.length) {
@@ -221,6 +237,6 @@ if (errors.length) {
   process.exitCode = 1;
 } else {
   console.log(
-    `PASS: ${files.length} TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies; ${boundary.offlineLeaves} offline leaves reach no network API or online module (transitive, dynamic imports included).`,
+    `PASS: ${files.length} TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/Kokoro or unapproved legacy study-tool dependencies; ${boundary.offlineLeaves} offline leaves reach no network API or online module (transitive, dynamic imports included).`,
   );
 }

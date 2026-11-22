@@ -4,6 +4,7 @@ import type {LocalVoiceResult} from '../../../cloud/voiceConversation/localVoice
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Animated,
   Linking,
@@ -19,7 +20,9 @@ import {
   ArrowLeft,
   ArrowRight,
   AudioLines,
+  Calendar,
   CircleAlert,
+  Cpu,
   MessageSquareText,
   Mic,
   MicOff,
@@ -27,6 +30,7 @@ import {
   PhoneCall,
   PhoneOff,
   RotateCcw,
+  ShieldCheck,
   Sliders,
   Square,
 } from 'lucide-react-native';
@@ -36,8 +40,16 @@ import type {ThemeColors} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import {chatOrchestrator} from '../../../ai/chatOrchestrator';
 import {UndoSnackbar} from '../chat/UndoSnackbar';
-import type {PrepareResult, UndoOffer} from '../../../ai/nlu/commandReview';
-import {SynthWaveAvatar} from '../callLafina/SynthWaveAvatar';
+import type {
+  CommandProposal,
+  PrepareResult,
+  UndoOffer,
+} from '../../../ai/nlu/commandReview';
+import {
+  CallDurationText,
+  MeteredCallWaveform,
+  MeteredSynthWaveAvatar,
+} from '../callLafina/MeteredCallVisuals';
 import {enableOnlineMode, voiceConsent} from '../../../cloud/voiceConversation';
 import type {
   ConversationPhase,
@@ -48,11 +60,9 @@ import {useVoiceConversation} from '../../hooks/useVoiceConversation';
 import {useReducedMotion} from '../../hooks/useReducedMotion';
 import type {CommandReviewState} from '../../hooks/useCommandReview';
 import {ActionCardHost} from '../callLafina/ActionCardHost';
+import {CardSaveExit} from '../callLafina/CardSaveExit';
 import {isToolExecutionPermitted} from '../../../ai/voiceActions/actionSecurity';
-import {
-  actionService,
-  SUGGESTED_CONFIRM_REFUSAL,
-} from '../../../ai/voiceActions/actionService';
+import {actionService} from '../../../ai/voiceActions/actionService';
 import type {
   MemoryProposalData,
   MultiActionBatchData,
@@ -70,9 +80,10 @@ import {directProviderTestEnabled} from '../../../cloud/directProviderTest';
 import {localSettingsStore} from '../../../storage/localSettingsStore';
 import {explicitMemory} from '../../../ai/explicitMemory';
 import {buildStudentVoiceContext} from '../../../cloud/voiceConversation/localVoiceData';
-import {CallWaveform} from '../callLafina/CallWaveform';
+import {ChatReplyText} from '../chat/ChatReplyText';
+import {useChatReplyFormat} from '../../hooks/useChatReplyFormat';
 import {ttsService} from '../../../ai/tts/ttsService';
-import {generateId} from '../../../utils';
+import {formatCallReplyMarkdown, generateId} from '../../../utils';
 import {
   groundedVoiceDraft,
   isVoiceScheduleStart,
@@ -91,12 +102,61 @@ import {
   SUGGESTED_CARD_NOTE,
 } from '../../../ai/voiceActions/structuredAction';
 import type {StructuredActionArgs} from '../../../ai/voiceActions/structuredAction';
+import {
+  findRepeatOfSaved,
+  savedCardById,
+  savedCardFromProposal,
+} from '../../../ai/voiceActions/recentSaves';
+import type {SavedCard} from '../../../ai/voiceActions/recentSaves';
 import {validatePayload} from '../../../ai/voiceActions/actionValidator';
 
 import {
+  callClosingKind,
+  endsWithGoodbye,
   hasDraftApproval,
   isCompoundVoiceRequest,
+  isDraftCancel,
+  isPlainApproval,
+  splitTrailingSave,
 } from '../../../cloud/voiceConversation/turnPolicy';
+import {detectSkillIntent} from '../../../ai/skills/skillIntent';
+import {
+  prepareSkillLaunch,
+  skillControlLine,
+  skillStatusLine,
+} from '../../../ai/skills/skillHandoff';
+import type {PreparedLaunch} from '../../../ai/skills/skillHandoff';
+import {skillTitle} from '../../../skills/skillLaunch';
+import type {SkillLaunch} from '../../../skills/skillLaunch';
+import NetInfo from '@react-native-community/netinfo';
+import {
+  offlineReasonText,
+  predictCallMode,
+} from '../../../ai/offlineCall/callMode';
+import type {
+  CallMode,
+  CallModeDecision,
+} from '../../../ai/offlineCall/callMode';
+import {
+  OFFLINE_HELP_REPLY,
+  savedConfirmation,
+  speakable,
+  spokenCardLine,
+} from '../../../ai/offlineCall/spokenReplies';
+import type {AlarmStatus} from '../../../ai/offlineCall/spokenReplies';
+import type {
+  OfflineCallDeps,
+  OfflineReply,
+  OfflineTurnContext,
+  OfflineTurnSource,
+} from '../../../ai/offlineCall/offlineCallController';
+import {
+  buildLocalConversationReply,
+  classifySmallTalk,
+} from '../../../ai/localConversation';
+import {useOfflineCall} from '../../hooks/useOfflineCall';
+import {warmUpOfflineModel} from '../../../ai/nlu/intentService';
+import {warmupOfflineSpeech} from '../../../ai/native/speechCapture';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -116,8 +176,18 @@ export interface VoiceConversationPanelProps {
   onAttention?: () => void;
   /** Tests inject fakes. */
   deps?: (userId: string) => VoiceConversationDeps;
+  /** Tests inject the offline call's microphone and voice. */
+  offlineDeps?: (
+    userId: string,
+    respond: OfflineCallDeps['respond'],
+  ) => OfflineCallDeps;
   /** Whether the panel is rendered in full-screen presentation. Defaults to true. */
   fullScreen?: boolean;
+  /**
+   * The call screen is not on screen (minimized). The call keeps running;
+   * its animations and clock stop drawing until it comes back.
+   */
+  paused?: boolean;
 }
 
 const PHASE_TEXT: Record<ConversationPhase, string> = {
@@ -132,13 +202,27 @@ const PHASE_TEXT: Record<ConversationPhase, string> = {
   failed: 'Call Lafina unavailable',
 };
 
-const statusLine = (snapshot: ConversationSnapshot, hasReviewItem = false) => {
+/** The offline call takes turns: the mic is closed while LAFINA speaks. */
+const OFFLINE_PHASE_TEXT: Partial<Record<ConversationPhase, string>> = {
+  connecting: 'Starting offline call…',
+  listening: 'Listening. Pause when you finish',
+  thinking: 'Working on it…',
+  speaking: 'Speaking. Tap Stop to talk',
+};
+
+const statusLine = (
+  snapshot: ConversationSnapshot,
+  hasReviewItem = false,
+  offline = false,
+) => {
   const active =
     snapshot.phase === 'listening' ||
     snapshot.phase === 'speaking' ||
     snapshot.phase === 'thinking' ||
     snapshot.phase === 'tool_working';
   if (snapshot.muted && active) return 'Muted. LAFINA cannot hear you';
+  if (offline && snapshot.phase === 'speaking')
+    return OFFLINE_PHASE_TEXT.speaking ?? '';
   if (snapshot.phase === 'tool_working') {
     return snapshot.toolPhrase || 'Working…';
   }
@@ -146,10 +230,51 @@ const statusLine = (snapshot: ConversationSnapshot, hasReviewItem = false) => {
     hasReviewItem &&
     (snapshot.phase === 'listening' || snapshot.phase === 'idle')
   ) {
-    return 'Waiting for confirmation';
+    return offline && snapshot.phase === 'listening'
+      ? 'Waiting for you. Say save it, or tap Confirm'
+      : 'Waiting for confirmation';
   }
-  return PHASE_TEXT[snapshot.phase] ?? '';
+  return (
+    (offline ? OFFLINE_PHASE_TEXT[snapshot.phase] : undefined) ??
+    PHASE_TEXT[snapshot.phase] ??
+    ''
+  );
 };
+
+/** What LAFINA says offline after a save attempt. */
+const savedLine = (outcome: SaveOutcome): string =>
+  outcome.saved ? outcome.message : `I couldn't save it. ${outcome.message}`;
+
+/**
+ * The installed model may take this long in a call before the parser's
+ * reading is used (it reads only the new words; the instructions stay loaded).
+ */
+const OFFLINE_SLM_TIMEOUT_MS = 10_000;
+
+/** Whether `note` only repeats LAFINA's `reply` (ignoring case and punctuation). */
+const repeatsLine = (reply: string | undefined, note: string): boolean => {
+  if (!reply) return false;
+  const plain = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  const said = plain(reply);
+  const shown = plain(note);
+  return !!shown && (said === shown || said.includes(shown));
+};
+
+const CANCELED_REPLY = 'Okay, I canceled it. Nothing was saved.';
+
+/** Offline replies when there is nothing to answer about. */
+const NOTHING_TO_SAVE_REPLY =
+  "There's no card waiting to be saved. Tell me what you'd like to schedule.";
+
+/** How long an offline clarifying question waits for its answer. */
+const CLARIFY_WINDOW_MS = 2 * 60 * 1000;
+
+const QUESTION_START_RE =
+  /^(?:what|which|when|where|who|why|how|show|list|check|find|search|do\s+i|am\s+i|is\s+there|are\s+there)\b/i;
 
 /** What the model hears when nothing was prepared; it must not claim a card. */
 const NO_ACTION_REPLY =
@@ -170,6 +295,61 @@ const CARD_DENIAL_RE =
 const CARD_CLAIM_GRACE_MS = 600;
 
 type CardKind = 'review' | 'batch' | 'memory';
+
+/** How the student approved a save: their words, or the card's button. */
+type SaveVia = 'voice' | 'tap';
+type SaveOutcome = {saved: boolean; message: string};
+
+/** A card that was just saved, shown with "Saved" while it leaves the stage. */
+type SavedExit =
+  | {key: string; kind: 'review'; proposal: CommandProposal}
+  | {key: string; kind: 'memory'; memory: MemoryProposalData}
+  | {key: string; kind: 'batch'; batch: MultiActionBatchData};
+
+/** If LAFINA's goodbye is never heard, the call still ends after this long. */
+const END_AFTER_REPLY_MAX_MS = 10_000;
+
+/** What LAFINA is told when the student says goodbye (online). */
+const GOODBYE_CONTEXT =
+  'The student is ending the call. Reply with one short, warm goodbye only (one sentence). Do not ask a question or offer more help. The app hangs up after your goodbye.';
+
+/** Card tools refused while the student is asking for a Skill (ADR-041). */
+const PLANNER_PREPARE_TOOLS = new Set([
+  'prepare_lafina_action',
+  'prepare_multi_action',
+  'propose_follow_up_reminder',
+  'find_free_time',
+]);
+
+/** A saved memory card keeps its Undo this long before it leaves. */
+const MEMORY_SAVED_HOLD_MS = 4000;
+/** A fully saved grouped card shows each item's status this long. */
+const BATCH_SAVED_HOLD_MS = 2500;
+
+/**
+ * How long the student's spoken "save it" lets LAFINA's confirm_draft save
+ * the card that was open when they said it.
+ */
+const APPROVAL_WINDOW_MS = 60 * 1000;
+/**
+ * How long a plain spoken "yes" lets LAFINA's confirm_draft save a card that
+ * was open when it was said, when the device itself could not place the yes.
+ */
+const PLAIN_APPROVAL_WINDOW_MS = 20 * 1000;
+/** How long confirm_draft for a card already saved still gets its receipt. */
+const RECEIPT_WINDOW_MS = 5 * 60 * 1000;
+
+/** What the model hears when it tries to save before the student said so. */
+const NOT_APPROVED_REPLY =
+  'Not saved yet: the student has not said to save this card. Ask them whether to save it now. When they say yes or save it, or tap Confirm, the app saves it and sends you the receipt. Never say you cannot save to their planner.';
+
+/** What the model hears when it confirms with no card open and nothing saved. */
+const NO_OPEN_CARD_REPLY =
+  'No draft card is open, so nothing was saved. Prepare a card first if the student wants to add something.';
+
+/** Describes the card in front for the model, in one short phrase. */
+const cardLabel = (title: string | undefined): string =>
+  title ? ` ("${title}")` : '';
 
 const LIVE = new Set<ConversationPhase>([
   'listening',
@@ -216,10 +396,43 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   onNavigate,
   onAttention,
   deps,
+  offlineDeps,
   fullScreen = true,
+  paused = false,
 }) => {
+  /**
+   * Online whenever it can run; offline when there is no internet, no
+   * signed-in account, or the student chose Offline Mode in Chat. Fixed for
+   * the length of one call.
+   */
+  const [callMode, setCallMode] = useState<CallModeDecision>(() =>
+    predictCallMode(userId, null),
+  );
+  const modeRef = useRef<CallMode>(callMode.mode);
+  modeRef.current = callMode.mode;
+  const offline = callMode.mode === 'offline';
+  /** An offline scheduling request waiting for its missing day or time. */
+  const pendingClarify = useRef<{text: string; at: number} | null>(null);
+  /** Whether the offline turn being answered is still wanted (not timed out). */
+  const offlineTurnOpen = useRef<() => boolean>(() => true);
+  /** The words an offline card was made from, so a follow-up can complete them. */
+  const offlineCardRequest = useRef<{text: string; operationId: string} | null>(
+    null,
+  );
+  /** LAFINA's recent offline small-talk lines, so the next one differs. */
+  const recentOfflineReplies = useRef<string[]>([]);
+  /** Says an app-started line in the offline call (null when online). */
+  const announceRef = useRef<
+    ((text: string, options?: {inChat?: boolean}) => void) | null
+  >(null);
+  /** The saved line whose receipt Chat already has (not written twice). */
+  const replyInChat = useRef<string | null>(null);
+  const announce = useCallback((text: string, options?: {inChat?: boolean}) => {
+    if (modeRef.current === 'offline') announceRef.current?.(text, options);
+  }, []);
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  const replyFormat = useChatReplyFormat(userId);
   const modernCardStyle = isModern
     ? [
         modernShadows.card,
@@ -283,10 +496,179 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     reply: string;
     at: number;
   } | null>(null);
+  /**
+   * The one save running now. The student's "save it", the card's button and
+   * LAFINA's confirm_draft can land together; they all share this save, so
+   * the second never reports "no draft found" while the first is writing.
+   */
+  const saveInFlight = useRef<Promise<SaveOutcome> | null>(null);
+  /** The last save this call made, for a confirm_draft that comes after it. */
+  const lastReceipt = useRef<{message: string; at: number} | null>(null);
+  /** Cards saved this call; LAFINA may not put one back as a new card. */
+  const savedCards = useRef<SavedCard[]>([]);
+  /**
+   * The student's latest turn said to save. It names the cards that were open
+   * at that moment, so it can never approve a card that appeared later. It
+   * authorizes one save, by the device or by LAFINA's confirm_draft.
+   */
+  const approvalRef = useRef<{
+    at: number;
+    cardIds: ReadonlySet<string>;
+    consumed: boolean;
+  } | null>(null);
+  /** The card in front, which "save it" means when several are open. */
+  const shownCardRef = useRef<CardKind | null>(null);
+  /** Student turns this call; a card shown since the last one is "just shown". */
+  const studentTurnCount = useRef(0);
+  const cardShownTurn = useRef(-1);
+  /**
+   * The student's latest turn and the cards open when they said it. LAFINA's
+   * confirm_draft for one of those cards is accepted when the words were a
+   * plain yes (the model knows what the yes answered; the device may not).
+   */
+  const lastStudentTurn = useRef<{
+    text: string;
+    at: number;
+    cardIds: ReadonlySet<string>;
+    used: boolean;
+  } | null>(null);
+  /**
+   * CALLFIX-03: the call is closing after LAFINA's last line (the student said
+   * goodbye). The banner offers Keep talking until the line has been said.
+   */
+  const [ending, setEnding] = useState<{
+    label: string;
+    skill?: boolean;
+  } | null>(null);
+  const endingRef = useRef(ending);
+  endingRef.current = ending;
+  /** The student said goodbye with an unsaved card; LAFINA asked once. */
+  const askedBeforeLeaving = useRef(false);
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  const onNavigateRef = useRef(onNavigate);
+  onNavigateRef.current = onNavigate;
+  /**
+   * ADR-041: the skill this call opens once LAFINA's line has been said. It
+   * is set only from the student's own words (or their tap on a chip).
+   */
+  const pendingSkill = useRef<PreparedLaunch | null>(null);
+  /** A skill the model offered without the student asking: a chip only. */
+  const [skillChip, setSkillChip] = useState<PreparedLaunch | null>(null);
+  const openSkill = useCallback((launch: SkillLaunch): boolean => {
+    const navigate = onNavigateRef.current;
+    if (!navigate) return false;
+    navigate({ownerId: ownerRef.current, screen: 'notes', skill: launch});
+    return true;
+  }, []);
+  /** What LAFINA is told when the call is about to end (online). */
+  const leavingContext = (prefix = ''): string => {
+    const skill = pendingSkill.current;
+    return (
+      prefix +
+      (skill
+        ? `The app opens ${skillTitle(
+            skill.launch.skill,
+          )} after your next line. Say only this, then stop: "${skill.line}"`
+        : GOODBYE_CONTEXT)
+    );
+  };
+  /**
+   * Ends the call once LAFINA's next line has been said, then closes the call
+   * screen. Online, LAFINA is asked for one short goodbye; offline, the line
+   * this turn returns is the goodbye.
+   */
+  const beginClosing = useCallback(
+    (label: string, contextNote?: string): void => {
+      const call = conversationRef.current;
+      if (!call) return;
+      const skill = pendingSkill.current;
+      const next = skill
+        ? {label: `Opening ${skillTitle(skill.launch.skill)}…`, skill: true}
+        : {label};
+      setEnding(next);
+      endingRef.current = next;
+      if (contextNote) void call.sendContext(contextNote);
+      call.endAfterReply(END_AFTER_REPLY_MAX_MS);
+    },
+    [],
+  );
+  /** The phone says the handoff line as the skill opens (online calls). */
+  const speakOnArrival = useRef(false);
+  /**
+   * Online skill handoff: the phone, not the agent, says the line. The
+   * agent's own reply to the request (it may ask "how long?" or offer a
+   * time block) is cut off and the call ends now; the line plays in the
+   * phone's voice as the skill opens.
+   */
+  const handOffNow = useCallback((prepared: PreparedLaunch): void => {
+    pendingSkill.current = prepared;
+    speakOnArrival.current = true;
+    const next = {
+      label: `Opening ${skillTitle(prepared.launch.skill)}…`,
+      skill: true,
+    };
+    setEnding(next);
+    endingRef.current = next;
+    setLocalNote(prepared.line);
+    const call = conversationRef.current;
+    if (!call) return;
+    call.stopResponse();
+    call.end();
+  }, []);
+  /** The student tapped the skill chip: open it now. */
+  const openSkillChip = useCallback(() => {
+    const chip = skillChip;
+    setSkillChip(null);
+    if (chip) handOffNow(chip);
+  }, [handOffNow, skillChip]);
+  const keepTalking = useCallback(() => {
+    const call = conversationRef.current;
+    const skill = pendingSkill.current;
+    pendingSkill.current = null;
+    setEnding(null);
+    endingRef.current = null;
+    askedBeforeLeaving.current = false;
+    if (!call) return;
+    call.cancelEndAfterReply();
+    void call.sendContext(
+      skill
+        ? `The student tapped Stay on call: ${skillTitle(
+            skill.launch.skill,
+          )} was not opened. Do not say goodbye or end the call; ask what else they need.`
+        : 'The student tapped Keep talking: they are staying on the call. Do not say goodbye or end the call; ask what else they need.',
+    );
+  }, []);
+  const runSave = useCallback(
+    (save: () => Promise<SaveOutcome>): Promise<SaveOutcome> => {
+      const running = saveInFlight.current;
+      if (running) return running;
+      const tracked = (async (): Promise<SaveOutcome> => {
+        // Always yield first, so `finally` never runs before the assignment.
+        await Promise.resolve();
+        try {
+          const outcome = await save();
+          if (outcome.saved)
+            lastReceipt.current = {message: outcome.message, at: Date.now()};
+          return outcome;
+        } catch {
+          return {
+            saved: false,
+            message: 'That card could not be saved. Nothing was saved.',
+          };
+        } finally {
+          saveInFlight.current = null;
+        }
+      })();
+      saveInFlight.current = tracked;
+      return tracked;
+    },
+    [],
+  );
   const confirmHandlersRef = useRef<{
-    confirmDraft: () => Promise<{saved: boolean; message: string}>;
-    saveMemory: (editedText?: string) => {saved: boolean; message: string};
-    confirmMultiAll: () => Promise<{saved: boolean; message: string}>;
+    confirmDraft: (via?: SaveVia, operationId?: string) => Promise<SaveOutcome>;
+    saveMemory: (editedText?: string, via?: SaveVia) => SaveOutcome;
+    confirmMultiAll: (via?: SaveVia) => Promise<SaveOutcome>;
   }>({
     confirmDraft: async () => ({
       saved: false,
@@ -301,6 +683,19 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       message: 'No batch ready. Nothing has been saved.',
     }),
   });
+  /** Saves the open card of one kind through the shared save. */
+  const saveOpenCard = useCallback(
+    (kind: CardKind, via: SaveVia): Promise<SaveOutcome> => {
+      if (kind === 'review')
+        return confirmHandlersRef.current.confirmDraft(via);
+      if (kind === 'batch')
+        return confirmHandlersRef.current.confirmMultiAll(via);
+      return runSave(async () =>
+        confirmHandlersRef.current.saveMemory(undefined, via),
+      );
+    },
+    [runSave],
+  );
   const conversationRef = useRef<ReturnType<
     typeof useVoiceConversation
   > | null>(null);
@@ -309,6 +704,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const activeMemoryActionId = useRef<string | null>(null);
   const [activeMultiBatch, setActiveMultiBatch] =
     useState<MultiActionBatchData | null>(null);
+  /** The card just saved, kept on the stage while it shows Saved and leaves. */
+  const [savedExit, setSavedExit] = useState<SavedExit | null>(null);
   const currentCards = useRef({
     memory: activeMemoryProposal,
     memoryActionId: activeMemoryActionId.current,
@@ -342,6 +739,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         setActiveMultiBatch(null);
       }
       setCardFocus('review');
+      cardShownTurn.current = studentTurnCount.current;
       return true;
     },
     [],
@@ -351,38 +749,177 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       activeMemoryActionId.current = actionId;
       setActiveMemoryProposal(proposal);
       setCardFocus('memory');
+      cardShownTurn.current = studentTurnCount.current;
     },
     [],
   );
   const showBatchCard = useCallback((batch: MultiActionBatchData): void => {
     setActiveMultiBatch(batch);
     setCardFocus('batch');
+    cardShownTurn.current = studentTurnCount.current;
   }, []);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [callSettings, setCallSettings] = useState<CallLafinaSettings>(() =>
     getCallLafinaSettings(userId),
   );
 
-  // Live call duration timer
-  const [callDuration, setCallDuration] = useState(0);
+  // When the live call connected; the clock itself ticks in CallDurationText.
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const callConnectedAt = useRef<number | null>(null);
 
-  // Keep the live avatar visible in compact form alongside active cards.
-  // Read questions can use local data immediately. Online tools interpret
-  // planner changes into structured review cards before student confirmation.
-  const onFinalUserText = useCallback(
-    (text: string) => {
-      if (!isToolExecutionPermitted(ownerRef.current).permitted) return;
+  /**
+   * The offline call's reading of one request: the same on-device reviewer
+   * offline push-to-talk uses. Changes become review cards (nothing is
+   * written until the student says save it or taps Confirm); questions are
+   * answered from the planner on this phone.
+   */
+  const reviewOffline = useCallback(
+    async (text: string): Promise<string> => {
+      const owner = ownerRef.current;
+      const session = actionSession.current;
+      const ticket = turnTicket.current;
+      const trimmed = text.trim();
+      const smallTalk = classifySmallTalk(trimmed);
+      const fragment = parseIntentFastPath(trimmed);
+      const newRequest =
+        isVoiceScheduleStart(trimmed) ||
+        fragment.intent.startsWith('create_') ||
+        fragment.intent.startsWith('update_') ||
+        fragment.intent.startsWith('delete_') ||
+        fragment.intent === 'reschedule';
+      // "Schedule a capstone meeting" → "What time?" → "10 AM tomorrow": the
+      // answer completes the request it was asked about.
+      const clarify = pendingClarify.current;
+      pendingClarify.current = null;
+      const completesClarify =
+        !!clarify &&
+        Date.now() - clarify.at < CLARIFY_WINDOW_MS &&
+        !newRequest &&
+        !smallTalk &&
+        !QUESTION_START_RE.test(trimmed);
+      const request =
+        completesClarify && clarify ? `${clarify.text} ${trimmed}` : trimmed;
+      const turnStillOpen = offlineTurnOpen.current;
+      const isCurrent = () =>
+        ticket === turnTicket.current &&
+        owner === ownerRef.current &&
+        session === actionSession.current &&
+        turnStillOpen() &&
+        !!conversationRef.current &&
+        LIVE.has(conversationRef.current.snapshot.phase);
+
+      if (smallTalk && !completesClarify && !newRequest) {
+        const reply = buildLocalConversationReply(owner, trimmed, {
+          recentReplies: recentOfflineReplies.current,
+        });
+        recentOfflineReplies.current = [
+          ...recentOfflineReplies.current,
+          reply,
+        ].slice(-4);
+        return reply;
+      }
+
+      const result = await chatOrchestrator
+        .reviewSpokenTurn(owner, request, {
+          onlineMode: false,
+          actionSessionId: session,
+          isCurrent,
+          // A call cannot wait on the slower on-device model.
+          slmTimeoutMs: OFFLINE_SLM_TIMEOUT_MS,
+        })
+        .catch(() => null);
+      if (!isCurrent()) {
+        if (result?.kind === 'proposal' && result.review.status === 'proposal')
+          cancelReviewedCommand(owner, result.review.proposal.operationId);
+        return '';
+      }
+      if (!result)
+        return 'Sorry, I could not read that request. Nothing was changed.';
+      switch (result.kind) {
+        case 'proposal': {
+          if (result.review.status !== 'proposal') {
+            setLocalNote(result.review.reply);
+            return speakable(result.review.reply);
+          }
+          presentReview(result.review);
+          offlineCardRequest.current = {
+            text: request,
+            operationId: result.review.proposal.operationId,
+          };
+          setLocalNote('Check the card. Nothing is saved until you confirm.');
+          return spokenCardLine(result.review.proposal);
+        }
+        case 'multi': {
+          reviewRef.current.dismiss();
+          showBatchCard(result.batch);
+          setLocalNote(result.reply);
+          const count = result.batch.items.length;
+          return `I put ${count} ${
+            count === 1 ? 'change' : 'changes'
+          } on one card. Should I save them all?`;
+        }
+        case 'executed': {
+          executedTurn.current = {text: request, reply: result.reply};
+          setLocalNote(result.reply);
+          setUndoOffer(result.undo ?? null);
+          return speakable(result.reply);
+        }
+        case 'note': {
+          // Usually a missing day or time; the next answer fills it in.
+          if (newRequest || completesClarify)
+            pendingClarify.current = {text: request, at: Date.now()};
+          setLocalNote(result.reply);
+          return speakable(result.reply);
+        }
+        case 'local_answer':
+        case 'memory':
+          setLocalNote(result.reply);
+          return speakable(result.reply);
+        default:
+          return OFFLINE_HELP_REPLY;
+      }
+    },
+    [presentReview, showBatchCard],
+  );
+
+  /**
+   * One student turn, spoken or typed. Online, the live model hears what
+   * happened through context updates and answers itself; the returned line
+   * is unused. Offline there is no model: the returned line is what LAFINA
+   * says next (null: nothing to say).
+   */
+  const handleStudentTurn = useCallback(
+    async (text: string, offlineTurn: boolean): Promise<string | null> => {
+      if (!offlineTurn && !isToolExecutionPermitted(ownerRef.current).permitted)
+        return null;
       const session = actionSession.current;
       const ticket = ++turnTicket.current;
+      studentTurnCount.current += 1;
+      const cardJustShown =
+        cardShownTurn.current === studentTurnCount.current - 1;
+      // New words while the call was closing: the student is staying (the
+      // conversation already cancelled its hang-up); a goodbye below may
+      // start closing again.
+      if (endingRef.current) {
+        endingRef.current = null;
+        setEnding(null);
+        conversationRef.current?.cancelEndAfterReply();
+      }
+      // A skill waits only for the answer to "save it before I open it?".
+      if (!askedBeforeLeaving.current) pendingSkill.current = null;
+      setSkillChip(null);
       voiceTurns.current = [...voiceTurns.current, text].slice(-8);
       lastUserRequest.current = text;
       // What an earlier turn prepared is not this turn's answer: a stale "card
       // is on screen" here made LAFINA announce a card that was long gone.
       groundedReply.current = NO_ACTION_REPLY;
       turnReview.current = null;
+      // An approval answers only the turn it was said in.
+      approvalRef.current = null;
       const owner = ownerRef.current;
-      const fact = explicitMemory(text);
+      // Offline, "remember that…" is saved the way offline push-to-talk saves
+      // it (reviewOffline); the memory card is the online model's flow.
+      const fact = offlineTurn ? null : explicitMemory(text);
       if (fact) {
         const prepared = actionService.createMemoryProposal(
           owner,
@@ -399,7 +936,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             prepared.actionId +
             '; revision: 1. Ask the student to confirm; the app handles spoken or tapped approval and reports the save receipt.',
         );
-        return;
+        return null;
       }
       const cards = currentCards.current;
       const pending = latestPendingReview(owner, 'voice');
@@ -412,12 +949,66 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       const openCount =
         Number(!!pending) + Number(memoryOpen) + Number(!!batchOpen);
       const trimmed = text.trim();
+      lastStudentTurn.current = {
+        text: trimmed,
+        at: Date.now(),
+        cardIds: new Set(
+          [
+            pending?.operationId,
+            memoryOpen ? cards.memoryActionId : null,
+            batchOpen ? cards.batch?.id : null,
+          ].filter((id): id is string => !!id),
+        ),
+        used: false,
+      };
 
+      // CALLFIX-03: LAFINA asked "save it before you go?" and the student
+      // said no (or goodbye again): discard the card and end the call.
       if (
-        /^(?:actually[, ]+)?(?:cancel(?:\s+that|\s+it)?(?:[, ]+do\s+not\s+create\s+it)?|never\s*mind|don['\u2019]?t\s+save(?:\s+(?:it|that))?|discard(?:\s+(?:it|that))?)[.!]?$/i.test(
-          trimmed,
-        )
+        askedBeforeLeaving.current &&
+        openCount > 0 &&
+        (isDraftCancel(trimmed) ||
+          /^(?:no|nope|nah|hindi|wag na|huwag na|not now|no need|no it's fine|it's fine)\b/i.test(
+            trimmed,
+          ) ||
+          callClosingKind(trimmed) === 'goodbye')
       ) {
+        askedBeforeLeaving.current = false;
+        voiceTurns.current = [];
+        if (pending) {
+          cancelReviewedCommand(owner, pending.operationId);
+          reviewRef.current.dismiss();
+        }
+        if (memoryOpen && cards.memoryActionId) {
+          actionService.cancelMemoryProposal(owner, cards.memoryActionId);
+          setActiveMemoryProposal(null);
+          activeMemoryActionId.current = null;
+        }
+        if (batchOpen && cards.batch) {
+          actionService.cancelMultiActionBatch(owner, cards.batch);
+          setActiveMultiBatch(null);
+        }
+        setLocalNote('Not saved. Ending the call.');
+        if (!offlineTurn && pendingSkill.current) {
+          handOffNow(pendingSkill.current);
+          return null;
+        }
+        const goodbyeLine =
+          pendingSkill.current?.line ??
+          buildLocalConversationReply(owner, 'bye');
+        beginClosing(
+          'Ending call…',
+          offlineTurn
+            ? undefined
+            : leavingContext(
+                'The student chose not to save the card; it was discarded and nothing was saved. ',
+              ),
+        );
+        if (!offlineTurn) return null;
+        return `Okay, I won't save it. ${goodbyeLine}`;
+      }
+
+      if (isDraftCancel(trimmed)) {
         voiceTurns.current = [];
         awaitingDetails.current = false;
         if (openCount > 1) {
@@ -427,14 +1018,18 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           void conversationRef.current?.sendContext(
             'There is more than one open draft. Ask which card to cancel. Nothing was canceled or saved.',
           );
-          return;
+          return 'Which one should I cancel? Tap Cancel on the card you mean.';
         }
+        const canceledNote =
+          'The student canceled the draft card by voice. Nothing was saved and no card is open now. Do not save or prepare it again unless they ask.';
         if (memoryOpen && cards.memoryActionId) {
           actionService.cancelMemoryProposal(owner, cards.memoryActionId);
           setActiveMemoryProposal(null);
           activeMemoryActionId.current = null;
           setLocalNote('Memory draft canceled. Nothing was saved.');
-          return;
+          groundedReply.current = canceledNote;
+          void conversationRef.current?.sendContext(canceledNote);
+          return CANCELED_REPLY;
         }
         if (batchOpen && cards.batch) {
           const result = actionService.cancelMultiActionBatch(
@@ -443,71 +1038,271 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           );
           setActiveMultiBatch(result.batch);
           setLocalNote(result.spokenSummary);
-          return;
+          groundedReply.current = canceledNote;
+          void conversationRef.current?.sendContext(canceledNote);
+          return CANCELED_REPLY;
         }
         if (pending) {
           cancelReviewedCommand(owner, pending.operationId);
           reviewRef.current.dismiss();
-          voiceTurns.current = [];
-          awaitingDetails.current = false;
-          groundedReply.current = 'Draft canceled. Nothing was saved.';
-          setLocalNote(groundedReply.current);
-          return;
+          groundedReply.current = canceledNote;
+          setLocalNote('Draft canceled. Nothing was saved.');
+          void conversationRef.current?.sendContext(canceledNote);
+          return CANCELED_REPLY;
         }
         setLocalNote('Request canceled. Nothing was saved.');
-        return;
+        return 'Okay, never mind. Nothing was changed.';
       }
 
+      const lastAssistantText =
+        [...(conversationRef.current?.snapshot.turns ?? [])]
+          .reverse()
+          .find(
+            turn => turn.role === 'assistant' && turn.status !== 'provisional',
+          )?.text ?? '';
       if (
-        openCount === 1 &&
-        hasDraftApproval(
-          trimmed,
-          [...(conversationRef.current?.snapshot.turns ?? [])]
-            .reverse()
-            .find(
-              turn =>
-                turn.role === 'assistant' && turn.status !== 'provisional',
-            )?.text ?? '',
-        )
+        hasDraftApproval(trimmed, lastAssistantText, {
+          cardJustShown: cardJustShown && openCount > 0,
+        })
       ) {
-        awaitingDetails.current = false;
-        voiceTurns.current = [];
-        groundedReply.current =
-          'The student just confirmed the open card by voice and the app is saving it. Do not prepare it again.';
-        if (pending) {
-          void confirmHandlersRef.current.confirmDraft();
-          return;
-        }
-        if (memoryOpen) {
-          const memRes = confirmHandlersRef.current.saveMemory();
-          void conversationRef.current?.sendContext(
-            'Confirmed and handled memory draft: ' + memRes.message,
+        if (openCount === 0) {
+          // "Save it" after the card was already saved: say so, add nothing.
+          const recent = lastReceipt.current;
+          if (recent && Date.now() - recent.at < RECEIPT_WINDOW_MS) {
+            groundedReply.current =
+              'Nothing is waiting to be saved. The last card is already saved: ' +
+              recent.message;
+            setLocalNote('Already saved. ' + recent.message);
+            void conversationRef.current?.sendContext(groundedReply.current);
+            return "That's already saved.";
+          }
+          // Offline nothing else could be meant; online the model decides.
+          if (offlineTurn) return NOTHING_TO_SAVE_REPLY;
+        } else {
+          // One open card is the one meant; with several, "it" is the card
+          // in front of the student.
+          const front = shownCardRef.current;
+          const frontOpen =
+            front === 'review'
+              ? !!pending
+              : front === 'memory'
+              ? memoryOpen
+              : front === 'batch'
+              ? !!batchOpen
+              : false;
+          const target: CardKind | null =
+            openCount === 1
+              ? pending
+                ? 'review'
+                : memoryOpen
+                ? 'memory'
+                : 'batch'
+              : frontOpen
+              ? front
+              : null;
+          awaitingDetails.current = false;
+          voiceTurns.current = [];
+          const openIds = new Set(
+            [
+              pending?.operationId,
+              memoryOpen ? cards.memoryActionId : null,
+              batchOpen ? cards.batch?.id : null,
+            ].filter((id): id is string => !!id),
           );
-          return;
-        }
-        if (batchOpen) {
-          void confirmHandlersRef.current.confirmMultiAll();
-          return;
+          if (!target) {
+            // LAFINA may still pick the card the student named, by its ID.
+            approvalRef.current = {
+              at: Date.now(),
+              cardIds: openIds,
+              consumed: false,
+            };
+            setLocalNote(
+              'Which card should I save? Tap Confirm on the card you mean.',
+            );
+            void conversationRef.current?.sendContext(
+              'The student said to save, but more than one card is open. If their words name one card, call confirm_draft with that card ID; otherwise ask which card to save. Nothing was saved yet.',
+            );
+            return 'Which card should I save? Tap Confirm on the one you mean.';
+          }
+          const title =
+            target === 'review'
+              ? pending?.title
+              : target === 'memory'
+              ? cards.memory?.text
+              : undefined;
+          // Recorded first, consumed by this save, so a confirm_draft for the
+          // same words waits for it instead of saving a second time.
+          approvalRef.current = {
+            at: Date.now(),
+            cardIds: openIds,
+            consumed: true,
+          };
+          groundedReply.current =
+            'The student just said to save the open card and the app is saving it. Do not prepare it again or ask them to confirm again.';
+          void conversationRef.current?.sendContext(
+            `The student said to save the card on screen${cardLabel(
+              title,
+            )}. The app is saving it now and will send the save receipt. Do not ask them to confirm again and do not prepare it again.`,
+          );
+          if (lastStudentTurn.current) lastStudentTurn.current.used = true;
+          // "Yes save it, bye", or yes to "save it before you go?": the call
+          // ends once the save is done and LAFINA has said goodbye.
+          const leaving =
+            endsWithGoodbye(trimmed) || askedBeforeLeaving.current;
+          askedBeforeLeaving.current = false;
+          const saving = saveOpenCard(target, 'voice');
+          if (!offlineTurn) {
+            if (leaving)
+              void saving.then(outcome => {
+                if (outcome.saved && session === actionSession.current) {
+                  if (pendingSkill.current) handOffNow(pendingSkill.current);
+                  else beginClosing('Saved. Ending call…', leavingContext());
+                } else if (!outcome.saved) pendingSkill.current = null;
+              });
+            return null;
+          }
+          const outcome = await saving;
+          if (leaving && outcome.saved) {
+            const goodbyeLine =
+              pendingSkill.current?.line ??
+              buildLocalConversationReply(owner, 'bye');
+            beginClosing('Saved. Ending call…');
+            return `${savedLine(outcome)} ${goodbyeLine}`;
+          }
+          pendingSkill.current = null;
+          return savedLine(outcome);
         }
       }
 
-      const fragment = parseIntentFastPath(text);
+      // ADR-041: the student asked to use a Skill. Questions and Pomodoro
+      // pause/resume are answered on the call; a launch says one line, ends
+      // the call and opens the skill. An unsaved card is asked about first.
+      const skillIntent = detectSkillIntent(trimmed);
+      if (skillIntent) {
+        voiceTurns.current = [];
+        awaitingDetails.current = false;
+        if (skillIntent.kind !== 'launch') {
+          const line =
+            skillIntent.kind === 'status'
+              ? skillStatusLine(owner, skillIntent.topic)
+              : await skillControlLine(owner, skillIntent.control);
+          if (ticket !== turnTicket.current) return null;
+          setLocalNote(line);
+          if (offlineTurn) return line;
+          void conversationRef.current?.sendContext(
+            `From the student's Skills on this device: ${line} Tell them this in one short sentence. Nothing else was changed.`,
+          );
+          return null;
+        }
+        const prepared = onNavigateRef.current
+          ? prepareSkillLaunch(owner, skillIntent.launch, {
+              online: !offlineTurn,
+              materialHint: skillIntent.materialHint,
+            })
+          : null;
+        if (prepared) {
+          pendingSkill.current = prepared;
+          const name = skillTitle(prepared.launch.skill);
+          if (openCount > 0) {
+            askedBeforeLeaving.current = true;
+            const title = pending?.title ?? cards.memory?.text;
+            const ask = `Before I open ${name}, ${
+              title ? `the card for ${title}` : 'your card'
+            } isn't saved yet. Should I save it?`;
+            setLocalNote(ask);
+            if (offlineTurn) return ask;
+            void conversationRef.current?.sendContext(
+              `The student asked to open ${name}, but the card on screen${cardLabel(
+                title,
+              )} is not saved. Ask once, in one short sentence, whether to save it first. If they say yes, the app saves it and opens ${name}; if no, the app discards it and opens ${name}.`,
+            );
+            return null;
+          }
+          if (!offlineTurn) {
+            handOffNow(prepared);
+            return null;
+          }
+          setLocalNote(prepared.line);
+          beginClosing(`Opening ${name}…`);
+          return prepared.line;
+        }
+      }
+
+      // CALLFIX-03: goodbye, or thanks with nothing left to answer, ends the
+      // call after LAFINA's goodbye. With an unsaved card, LAFINA asks once.
+      const closing = callClosingKind(trimmed);
+      if (
+        closing === 'goodbye' ||
+        (closing === 'thanks' && openCount === 0 && !saveInFlight.current)
+      ) {
+        voiceTurns.current = [];
+        awaitingDetails.current = false;
+        if (openCount > 0 && !askedBeforeLeaving.current) {
+          askedBeforeLeaving.current = true;
+          const title = pending?.title ?? cards.memory?.text;
+          const ask = `Before you go, ${
+            title ? `the card for ${title}` : 'your card'
+          } isn't saved yet. Should I save it?`;
+          setLocalNote(ask);
+          if (offlineTurn) return ask;
+          void conversationRef.current?.sendContext(
+            `The student said goodbye, but the card on screen${cardLabel(
+              title,
+            )} is not saved. Ask once, in one short sentence, whether to save it before they go. If they say yes, the app saves it and ends the call; if they say no or goodbye again, the app ends the call without saving.`,
+          );
+          return null;
+        }
+        beginClosing('Ending call…', offlineTurn ? undefined : GOODBYE_CONTEXT);
+        if (!offlineTurn) return null;
+        const farewell = buildLocalConversationReply(owner, 'bye');
+        return closing === 'thanks' ? `You're welcome! ${farewell}` : farewell;
+      }
+
+      // "Change it to 10:30 and save it": the change, then the save.
+      const changeThenSave = pending ? splitTrailingSave(trimmed) : null;
+      const changeText = changeThenSave ?? text;
+      const changeTrimmed = changeText.trim();
+      const fragment = parseIntentFastPath(changeText);
       const hasRevisionDelta = Boolean(
         fragment.date ||
           fragment.time ||
           fragment.endTime ||
           fragment.durationMinutes,
       );
+      // Offline: "schedule a capstone meeting" made a card with no time, and
+      // the next words give the time ("tomorrow 10 to 11"). Read both as one
+      // request, so a meeting with a time becomes an event, not a task due
+      // at 10. (Online, the model makes this call itself.)
+      const madeFrom = offlineCardRequest.current;
+      if (
+        offlineTurn &&
+        pending &&
+        !changeThenSave &&
+        madeFrom?.operationId === pending.operationId &&
+        !parseIntentFastPath(madeFrom.text).time &&
+        fragment.time &&
+        !isVoiceScheduleStart(changeTrimmed) &&
+        !isVoiceDraftRevision(changeTrimmed)
+      ) {
+        cancelReviewedCommand(owner, pending.operationId);
+        reviewRef.current.dismiss();
+        offlineCardRequest.current = null;
+        return reviewOffline(`${madeFrom.text} ${changeTrimmed}`);
+      }
       if (
         pending &&
-        (isVoiceDraftRevision(trimmed) ||
-          (!isVoiceScheduleStart(trimmed) &&
+        (isVoiceDraftRevision(changeTrimmed) ||
+          (!isVoiceScheduleStart(changeTrimmed) &&
             hasRevisionDelta &&
             !/^(?:what|which|when|where|who|why|how|show|list|check|find|search|do\s+i|am\s+i|is\s+there|can\s+you\s+(?:show|check|find))\b/i.test(
-              trimmed,
+              changeTrimmed,
             )))
       ) {
-        const revised = reviseReviewedCommand(owner, pending.operationId, text);
+        const revised = reviseReviewedCommand(
+          owner,
+          pending.operationId,
+          changeText,
+        );
         if (
           revised.status === 'proposal' &&
           actionService.isSuggestedCard(pending.operationId)
@@ -522,24 +1317,49 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             reply: revised.reply,
             at: Date.now(),
           };
-          groundedReply.current =
-            'A review card is shown: ' +
+          const summary =
             revised.proposal.title +
             ' (' +
             revised.proposal.details.join(', ') +
             '). Card ID: ' +
             revised.proposal.operationId +
-            '; revision: 1. Nothing has been saved yet. Ask the student to confirm; wait for the app save receipt.';
+            '; revision: 1.';
+          if (changeThenSave) {
+            // The student gave the change and the save together. Save the
+            // card just made from it, by its ID: the rendered card is still
+            // the old one until the next render.
+            awaitingDetails.current = false;
+            voiceTurns.current = [];
+            approvalRef.current = {
+              at: Date.now(),
+              cardIds: new Set([revised.proposal.operationId]),
+              consumed: true,
+            };
+            groundedReply.current =
+              'The student changed the card and said to save it; the app is saving it now. Do not ask them to confirm again.';
+            void conversationRef.current?.sendContext(
+              'The student changed the draft and said to save it in the same sentence: ' +
+                summary +
+                ' The app is saving it now and will send the save receipt. Do not ask them to confirm again.',
+            );
+            const saving = confirmHandlersRef.current.confirmDraft(
+              'voice',
+              revised.proposal.operationId,
+            );
+            if (!offlineTurn) return null;
+            return savedLine(await saving);
+          }
+          groundedReply.current =
+            'A review card is shown: ' +
+            summary +
+            ' Nothing has been saved yet. Ask the student whether to save it; the app saves it when they say yes or save it.';
           setLocalNote(revised.reply);
           void conversationRef.current?.sendContext(
             'Draft card updated on screen: ' +
-              revised.proposal.title +
-              ' (' +
-              revised.proposal.details.join(', ') +
-              '). Card ID: ' +
-              revised.proposal.operationId +
-              '; revision: 1. Summarize the updated draft and call confirm_draft when the student confirms or asks you to save it.',
+              summary +
+              ' Nothing is saved yet. Tell the student the new details and ask whether to save it. When they say yes or save it, the app saves it and confirm_draft returns the receipt.',
           );
+          return 'Updated. ' + spokenCardLine(revised.proposal);
         } else {
           setLocalNote(revised.reply);
           void conversationRef.current?.sendContext(
@@ -554,8 +1374,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               ' If they specified concrete details, call revise_draft with this Card ID.',
           );
         }
-        return;
+        return revised.reply;
       }
+
+      // Offline there is no model to read the request: the device does.
+      if (offlineTurn) return reviewOffline(text);
 
       // The live online model already has the conversation. Let its structured
       // tool describe mutations instead of racing a second LLM/local parser.
@@ -567,14 +1390,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         isVoiceScheduleStart(text)
       ) {
         setLocalNote(null);
-        return;
+        return null;
       }
       setLocalNote(null);
       if (
         directProviderTestEnabled() ||
         !['query_schedule', 'query_notes'].includes(fragment.intent)
       )
-        return;
+        return null;
       const tracked = {text, done: Promise.resolve(), handled: false};
       turnReview.current = tracked;
       tracked.done = chatOrchestrator
@@ -654,8 +1477,146 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           }
         })
         .catch(() => undefined);
+      return null;
     },
-    [presentReview, showBatchCard, showMemoryCard],
+    [
+      beginClosing,
+      handOffNow,
+      presentReview,
+      reviewOffline,
+      saveOpenCard,
+      showBatchCard,
+      showMemoryCard,
+    ],
+  );
+
+  const onFinalUserText = useCallback(
+    (text: string) => {
+      void handleStudentTurn(text, false);
+    },
+    [handleStudentTurn],
+  );
+
+  /**
+   * LAFINA's confirm_draft. LAFINA never authorizes a save on its own: it
+   * saves only the card that was open when the student's own latest words
+   * said to save it (read on this device), and otherwise reports the receipt
+   * of a save the student already made by voice or by tapping Confirm.
+   */
+  const resolveModelConfirm = useCallback(
+    async (cardId: string): Promise<SaveOutcome> => {
+      const owner = ownerRef.current;
+      const running = saveInFlight.current;
+      if (running) {
+        const outcome = await running;
+        return outcome.saved
+          ? {
+              saved: true,
+              message: 'Saved after the student confirmed: ' + outcome.message,
+            }
+          : outcome;
+      }
+      const applied = appliedReviewReply(owner, cardId);
+      if (applied)
+        return {
+          saved: true,
+          message: 'Already saved after student confirmation: ' + applied,
+        };
+      const cards = currentCards.current;
+      if (
+        cards.memory &&
+        cards.memoryActionId === cardId &&
+        cards.memory.status === 'saved'
+      )
+        return {
+          saved: true,
+          message:
+            'Already saved to personal memory after the student confirmed.',
+        };
+      if (
+        cards.batch &&
+        cards.batch.id === cardId &&
+        (cards.batch.status === 'saved' || cards.batch.status === 'partial')
+      )
+        return {
+          saved: true,
+          message:
+            'Already saved after student confirmation: ' +
+            cards.batch.spokenSummary,
+        };
+      const pending = latestPendingReview(owner, 'voice');
+      const memoryOpen =
+        cards.memory?.status === 'draft' && !!cards.memoryActionId;
+      const batchOpen =
+        !!cards.batch &&
+        (cards.batch.status === 'draft' ||
+          cards.batch.status === 'partial' ||
+          cards.batch.status === 'failed');
+      let target: {kind: CardKind; id: string} | null = null;
+      if (memoryOpen && cardId === cards.memoryActionId)
+        target = {kind: 'memory', id: cardId};
+      else if (batchOpen && cards.batch && cardId === cards.batch.id)
+        target = {kind: 'batch', id: cardId};
+      else if (
+        pending &&
+        cardId !== cards.memoryActionId &&
+        cardId !== cards.batch?.id
+      )
+        // The open draft, even when LAFINA still holds the ID it had before
+        // a spoken change replaced it.
+        target = {kind: 'review', id: pending.operationId};
+      const approval = approvalRef.current;
+      if (
+        target &&
+        approval &&
+        !approval.consumed &&
+        Date.now() - approval.at < APPROVAL_WINDOW_MS &&
+        approval.cardIds.has(target.id)
+      ) {
+        approval.consumed = true;
+        const outcome = await saveOpenCard(target.kind, 'voice');
+        return outcome.saved
+          ? {
+              saved: true,
+              message:
+                'Saved after the student said to save it: ' + outcome.message,
+            }
+          : outcome;
+      }
+      // The device could not tell what the student's "yes" answered, but the
+      // words were a plain yes while this card was open: LAFINA, who heard the
+      // whole conversation, may save it. A "yes but…", a time, a question or
+      // a no is never enough.
+      const turn = lastStudentTurn.current;
+      if (
+        target &&
+        !approval &&
+        turn &&
+        !turn.used &&
+        Date.now() - turn.at < PLAIN_APPROVAL_WINDOW_MS &&
+        turn.cardIds.has(target.id) &&
+        isPlainApproval(turn.text)
+      ) {
+        turn.used = true;
+        const outcome = await saveOpenCard(target.kind, 'voice');
+        return outcome.saved
+          ? {
+              saved: true,
+              message: 'Saved after the student said yes: ' + outcome.message,
+            }
+          : outcome;
+      }
+      if (target) return {saved: false, message: NOT_APPROVED_REPLY};
+      const recent = lastReceipt.current;
+      if (recent && Date.now() - recent.at < RECEIPT_WINDOW_MS)
+        return {
+          saved: true,
+          message:
+            'Already saved after student confirmation: ' + recent.message,
+        };
+      return {saved: false, message: NO_OPEN_CARD_REPLY};
+    },
+    [saveOpenCard],
   );
 
   const onClientTool = useCallback(
@@ -670,12 +1631,91 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       const perm = isToolExecutionPermitted(owner);
       if (!perm.permitted || !isCurrent())
         throw new Error(perm.reason || 'Tool unavailable');
+      // ADR-041: Skills. Reading is local and read-only.
+      if (name === 'read_skill_status') {
+        const topic = parameters.topic;
+        if (
+          topic !== 'pomodoro' &&
+          topic !== 'flashcards' &&
+          topic !== 'gwa' &&
+          topic !== 'quiz'
+        )
+          return 'Unknown topic. Nothing was read.';
+        return skillStatusLine(owner, topic);
+      }
+      // Opening a skill ends the call, so it needs the student's own words;
+      // a skill the model offers by itself is a button on screen only.
+      if (name === 'open_lafina_skill') {
+        const material =
+          typeof parameters.material === 'string'
+            ? parameters.material
+            : undefined;
+        const prepared = prepareSkillLaunch(
+          owner,
+          {
+            skill: parameters.skill,
+            action: parameters.action,
+            breakKind: parameters.breakKind,
+            count: parameters.count,
+            topic: parameters.topic,
+          },
+          {online: true, materialHint: material},
+        );
+        if (!prepared)
+          return 'That is not a skill LAFINA can open. Nothing was opened.';
+        const label = skillTitle(prepared.launch.skill);
+        const already = pendingSkill.current;
+        if (already?.launch.skill === prepared.launch.skill)
+          return `The app is opening ${label} and has ended the call. Say nothing more.`;
+        const asked = detectSkillIntent(lastUserRequest.current);
+        if (
+          asked?.kind === 'launch' &&
+          asked.launch.skill === prepared.launch.skill &&
+          onNavigateRef.current &&
+          !endingRef.current
+        ) {
+          handOffNow(prepared);
+          return `The app is opening ${label} and has ended the call. Say nothing more.`;
+        }
+        setSkillChip(prepared);
+        return `A button to open ${label} is on screen. The student's words did not ask to open it, so nothing was opened. Tell them they can tap it; do not end the call.`;
+      }
+      // A skill request is not a planner request: "start a pomodoro" never
+      // becomes a time block, task or reminder card.
+      if (PLANNER_PREPARE_TOOLS.has(name)) {
+        const skillAsk = detectSkillIntent(lastUserRequest.current);
+        const opening = pendingSkill.current?.launch.skill;
+        if (opening || skillAsk?.kind === 'launch')
+          return `The student asked to open ${skillTitle(
+            opening ??
+              (skillAsk?.kind === 'launch' ? skillAsk.launch.skill : 'hub'),
+          )}, not to add anything to their planner. No card was prepared. The app opens the skill; say nothing more.`;
+      }
       // Legacy model tool arguments cannot invent or replace a student's request.
       // New structured tools keep their validated on-screen review contracts.
       if (name === 'prepare_lafina_action') {
         if (isCompoundVoiceRequest(lastUserRequest.current))
           return 'This request contains multiple actions. Use prepare_multi_action with separate structured items. No single-item card was prepared.';
         const fields = parameters as StructuredActionArgs;
+        // A save may be landing right now; decide after it, not before.
+        if (saveInFlight.current) {
+          await saveInFlight.current;
+          if (!isCurrent())
+            throw new Error(
+              'Request cancelled because conversational turn updated.',
+            );
+        }
+        const repeat = hasStructuredAction(fields)
+          ? findRepeatOfSaved(fields, savedCards.current, Date.now())
+          : null;
+        if (repeat) {
+          groundedReply.current = `"${repeat.title}" is already saved: ${repeat.receipt}`;
+          return (
+            `Already saved: ${repeat.receipt} The student saved "${repeat.title}" earlier in this call. ` +
+            'No new card was made and nothing changed. Do not prepare it again and do not ask them to confirm it. ' +
+            'Tell them it is saved. Only if they ask to change it, prepare a card that changes the saved item.'
+          );
+        }
         if (hasStructuredAction(fields)) {
           const checked = validatePayload('legacy.prepare_action', parameters);
           if (!checked.valid) return `Nothing was prepared: ${checked.error}`;
@@ -839,6 +1879,22 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               '; revision: 1. Nothing has been saved yet. Always speak directly in first person ("I", "me", "my") and tell the student to review and confirm it. Call confirm_draft if they confirm.'
           : groundedReply.current;
       }
+      if (name === 'revise_draft' || name === 'cancel_draft') {
+        const savedCard = savedCardById(
+          parameters.cardId,
+          savedCards.current,
+          Date.now(),
+        );
+        if (
+          savedCard &&
+          latestPendingReview(owner, 'voice')?.operationId !==
+            savedCard.operationId
+        ) {
+          return name === 'cancel_draft'
+            ? `That card is already saved (${savedCard.receipt}), so there is no draft to cancel and nothing changed. If the student wants it removed, prepare a delete card for "${savedCard.title}".`
+            : `That card is already saved (${savedCard.receipt}), so it cannot be revised as a draft and nothing changed. To change the saved "${savedCard.title}", prepare a card that updates or reschedules it.`;
+        }
+      }
       if (
         name === 'revise_draft' &&
         lastLocalRevision.current &&
@@ -863,9 +1919,34 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         return 'That draft revision was replaced. Use the current on-screen card ID and repeat the requested change; nothing was changed.';
       }
       if (name === 'save_lafina_memory') {
-        if (!explicitMemory(lastUserRequest.current))
+        if (
+          currentCards.current.memory?.status === 'draft' &&
+          activeMemoryActionId.current
+        ) {
+          return (
+            `A memory review card is already open for "${currentCards.current.memory.text}". ` +
+            `Card ID: ${activeMemoryActionId.current}. Nothing has been saved yet — wait for the student to confirm.`
+          );
+        }
+        const rawReq =
+          typeof parameters.request === 'string'
+            ? parameters.request.trim()
+            : '';
+        const naturalRememberCue =
+          /\b(?:remember|keep\s+in\s+mind|note\s+that|don'?t\s+forget)\b/i.test(
+            lastUserRequest.current,
+          ) &&
+          !/\b(?:don'?t|do\s+not|never|stop)\s+remember\b/i.test(
+            lastUserRequest.current,
+          );
+        const explicitFact = explicitMemory(lastUserRequest.current);
+        if (explicitFact) {
+          parameters = {request: lastUserRequest.current};
+        } else if (naturalRememberCue && rawReq.length >= 3) {
+          parameters = {request: rawReq};
+        } else {
           return 'No memory was saved. Ask the student what they want remembered.';
-        parameters = {request: lastUserRequest.current};
+        }
       }
       if (callSettings.toolAudioCue) {
         try {
@@ -890,22 +1971,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               setReadResult(result);
           },
           onDraftCanceled: () => reviewRef.current.dismiss(),
-          onConfirmDraft: async (cardId, revision) => {
-            if (revision !== 1) {
-              return {
-                saved: false,
-                message:
-                  'Stale draft revision. Nothing has been saved. Please check the current card.',
-              };
-            }
-            const saved = appliedReviewReply(owner, cardId);
-            if (saved)
-              return {
-                saved: true,
-                message: 'Already saved after student confirmation: ' + saved,
-              };
-            return {saved: false, message: SUGGESTED_CONFIRM_REFUSAL};
-          },
+          // Card revisions are always 1 here; the card ID and the student's
+          // own words decide, so a model-side revision count never blocks.
+          onConfirmDraft: cardId => resolveModelConfirm(cardId),
           onProposal: result => {
             if (result.kind === 'proposal') {
               presentReview(result.review);
@@ -937,16 +2005,18 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     },
     [
       deps,
+      handOffNow,
       userId,
       callSettings.toolAudioCue,
       presentReview,
+      resolveModelConfirm,
       showBatchCard,
       showMemoryCard,
     ],
   );
 
   const handleSaveMemory = useCallback(
-    (editedText?: string): {saved: boolean; message: string} => {
+    (editedText?: string, via: SaveVia = 'tap'): SaveOutcome => {
       if (!activeMemoryProposal || !activeMemoryActionId.current) {
         return {
           saved: false,
@@ -958,6 +2028,23 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         owner,
         activeMemoryActionId.current,
         editedText,
+      );
+      // LAFINA hears every outcome, tapped or spoken, so it never asks again
+      // about a card the student already answered.
+      const how =
+        via === 'tap'
+          ? 'The student tapped Save on the memory card.'
+          : 'The student said to save the memory card.';
+      void conversationRef.current?.sendContext(
+        result.success && result.status === 'saved'
+          ? `${how} Saved to personal memory. No memory card is waiting now; do not ask them to confirm it again.`
+          : `${how} Not saved: ${
+              result.status === 'duplicate'
+                ? 'that fact is already in their memory.'
+                : result.status === 'disabled'
+                ? 'memory is turned off in Settings.'
+                : result.error || 'could not save memory.'
+            }`,
       );
       if (result.success && result.status === 'saved') {
         setActiveMemoryProposal(prev =>
@@ -1010,51 +2097,64 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         prev ? {...prev, status: 'undone', savedMemoryId: null} : null,
       );
       setLocalNote('Memory change undone.');
+      void conversationRef.current?.sendContext(
+        'The student tapped Undo: that memory was removed and is no longer saved.',
+      );
     }
   }, [activeMemoryProposal]);
 
-  const handleConfirmMultiAll = useCallback(async (): Promise<{
-    saved: boolean;
-    message: string;
-  }> => {
-    if (!activeMultiBatch) {
-      return {
-        saved: false,
-        message: 'No grouped actions card is active. Nothing has been saved.',
-      };
-    }
-    try {
-      const {batch, spokenSummary} =
-        await actionService.confirmMultiActionBatch(
-          ownerRef.current,
-          activeMultiBatch,
-        );
-      if (
-        ownerRef.current !== batch.ownerId ||
-        actionSession.current !== batch.sessionId
-      ) {
+  const handleConfirmMultiAll = useCallback(
+    async (via: SaveVia = 'tap'): Promise<SaveOutcome> => {
+      if (!activeMultiBatch) {
         return {
           saved: false,
-          message: 'Session ended. Nothing has been saved.',
+          message: 'No grouped actions card is active. Nothing has been saved.',
         };
       }
-      setActiveMultiBatch(batch);
-      setLocalNote(spokenSummary);
-      const refreshed = buildStudentVoiceContext(ownerRef.current);
-      void conversationRef.current?.sendContext(
-        refreshed ? `${spokenSummary}\n\n${refreshed}` : spokenSummary,
-      );
-      return {
-        saved: batch.status === 'saved' || batch.status === 'partial',
-        message: spokenSummary,
-      };
-    } catch {
-      const msg =
-        'Those grouped actions could not be saved. Review the card before retrying.';
-      setLocalNote(msg);
-      return {saved: false, message: msg};
-    }
-  }, [activeMultiBatch]);
+      try {
+        const {batch, spokenSummary} =
+          await actionService.confirmMultiActionBatch(
+            ownerRef.current,
+            activeMultiBatch,
+            undefined,
+            () => true,
+            {onDevice: modeRef.current === 'offline'},
+          );
+        if (
+          ownerRef.current !== batch.ownerId ||
+          actionSession.current !== batch.sessionId
+        ) {
+          return {
+            saved: false,
+            message: 'Session ended. Nothing has been saved.',
+          };
+        }
+        setActiveMultiBatch(batch);
+        setLocalNote(spokenSummary);
+        const refreshed = buildStudentVoiceContext(ownerRef.current);
+        const how =
+          via === 'tap'
+            ? 'The student tapped Confirm All on the grouped card.'
+            : 'The student said to save the grouped card.';
+        const summary = `${how} ${spokenSummary} Do not ask them to confirm these again.`;
+        void conversationRef.current?.sendContext(
+          refreshed ? `${summary}\n\n${refreshed}` : summary,
+        );
+        if (via === 'tap') announce(speakable(spokenSummary));
+        return {
+          saved: batch.status === 'saved' || batch.status === 'partial',
+          message: spokenSummary,
+        };
+      } catch {
+        const msg =
+          'Those grouped actions could not be saved. Review the card before retrying.';
+        setLocalNote(msg);
+        void conversationRef.current?.sendContext('Not saved: ' + msg);
+        return {saved: false, message: msg};
+      }
+    },
+    [activeMultiBatch, announce],
+  );
 
   const handleCancelMultiAll = useCallback(() => {
     if (!activeMultiBatch) return;
@@ -1064,7 +2164,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     );
     setActiveMultiBatch(batch);
     setLocalNote(spokenSummary);
-  }, [activeMultiBatch]);
+    void conversationRef.current?.sendContext(
+      'The student canceled the grouped card. ' +
+        spokenSummary +
+        ' Nothing else on it will be saved.',
+    );
+    announce(CANCELED_REPLY);
+  }, [activeMultiBatch, announce]);
 
   const handleCancelMultiItem = useCallback(
     (itemId: string) => {
@@ -1083,6 +2189,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           ownerRef.current,
           activeMultiBatch,
           itemId,
+          {onDevice: modeRef.current === 'offline'},
         );
         if (
           ownerRef.current !== batch.ownerId ||
@@ -1100,7 +2207,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     [activeMultiBatch],
   );
 
-  const conversation = useVoiceConversation(userId, {
+  const onlineConversation = useVoiceConversation(userId, {
     onFinalUserText,
     onTurnInterrupted: () => {
       turnTicket.current += 1;
@@ -1108,8 +2215,117 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     onClientTool,
     deps,
   });
+  /** The offline call's turn: the device reads it and LAFINA says the line. */
+  const respondOffline = useCallback(
+    async (
+      text: string,
+      _source: OfflineTurnSource,
+      turn: OfflineTurnContext,
+    ): Promise<OfflineReply> => {
+      offlineTurnOpen.current = turn.isCurrent;
+      const trimmed = text.trim();
+      // A goodbye (or a closing thanks) is read in handleStudentTurn, which
+      // knows whether a card is still unsaved; it ends the call after the line.
+      replyInChat.current = null;
+      const reply = await handleStudentTurn(trimmed, true);
+      // A save's receipt is already in Chat; the spoken line is not added.
+      if (reply && reply === replyInChat.current)
+        return {text: reply, inChat: true};
+      return reply;
+    },
+    [handleStudentTurn],
+  );
+  const offlineCall = useOfflineCall(userId, {
+    respond: respondOffline,
+    deps: offlineDeps,
+  });
+  announceRef.current = offlineCall.announce;
+  const callsRef = useRef({online: onlineConversation, offline: offlineCall});
+  callsRef.current = {online: onlineConversation, offline: offlineCall};
+  /** An online start is in progress; a connection failure falls back once. */
+  const onlineAttempt = useRef(false);
+  const startCallRef = useRef<(decision: CallModeDecision) => void>(
+    () => undefined,
+  );
+  const connectedRef = useRef<boolean | null>(null);
+  const conversation = offline ? offlineCall : onlineConversation;
   conversationRef.current = conversation;
+
+  // Between calls the badge follows the connection; a running call keeps
+  // the mode it started with.
+  useEffect(() => {
+    const apply = (state: {
+      isConnected: boolean | null;
+      isInternetReachable?: boolean | null;
+    }) => {
+      connectedRef.current =
+        state.isConnected === false || state.isInternetReachable === false
+          ? false
+          : state.isConnected === true
+          ? true
+          : null;
+      const phase = conversationRef.current?.snapshot.phase ?? 'idle';
+      if (phase !== 'idle' && phase !== 'ended') return;
+      const next = predictCallMode(ownerRef.current, connectedRef.current);
+      setCallMode(prev =>
+        prev.mode === next.mode && prev.reason === next.reason ? prev : next,
+      );
+    };
+    const unsubscribe = NetInfo.addEventListener(apply);
+    void NetInfo.fetch()
+      .then(apply)
+      .catch(() => undefined);
+    return () => unsubscribe();
+  }, [userId]);
+
+  // The online call could not reach the internet when it started: carry on
+  // offline without another tap. Later drops offer "Call offline instead".
+  const onlineFailure = onlineConversation.snapshot.failure;
+  useEffect(() => {
+    if (
+      !onlineFailure ||
+      modeRef.current !== 'online' ||
+      !onlineAttempt.current
+    )
+      return;
+    onlineAttempt.current = false;
+    if (
+      onlineFailure.kind === 'offline' ||
+      onlineFailure.kind === 'connect_failed'
+    )
+      startCallRef.current({
+        mode: 'offline',
+        reason:
+          onlineFailure.kind === 'offline'
+            ? 'no_internet'
+            : 'online_unavailable',
+      });
+  }, [onlineFailure]);
+  // Once the online call is connected, a later failure is not a start failure.
+  useEffect(() => {
+    if (onlineConversation.snapshot.connectedAt) onlineAttempt.current = false;
+  }, [onlineConversation.snapshot.connectedAt]);
   const {snapshot} = conversation;
+  // CALLFIX-03: a call the student said goodbye to closes its screen once
+  // LAFINA's goodbye has been said and the line is down.
+  useEffect(() => {
+    if (!endingRef.current) return;
+    if (snapshot.phase !== 'ended' && snapshot.phase !== 'failed') return;
+    endingRef.current = null;
+    setEnding(null);
+    askedBeforeLeaving.current = false;
+    void ttsService.stop();
+    const skill = pendingSkill.current;
+    const speak = speakOnArrival.current;
+    pendingSkill.current = null;
+    speakOnArrival.current = false;
+    // ADR-041: the skill opens in place of the call screen.
+    if (skill && openSkill(skill.launch)) {
+      if (speak) void ttsService.speak(skill.line).catch(() => undefined);
+      return;
+    }
+    onBackRef.current();
+  }, [snapshot.phase, openSkill]);
   const live = LIVE.has(snapshot.phase);
   const connecting = snapshot.phase === 'connecting';
   const reducedMotion = useReducedMotion();
@@ -1153,11 +2369,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     setActiveMultiBatch(null);
   }, [snapshot.phase, userId]);
 
-  // Timer effect: tracks elapsed time in seconds during active call, with haptic cues
+  // Records when the live call connected, with haptic cues. The once-a-second
+  // clock is CallDurationText's own, so it never re-renders this screen.
   useEffect(() => {
     if (live) {
       if (!callConnectedAt.current) {
         callConnectedAt.current = snapshot.connectedAt || Date.now();
+        setCallStartedAt(callConnectedAt.current);
         if (callSettings.callConnectedHaptics) {
           try {
             Vibration.vibrate(30);
@@ -1166,27 +2384,17 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           }
         }
       }
-      const interval = setInterval(() => {
-        if (callConnectedAt.current) {
-          setCallDuration(
-            Math.floor((Date.now() - callConnectedAt.current) / 1000),
-          );
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    } else {
-      if (callConnectedAt.current && callSettings.callEndHaptics) {
-        try {
-          Vibration.vibrate([0, 40, 30, 40]);
-        } catch {
-          // best-effort
-        }
-      }
-      callConnectedAt.current = null;
-      if (snapshot.phase === 'idle') {
-        setCallDuration(0);
+      return;
+    }
+    if (callConnectedAt.current && callSettings.callEndHaptics) {
+      try {
+        Vibration.vibrate([0, 40, 30, 40]);
+      } catch {
+        // best-effort
       }
     }
+    callConnectedAt.current = null;
+    setCallStartedAt(null);
   }, [
     live,
     snapshot.phase,
@@ -1194,12 +2402,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     callSettings.callConnectedHaptics,
     callSettings.callEndHaptics,
   ]);
-
-  const formatDuration = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
 
   useEffect(() => {
     actionSession.current = generateId('call-actions');
@@ -1228,6 +2430,35 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const hasActiveCard = Boolean(
     review?.proposal || activeMemoryProposal || activeMultiBatch,
   );
+  // A new card takes the stage; a saved card still leaving is dropped.
+  useEffect(() => {
+    if (hasActiveCard) setSavedExit(null);
+  }, [hasActiveCard]);
+  // A saved memory card keeps Undo a moment, then leaves like a saved card.
+  useEffect(() => {
+    const memory = activeMemoryProposal;
+    if (memory?.status !== 'saved') return undefined;
+    const timer = setTimeout(() => {
+      activeMemoryActionId.current = null;
+      setActiveMemoryProposal(null);
+      setSavedExit({key: `memory-${memory.id}`, kind: 'memory', memory});
+    }, MEMORY_SAVED_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [activeMemoryProposal]);
+  // A grouped card whose items all saved shows them a moment, then leaves.
+  useEffect(() => {
+    const batch = activeMultiBatch;
+    if (batch?.status !== 'saved') return undefined;
+    const timer = setTimeout(() => {
+      setActiveMultiBatch(null);
+      setSavedExit({
+        key: `batch-${batch.id}-${batch.revision}`,
+        kind: 'batch',
+        batch,
+      });
+    }, BATCH_SAVED_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [activeMultiBatch]);
   // One card at a time, the newest in front. The others wait behind it.
   const openCards: CardKind[] = [];
   if (review?.proposal) openCards.push('review');
@@ -1237,6 +2468,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     cardFocus && openCards.includes(cardFocus)
       ? cardFocus
       : openCards[0] ?? null;
+  shownCardRef.current = shownCard;
   const batchNeedsAnswer =
     activeMultiBatch?.status === 'draft' ||
     activeMultiBatch?.status === 'partial' ||
@@ -1269,13 +2501,72 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     };
   }, []);
 
+  // The screen is open and the next call will be offline: load speech
+  // recognition now (it unloads itself after a minute unused), so tapping
+  // Call does not start with a cold model. Nothing listens.
+  const expectsOffline = callMode.mode === 'offline';
+  useEffect(() => {
+    if (expectsOffline && !paused) warmupOfflineSpeech();
+  }, [expectsOffline, paused]);
+  // The next call will be online: ask the server what it offers now, so
+  // tapping Call skips that round trip (consented, signed-in students only).
+  const prepareOnline = onlineConversation.prepare;
+  const onlineIdle =
+    onlineConversation.snapshot.phase === 'idle' ||
+    onlineConversation.snapshot.phase === 'ended';
+  useEffect(() => {
+    if (!expectsOffline && !paused && onlineIdle) prepareOnline();
+    // prepareOnline is a new function each render; the controller dedupes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expectsOffline, paused, onlineIdle, consented, dataConsented, userId]);
+
+  /**
+   * Starts one call in the given mode. Online and offline share the same
+   * cards, saves and screen; only who listens and speaks differs.
+   */
+  const startCall = useCallback(
+    (decision: CallModeDecision) => {
+      void ttsService.stop();
+      if (decision.mode === 'online') {
+        const perm = isToolExecutionPermitted(ownerRef.current);
+        if (!perm.permitted && perm.reason?.includes('disclosure')) {
+          setEnableError('Please review the data disclosure before starting.');
+          return;
+        }
+      }
+      modeRef.current = decision.mode;
+      onlineAttempt.current = decision.mode === 'online';
+      setCallMode(decision);
+      resetCallState();
+      const calls = callsRef.current;
+      // Speech recognition and the installed offline model load while LAFINA
+      // greets the student, so the first answer does not wait for them.
+      if (decision.mode === 'offline') {
+        warmupOfflineSpeech();
+        void warmUpOfflineModel(ownerRef.current);
+      }
+      (decision.mode === 'offline' ? calls.offline : calls.online).start();
+    },
+    // resetCallState only touches refs and state setters.
+    [],
+  );
+
+  startCallRef.current = startCall;
+
+  /**
+   * Online whenever it can run, decided at the moment of the tap. If the
+   * online call then cannot connect, it falls back to offline by itself.
+   */
   const handleStart = useCallback(() => {
-    void ttsService.stop();
-    const perm = isToolExecutionPermitted(ownerRef.current);
-    if (!perm.permitted && perm.reason?.includes('disclosure')) {
-      setEnableError('Please review the data disclosure before starting.');
-      return;
-    }
+    startCall(predictCallMode(ownerRef.current, connectedRef.current));
+  }, [startCall]);
+
+  /** The online call failed or dropped: carry on with the phone's voice. */
+  const handleCallOffline = useCallback(() => {
+    startCall({mode: 'offline', reason: 'online_unavailable'});
+  }, [startCall]);
+
+  function resetCallState(): void {
     actionService.clearSessionActions(actionSession.current);
     actionSession.current = generateId('call-actions');
     lastUserRequest.current = '';
@@ -1284,13 +2575,18 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     awaitingDetails.current = false;
     groundedReply.current = NO_ACTION_REPLY;
     turnReview.current = null;
+    approvalRef.current = null;
+    lastReceipt.current = null;
+    savedCards.current = [];
     setCardFocus(null);
     turnTicket.current += 1;
     setDismissedTurnId(null);
     setLocalNote(null);
     setEnableError(null);
-    conversation.start();
-  }, [conversation]);
+    pendingClarify.current = null;
+    offlineCardRequest.current = null;
+    recentOfflineReplies.current = [];
+  }
 
   const handleConsent = useCallback(() => {
     if (!voiceConsent.write(userId)) {
@@ -1318,60 +2614,117 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     handleStart();
   }, [handleStart, userId]);
 
-  const handleConfirm = useCallback(async (): Promise<{
-    saved: boolean;
-    message: string;
-  }> => {
-    const owner = userId;
-    const session = actionSession.current;
-    const decision = await reviewRef.current.confirm({speakReply: false});
-    if (!decision) {
-      return {
-        saved: false,
-        message: 'No pending draft card was found. Nothing has been saved.',
-      };
-    }
-    let reply = decision.reply;
-    if (
-      decision.outcome?.status === 'applied' &&
-      decision.outcome.receipt.reminderId
-    ) {
-      const delivery = await verifyReminderDelivery(
-        owner,
-        decision.outcome.receipt.reminderId,
+  const handleConfirm = useCallback(
+    async (
+      via: SaveVia = 'tap',
+      operationId?: string,
+    ): Promise<SaveOutcome> => {
+      const owner = userId;
+      const session = actionSession.current;
+      // A tap applies the card the student is looking at. A spoken save applies
+      // the one open draft (there is one per surface), which a spoken change
+      // may have replaced since the last render.
+      const targetId =
+        operationId ??
+        (via === 'voice'
+          ? latestPendingReview(owner, 'voice')?.operationId
+          : reviewRef.current.proposal?.operationId);
+      const pendingNow = latestPendingReview(owner, 'voice');
+      const confirming =
+        pendingNow && pendingNow.operationId === targetId
+          ? pendingNow
+          : reviewRef.current.proposal?.operationId === targetId
+          ? reviewRef.current.proposal
+          : null;
+      const decision = await reviewRef.current.confirm({
+        speakReply: false,
+        operationId:
+          operationId ??
+          (via === 'voice'
+            ? latestPendingReview(owner, 'voice')?.operationId
+            : undefined),
+      });
+      if (!decision) {
+        return {
+          saved: false,
+          message: 'No pending draft card was found. Nothing has been saved.',
+        };
+      }
+      const saved = decision.outcome?.status === 'applied';
+      if (saved && confirming && owner === ownerRef.current) {
+        // The card plays its Saved exit; the store has already retired it.
+        setSavedExit({
+          key: `review-${confirming.operationId}`,
+          kind: 'review',
+          proposal: confirming,
+        });
+        AccessibilityInfo.announceForAccessibility?.(
+          `Saved: ${confirming.title}`,
+        );
+      }
+      let alarm: AlarmStatus | null = null;
+      if (
+        decision.outcome?.status === 'applied' &&
+        decision.outcome.receipt.reminderId
+      ) {
+        const delivery = await verifyReminderDelivery(
+          owner,
+          decision.outcome.receipt.reminderId,
+        );
+        alarm = delivery.status;
+      }
+      // One line: what was saved, when, and whether its alarm is set (it
+      // used to be the alarm status alone, shown twice on the call screen).
+      const reply = saved
+        ? savedConfirmation(confirming, decision.reply, alarm)
+        : decision.reply;
+      if (saved && decision.assistantMessage) replyInChat.current = reply;
+      if (saved && confirming) {
+        const record = savedCardFromProposal(confirming, reply, Date.now());
+        if (record)
+          savedCards.current = [...savedCards.current, record].slice(-10);
+      }
+      if (
+        owner !== ownerRef.current ||
+        session !== actionSession.current ||
+        !conversationRef.current ||
+        !LIVE.has(conversationRef.current.snapshot.phase)
+      ) {
+        return {saved, message: reply};
+      }
+      setLocalNote(reply);
+      groundedReply.current = saved
+        ? 'The student confirmed the card and it was saved: ' +
+          reply +
+          ' No card is open now.'
+        : 'The card was not saved: ' + reply;
+      const refreshed = buildStudentVoiceContext(userId);
+      const how =
+        via === 'tap'
+          ? 'The student tapped Confirm on the card.'
+          : 'The student said to save the card.';
+      const confirmMsg = saved
+        ? `Confirmed and saved action result: ${reply} ${how} It is saved now and no card is open. Tell the student it is saved if they ask; do not ask them to confirm it again.`
+        : `Action was not saved: ${reply} ${how}`;
+      void conversation.sendContext(
+        refreshed ? `${confirmMsg}\n\n${refreshed}` : confirmMsg,
       );
-      reply = delivery.message;
-    }
-    const saved = decision.outcome?.status === 'applied';
-    if (
-      owner !== ownerRef.current ||
-      session !== actionSession.current ||
-      !conversationRef.current ||
-      !LIVE.has(conversationRef.current.snapshot.phase)
-    ) {
+      // Offline, LAFINA says it out loud (a spoken save answers in its turn).
+      if (via === 'tap')
+        announce(speakable(saved ? reply : `I couldn't save it. ${reply}`), {
+          inChat: saved && !!decision.assistantMessage,
+        });
       return {saved, message: reply};
-    }
-    setLocalNote(reply);
-    groundedReply.current = saved
-      ? 'The student confirmed the card and it was saved: ' +
-        reply +
-        ' No card is open now.'
-      : 'The card was not saved: ' + reply;
-    const refreshed = buildStudentVoiceContext(userId);
-    const confirmMsg =
-      (saved
-        ? 'Confirmed and saved action result: '
-        : 'Action was not saved: ') + reply;
-    void conversation.sendContext(
-      refreshed ? `${confirmMsg}\n\n${refreshed}` : confirmMsg,
-    );
-    return {saved, message: reply};
-  }, [conversation, userId]);
+    },
+    [announce, conversation, userId],
+  );
 
+  // Every save path goes through runSave, so two at once share one write.
   confirmHandlersRef.current = {
-    confirmDraft: handleConfirm,
+    confirmDraft: (via = 'tap', operationId) =>
+      runSave(() => handleConfirm(via, operationId)),
     saveMemory: handleSaveMemory,
-    confirmMultiAll: handleConfirmMultiAll,
+    confirmMultiAll: (via = 'tap') => runSave(() => handleConfirmMultiAll(via)),
   };
 
   const handleCancelReview = useCallback(() => {
@@ -1381,10 +2734,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       groundedReply.current =
         'The student canceled the card. Nothing was saved and no card is open now.';
       void conversation.sendContext(
-        'The student canceled the review card. Nothing was saved.',
+        'The student canceled the review card. Nothing was saved and no card is open now. Do not save or prepare it again unless they ask.',
       );
+      announce(CANCELED_REPLY);
     }
-  }, [conversation]);
+  }, [announce, conversation]);
 
   const handleSendTyped = useCallback(async () => {
     const text = typed.trim();
@@ -1470,27 +2824,64 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [claimTurnId, presentReview]);
 
   const failure = snapshot.failure;
-  const needsConsent = (!consented || !dataConsented) && !live && !connecting;
+  // The note is hidden when LAFINA just said the same thing (a save used to
+  // show "Saved locally. Alarm registered." twice).
+  const shownNote =
+    localNote && !repeatsLine(visibleAgentReply?.text, localNote)
+      ? localNote
+      : null;
+  // The consent card covers sending the microphone online; the offline call
+  // keeps everything on the phone and needs only the OS microphone permission.
+  const needsConsent =
+    !offline && (!consented || !dataConsented) && !live && !connecting;
   const hasDetailsCard = Boolean(
     !hasActiveCard &&
       readResult === null &&
       !needsConsent &&
       !failure &&
       snapshot.phase !== 'restart_required' &&
-      (localNote || snapshot.notice || visibleAgentReply),
+      (shownNote || snapshot.notice || visibleAgentReply),
   );
-  const statusText = statusLine(snapshot, needsAnswer);
+  const captionReplyStyle =
+    callSettings.captionSize === 'extra_large'
+      ? styles.detailsReplyExtraLarge
+      : callSettings.captionSize === 'large'
+      ? styles.detailsReplyLarge
+      : null;
+  const formattedAgentReply = visibleAgentReply
+    ? formatCallReplyMarkdown(visibleAgentReply.text)
+    : '';
+  const formattedLocalNote = shownNote
+    ? formatCallReplyMarkdown(shownNote)
+    : '';
+  const localNoteIsMultiLine = formattedLocalNote.includes('\n');
+  const statusText =
+    offline && snapshot.toolPhrase && live
+      ? snapshot.toolPhrase
+      : statusLine(snapshot, needsAnswer, offline);
+  // Offline there are no live captions: show what LAFINA heard.
+  const latestUserText = (() => {
+    for (let i = snapshot.turns.length - 1; i >= 0; i -= 1)
+      if (snapshot.turns[i].role === 'user') return snapshot.turns[i].text;
+    return null;
+  })();
   const showOverlayContent = Boolean(
     needsConsent ||
       hasActiveCard ||
       readResult !== null ||
       hasDetailsCard ||
-      localNote ||
+      shownNote ||
       snapshot.notice ||
       failure ||
       snapshot.phase === 'restart_required' ||
       showTyping,
   );
+
+  const closeSettings = useCallback(() => setSettingsModalVisible(false), []);
+  const applyCallSettings = useCallback((newSettings: CallLafinaSettings) => {
+    setCallSettings(newSettings);
+    conversationRef.current?.setPreferences(newSettings);
+  }, []);
 
   return (
     <View
@@ -1557,6 +2948,22 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   Connecting
                 </Text>
               </>
+            ) : offline ? (
+              <>
+                <Cpu
+                  size={12}
+                  color={live ? colors.primary : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.pillText,
+                    {color: live ? colors.primary : colors.textSecondary},
+                  ]}
+                  testID="call-offline-badge"
+                >
+                  Offline
+                </Text>
+              </>
             ) : (
               <>
                 <AudioLines
@@ -1575,6 +2982,16 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               </>
             )}
           </View>
+          {offline ? (
+            <Text
+              style={[styles.hint, themed.muted]}
+              numberOfLines={1}
+              accessibilityLabel={offlineReasonText(callMode.reason)}
+              testID="call-offline-reason"
+            >
+              {offlineReasonText(callMode.reason)}
+            </Text>
+          ) : null}
         </View>
 
         <View style={[styles.headerSide, styles.headerRight]}>
@@ -1661,21 +3078,23 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 ]}
                 testID="call-identity-ring"
               >
-                <SynthWaveAvatar
+                <MeteredSynthWaveAvatar
+                  meter={conversation.meter}
                   phase={snapshot.phase}
-                  outputLevel={snapshot.outputLevel ?? 0}
                   muted={snapshot.muted}
                   size={showOverlayContent ? 48 : 76}
-                  userLevel={snapshot.level}
+                  paused={paused}
                 />
               </View>
             </View>
           ) : null}
 
           {live ? (
-            <Text style={[styles.timerText, themed.title]} testID="call-timer">
-              {formatDuration(callDuration)}
-            </Text>
+            <CallDurationText
+              startedAt={callStartedAt ?? snapshot.connectedAt ?? null}
+              paused={paused}
+              style={[styles.timerText, themed.title]}
+            />
           ) : null}
 
           <Text
@@ -1696,6 +3115,16 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             {statusText}
           </Text>
 
+          {offline && live && latestUserText ? (
+            <Text
+              style={[styles.connectingHint, themed.muted]}
+              numberOfLines={2}
+              testID="call-offline-heard"
+            >
+              {`You said: “${latestUserText}”`}
+            </Text>
+          ) : null}
+
           {connecting && !showOverlayContent ? (
             <Text
               style={[styles.connectingHint, themed.muted]}
@@ -1706,12 +3135,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           ) : null}
 
           {live && !showOverlayContent ? (
-            <CallWaveform
+            <MeteredCallWaveform
+              meter={conversation.meter}
+              paused={paused}
               phase={snapshot.phase}
               muted={snapshot.muted}
               micCapturing={snapshot.micCapturing}
-              userLevel={snapshot.level}
-              outputLevel={snapshot.outputLevel ?? 0}
               hasReviewItem={Boolean(review?.proposal)}
               showStatusText={false}
             />
@@ -1730,28 +3159,130 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         >
           {needsConsent ? (
             <View
-              style={[styles.card, themed.card, modernCardStyle]}
+              style={[
+                styles.card,
+                themed.card,
+                styles.consentCard,
+                modernCardStyle,
+              ]}
               testID="voice-conversation-consent"
             >
-              <Text style={[styles.cardTitle, themed.text]}>
-                Before you start
-              </Text>
-              <Text style={[styles.cardBody, themed.text]}>
-                While a call is open, your microphone audio streams to
-                ElevenLabs for transcription and speech, and your words go to
-                DeepSeek and LAFINA's server for answers. When a call starts, a
-                short summary of your next 7 days (schedule, tasks and overdue
-                items), recent notes and saved memories is shared with them so
-                LAFINA can help with your plans. Capture continues when
-                minimized inside the app, with a visible call strip. It stops
-                when you tap End or leave the app, and you can mute at any time.
-                Finished turns are saved to your Chat history. You can review,
-                change, or confirm planner items by voice or tap.
-              </Text>
+              <View style={styles.consentHeader}>
+                <View
+                  style={[
+                    styles.consentHeaderIcon,
+                    {
+                      backgroundColor: isModern
+                        ? modernPalette.softViolet
+                        : `${colors.primary}18`,
+                    },
+                  ]}
+                >
+                  <PhoneCall size={20} color={colors.primary} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={[styles.consentTitle, themed.text]}>
+                    Before you start
+                  </Text>
+                  <Text style={[styles.consentSubtitle, themed.muted]}>
+                    A quick look at how Call Lafina works
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.consentList}>
+                {[
+                  {
+                    key: 'voice',
+                    icon: (
+                      <Mic
+                        size={16}
+                        color={isModern ? modernPalette.accent : colors.primary}
+                      />
+                    ),
+                    iconBg: isModern
+                      ? modernPalette.softViolet
+                      : `${colors.primary}16`,
+                    title: 'Live voice replies',
+                    body: 'Your voice is processed online while the call is open so LAFINA can hear you and reply.',
+                  },
+                  {
+                    key: 'context',
+                    icon: (
+                      <Calendar
+                        size={16}
+                        color={isModern ? modernPalette.blueInk : colors.blue}
+                      />
+                    ),
+                    iconBg: isModern
+                      ? modernPalette.blueSoft
+                      : `${colors.blue}16`,
+                    title: 'Knows your upcoming plans',
+                    body: 'Uses a short summary of your next 7 days, recent notes and saved memories so answers fit your schedule.',
+                  },
+                  {
+                    key: 'control',
+                    icon: (
+                      <ShieldCheck
+                        size={16}
+                        color={
+                          isModern ? modernPalette.mintInk : colors.success
+                        }
+                      />
+                    ),
+                    iconBg: isModern
+                      ? modernPalette.mint
+                      : `${colors.success}18`,
+                    title: 'You stay in control',
+                    body: 'Mute anytime, or tap End or leave the app to stop. Planner changes wait for your confirmation.',
+                  },
+                ].map(item => (
+                  <View
+                    key={item.key}
+                    style={[
+                      styles.consentItem,
+                      {
+                        backgroundColor: isModern
+                          ? modernPalette.surface
+                          : colors.cardBg,
+                        borderColor: isModern
+                          ? modernPalette.border
+                          : colors.border,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.consentItemIcon,
+                        {backgroundColor: item.iconBg},
+                      ]}
+                    >
+                      {item.icon}
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={[styles.consentItemTitle, themed.text]}>
+                        {item.title}
+                      </Text>
+                      <Text style={[styles.consentItemBody, themed.muted]}>
+                        {item.body}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.consentFooter}>
+                <MessageSquareText size={13} color={colors.textSecondary} />
+                <Text style={[styles.consentFooterText, themed.muted]}>
+                  Stays active when minimized in-app · Saves to Chat history
+                </Text>
+              </View>
+
               <TouchableOpacity
                 style={[
                   styles.primaryButton,
                   {backgroundColor: colors.primary},
+                  isModern && {borderRadius: ModernLayout.borderRadiusButton},
                 ]}
                 onPress={handleConsent}
                 accessibilityRole="button"
@@ -1761,6 +3292,80 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   style={[styles.primaryText, {color: colors.textOnPrimary}]}
                 >
                   I understand, start
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {skillChip && live && !ending ? (
+            <View
+              style={[
+                styles.endingBanner,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.softViolet
+                    : colors.inputBg,
+                  borderColor: isModern ? modernPalette.border : colors.border,
+                },
+              ]}
+              testID="call-skill-chip"
+            >
+              <Text style={[styles.endingText, {color: colors.textPrimary}]}>
+                {skillChip.line.replace(/^Got it[,.]\s*/, '')}
+              </Text>
+              <TouchableOpacity
+                style={[styles.endingButton, {borderColor: colors.primary}]}
+                onPress={openSkillChip}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${skillTitle(
+                  skillChip.launch.skill,
+                )}. This ends the call.`}
+                testID="call-skill-chip-open"
+              >
+                <Text
+                  style={[styles.endingButtonText, {color: colors.primary}]}
+                >
+                  {`Open ${skillTitle(skillChip.launch.skill)}`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {ending && live ? (
+            <View
+              style={[
+                styles.endingBanner,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.softViolet
+                    : colors.inputBg,
+                  borderColor: isModern ? modernPalette.border : colors.border,
+                },
+              ]}
+              accessibilityLiveRegion="polite"
+              testID="call-ending-banner"
+            >
+              <Text
+                style={[styles.endingText, {color: colors.textPrimary}]}
+                accessibilityRole="text"
+              >
+                {ending.label}
+              </Text>
+              <TouchableOpacity
+                style={[styles.endingButton, {borderColor: colors.primary}]}
+                onPress={keepTalking}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  ending.skill
+                    ? 'Stay on call. The skill does not open.'
+                    : 'Keep talking. The call stays on.'
+                }
+                testID="call-ending-keep-talking"
+              >
+                <Text
+                  style={[styles.endingButtonText, {color: colors.primary}]}
+                >
+                  {ending.skill ? 'Stay on call' : 'Keep talking'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1824,7 +3429,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   return result;
                 }}
                 onConfirm={() => {
-                  void handleConfirm();
+                  void confirmHandlersRef.current.confirmDraft('tap');
                 }}
                 onCancel={() => {
                   if (shownCard === 'batch') {
@@ -1837,6 +3442,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                         activeMemoryActionId.current,
                       );
                       activeMemoryActionId.current = null;
+                      void conversationRef.current?.sendContext(
+                        'The student tapped Cancel on the memory card. Nothing was saved and no memory card is open now.',
+                      );
                     }
                     setActiveMemoryProposal(null);
                   } else {
@@ -1852,9 +3460,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                     review.dismiss();
                   }
                 }}
-                onSaveMemory={handleSaveMemory}
+                onSaveMemory={editedText => {
+                  void runSave(async () => handleSaveMemory(editedText, 'tap'));
+                }}
                 onUndoMemory={handleUndoMemory}
-                onConfirmMultiAll={handleConfirmMultiAll}
+                onConfirmMultiAll={() => {
+                  void confirmHandlersRef.current.confirmMultiAll('tap');
+                }}
                 onCancelMultiAll={handleCancelMultiAll}
                 onCancelMultiItem={handleCancelMultiItem}
                 onRetryMultiItem={handleRetryMultiItem}
@@ -1972,6 +3584,35 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 </View>
               )}
             </View>
+          ) : savedExit ? (
+            // The card just saved: "Saved" on its button, then it leaves.
+            <View
+              style={styles.actionCardSection}
+              testID="call-action-card-stage"
+            >
+              <CardSaveExit
+                key={savedExit.key}
+                onDone={() =>
+                  setSavedExit(current =>
+                    current?.key === savedExit.key ? null : current,
+                  )
+                }
+              >
+                <ActionCardHost
+                  proposal={
+                    savedExit.kind === 'review' ? savedExit.proposal : null
+                  }
+                  memoryProposal={
+                    savedExit.kind === 'memory' ? savedExit.memory : null
+                  }
+                  multiActionBatch={
+                    savedExit.kind === 'batch' ? savedExit.batch : null
+                  }
+                  saved
+                  testIDPrefix="voice-conversation-saved"
+                />
+              </CardSaveExit>
+            </View>
           ) : null}
 
           {hasDetailsCard ? (
@@ -1984,10 +3625,32 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               ]}
               testID="call-details-card"
             >
-              <View style={styles.detailsHeader}>
-                <Text style={[styles.detailsLabel, {color: colors.primary}]}>
-                  {visibleAgentReply ? 'LAFINA' : 'Details'}
-                </Text>
+              <View
+                style={[
+                  styles.detailsHeader,
+                  {
+                    borderBottomColor: isModern
+                      ? modernPalette.border
+                      : colors.border,
+                  },
+                ]}
+              >
+                <View style={styles.detailsLabelRow}>
+                  <AudioLines
+                    size={13}
+                    color={isModern ? modernPalette.accent : colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.detailsLabel,
+                      {
+                        color: isModern ? modernPalette.accent : colors.primary,
+                      },
+                    ]}
+                  >
+                    {visibleAgentReply ? 'LAFINA' : 'Details'}
+                  </Text>
+                </View>
                 <TouchableOpacity
                   onPress={() => {
                     setLocalNote(null);
@@ -2006,20 +3669,40 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 </TouchableOpacity>
               </View>
               {visibleAgentReply ? (
-                <Text
-                  style={[styles.detailsReplyText, themed.text]}
+                <ChatReplyText
+                  content={formattedAgentReply}
+                  format={replyFormat}
+                  textStyle={[
+                    styles.detailsReplyText,
+                    captionReplyStyle,
+                    themed.text,
+                  ]}
+                  streaming={visibleAgentReply.status === 'provisional'}
                   testID="call-details-reply"
-                >
-                  {visibleAgentReply.text}
-                </Text>
+                />
               ) : null}
-              {localNote ? (
-                <Text
-                  style={[styles.detailsNoteText, themed.text]}
-                  testID="voice-conversation-local-note"
+              {shownNote ? (
+                <View
+                  style={
+                    visibleAgentReply
+                      ? [
+                          styles.detailsSubNote,
+                          {
+                            borderTopColor: isModern
+                              ? modernPalette.border
+                              : colors.border,
+                          },
+                        ]
+                      : undefined
+                  }
                 >
-                  {localNote}
-                </Text>
+                  <ChatReplyText
+                    content={formattedLocalNote}
+                    format={replyFormat}
+                    textStyle={[styles.detailsNoteText, themed.text]}
+                    testID="voice-conversation-local-note"
+                  />
+                </View>
               ) : null}
               {snapshot.notice ? (
                 <Text
@@ -2041,13 +3724,31 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 </Text>
               ) : null}
 
-              {localNote ? (
-                <Text
-                  style={[styles.notice, themed.text]}
-                  testID="voice-conversation-local-note"
-                >
-                  {localNote}
-                </Text>
+              {shownNote ? (
+                localNoteIsMultiLine ? (
+                  <View
+                    style={[
+                      styles.card,
+                      themed.card,
+                      styles.detailsCard,
+                      modernCardStyle,
+                    ]}
+                  >
+                    <ChatReplyText
+                      content={formattedLocalNote}
+                      format={replyFormat}
+                      textStyle={[styles.detailsNoteText, themed.text]}
+                      testID="voice-conversation-local-note"
+                    />
+                  </View>
+                ) : (
+                  <ChatReplyText
+                    content={formattedLocalNote}
+                    format={replyFormat}
+                    textStyle={[styles.notice, themed.text]}
+                    testID="voice-conversation-local-note"
+                  />
+                )
               ) : null}
             </>
           )}
@@ -2132,6 +3833,22 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   </Text>
                 </TouchableOpacity>
               )}
+              {!offline &&
+              failure?.kind !== 'mic_denied' &&
+              failure?.kind !== 'mic_busy' ? (
+                <TouchableOpacity
+                  style={[styles.secondaryButton, themed.secondary]}
+                  onPress={handleCallOffline}
+                  accessibilityRole="button"
+                  accessibilityHint="Continues the call with the voice and speech recognition on this phone"
+                  testID="voice-conversation-call-offline"
+                >
+                  <Cpu size={14} color={colors.textPrimary} />
+                  <Text style={[styles.secondaryText, themed.text]}>
+                    Call offline instead
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
               {enableError ? (
                 <Text
                   style={[styles.notice, {color: colors.error}]}
@@ -2141,7 +3858,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 </Text>
               ) : null}
               <Text style={[styles.hint, themed.muted]}>
-                Push-to-talk, typing and your schedule keep working offline.
+                {offline
+                  ? 'Typing in Chat and your schedule keep working.'
+                  : 'Push-to-talk, typing and your schedule keep working offline.'}
               </Text>
             </View>
           ) : null}
@@ -2303,11 +4022,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         userId={userId}
         visible={settingsModalVisible}
         isCallActive={live || connecting}
-        onClose={() => setSettingsModalVisible(false)}
-        onSettingsChanged={newSettings => {
-          setCallSettings(newSettings);
-          conversation.setPreferences(newSettings);
-        }}
+        onClose={closeSettings}
+        onSettingsChanged={applyCallSettings}
       />
     </View>
   );
@@ -2487,11 +4203,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyStatus: {height: 0, margin: 0, padding: 0},
-  detailsCard: {maxWidth: 420},
+  detailsCard: {maxWidth: 420, padding: 16},
   detailsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 8,
+    marginBottom: 2,
+  },
+  detailsLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   detailsLabel: {
     fontFamily: Fonts.heading,
@@ -2513,10 +4237,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  detailsReplyLarge: {
+    fontSize: 18,
+    lineHeight: 26,
+  },
+  detailsReplyExtraLarge: {
+    fontSize: 22,
+    lineHeight: 30,
+  },
   detailsNoteText: {
     fontFamily: Fonts.body,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 13.5,
+    lineHeight: 20,
+  },
+  detailsSubNote: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 10,
+    marginTop: 2,
   },
   waveformContainer: {
     height: 36,
@@ -2549,8 +4286,70 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   card: {width: '100%', borderRadius: 16, borderWidth: 1, padding: 14, gap: 10},
-  cardTitle: {fontFamily: Fonts.heading, fontSize: 15, fontWeight: 'bold'},
   cardBody: {fontFamily: Fonts.body, fontSize: 13, lineHeight: 19},
+  consentCard: {maxWidth: 420, padding: 18, gap: 14},
+  consentHeader: {flexDirection: 'row', alignItems: 'center', gap: 12},
+  consentHeaderIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  consentTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  consentSubtitle: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 1,
+  },
+  consentList: {gap: 10},
+  consentItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+  },
+  consentItemIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  consentItemTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  consentItemBody: {
+    fontFamily: Fonts.body,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  consentFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+  },
+  consentFooterText: {
+    fontFamily: Fonts.body,
+    fontSize: 11.5,
+    lineHeight: 16,
+    textAlign: 'center',
+    flexShrink: 1,
+  },
   flex: {flex: 1},
   problemRow: {flexDirection: 'row', gap: 8, alignItems: 'flex-start'},
   transcriptContainer: {width: '100%', marginVertical: 6},
@@ -2705,6 +4504,29 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   cardSwitchText: {fontFamily: Fonts.body, fontSize: 12, fontWeight: '700'},
+  endingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingLeft: 14,
+    paddingRight: 8,
+    marginBottom: 8,
+  },
+  endingText: {fontFamily: Fonts.body, fontSize: 14, flexShrink: 1},
+  endingButton: {
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endingButtonText: {fontFamily: Fonts.body, fontSize: 14, fontWeight: '700'},
   draftRevisionRow: {
     flexDirection: 'row',
     alignItems: 'center',

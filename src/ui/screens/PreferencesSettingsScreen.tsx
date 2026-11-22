@@ -3,9 +3,11 @@ import {
   ActivityIndicator,
   Alert,
   BackHandler,
+  DeviceEventEmitter,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -53,15 +55,22 @@ import {
   refreshPendingReminderLeadTimes,
 } from '../../scheduler';
 import type {AlarmHealth, ReminderPermissionStatus} from '../../scheduler';
-import {
-  Fonts,
-  Layout,
-  ModernLayout,
-  Shadows,
-} from '../theme';
+import {Fonts, Layout, ModernLayout, Shadows} from '../theme';
 import {mixColors} from '../theme/colorMix';
 import {useTheme} from '../contexts/ThemeContext';
 import {ReminderPermissionModal} from '../components/call/ReminderPermissionModal';
+import {chatHistorySync} from '../../sync/chatHistorySync';
+import {GUEST_USER_ID} from '../../constants';
+import {MAX_CHATS_PER_ACCOUNT} from '../../storage/chatOwnership';
+import {studentSetupStore} from '../../storage/studentSetupStore';
+import type {MainGoal, ResponseStyle} from '../../storage/studentSetupStore';
+import {
+  syncProfileIdentityAndGoal,
+  syncStudyPreferenceMemory,
+  type ConversationTone,
+} from '../../storage/onboardingMemory';
+import {isUstpSchoolEnabled} from '../../storage/ustpEligibility';
+import {CHAT_MEMORY_CHANGED_EVENT} from '../../cloud/chatMemoryService';
 
 interface PreferencesSettingsScreenProps {
   userId: string;
@@ -211,6 +220,16 @@ export const PreferencesSettingsScreen: React.FC<
   PreferencesSettingsScreenProps
 > = ({userId, onBack, onSaved}) => {
   const initial = useMemo(() => preferencesStore.get(userId), [userId]);
+  const initialSetup = useMemo(() => studentSetupStore.get(userId), [userId]);
+  const ustpEnabled = useMemo(() => isUstpSchoolEnabled(userId), [userId]);
+  const [preferredName, setPreferredName] = useState(
+    initialSetup.preferredName,
+  );
+  const [tone, setTone] = useState<ConversationTone>(initialSetup.tone ?? '');
+  const [responseStyle, setResponseStyle] = useState<ResponseStyle | ''>(
+    initialSetup.responseStyle ?? '',
+  );
+  const [mainGoal, setMainGoal] = useState<MainGoal | null>(initialSetup.goal);
   const [wakeTime, setWakeTime] = useState(initial.wakeTime);
   const [sleepTime, setSleepTime] = useState(initial.sleepTime);
   const [studyPeakHours, setStudyPeakHours] = useState<StudyPeakHour[]>(
@@ -234,8 +253,67 @@ export const PreferencesSettingsScreen: React.FC<
       localSettingsStore.get(userId, SETTING_KEY_ADAPTIVE_TIMING, 'true') !==
       'false',
   );
+  const isGuest = userId === GUEST_USER_ID;
+  const [chatSyncEnabled, setChatSyncEnabled] = useState<boolean>(() =>
+    chatHistorySync.isEnabled(userId),
+  );
+  const [isDeletingCloudChats, setIsDeletingCloudChats] = useState(false);
+  const [heldChats] = useState<number>(() =>
+    isGuest ? 0 : chatHistorySync.heldChatCount(userId),
+  );
+  const [serverStoresChat] = useState<boolean>(
+    () => !isGuest && chatHistorySync.serverSupportsChat(userId),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Chat history sync (ADR-040) applies at once; it is not part of Save.
+  const handleChatSyncChange = (value: string) => {
+    const enabled = value === 'true';
+    try {
+      chatHistorySync.setEnabled(userId, enabled);
+      setChatSyncEnabled(enabled);
+    } catch {
+      Alert.alert('Not Saved', 'The chat sync setting could not be saved.');
+    }
+  };
+
+  const handleDeleteCloudChats = () => {
+    Alert.alert(
+      'Delete chat history from cloud?',
+      'This removes the copy of your chats stored with your LAFINA account and turns off chat sync on this phone. Chats stay on this phone. Your other phones that sync chat history will remove them.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setIsDeletingCloudChats(true);
+            setChatSyncEnabled(false);
+            void chatHistorySync
+              .deleteCloudCopy(userId)
+              .then(result => {
+                if (result.status === 'deleted') {
+                  Alert.alert(
+                    'Deleted from Cloud',
+                    'Your chat history is no longer stored with your account. Chat sync is off on this phone.',
+                  );
+                } else {
+                  Alert.alert('Not Deleted', result.message);
+                }
+              })
+              .catch(() =>
+                Alert.alert(
+                  'Not Deleted',
+                  'The cloud copy could not be deleted.',
+                ),
+              )
+              .finally(() => setIsDeletingCloudChats(false));
+          },
+        },
+      ],
+    );
+  };
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
   const [permissionStatus, setPermissionStatus] =
     useState<ReminderPermissionStatus | null>(null);
@@ -338,7 +416,9 @@ export const PreferencesSettingsScreen: React.FC<
       await refreshModelsState();
       Alert.alert(
         'AI Model Ready',
-        `${preset?.name || 'Offline model'} is downloaded and ready for offline voice intelligence!`,
+        `${
+          preset?.name || 'Offline model'
+        } is downloaded and ready for offline voice intelligence!`,
       );
     } catch (err: any) {
       const message = err?.message || '';
@@ -360,7 +440,9 @@ export const PreferencesSettingsScreen: React.FC<
     const preset = OFFLINE_MODEL_CATALOG.find(item => item.id === modelId);
     Alert.alert(
       'Remove Offline AI Model',
-      `Are you sure you want to delete ${preset?.name || 'the on-device AI model'}? LAFINA will continue working using high-accuracy fast-path parsing.`,
+      `Are you sure you want to delete ${
+        preset?.name || 'the on-device AI model'
+      }? LAFINA will continue working using high-accuracy fast-path parsing.`,
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -442,6 +524,33 @@ export const PreferencesSettingsScreen: React.FC<
         SETTING_KEY_ADAPTIVE_TIMING,
         adaptiveTimingEnabled ? 'true' : 'false',
       );
+      const studyChanged =
+        JSON.stringify(studyPeakHours) !==
+          JSON.stringify(initial.studyPeakHours) ||
+        initialSetup.explicit.includes('study');
+      if (studyChanged) {
+        syncStudyPreferenceMemory(userId, studyPeakHours);
+      }
+      const identityChanged =
+        preferredName.trim() !== initialSetup.preferredName ||
+        tone !== (initialSetup.tone ?? '') ||
+        mainGoal !== initialSetup.goal ||
+        responseStyle !== (initialSetup.responseStyle ?? '');
+      if (identityChanged) {
+        syncProfileIdentityAndGoal(userId, {
+          preferredName,
+          tone,
+          goal: mainGoal,
+          responseStyle: responseStyle || null,
+        });
+      }
+      if (studyChanged || identityChanged) {
+        DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+          userId,
+          messageId: 'preferences',
+          changes: {added: [], removed: []},
+        });
+      }
       const refreshResult = await refreshPendingReminderLeadTimes(
         userId,
         updatedPreferences.reminderLeadMinutes,
@@ -532,6 +641,75 @@ export const PreferencesSettingsScreen: React.FC<
           {paddingBottom: Math.max(insets.bottom, 12) + 120},
         ]}
       >
+        <View
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
+          testID="preferences-ai-identity-card"
+        >
+          <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
+            AI Assistant Identity & Style
+          </Text>
+          <View style={styles.optionGroup}>
+            <Text style={[styles.optionTitle, {color: colors.textSecondary}]}>
+              Preferred name
+            </Text>
+            <TextInput
+              value={preferredName}
+              onChangeText={setPreferredName}
+              placeholder="What should LAFINA call you? (optional)"
+              placeholderTextColor={colors.textSecondary}
+              maxLength={60}
+              style={[
+                styles.textInputField,
+                {
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                },
+              ]}
+              testID="preferences-preferred-name-input"
+            />
+          </View>
+          <PreferenceOptionGroup
+            title="Conversational tone"
+            options={[
+              {label: 'Default', value: ''},
+              {label: 'Casual', value: 'casual'},
+              {label: 'Professional', value: 'professional'},
+            ]}
+            selectedValues={[tone]}
+            onSelect={value => setTone(value as ConversationTone)}
+          />
+          <PreferenceOptionGroup
+            title="Reply detail"
+            options={[
+              {label: 'Short', value: 'short'},
+              {label: 'Balanced', value: 'balanced'},
+              {label: 'Detailed', value: 'detailed'},
+            ]}
+            selectedValues={responseStyle ? [responseStyle] : []}
+            onSelect={value => setResponseStyle(value as ResponseStyle)}
+          />
+          <PreferenceOptionGroup
+            title="Main focus"
+            options={[
+              {label: 'Deadlines', value: 'deadlines'},
+              {label: 'Daily schedule', value: 'schedule'},
+              ...(ustpEnabled
+                ? [{label: 'USTP Handbook', value: 'handbook'}]
+                : []),
+              {label: 'No focus set', value: 'none'},
+            ]}
+            selectedValues={[mainGoal ?? 'none']}
+            onSelect={value =>
+              setMainGoal(value === 'none' ? null : (value as MainGoal))
+            }
+          />
+        </View>
+
         <View
           style={[
             styles.card,
@@ -648,6 +826,103 @@ export const PreferencesSettingsScreen: React.FC<
             {backgroundColor: colors.cardBg},
             cardSurfaceStyle,
           ]}
+          testID="preferences-chat-sync-card"
+        >
+          <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
+            Chat history
+          </Text>
+          {isGuest ? (
+            <Text
+              style={[
+                styles.permissionHelperText,
+                {color: colors.textSecondary},
+              ]}
+            >
+              Your chats are saved on this phone only. Sign in to keep them on
+              all your phones and after reinstalling LAFINA.
+            </Text>
+          ) : (
+            <>
+              <Text
+                style={[
+                  styles.permissionHelperText,
+                  {color: colors.textSecondary},
+                ]}
+              >
+                When on, your chats are stored with your LAFINA account, so they
+                appear on your other phones and come back after reinstalling.
+                Chats written offline sync when you reconnect. Attached files
+                stay on the phone that has them. An account keeps up to{' '}
+                {MAX_CHATS_PER_ACCOUNT} chats. This setting applies right away.
+              </Text>
+              {!serverStoresChat ? (
+                <Text
+                  style={[
+                    styles.permissionHelperText,
+                    {color: colors.textPrimary},
+                  ]}
+                  testID="preferences-chat-sync-unsupported"
+                >
+                  Chats are not syncing yet: LAFINA's server has not been
+                  reached, or does not store chat history yet. Your chats stay
+                  on this phone until it does.
+                </Text>
+              ) : null}
+              {heldChats > 0 ? (
+                <Text
+                  style={[
+                    styles.permissionHelperText,
+                    {color: colors.textPrimary},
+                  ]}
+                  testID="preferences-chat-sync-held"
+                >
+                  {heldChats === 1 ? '1 chat is' : `${heldChats} chats are`}{' '}
+                  saved on this phone only, because your account already has{' '}
+                  {MAX_CHATS_PER_ACCOUNT} chats. Delete a chat to make room.
+                </Text>
+              ) : null}
+              <PreferenceOptionGroup
+                title="Sync chat history"
+                options={[
+                  {label: 'On (all my phones)', value: 'true'},
+                  {label: 'Off (this phone only)', value: 'false'},
+                ]}
+                selectedValues={[chatSyncEnabled ? 'true' : 'false']}
+                onSelect={handleChatSyncChange}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.permissionButton,
+                  pillShapeStyle,
+                  {borderColor: colors.error},
+                ]}
+                onPress={handleDeleteCloudChats}
+                disabled={isDeletingCloudChats}
+                accessibilityRole="button"
+                testID="preferences-delete-cloud-chats"
+              >
+                {isDeletingCloudChats ? (
+                  <ActivityIndicator size="small" color={colors.error} />
+                ) : (
+                  <Trash2 size={18} color={colors.error} />
+                )}
+                <Text
+                  style={[styles.permissionButtonText, {color: colors.error}]}
+                >
+                  Delete chat history from cloud
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        <View
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <View style={styles.cardHeaderRow}>
             <Text
@@ -745,7 +1020,10 @@ export const PreferencesSettingsScreen: React.FC<
 
               <Text
                 testID="offline-ai-recommended-model"
-                style={[styles.modelPresetName, {color: colors.textPrimary, marginTop: 4}]}
+                style={[
+                  styles.modelPresetName,
+                  {color: colors.textPrimary, marginTop: 4},
+                ]}
               >
                 {recommendedPreset.name}
                 {deviceRecommendation.specs.isDetected
@@ -753,10 +1031,7 @@ export const PreferencesSettingsScreen: React.FC<
                   : ''}
               </Text>
               <Text
-                style={[
-                  styles.modelPresetDesc,
-                  {color: colors.textSecondary},
-                ]}
+                style={[styles.modelPresetDesc, {color: colors.textSecondary}]}
               >
                 {deviceRecommendation.reason}
               </Text>
@@ -780,8 +1055,8 @@ export const PreferencesSettingsScreen: React.FC<
                     Active Recommended Model
                   </Text>
                 </View>
-              ) : deviceRecommendation.recommendedModelId === 'fast_path_only' ||
-                recommendedStatus?.isDownloaded ? (
+              ) : deviceRecommendation.recommendedModelId ===
+                  'fast_path_only' || recommendedStatus?.isDownloaded ? (
                 <TouchableOpacity
                   testID="offline-ai-use-recommended"
                   style={[
@@ -840,8 +1115,7 @@ export const PreferencesSettingsScreen: React.FC<
               const status = modelsStatus[preset.id];
               const isSelected = selectedModelId === preset.id;
               const isFastPath = preset.id === 'fast_path_only';
-              const assessment =
-                deviceRecommendation?.assessments?.[preset.id];
+              const assessment = deviceRecommendation?.assessments?.[preset.id];
               const downloadableId = isFastPath
                 ? null
                 : (preset.id as DownloadableOfflineModelId);
@@ -918,8 +1192,8 @@ export const PreferencesSettingsScreen: React.FC<
                                   assessment.tier === 'unsupported'
                                     ? 'rgba(255, 59, 48, 0.14)'
                                     : assessment.tier === 'tight_fit'
-                                      ? 'rgba(244, 161, 0, 0.18)'
-                                      : 'rgba(150, 150, 150, 0.14)',
+                                    ? 'rgba(244, 161, 0, 0.18)'
+                                    : 'rgba(150, 150, 150, 0.14)',
                               },
                             ]}
                           >
@@ -931,8 +1205,8 @@ export const PreferencesSettingsScreen: React.FC<
                                     assessment.tier === 'unsupported'
                                       ? colors.error
                                       : assessment.tier === 'tight_fit'
-                                        ? colors.warning
-                                        : colors.textSecondary,
+                                      ? colors.warning
+                                      : colors.textSecondary,
                                 },
                               ]}
                             >
@@ -1143,7 +1417,8 @@ export const PreferencesSettingsScreen: React.FC<
                         {
                           borderColor: colors.blue,
                           marginTop: 8,
-                          opacity: isAnotherDownloading || !engineReady ? 0.5 : 1,
+                          opacity:
+                            isAnotherDownloading || !engineReady ? 0.5 : 1,
                         },
                       ]}
                       onPress={() =>
@@ -1328,6 +1603,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'uppercase',
     marginBottom: 9,
+  },
+  textInputField: {
+    fontFamily: Fonts.body,
+    fontSize: 14,
+    borderWidth: 1.5,
+    borderRadius: Layout.borderRadiusButton,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
   chipRow: {
     flexDirection: 'row',

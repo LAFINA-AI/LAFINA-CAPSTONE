@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import {SkillFonts} from '../../../theme/skills';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -15,7 +16,7 @@ import {
   Vibration,
   Animated,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   Bold,
   CheckSquare,
@@ -41,14 +42,14 @@ import {
   Trash,
   X,
 } from 'lucide-react-native';
-import { useTheme } from '../../../contexts/ThemeContext';
-import { CUSTOM_CATEGORY_SWATCHES } from '../../../theme';
-import { getLocalImage } from './NoteCard';
-import { NoteBody } from './NoteBody';
-import { getCategoryColor } from '../../../theme/categoryColors';
-import type { Note } from '../../../../storage';
-import type { NoteFormat } from '../../../../utils';
-import { getActiveLineFormat } from '../../../../utils';
+import {useTheme} from '../../../contexts/ThemeContext';
+import {CUSTOM_CATEGORY_SWATCHES} from '../../../theme';
+import {getLocalImage} from './NoteCard';
+import {NoteBody} from './NoteBody';
+import {getCategoryColor} from '../../../theme/categoryColors';
+import type {Note} from '../../../../storage';
+import type {NoteFormat} from '../../../../utils';
+import {getActiveLineFormat} from '../../../../utils';
 
 interface NoteEditorProps {
   visible: boolean;
@@ -59,7 +60,7 @@ interface NoteEditorProps {
   noteTags: string[];
   isPinned: boolean;
   imageUri: string | null;
-  selection: { start: number; end: number };
+  selection: {start: number; end: number};
   aiLoading: boolean;
   aiActionType: string;
   onTitleChange: (v: string) => void;
@@ -67,7 +68,7 @@ interface NoteEditorProps {
   onCategoryChange: (v: string) => void;
   onPinToggle: () => void;
   onImageUriChange: (v: string | null) => void;
-  onSelectionChange: (s: { start: number; end: number }) => void;
+  onSelectionChange: (s: {start: number; end: number}) => void;
   onClose: () => void;
   onSave: () => void;
   onDelete: () => void;
@@ -99,8 +100,19 @@ interface DraggableCategoryChipProps {
 }
 
 const DraggableCategoryChip: React.FC<DraggableCategoryChipProps> = ({
-  cat, isSelected, isEditing, wiggleStyle, color, borderColor, textColor, activeTextColor,
-  dragVal, onPress, onLongPress, onDragStart, onDragRelease,
+  cat,
+  isSelected,
+  isEditing,
+  wiggleStyle,
+  color,
+  borderColor,
+  textColor,
+  activeTextColor,
+  dragVal,
+  onPress,
+  onLongPress,
+  onDragStart,
+  onDragRelease,
 }) => {
   const isEditingRef = useRef(isEditing);
   isEditingRef.current = isEditing;
@@ -112,13 +124,14 @@ const DraggableCategoryChip: React.FC<DraggableCategoryChipProps> = ({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => isEditingRef.current,
-      onMoveShouldSetPanResponder: (_, gs) => isEditingRef.current && (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3),
-      onPanResponderGrant: (e) => {
+      onMoveShouldSetPanResponder: (_, gs) =>
+        isEditingRef.current && (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3),
+      onPanResponderGrant: e => {
         onDragStartRef.current(e);
       },
       onPanResponderMove: Animated.event(
-        [null, { dx: dragVal.x, dy: dragVal.y }],
-        { useNativeDriver: false }
+        [null, {dx: dragVal.x, dy: dragVal.y}],
+        {useNativeDriver: false},
       ),
       onPanResponderRelease: (_e, gs) => {
         onDragReleaseRef.current(gs.dx, gs.dy);
@@ -126,11 +139,11 @@ const DraggableCategoryChip: React.FC<DraggableCategoryChipProps> = ({
       onPanResponderTerminate: (_e, gs) => {
         onDragReleaseRef.current(gs.dx, gs.dy);
       },
-    })
+    }),
   ).current;
 
   return (
-    <Animated.View 
+    <Animated.View
       style={isEditing ? wiggleStyle : null}
       {...(isEditing ? panResponder.panHandlers : {})}
     >
@@ -138,17 +151,19 @@ const DraggableCategoryChip: React.FC<DraggableCategoryChipProps> = ({
         activeOpacity={isEditing ? 1 : 0.7}
         style={[
           styles.catChipSmall,
-          { borderColor },
-          isSelected && { backgroundColor: color, borderColor: 'transparent' },
+          {borderColor},
+          isSelected && {backgroundColor: color, borderColor: 'transparent'},
         ]}
         onPress={isEditing ? undefined : onPress}
         onLongPress={isEditing ? undefined : onLongPress}
       >
-        <Text style={[
-          { color: textColor },
-          isSelected && { color: activeTextColor, fontWeight: 'bold' },
-          { fontSize: 11 },
-        ]}>
+        <Text
+          style={[
+            {color: textColor},
+            isSelected && {color: activeTextColor, fontWeight: 'bold'},
+            {fontSize: 11},
+          ]}
+        >
           {cat}
         </Text>
       </TouchableOpacity>
@@ -159,49 +174,86 @@ const DraggableCategoryChip: React.FC<DraggableCategoryChipProps> = ({
 const TOOLBAR_BUTTONS: {
   format: NoteFormat;
   label: string;
-  icon: React.ComponentType<{ size: number; color: string }>;
+  icon: React.ComponentType<{size: number; color: string}>;
 }[] = [
-  { format: 'bold', label: 'Bold', icon: Bold },
-  { format: 'italic', label: 'Italic', icon: Italic },
-  { format: 'highlight', label: 'Highlight', icon: Highlighter },
-  { format: 'code', label: 'Code', icon: Code },
-  { format: 'h1', label: 'Heading', icon: Heading1 },
-  { format: 'h2', label: 'Subheading', icon: Heading2 },
-  { format: 'checklist', label: 'Checklist', icon: CheckSquare },
-  { format: 'bullet', label: 'Bullet list', icon: List },
-  { format: 'quote', label: 'Quote', icon: Quote },
-  { format: 'indent', label: 'Indent item', icon: IndentIncrease },
-  { format: 'outdent', label: 'Outdent item', icon: IndentDecrease },
+  {format: 'bold', label: 'Bold', icon: Bold},
+  {format: 'italic', label: 'Italic', icon: Italic},
+  {format: 'highlight', label: 'Highlight', icon: Highlighter},
+  {format: 'code', label: 'Code', icon: Code},
+  {format: 'h1', label: 'Heading', icon: Heading1},
+  {format: 'h2', label: 'Subheading', icon: Heading2},
+  {format: 'checklist', label: 'Checklist', icon: CheckSquare},
+  {format: 'bullet', label: 'Bullet list', icon: List},
+  {format: 'quote', label: 'Quote', icon: Quote},
+  {format: 'indent', label: 'Indent item', icon: IndentIncrease},
+  {format: 'outdent', label: 'Outdent item', icon: IndentDecrease},
 ];
 
 const AI_ACTIONS: {
   action: 'summarize' | 'clean' | 'tasks';
   label: string;
   desc: string;
-  icon: React.ComponentType<{ size: number; color: string }>;
+  icon: React.ComponentType<{size: number; color: string}>;
 }[] = [
-  { action: 'summarize', label: 'Summarize', desc: 'Add bullet takeaways', icon: Sparkles },
-  { action: 'clean', label: 'Clean Up', desc: 'Tidy blank spacing', icon: PenLine },
-  { action: 'tasks', label: 'Extract Tasks', desc: 'Save to To-Do list', icon: ListChecks },
+  {
+    action: 'summarize',
+    label: 'Summarize',
+    desc: 'Add bullet takeaways',
+    icon: Sparkles,
+  },
+  {
+    action: 'clean',
+    label: 'Clean Up',
+    desc: 'Tidy blank spacing',
+    icon: PenLine,
+  },
+  {
+    action: 'tasks',
+    label: 'Extract Tasks',
+    desc: 'Save to To-Do list',
+    icon: ListChecks,
+  },
 ];
 
 export const NoteEditor: React.FC<NoteEditorProps> = ({
-  visible, editingNote, noteTitle, noteBody, noteCategory,
-  isPinned, imageUri, selection, aiLoading, aiActionType,
-  onTitleChange, onBodyChange, onCategoryChange, onPinToggle,
-  onSelectionChange, onClose: _onClose, onSave, onDelete,
-  onFormatting, onToggleChecklist, onAttachImage, onRemoveImage, onAiAction,
-  customCategories = [], onAddCategory, onDeleteCategory, onUpdateCategory,
+  visible,
+  editingNote,
+  noteTitle,
+  noteBody,
+  noteCategory,
+  isPinned,
+  imageUri,
+  selection,
+  aiLoading,
+  aiActionType,
+  onTitleChange,
+  onBodyChange,
+  onCategoryChange,
+  onPinToggle,
+  onSelectionChange,
+  onClose,
+  onSave,
+  onDelete,
+  onFormatting,
+  onToggleChecklist,
+  onAttachImage,
+  onRemoveImage,
+  onAiAction,
+  customCategories = [],
+  onAddCategory,
+  onDeleteCategory,
+  onUpdateCategory,
 }) => {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
     insets.top,
-    Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0,
   );
 
   /** False while writing, true while reading — where to-dos can be ticked. */
-  const [preview, setPreview] = useState(false);
+  const editingNoteId = editingNote?.id ?? null;
+  const [preview, setPreview] = useState(() => Boolean(editingNoteId));
   const [showAiMenu, setShowAiMenu] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
   const bodyInputRef = useRef<TextInput>(null);
@@ -210,12 +262,20 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     if (!visible) {
       setShowFullImage(false);
       setShowAiMenu(false);
+      return;
     }
-  }, [visible]);
+    setPreview(Boolean(editingNoteId));
+  }, [visible, editingNoteId]);
 
   // Controlled selection during programmatic actions, uncontrolled during natural typing
-  const [tempSelection, setTempSelection] = useState<{start: number; end: number} | undefined>(undefined);
-  const pendingProgrammaticSelection = useRef<{start: number; end: number; expiresAt: number} | null>(null);
+  const [tempSelection, setTempSelection] = useState<
+    {start: number; end: number} | undefined
+  >(undefined);
+  const pendingProgrammaticSelection = useRef<{
+    start: number;
+    end: number;
+    expiresAt: number;
+  } | null>(null);
 
   useEffect(() => {
     if (selection) {
@@ -232,7 +292,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [selection]);
 
-  const activeFormats = getActiveLineFormat(noteBody, selection || {start: 0, end: 0});
+  const activeFormats = getActiveLineFormat(
+    noteBody,
+    selection || {start: 0, end: 0},
+  );
 
   const handleFormatPress = (format: NoteFormat) => {
     onFormatting(format);
@@ -241,30 +304,56 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(CUSTOM_CATEGORY_SWATCHES[0]);
+  const [selectedColor, setSelectedColor] = useState(
+    CUSTOM_CATEGORY_SWATCHES[0],
+  );
 
   const [isEditingCats, setIsEditingCats] = useState(false);
   const [draggingCat, setDraggingCat] = useState<string | null>(null);
   const dragVal = useRef(new Animated.ValueXY()).current;
   const wiggleAnim = useRef(new Animated.Value(0)).current;
-  const [clonePos, setClonePos] = useState({ x: 0, y: 0 });
+  const [clonePos, setClonePos] = useState({x: 0, y: 0});
 
-  const [deleteLayout, setDeleteLayout] = useState<{x: number, y: number, w: number, h: number} | null>(null);
-  const [updateLayout, setUpdateLayout] = useState<{x: number, y: number, w: number, h: number} | null>(null);
+  const [deleteLayout, setDeleteLayout] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
+  const [updateLayout, setUpdateLayout] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updatingCatName, setUpdatingCatName] = useState('');
   const [updatedCatName, setUpdatedCatName] = useState('');
-  const [updatedCatColor, setUpdatedCatColor] = useState(CUSTOM_CATEGORY_SWATCHES[0]);
+  const [updatedCatColor, setUpdatedCatColor] = useState(
+    CUSTOM_CATEGORY_SWATCHES[0],
+  );
 
   useEffect(() => {
     if (isEditingCats) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(wiggleAnim, { toValue: 1, duration: 90, useNativeDriver: true }),
-          Animated.timing(wiggleAnim, { toValue: -1, duration: 90, useNativeDriver: true }),
-          Animated.timing(wiggleAnim, { toValue: 0, duration: 90, useNativeDriver: true }),
-        ])
+          Animated.timing(wiggleAnim, {
+            toValue: 1,
+            duration: 90,
+            useNativeDriver: true,
+          }),
+          Animated.timing(wiggleAnim, {
+            toValue: -1,
+            duration: 90,
+            useNativeDriver: true,
+          }),
+          Animated.timing(wiggleAnim, {
+            toValue: 0,
+            duration: 90,
+            useNativeDriver: true,
+          }),
+        ]),
       ).start();
     } else {
       wiggleAnim.setValue(0);
@@ -288,7 +377,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       x: e.nativeEvent.pageX - 40,
       y: e.nativeEvent.pageY - 20,
     });
-    dragVal.setValue({ x: 0, y: 0 });
+    dragVal.setValue({x: 0, y: 0});
     Vibration.vibrate(30);
   };
 
@@ -300,9 +389,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   };
 
   const checkCollision = (px: number, py: number, cat: string) => {
-    if (deleteLayout &&
-        px >= deleteLayout.x && px <= deleteLayout.x + deleteLayout.w &&
-        py >= deleteLayout.y && py <= deleteLayout.y + deleteLayout.h) {
+    if (
+      deleteLayout &&
+      px >= deleteLayout.x &&
+      px <= deleteLayout.x + deleteLayout.w &&
+      py >= deleteLayout.y &&
+      py <= deleteLayout.y + deleteLayout.h
+    ) {
       Vibration.vibrate(50);
       onDeleteCategory(cat);
       if (noteCategory === cat) {
@@ -310,9 +403,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       }
       return;
     }
-    if (updateLayout &&
-        px >= updateLayout.x && px <= updateLayout.x + updateLayout.w &&
-        py >= updateLayout.y && py <= updateLayout.y + updateLayout.h) {
+    if (
+      updateLayout &&
+      px >= updateLayout.x &&
+      px <= updateLayout.x + updateLayout.w &&
+      py >= updateLayout.y &&
+      py <= updateLayout.y + updateLayout.h
+    ) {
       Vibration.vibrate(30);
       setUpdatingCatName(cat);
       setUpdatedCatName(cat);
@@ -323,9 +420,20 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} statusBarTranslucent>
-      <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
-      <View style={[styles.editorContainer, { backgroundColor: colors.background }]}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <StatusBar
+        barStyle={colors.statusBarStyle}
+        backgroundColor={colors.background}
+      />
+      <View
+        style={[styles.editorContainer, {backgroundColor: colors.background}]}
+      >
         {/* Header */}
         <View
           style={[
@@ -336,23 +444,65 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             },
           ]}
         >
-          <TouchableOpacity onPress={onDelete} style={styles.deleteNoteBtn} disabled={!editingNote || isEditingCats}>
-            <Text style={[styles.deleteNoteText, { color: colors.error }, (!editingNote || isEditingCats) && { opacity: 0.3 }]}>Delete</Text>
+          <TouchableOpacity
+            onPress={onDelete}
+            style={styles.deleteNoteBtn}
+            disabled={!editingNote || isEditingCats}
+          >
+            <Text
+              style={[
+                styles.deleteNoteText,
+                {color: colors.error},
+                (!editingNote || isEditingCats) && {opacity: 0.3},
+              ]}
+            >
+              Delete
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.editorHeaderActions}>
             {isEditingCats ? (
-              <TouchableOpacity onPress={() => setIsEditingCats(false)} style={[styles.doneBtn, { backgroundColor: colors.red }]}>
-                <Text style={[styles.doneText, { color: colors.white }]}>Done</Text>
+              <TouchableOpacity
+                onPress={() => setIsEditingCats(false)}
+                style={[styles.doneBtn, {backgroundColor: colors.red}]}
+              >
+                <Text style={[styles.doneText, {color: colors.white}]}>
+                  Done
+                </Text>
               </TouchableOpacity>
             ) : (
               <>
-                <TouchableOpacity onPress={onPinToggle} style={[styles.headerPinBtn, { flexDirection: 'row', alignItems: 'center' }]}>
-                  <Pin size={14} color={isPinned ? colors.red : colors.textSecondary} style={{ marginRight: 4, transform: [{ rotate: isPinned ? '45deg' : '0deg' }] }} />
-                  <Text style={[{ color: isPinned ? colors.red : colors.textSecondary }, { fontSize: 13 }]}>{isPinned ? 'Pinned' : 'Pin'}</Text>
+                <TouchableOpacity
+                  onPress={onPinToggle}
+                  style={[
+                    styles.headerPinBtn,
+                    {flexDirection: 'row', alignItems: 'center'},
+                  ]}
+                >
+                  <Pin
+                    size={14}
+                    color={isPinned ? colors.red : colors.textSecondary}
+                    style={{
+                      marginRight: 4,
+                      transform: [{rotate: isPinned ? '45deg' : '0deg'}],
+                    }}
+                  />
+                  <Text
+                    style={[
+                      {color: isPinned ? colors.red : colors.textSecondary},
+                      {fontSize: 13},
+                    ]}
+                  >
+                    {isPinned ? 'Pinned' : 'Pin'}
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={onSave} style={[styles.doneBtn, { backgroundColor: colors.red }]}>
-                  <Text style={[styles.doneText, { color: colors.white }]}>Done</Text>
+                <TouchableOpacity
+                  onPress={onSave}
+                  style={[styles.doneBtn, {backgroundColor: colors.red}]}
+                >
+                  <Text style={[styles.doneText, {color: colors.white}]}>
+                    Done
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -360,9 +510,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         </View>
 
         {/* Form */}
-        <ScrollView style={styles.editorForm} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.editorForm}
+          keyboardShouldPersistTaps="handled"
+        >
           <TextInput
-            style={[styles.editorTitleInput, { color: colors.textPrimary }]}
+            style={[styles.editorTitleInput, {color: colors.textPrimary}]}
             placeholder="Title"
             placeholderTextColor={colors.textSecondary}
             value={noteTitle}
@@ -370,63 +523,86 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           />
 
           <View style={styles.categoryEditorRow}>
-            <Text style={[styles.categoryLabel, { color: colors.textSecondary }]}>Category:</Text>
+            <Text style={[styles.categoryLabel, {color: colors.textSecondary}]}>
+              Category:
+            </Text>
             {isEditingCats && (
-              <TouchableOpacity onPress={() => setIsEditingCats(false)} style={styles.doneEditingBtn}>
-                <Text style={{ color: colors.blue, fontSize: 11, fontWeight: 'bold' }}>Done</Text>
+              <TouchableOpacity
+                onPress={() => setIsEditingCats(false)}
+                style={styles.doneEditingBtn}
+              >
+                <Text
+                  style={{color: colors.blue, fontSize: 11, fontWeight: 'bold'}}
+                >
+                  Done
+                </Text>
               </TouchableOpacity>
             )}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.catScroll}
+            >
               <TouchableOpacity
                 disabled={isEditingCats}
                 style={[
                   styles.catChipSmall,
-                  { borderColor: colors.border },
+                  {borderColor: colors.border},
                   (!noteCategory || noteCategory === 'None') && {
                     backgroundColor: colors.inputBg,
                     borderColor: colors.textSecondary,
                   },
-                  isEditingCats && { opacity: 0.4 },
+                  isEditingCats && {opacity: 0.4},
                 ]}
                 onPress={() => onCategoryChange('')}
               >
                 <Text
                   style={[
-                    { color: colors.textSecondary },
+                    {color: colors.textSecondary},
                     (!noteCategory || noteCategory === 'None') && {
                       color: colors.textPrimary,
                       fontWeight: 'bold',
                     },
-                    { fontSize: 11 },
+                    {fontSize: 11},
                   ]}
                 >
                   None
                 </Text>
               </TouchableOpacity>
 
-              {['Work', 'Personal', 'Health', 'Learning'].map((cat) => (
+              {['Work', 'Personal', 'Health', 'Learning'].map(cat => (
                 <TouchableOpacity
                   key={cat}
                   disabled={isEditingCats}
                   style={[
                     styles.catChipSmall,
-                    { borderColor: colors.border },
-                    noteCategory === cat && { backgroundColor: getCategoryColor(cat), borderColor: 'transparent' },
-                    isEditingCats && { opacity: 0.4 },
+                    {borderColor: colors.border},
+                    noteCategory === cat && {
+                      backgroundColor: getCategoryColor(cat),
+                      borderColor: 'transparent',
+                    },
+                    isEditingCats && {opacity: 0.4},
                   ]}
-                  onPress={() => onCategoryChange(noteCategory === cat ? '' : cat)}
+                  onPress={() =>
+                    onCategoryChange(noteCategory === cat ? '' : cat)
+                  }
                 >
-                  <Text style={[
-                    { color: colors.textSecondary },
-                    noteCategory === cat && { color: colors.white, fontWeight: 'bold' },
-                    { fontSize: 11 },
-                  ]}>
+                  <Text
+                    style={[
+                      {color: colors.textSecondary},
+                      noteCategory === cat && {
+                        color: colors.white,
+                        fontWeight: 'bold',
+                      },
+                      {fontSize: 11},
+                    ]}
+                  >
                     {cat}
                   </Text>
                 </TouchableOpacity>
               ))}
 
-              {customCategories.map((cat) => (
+              {customCategories.map(cat => (
                 <DraggableCategoryChip
                   key={cat}
                   cat={cat}
@@ -438,19 +614,21 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                   textColor={colors.textSecondary}
                   activeTextColor={colors.white}
                   dragVal={dragVal}
-                  onPress={() => onCategoryChange(noteCategory === cat ? '' : cat)}
+                  onPress={() =>
+                    onCategoryChange(noteCategory === cat ? '' : cat)
+                  }
                   onLongPress={() => {
                     Vibration.vibrate(50);
                     setIsEditingCats(true);
                   }}
-                  onDragStart={(e) => handleDragStart(e, cat)}
+                  onDragStart={e => handleDragStart(e, cat)}
                   onDragRelease={(dx, dy) => handleDragRelease(cat, dx, dy)}
                 />
               ))}
 
               {!isEditingCats && (
                 <TouchableOpacity
-                  style={[styles.addCatBtn, { borderColor: colors.border }]}
+                  style={[styles.addCatBtn, {borderColor: colors.border}]}
                   onPress={() => setShowAddModal(true)}
                 >
                   <Plus size={14} color={colors.textSecondary} />
@@ -462,39 +640,77 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           {isEditingCats && (
             <View style={styles.targetsRow}>
               <View
-                style={[styles.targetBox, styles.deleteTarget, { borderColor: colors.error }]}
-                onLayout={(e) => {
+                style={[
+                  styles.targetBox,
+                  styles.deleteTarget,
+                  {borderColor: colors.error},
+                ]}
+                onLayout={e => {
                   e.currentTarget.measureInWindow((x, y, w, h) => {
-                    setDeleteLayout({ x, y, w, h });
+                    setDeleteLayout({x, y, w, h});
                   });
                 }}
               >
-                <Trash size={20} color={colors.error} style={{ marginBottom: 4 }} />
-                <Text style={[styles.targetText, { color: colors.error }]}>Drag here to delete</Text>
+                <Trash
+                  size={20}
+                  color={colors.error}
+                  style={{marginBottom: 4}}
+                />
+                <Text style={[styles.targetText, {color: colors.error}]}>
+                  Drag here to delete
+                </Text>
               </View>
 
               <View
-                style={[styles.targetBox, styles.updateTarget, { borderColor: colors.blue }]}
-                onLayout={(e) => {
+                style={[
+                  styles.targetBox,
+                  styles.updateTarget,
+                  {borderColor: colors.blue},
+                ]}
+                onLayout={e => {
                   e.currentTarget.measureInWindow((x, y, w, h) => {
-                    setUpdateLayout({ x, y, w, h });
+                    setUpdateLayout({x, y, w, h});
                   });
                 }}
               >
-                <Edit size={20} color={colors.blue} style={{ marginBottom: 4 }} />
-                <Text style={[styles.targetText, { color: colors.blue }]}>Drag here to update</Text>
+                <Edit size={20} color={colors.blue} style={{marginBottom: 4}} />
+                <Text style={[styles.targetText, {color: colors.blue}]}>
+                  Drag here to update
+                </Text>
               </View>
             </View>
           )}
 
           {/* Add Custom Category Modal */}
-          <Modal visible={showAddModal} transparent={true} animationType="fade">
+          <Modal
+            visible={showAddModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => {
+              setShowAddModal(false);
+              setNewCatName('');
+            }}
+          >
             <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Add Category</Text>
-                
+              <View
+                style={[
+                  styles.modalContent,
+                  {backgroundColor: colors.cardBg, borderColor: colors.border},
+                ]}
+              >
+                <Text style={[styles.modalTitle, {color: colors.textPrimary}]}>
+                  Add Category
+                </Text>
+
                 <TextInput
-                  style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                  style={[
+                    styles.modalInput,
+                    {
+                      color: colors.textPrimary,
+                      borderColor: colors.border,
+                      backgroundColor: colors.inputBg,
+                    },
+                  ]}
                   placeholder="Category Name"
                   placeholderTextColor={colors.textSecondary}
                   value={newCatName}
@@ -502,15 +718,22 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                   autoFocus
                 />
 
-                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Select Color:</Text>
+                <Text
+                  style={[styles.modalSubtitle, {color: colors.textSecondary}]}
+                >
+                  Select Color:
+                </Text>
                 <View style={styles.colorPaletteRow}>
-                  {CUSTOM_CATEGORY_SWATCHES.map((color) => (
+                  {CUSTOM_CATEGORY_SWATCHES.map(color => (
                     <TouchableOpacity
                       key={color}
                       style={[
                         styles.colorCircle,
-                        { backgroundColor: color },
-                        selectedColor === color && [styles.activeColorCircle, { borderColor: colors.textPrimary }],
+                        {backgroundColor: color},
+                        selectedColor === color && [
+                          styles.activeColorCircle,
+                          {borderColor: colors.textPrimary},
+                        ],
                       ]}
                       onPress={() => setSelectedColor(color)}
                     />
@@ -523,11 +746,15 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                       setShowAddModal(false);
                       setNewCatName('');
                     }}
-                    style={[styles.modalBtn, { marginRight: 8 }]}
+                    style={[styles.modalBtn, {marginRight: 8}]}
                   >
-                    <Text style={{ color: colors.textSecondary, fontWeight: 'bold' }}>Cancel</Text>
+                    <Text
+                      style={{color: colors.textSecondary, fontWeight: 'bold'}}
+                    >
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     onPress={() => {
                       if (newCatName.trim()) {
@@ -537,9 +764,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                         setShowAddModal(false);
                       }
                     }}
-                    style={[styles.modalBtn, { backgroundColor: colors.blue }]}
+                    style={[styles.modalBtn, {backgroundColor: colors.blue}]}
                   >
-                    <Text style={{ color: colors.white, fontWeight: 'bold' }}>Add</Text>
+                    <Text style={{color: colors.white, fontWeight: 'bold'}}>
+                      Add
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -547,13 +776,35 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           </Modal>
 
           {/* Update Custom Category Modal */}
-          <Modal visible={showUpdateModal} transparent={true} animationType="fade">
+          <Modal
+            visible={showUpdateModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => {
+              setShowUpdateModal(false);
+              setUpdatedCatName('');
+            }}
+          >
             <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Update Category</Text>
-                
+              <View
+                style={[
+                  styles.modalContent,
+                  {backgroundColor: colors.cardBg, borderColor: colors.border},
+                ]}
+              >
+                <Text style={[styles.modalTitle, {color: colors.textPrimary}]}>
+                  Update Category
+                </Text>
+
                 <TextInput
-                  style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                  style={[
+                    styles.modalInput,
+                    {
+                      color: colors.textPrimary,
+                      borderColor: colors.border,
+                      backgroundColor: colors.inputBg,
+                    },
+                  ]}
                   placeholder="Category Name"
                   placeholderTextColor={colors.textSecondary}
                   value={updatedCatName}
@@ -561,15 +812,22 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                   autoFocus
                 />
 
-                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Select Color:</Text>
+                <Text
+                  style={[styles.modalSubtitle, {color: colors.textSecondary}]}
+                >
+                  Select Color:
+                </Text>
                 <View style={styles.colorPaletteRow}>
-                  {CUSTOM_CATEGORY_SWATCHES.map((color) => (
+                  {CUSTOM_CATEGORY_SWATCHES.map(color => (
                     <TouchableOpacity
                       key={color}
                       style={[
                         styles.colorCircle,
-                        { backgroundColor: color },
-                        updatedCatColor === color && [styles.activeColorCircle, { borderColor: colors.textPrimary }],
+                        {backgroundColor: color},
+                        updatedCatColor === color && [
+                          styles.activeColorCircle,
+                          {borderColor: colors.textPrimary},
+                        ],
                       ]}
                       onPress={() => setUpdatedCatColor(color)}
                     />
@@ -582,22 +840,32 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                       setShowUpdateModal(false);
                       setUpdatedCatName('');
                     }}
-                    style={[styles.modalBtn, { marginRight: 8 }]}
+                    style={[styles.modalBtn, {marginRight: 8}]}
                   >
-                    <Text style={{ color: colors.textSecondary, fontWeight: 'bold' }}>Cancel</Text>
+                    <Text
+                      style={{color: colors.textSecondary, fontWeight: 'bold'}}
+                    >
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     onPress={() => {
                       if (updatedCatName.trim()) {
-                        onUpdateCategory(updatingCatName, updatedCatName.trim(), updatedCatColor);
+                        onUpdateCategory(
+                          updatingCatName,
+                          updatedCatName.trim(),
+                          updatedCatColor,
+                        );
                         setShowUpdateModal(false);
                         setUpdatedCatName('');
                       }
                     }}
-                    style={[styles.modalBtn, { backgroundColor: colors.blue }]}
+                    style={[styles.modalBtn, {backgroundColor: colors.blue}]}
                   >
-                    <Text style={{ color: colors.white, fontWeight: 'bold' }}>Save</Text>
+                    <Text style={{color: colors.white, fontWeight: 'bold'}}>
+                      Save
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -605,7 +873,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           </Modal>
 
           {imageUri && (
-            <View style={[styles.editorImageContainer, { borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.editorImageContainer,
+                {borderColor: colors.border},
+              ]}
+            >
               <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => setShowFullImage(true)}
@@ -613,9 +886,17 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel="View full image"
               >
-                <Image source={getLocalImage(imageUri)} style={styles.editorImage} resizeMode="cover" />
+                <Image
+                  source={getLocalImage(imageUri)}
+                  style={styles.editorImage}
+                  resizeMode="cover"
+                />
                 <View style={styles.viewFullBadge}>
-                  <Maximize2 size={12} color={colors.white} style={{ marginRight: 4 }} />
+                  <Maximize2
+                    size={12}
+                    color={colors.white}
+                    style={{marginRight: 4}}
+                  />
                   <Text style={styles.viewFullBadgeText}>View Full</Text>
                 </View>
               </TouchableOpacity>
@@ -632,9 +913,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           )}
 
           {/* Toolbar at top */}
-          <View style={[styles.editorToolbar, { borderColor: colors.border }]}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always">
-              {TOOLBAR_BUTTONS.map(({ format, label, icon: Icon }) => {
+          <View style={[styles.editorToolbar, {borderColor: colors.border}]}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+            >
+              {TOOLBAR_BUTTONS.map(({format, label, icon: Icon}) => {
                 const isActive =
                   (format === 'bullet' && activeFormats.isBullet) ||
                   (format === 'checklist' && activeFormats.isChecklist) ||
@@ -648,16 +933,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                     style={[
                       styles.toolbarBtn,
                       {
-                        backgroundColor: isActive
-                          ? colors.red
-                          : colors.inputBg,
+                        backgroundColor: isActive ? colors.red : colors.inputBg,
                       },
                     ]}
                     activeOpacity={0.7}
                     disabled={preview}
                     accessibilityRole="button"
                     accessibilityLabel={label}
-                    accessibilityState={{ disabled: preview }}
+                    accessibilityState={{disabled: preview}}
                   >
                     <Icon
                       size={16}
@@ -665,8 +948,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                         preview
                           ? colors.textMuted
                           : isActive
-                            ? colors.white
-                            : colors.textPrimary
+                          ? colors.white
+                          : colors.textPrimary
                       }
                     />
                   </TouchableOpacity>
@@ -676,9 +959,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 onPress={imageUri ? onRemoveImage : onAttachImage}
                 style={[
                   styles.toolbarBtn,
-                  { backgroundColor: colors.inputBg },
+                  {backgroundColor: colors.inputBg},
                   styles.imageToolbarBtn,
-                  imageUri && { backgroundColor: colors.red },
+                  imageUri && {backgroundColor: colors.red},
                 ]}
                 activeOpacity={0.7}
                 accessibilityRole="button"
@@ -687,13 +970,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 <ImageIcon
                   size={16}
                   color={imageUri ? colors.white : colors.textPrimary}
-                  style={{ marginRight: 4 }}
+                  style={{marginRight: 4}}
                 />
                 <Text
                   style={[
                     styles.imageToolbarText,
-                    { color: colors.textPrimary },
-                    imageUri && { color: colors.white, fontWeight: 'bold' },
+                    {color: colors.textPrimary},
+                    imageUri && {color: colors.white, fontWeight: 'bold'},
                   ]}
                 >
                   {imageUri ? 'Remove Image' : 'Image'}
@@ -705,7 +988,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                   styles.toolbarBtn,
                   styles.aiToolbarBtn,
                   {
-                    backgroundColor: showAiMenu ? colors.cardBg : colors.inputBg,
+                    backgroundColor: showAiMenu
+                      ? colors.cardBg
+                      : colors.inputBg,
                     borderColor: showAiMenu ? colors.red : 'transparent',
                     borderWidth: showAiMenu ? 1 : 0,
                   },
@@ -715,8 +1000,16 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel="AI Assist"
               >
-                <Sparkles size={15} color={colors.red} style={{ marginRight: 4 }} />
-                <Text style={[styles.aiToolbarText, { color: colors.textPrimary }]}>AI Assist</Text>
+                <Sparkles
+                  size={15}
+                  color={colors.red}
+                  style={{marginRight: 4}}
+                />
+                <Text
+                  style={[styles.aiToolbarText, {color: colors.textPrimary}]}
+                >
+                  AI Assist
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -726,13 +1019,17 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             <View
               style={[
                 styles.aiMenuCard,
-                { backgroundColor: colors.cardBg, borderColor: colors.border },
+                {backgroundColor: colors.cardBg, borderColor: colors.border},
               ]}
             >
               <View style={styles.aiMenuHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View
+                  style={{flexDirection: 'row', alignItems: 'center', gap: 6}}
+                >
                   <Sparkles size={14} color={colors.red} />
-                  <Text style={[styles.aiMenuTitle, { color: colors.textPrimary }]}>
+                  <Text
+                    style={[styles.aiMenuTitle, {color: colors.textPrimary}]}
+                  >
                     AI Note Assistant
                   </Text>
                 </View>
@@ -745,7 +1042,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
               </View>
 
               <View style={styles.aiMenuActionsRow}>
-                {AI_ACTIONS.map(({ action, label, desc, icon: Icon }) => (
+                {AI_ACTIONS.map(({action, label, desc, icon: Icon}) => (
                   <TouchableOpacity
                     key={action}
                     onPress={() => {
@@ -766,18 +1063,24 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                     <View
                       style={[
                         styles.aiActionIconWrap,
-                        { backgroundColor: colors.cardBg },
+                        {backgroundColor: colors.cardBg},
                       ]}
                     >
                       <Icon size={16} color={colors.red} />
                     </View>
                     <Text
-                      style={[styles.aiActionTitle, { color: colors.textPrimary }]}
+                      style={[
+                        styles.aiActionTitle,
+                        {color: colors.textPrimary},
+                      ]}
                     >
                       {label}
                     </Text>
                     <Text
-                      style={[styles.aiActionDesc, { color: colors.textSecondary }]}
+                      style={[
+                        styles.aiActionDesc,
+                        {color: colors.textSecondary},
+                      ]}
                     >
                       {desc}
                     </Text>
@@ -788,29 +1091,39 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           )}
 
           {/* Mode Switcher */}
-          <View style={[styles.modeRow, { borderColor: colors.border }]}>
-            {([false, true] as const).map((wantsPreview) => (
+          <View style={[styles.modeRow, {borderColor: colors.border}]}>
+            {([false, true] as const).map(wantsPreview => (
               <TouchableOpacity
                 key={wantsPreview ? 'preview' : 'write'}
+                testID={wantsPreview ? 'note-mode-preview' : 'note-mode-write'}
                 onPress={() => setPreview(wantsPreview)}
                 style={[
                   styles.modeBtn,
-                  preview === wantsPreview && { backgroundColor: colors.blue },
+                  preview === wantsPreview && {backgroundColor: colors.blue},
                 ]}
                 activeOpacity={0.8}
                 accessibilityRole="tab"
-                accessibilityState={{ selected: preview === wantsPreview }}
+                accessibilityState={{selected: preview === wantsPreview}}
               >
                 {wantsPreview ? (
-                  <Eye size={13} color={preview ? colors.white : colors.textSecondary} />
+                  <Eye
+                    size={13}
+                    color={preview ? colors.white : colors.textSecondary}
+                  />
                 ) : (
-                  <Pencil size={13} color={preview ? colors.textSecondary : colors.white} />
+                  <Pencil
+                    size={13}
+                    color={preview ? colors.textSecondary : colors.white}
+                  />
                 )}
                 <Text
                   style={[
                     styles.modeText,
-                    { color: colors.textSecondary },
-                    preview === wantsPreview && { color: colors.white, fontWeight: 'bold' },
+                    {color: colors.textSecondary},
+                    preview === wantsPreview && {
+                      color: colors.white,
+                      fontWeight: 'bold',
+                    },
                   ]}
                 >
                   {wantsPreview ? 'Preview' : 'Write'}
@@ -826,18 +1139,22 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           ) : (
             <TextInput
               ref={bodyInputRef}
-              style={[styles.editorBodyInput, { color: colors.textPrimary }]}
+              style={[styles.editorBodyInput, {color: colors.textPrimary}]}
               placeholder="Start writing..."
               placeholderTextColor={colors.textSecondary}
               multiline
               value={noteBody}
               onChangeText={onBodyChange}
               selection={tempSelection}
-              onSelectionChange={(e) => {
+              onSelectionChange={e => {
                 const sel = e.nativeEvent.selection;
                 if (pendingProgrammaticSelection.current) {
-                  if (Date.now() < pendingProgrammaticSelection.current.expiresAt) {
-                    if (sel.start < pendingProgrammaticSelection.current.start) {
+                  if (
+                    Date.now() < pendingProgrammaticSelection.current.expiresAt
+                  ) {
+                    if (
+                      sel.start < pendingProgrammaticSelection.current.start
+                    ) {
                       return; // ignore stale in-flight event
                     }
                   }
@@ -851,13 +1168,18 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
         {/* AI Loader */}
         {aiLoading && (
-          <View style={[styles.aiLoadingOverlay, { backgroundColor: 'rgba(18, 18, 18, 0.85)' }]}>
+          <View
+            style={[
+              styles.aiLoadingOverlay,
+              {backgroundColor: 'rgba(18, 18, 18, 0.85)'},
+            ]}
+          >
             <ActivityIndicator size="large" color={colors.yellow} />
-            <Text style={[styles.aiLoadingText, { color: colors.textPrimary }]}>AI is performing {aiActionType}...</Text>
+            <Text style={[styles.aiLoadingText, {color: colors.textPrimary}]}>
+              AI is performing {aiActionType}...
+            </Text>
           </View>
         )}
-
-
 
         {draggingCat && (
           <Animated.View
@@ -867,10 +1189,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 backgroundColor: getCategoryColor(draggingCat),
                 left: clonePos.x,
                 top: clonePos.y,
-                transform: [
-                  { translateX: dragVal.x },
-                  { translateY: dragVal.y },
-                ],
+                transform: [{translateX: dragVal.x}, {translateY: dragVal.y}],
               },
             ]}
             pointerEvents="none"
@@ -891,7 +1210,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             <View style={styles.fullImageBackdrop}>
               <StatusBar barStyle="light-content" backgroundColor="#000000" />
               <TouchableOpacity
-                style={[styles.fullImageCloseBtn, { top: topInset + 10 }]}
+                style={[styles.fullImageCloseBtn, {top: topInset + 10}]}
                 onPress={() => setShowFullImage(false)}
                 activeOpacity={0.8}
                 accessibilityRole="button"
@@ -910,7 +1229,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                   style={styles.fullScreenImage}
                   resizeMode="contain"
                 />
-                <Text style={styles.fullImageDismissHint}>Tap anywhere to close</Text>
+                <Text style={styles.fullImageDismissHint}>
+                  Tap anywhere to close
+                </Text>
               </TouchableOpacity>
             </View>
           </Modal>
@@ -921,29 +1242,83 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 };
 
 const styles = StyleSheet.create({
-  editorContainer: { flex: 1 },
-  editorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1 },
-  deleteNoteBtn: { paddingVertical: 6 },
-  deleteNoteText: { fontWeight: 'bold' },
-  editorHeaderActions: { flexDirection: 'row', alignItems: 'center' },
-  headerPinBtn: { marginRight: 16, paddingVertical: 6 },
-  doneBtn: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 12 },
-  doneText: { fontWeight: 'bold' },
-  editorForm: { flex: 1, padding: 16 },
-  editorTitleInput: { fontFamily: 'sans-serif-medium', fontSize: 22, fontWeight: 'bold', marginBottom: 12, paddingVertical: 0 },
-  categoryEditorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  categoryLabel: { fontSize: 12, marginRight: 8 },
-  catChipSmall: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, marginRight: 4 },
-  editorToolbar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 6, marginVertical: 4 },
-  toolbarBtn: { padding: 8, marginRight: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  modeRow: { flexDirection: 'row', alignSelf: 'flex-start', borderWidth: 1, borderRadius: 10, overflow: 'hidden', marginTop: 8, marginBottom: 10 },
-  modeBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6 },
-  modeText: { fontSize: 12, fontFamily: 'sans-serif', marginLeft: 5 },
-  editorPreview: { minHeight: 350, paddingBottom: 8 },
-  imageToolbarBtn: { flexDirection: 'row', paddingHorizontal: 12 },
-  imageToolbarText: { fontSize: 12, fontFamily: 'sans-serif' },
-  aiToolbarBtn: { flexDirection: 'row', paddingHorizontal: 12 },
-  aiToolbarText: { fontSize: 12, fontFamily: 'sans-serif', fontWeight: 'bold' },
+  editorContainer: {flex: 1},
+  editorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  deleteNoteBtn: {paddingVertical: 6},
+  deleteNoteText: {fontWeight: 'bold'},
+  editorHeaderActions: {flexDirection: 'row', alignItems: 'center'},
+  headerPinBtn: {marginRight: 16, paddingVertical: 6},
+  doneBtn: {paddingVertical: 6, paddingHorizontal: 16, borderRadius: 12},
+  doneText: {fontWeight: 'bold'},
+  editorForm: {flex: 1, padding: 16},
+  editorTitleInput: {
+    fontFamily: SkillFonts.semibold,
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    paddingVertical: 0,
+  },
+  categoryEditorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categoryLabel: {fontSize: 12, marginRight: 8},
+  catChipSmall: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginRight: 4,
+  },
+  editorToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: 6,
+    marginVertical: 4,
+  },
+  toolbarBtn: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modeRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  modeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  modeText: {fontSize: 12, fontFamily: SkillFonts.body, marginLeft: 5},
+  editorPreview: {minHeight: 350, paddingBottom: 8},
+  imageToolbarBtn: {flexDirection: 'row', paddingHorizontal: 12},
+  imageToolbarText: {fontSize: 12, fontFamily: SkillFonts.body},
+  aiToolbarBtn: {flexDirection: 'row', paddingHorizontal: 12},
+  aiToolbarText: {
+    fontSize: 12,
+    fontFamily: SkillFonts.body,
+    fontWeight: 'bold',
+  },
   aiMenuCard: {
     borderRadius: 14,
     borderWidth: 1,
@@ -960,7 +1335,7 @@ const styles = StyleSheet.create({
   aiMenuTitle: {
     fontSize: 13,
     fontWeight: 'bold',
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
   },
   aiMenuCloseBtn: {
     padding: 4,
@@ -987,19 +1362,27 @@ const styles = StyleSheet.create({
   aiActionTitle: {
     fontSize: 11,
     fontWeight: 'bold',
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
     marginBottom: 2,
     textAlign: 'center',
   },
   aiActionDesc: {
     fontSize: 9,
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
     textAlign: 'center',
     lineHeight: 12,
   },
-  editorImageContainer: { position: 'relative', marginVertical: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, height: 180, width: '100%' },
-  editorImageTouchable: { width: '100%', height: '100%' },
-  editorImage: { width: '100%', height: '100%' },
+  editorImageContainer: {
+    position: 'relative',
+    marginVertical: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    height: 180,
+    width: '100%',
+  },
+  editorImageTouchable: {width: '100%', height: '100%'},
+  editorImage: {width: '100%', height: '100%'},
   viewFullBadge: {
     position: 'absolute',
     bottom: 8,
@@ -1015,9 +1398,19 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
   },
-  removeImageOverlayBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
+  removeImageOverlayBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   fullImageBackdrop: {
     flex: 1,
     backgroundColor: '#000000',
@@ -1049,14 +1442,43 @@ const styles = StyleSheet.create({
   fullImageDismissHint: {
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 12,
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
     marginTop: 12,
   },
-  editorBodyInput: { fontFamily: 'sans-serif', fontSize: 15, lineHeight: 22, minHeight: 350, flex: 1, textAlignVertical: 'top', paddingVertical: 4 },
-  aiLoadingOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center', alignItems: 'center', zIndex: 100 },
-  aiLoadingText: { marginTop: 12, fontWeight: 'bold', fontFamily: 'sans-serif' },
-  catScroll: { flexDirection: 'row', alignItems: 'center', paddingRight: 16 },
-  addCatBtn: { padding: 4, borderRadius: 8, borderWidth: 1, justifyContent: 'center', alignItems: 'center', minWidth: 28, height: 22 },
+  editorBodyInput: {
+    fontFamily: SkillFonts.body,
+    fontSize: 15,
+    lineHeight: 22,
+    minHeight: 350,
+    flex: 1,
+    textAlignVertical: 'top',
+    paddingVertical: 4,
+  },
+  aiLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  aiLoadingText: {
+    marginTop: 12,
+    fontWeight: 'bold',
+    fontFamily: SkillFonts.body,
+  },
+  catScroll: {flexDirection: 'row', alignItems: 'center', paddingRight: 16},
+  addCatBtn: {
+    padding: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 28,
+    height: 22,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1073,14 +1495,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    fontFamily: 'sans-serif-medium',
+    fontFamily: SkillFonts.semibold,
     marginBottom: 16,
   },
   modalSubtitle: {
@@ -1088,7 +1510,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 12,
     marginBottom: 8,
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
   },
   modalInput: {
     width: '100%',
@@ -1097,7 +1519,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
   },
   colorPaletteRow: {
     flexDirection: 'row',
@@ -1118,7 +1540,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.3,
     shadowRadius: 1.5,
   },
@@ -1165,7 +1587,7 @@ const styles = StyleSheet.create({
   targetText: {
     fontSize: 11,
     fontWeight: 'bold',
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
   },
   dragClone: {
     position: 'absolute',
@@ -1174,7 +1596,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.3,
     shadowRadius: 3,
     zIndex: 9999,
@@ -1183,6 +1605,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 11,
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
   },
 });

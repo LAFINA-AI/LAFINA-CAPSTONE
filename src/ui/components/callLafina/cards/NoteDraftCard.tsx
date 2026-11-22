@@ -7,24 +7,21 @@
  */
 
 import React from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {FileText, CircleAlert} from 'lucide-react-native';
 import {Fonts, FontSize, Layout, Spacing} from '../../../theme';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
 import type {CommandProposal} from '../../../../ai/nlu/commandReview';
+import {ConfirmSaveButton} from './ConfirmSaveButton';
 
 export interface NoteDraftCardProps {
   proposal: CommandProposal;
   expired?: boolean;
   busy?: boolean;
+  /** The card was just saved: it shows "Saved" while it leaves. */
+  saved?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   onDismiss: () => void;
@@ -35,6 +32,7 @@ export const NoteDraftCard: React.FC<NoteDraftCardProps> = ({
   proposal,
   expired = false,
   busy = false,
+  saved = false,
   onConfirm,
   onCancel,
   onDismiss,
@@ -128,50 +126,42 @@ export const NoteDraftCard: React.FC<NoteDraftCardProps> = ({
               accessibilityLabel="Dismiss expired review"
               testID={`${testIDPrefix}-dismiss`}
             >
-              <Text style={[styles.buttonText, themed.primaryText]}>Dismiss</Text>
+              <Text style={[styles.buttonText, themed.primaryText]}>
+                Dismiss
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       ) : (
         <View style={styles.footerContainer}>
           <Text style={[styles.footnote, themed.secondaryText]}>
-            Nothing is saved until you confirm.
+            {saved ? 'Saved.' : 'Nothing is saved until you confirm.'}
           </Text>
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[styles.button, themed.secondaryButton]}
               onPress={onCancel}
-              disabled={busy}
+              disabled={busy || saved}
               accessibilityRole="button"
               accessibilityLabel={`Cancel: ${actionText}`}
-              accessibilityState={{disabled: busy}}
+              accessibilityState={{disabled: busy || saved}}
               testID={`${testIDPrefix}-cancel`}
             >
-              <Text style={[styles.buttonText, themed.primaryText]}>Cancel</Text>
+              <Text style={[styles.buttonText, themed.primaryText]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                {backgroundColor: accent},
-                busy && styles.buttonBusy,
-              ]}
+            <ConfirmSaveButton
+              busy={busy}
+              saved={saved}
+              color={accent}
               onPress={onConfirm}
-              disabled={busy}
-              accessibilityRole="button"
               accessibilityLabel={`Confirm: ${actionText}`}
-              accessibilityState={{disabled: busy, busy}}
               testID={`${testIDPrefix}-confirm`}
-            >
-              {busy ? (
-                <ActivityIndicator size="small" color={colors.textOnPrimary} />
-              ) : (
-                <Text
-                  style={[styles.buttonText, {color: colors.textOnPrimary}]}
-                >
-                  Confirm
-                </Text>
-              )}
-            </TouchableOpacity>
+              buttonStyle={styles.button}
+              busyStyle={styles.buttonBusy}
+              textStyle={styles.buttonText}
+            />
           </View>
         </View>
       )}
@@ -283,4 +273,3 @@ const styles = StyleSheet.create({
     fontSize: FontSize.body,
   },
 });
-

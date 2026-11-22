@@ -16,6 +16,7 @@ import {localSettingsStore} from '../../../storage/localSettingsStore';
 import {noteSessionChange} from '../../../storage/sessionEpoch';
 import {calendarVisibilityStore} from '../../../storage/calendarVisibilityStore';
 import {importedBatchesStore} from '../../../storage/importedBatchesStore';
+import {onboardingProgressStore} from '../../../storage/onboardingProgressStore';
 import {
   reconcileReminderDelivery,
   reconcileAlarms,
@@ -953,6 +954,7 @@ export const developerTestService = {
             LOCAL_BACKEND_URL_KEY,
           ],
         );
+        onboardingProgressStore.markResetPending(tx);
       });
 
       db.invalidateData([

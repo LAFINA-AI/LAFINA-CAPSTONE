@@ -107,6 +107,44 @@ class LafinaAlarmModule(private val reactContext: ReactApplicationContext) :
     }
   }
 
+  /** Rings a test alarm in [seconds] using an explicit tone URI (or null for default). */
+  @ReactMethod
+  fun testAlarmWithSound(seconds: Int, soundUri: String?, promise: Promise) {
+    try {
+      promise.resolve(LafinaAlarms.bookTest(reactContext, seconds, soundUri).toDouble())
+    } catch (e: Exception) {
+      promise.reject("ALARM_TEST_FAILED", e.message, e)
+    }
+  }
+
+  @ReactMethod
+  fun setAlarmAudioPreferences(options: ReadableMap, promise: Promise) {
+    try {
+      val defaultSoundUri =
+        if (options.hasKey("defaultAlarmSoundUri") && !options.isNull("defaultAlarmSoundUri")) {
+          options.getString("defaultAlarmSoundUri")
+        } else {
+          null
+        }
+      val pattern =
+        if (options.hasKey("alarmVibrationPattern") && !options.isNull("alarmVibrationPattern")) {
+          options.getString("alarmVibrationPattern")
+        } else {
+          AlertPreferencesContract.PATTERN_STANDARD
+        }
+      val rampSec =
+        if (options.hasKey("alarmVolumeRampSec") && !options.isNull("alarmVolumeRampSec")) {
+          options.getInt("alarmVolumeRampSec")
+        } else {
+          30
+        }
+      AlertPreferencesStoreNative.updateAlarmAudio(reactContext, defaultSoundUri, pattern, rampSec)
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("ALARM_PREFS_FAILED", e.message, e)
+    }
+  }
+
   @ReactMethod
   fun stopRinging(promise: Promise) {
     LafinaAlarmService.finish(reactContext, AlarmEvent.DISMISSED)

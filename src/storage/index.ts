@@ -122,6 +122,26 @@ export type {
   SystemRole,
   SubscriptionPlan,
 } from './syncTypes';
+export {
+  ALERT_PREFERENCES_KEY,
+  alertPreferencesStore,
+  DEFAULT_ALERT_PREFERENCES,
+  DEFAULT_CALLER_SUBTITLE,
+  MAX_CALLER_SUBTITLE_LENGTH,
+  onAlertPreferencesChanged,
+  sanitizeToneUri,
+} from './alertPreferencesStore';
+export type {
+  AlarmVolumeRampSec,
+  AlertPreferences,
+  AlertPreferencesPatch,
+  CallAnswerMode,
+  CallGreetingStyle,
+  CallRingTimeoutSec,
+  LockScreenPrivacy,
+  NotificationSnoozeMinutes,
+  VibrationPattern,
+} from './alertPreferencesStore';
 export {localSettingsStore} from './localSettingsStore';
 export {
   DEFAULT_UI_VARIANT,
@@ -210,6 +230,17 @@ export type {
   HandbookPack,
   HandbookPackChunk,
 } from './localHandbookStore';
+export {materialStore} from './materialStore';
+export type {
+  MaterialChunkHit,
+  MaterialChunkInput,
+  MaterialCitation,
+  MaterialFileKind,
+  MaterialOutlineEntry,
+  MaterialQaMessage,
+  MaterialSection,
+  UserMaterialRecord,
+} from './materialStore';
 export {
   completionRate,
   onTimeRate,

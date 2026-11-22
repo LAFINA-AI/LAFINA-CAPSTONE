@@ -21,6 +21,8 @@ export interface CallLafinaScreenProps {
   /** A card needs the student's answer; the app un-minimizes the call. */
   onAttention?: () => void;
   deps?: (userId: string) => VoiceConversationDeps;
+  /** Minimized: the call keeps running, its animations and clock pause. */
+  paused?: boolean;
 }
 
 /**
@@ -29,14 +31,15 @@ export interface CallLafinaScreenProps {
  * Provides a distraction-free, accessible call interface for natural spoken turn-taking,
  * live waveforms, real-time timer, in-call action card confirmation, and controls.
  */
-export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
+export const CallLafinaScreen = React.memo(function CallLafinaScreenView({
   userId,
   onClose,
   onMinimize,
   onAttention,
   onNavigate,
   deps,
-}) => {
+  paused = false,
+}: CallLafinaScreenProps) {
   const {colors} = useTheme();
   const insets = useSafeAreaInsets();
   const review = useCommandReview(userId, 'voice');
@@ -67,10 +70,11 @@ export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
         onNavigate={onNavigate}
         deps={deps}
         fullScreen={true}
+        paused={paused}
       />
     </KeyboardAvoidingView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -10,7 +10,7 @@ New-Item -ItemType Directory -Force $OutputDirectory | Out-Null
 & $adbExe pull /sdcard/lafina-perf-ui.xml "$OutputDirectory/navigation.xml" | Out-Null
 [xml]$tree = Get-Content "$OutputDirectory/navigation.xml" -Raw
 $targets = @{}
-foreach ($label in @('Home', 'Schedule', 'AI', 'Tools', 'Profile')) {
+foreach ($label in @('Home', 'Schedule', 'AI', 'Skills', 'Profile')) {
   $node = $tree.SelectSingleNode("//node[@content-desc='$label tab']")
   if (!$node -or $node.bounds -notmatch '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$') {
     throw "Open the synthetic performance app's main tabs and dismiss any permission guidance. Missing: $label tab."
@@ -30,7 +30,7 @@ $logcatPath = Join-Path $OutputDirectory 'tab-logcat.txt'
 $logcatProcess = Start-Process -FilePath $adbExe -ArgumentList @('logcat', "--pid=$appPid", '-v', 'epoch', 'ReactNativeJS:I', '*:S') -RedirectStandardOutput $logcatPath -RedirectStandardError (Join-Path $OutputDirectory 'logcat-errors.txt') -WindowStyle Hidden -PassThru
 try {
   for ($round = 0; $round -lt $Rounds; $round++) {
-    foreach ($label in @('Schedule', 'AI', 'Tools', 'Profile', 'Home')) {
+    foreach ($label in @('Schedule', 'AI', 'Skills', 'Profile', 'Home')) {
       $point = $targets[$label]
       & $adbExe shell input tap ([int]$point[0]) ([int]$point[1]) | Out-Null
       Start-Sleep -Milliseconds 700

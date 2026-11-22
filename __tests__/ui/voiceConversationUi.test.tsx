@@ -40,6 +40,8 @@ import {useCommandReview} from '../../src/ui/hooks/useCommandReview';
 import type {CallNavigationTarget} from '../../src/ui/navigation/callNavigation';
 import {GUEST_USER_ID} from '../../src/constants';
 import {directTestVoiceApi} from '../../src/cloud/directProviderTest';
+import {chatReplyFormatStore} from '../../src/storage/chatReplyFormatStore';
+import {saveCallLafinaSettings} from '../../src/cloud/voiceConversation/callLafinaSettingsStore';
 
 const SESSION_ID = '11111111-2222-3333-4444-555555555555';
 let serial = 0;
@@ -241,7 +243,7 @@ describe('voice conversation entry in the voice sheet', () => {
     expect(utils.getByTestId('voice-hold-button')).toBeTruthy();
   });
 
-  test('a guest is asked to sign in and nothing reaches the network', async () => {
+  test('a guest gets the offline call and nothing reaches the network', async () => {
     const paths = fakeServer();
     const {transport, calls} = fakeTransport();
     localSettingsStore.set(GUEST_USER_ID, VOICE_CONSENT_KEY, 'true');
@@ -251,13 +253,20 @@ describe('voice conversation entry in the voice sheet', () => {
       'true',
     );
     const utils = renderPanel(GUEST_USER_ID, transport);
+    expect(utils.getByTestId('call-offline-badge')).toBeTruthy();
+    expect(utils.getByTestId('call-offline-reason')).toHaveTextContent(
+      /sign in/i,
+    );
     fireEvent.press(utils.getByTestId('voice-conversation-start'));
-    expect(
-      await utils.findByTestId('voice-conversation-problem-text'),
-    ).toHaveTextContent(/Sign in/);
+    // The phone voice greets first; the microphone never goes online.
+    await waitFor(() =>
+      expect(utils.getByTestId('voice-conversation-status')).toHaveTextContent(
+        /Speaking|Listening|Working/,
+      ),
+    );
+    fireEvent.press(utils.getByTestId('voice-conversation-end'));
     expect(paths).toEqual([]);
     expect(calls.start).toBe(0);
-    expect(utils.queryByTestId('voice-conversation-restart')).toBeNull();
   });
 
   test('consent comes first, once per account', async () => {
@@ -266,7 +275,10 @@ describe('voice conversation entry in the voice sheet', () => {
     const paths = fakeServer();
     const {transport} = fakeTransport();
     const utils = renderPanel(userId, transport);
-    expect(utils.getByTestId('voice-conversation-consent')).toBeTruthy();
+    const consentCard = utils.getByTestId('voice-conversation-consent');
+    expect(consentCard).toBeTruthy();
+    expect(consentCard).toHaveTextContent(/Before you start/);
+    expect(consentCard).not.toHaveTextContent(/DeepSeek|ElevenLabs/i);
     expect(utils.queryByTestId('voice-conversation-start')).toBeNull();
     fireEvent.press(utils.getByTestId('voice-conversation-consent-accept'));
     await waitFor(() =>
@@ -281,16 +293,23 @@ describe('voice conversation entry in the voice sheet', () => {
     ]);
   });
 
-  test('Online Mode off: explained, and turned on only by an explicit tap', async () => {
+  test('Offline chosen in Chat: the call stays on the phone and Online Mode is untouched', async () => {
     const userId = student('mode');
     signIn(userId, {online: false});
     const paths = fakeServer();
     const {transport, calls} = fakeTransport();
     const utils = renderPanel(userId, transport);
+    expect(utils.getByTestId('call-offline-reason')).toHaveTextContent(
+      /chose Offline Mode/,
+    );
     fireEvent.press(utils.getByTestId('voice-conversation-start'));
-    expect(
-      await utils.findByTestId('voice-conversation-enable-online'),
-    ).toBeTruthy();
+    // The phone voice greets first; the microphone never goes online.
+    await waitFor(() =>
+      expect(utils.getByTestId('voice-conversation-status')).toHaveTextContent(
+        /Speaking|Listening|Working/,
+      ),
+    );
+    fireEvent.press(utils.getByTestId('voice-conversation-end'));
     expect(paths).toEqual([]);
     expect(calls.start).toBe(0);
     expect(localSettingsStore.get(userId, 'chat.onlineMode')).toBe('false');
@@ -1308,5 +1327,82 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
     });
     expect(utils.queryByTestId('call-waveform-status-text')).toBeNull();
     expect(utils.queryByTestId('call-connecting-hint')).toBeNull();
+  });
+
+  test('formats Call Lafina spoken replies with readable structure, highlights, and caption size', async () => {
+    const userId = student('formatted-reply');
+    signIn(userId);
+    saveCallLafinaSettings(userId, {captionSize: 'large'});
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+
+    message({
+      type: 'agent_response',
+      agent_response_event: {
+        agent_response:
+          "Here's what you have tomorrow: Math 101 at 9:00 AM, Capstone Meeting at 1:30 PM, and Quiz Prep at 4:00 PM. Want me to add anything?",
+        event_id: 601,
+      },
+    });
+
+    const replyBox = await utils.findByTestId('call-details-reply');
+    expect(replyBox).toHaveTextContent(/Here's what you have tomorrow:/);
+    expect(replyBox).toHaveTextContent(/•\s*Math 101 at 9:00 AM/);
+    expect(replyBox).toHaveTextContent(/•\s*Capstone Meeting at 1:30 PM/);
+    expect(replyBox).toHaveTextContent(/Want me to add anything\?/);
+
+    const boldTime = utils.getByText('9:00 AM');
+    expect(boldTime.props.style).toMatchObject({fontWeight: '700'});
+    const introText = utils.getByText("Here's what you have tomorrow:");
+    expect(introText.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({fontSize: 18})]),
+    );
+
+    act(() => {
+      chatReplyFormatStore.save(userId, 'plain');
+    });
+    await waitFor(() => {
+      expect(utils.getByTestId('call-details-reply')).toHaveTextContent(
+        /• Math 101 at 9:00 AM/,
+      );
+      expect(utils.getByTestId('call-details-reply')).not.toHaveTextContent(
+        /\*\*/,
+      );
+    });
+  });
+
+  test('renders markdown local notes inside Call Lafina without raw asterisks', async () => {
+    const userId = student('formatted-local-note');
+    signIn(userId);
+    tasksStore.insertEvent({
+      id: 'formatted-local-event',
+      userId,
+      title: 'Finish Lab Report',
+      date: '2030-06-01',
+      startTime: '09:00',
+      endTime: '10:00',
+      location: null,
+      recurrenceRule: null,
+    });
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'What is on my schedule on 2030-06-01?',
+        event_id: 602,
+      },
+    });
+
+    const noteNode = await utils.findByTestId('voice-conversation-local-note');
+    expect(noteNode).toHaveTextContent(/Finish Lab Report/);
+    expect(noteNode).not.toHaveTextContent(/\*\*/);
   });
 });

@@ -20,6 +20,11 @@ import {tasksStore} from '../../storage/tasksStore';
 import type {Task, Event} from '../../storage/tasksStore';
 import {timeBlocksStore} from '../../storage/timeBlocksStore';
 import type {TimeBlock} from '../../storage/timeBlocksStore';
+import {personalMemoryStore} from '../../storage/personalMemoryStore';
+import {preferencesStore} from '../../storage/preferencesStore';
+import type {StudyPeakHour} from '../../storage/preferencesStore';
+import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {plannerQueries} from '../../storage/plannerQueries';
 import {notesStore} from '../../storage/notesStore';
 import {extractChecklistItems, toggleChecklistItem} from '../../utils/richText';
 import type {Note} from '../../storage/notesStore';
@@ -472,6 +477,7 @@ interface CleanIntent {
   bulkScope: 'completed_tasks' | 'date_items' | null;
   leadMinutes: number | null;
   deliveryStyle: ReminderDeliveryStyle;
+  hasExplicitDeliveryStyle: boolean;
   alarmEnabled: boolean | null;
 }
 
@@ -529,6 +535,8 @@ const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
         : null,
     leadMinutes: cleanMinutes(intent.leadMinutes, 7 * 24 * 60),
     deliveryStyle: intent.deliveryStyle === 'notify' ? 'notify' : 'call',
+    hasExplicitDeliveryStyle:
+      intent.deliveryStyle === 'notify' || intent.deliveryStyle === 'call',
     alarmEnabled:
       typeof intent.alarmEnabled === 'boolean' ? intent.alarmEnabled : null,
   };
@@ -892,37 +900,192 @@ interface Draft {
   warnings: string[];
   destructive: boolean;
   operation: PlannedOperation;
+  recommendedDelivery?: ReminderDeliveryStyle;
 }
 
 type BuildResult = {draft: Draft} | {result: PrepareResult};
 
-const reminderPlan = (
+const PEAK_WINDOW_HOURS: Record<StudyPeakHour, [number, number, string]> = {
+  morning: [7, 10, 'morning study window'],
+  late_morning: [10, 12, 'late morning study window'],
+  afternoon: [13, 17, 'afternoon study window'],
+  evening: [18, 21, 'evening study window'],
+  night: [21, 24, 'night study window'],
+};
+
+const toMins = (hhmm: string): number => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+};
+
+const fromMins = (mins: number): string => {
+  const clamped = Math.max(0, Math.min(23 * 60 + 59, mins));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+const findFreeSlotInWindow = (
+  userId: string,
+  date: string,
+  startHour: number,
+  endHour: number,
+  durationMinutes: number,
+  minMinute: number,
+): string | null => {
+  try {
+    const day = plannerQueries.window(userId, date, date);
+    const occupied: Array<[number, number]> = [];
+    for (const ev of day.events) {
+      if (ev.date === date && ev.startTime && ev.endTime) {
+        const s = toMins(ev.startTime);
+        const e = toMins(ev.endTime);
+        occupied.push([s, e > s ? e : e + 1440]);
+      }
+    }
+    for (const b of day.blocks) {
+      if (b.date === date && b.startTime && b.endTime) {
+        const s = toMins(b.startTime);
+        const e = toMins(b.endTime);
+        occupied.push([s, e > s ? e : e + 1440]);
+      }
+    }
+    const windowStart = Math.max(startHour * 60, minMinute);
+    const windowEnd = endHour * 60;
+    for (
+      let cursor = windowStart;
+      cursor + durationMinutes <= windowEnd;
+      cursor += 30
+    ) {
+      const candidateEnd = cursor + durationMinutes;
+      const overlaps = occupied.some(
+        ([s, e]) => Math.max(cursor, s) < Math.min(candidateEnd, e),
+      );
+      if (!overlaps) return fromMins(cursor);
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+const extractPeakHintsFromMemory = (userId: string): StudyPeakHour[] => {
+  try {
+    if (!chatMemoryStore.isEnabled(userId)) return [];
+    const studyMem = chatMemoryStore
+      .forPrompt(userId)
+      .filter(m => /^prefers studying\b/i.test(m.text))
+      .map(m => m.text.toLowerCase())
+      .join(' ');
+    if (!studyMem) return [];
+    const hints: StudyPeakHour[] = [];
+    if (/\b(?:late morning|10\s*am|11\s*am)\b/.test(studyMem))
+      hints.push('late_morning');
+    if (/\b(?:early\s+morning|in the morning|mornings)\b/.test(studyMem))
+      hints.push('morning');
+    if (/\b(?:afternoon|1\s*pm|2\s*pm|3\s*pm|4\s*pm)\b/.test(studyMem))
+      hints.push('afternoon');
+    if (/\b(?:evening|evenings|6\s*pm|7\s*pm|8\s*pm)\b/.test(studyMem))
+      hints.push('evening');
+    if (
+      /\b(?:night|late night|9\s*pm|10\s*pm|11\s*pm|midnight)\b/.test(studyMem)
+    )
+      hints.push('night');
+    return hints;
+  } catch {
+    return [];
+  }
+};
+
+const preferredStudyStart = (
+  userId: string | undefined,
+  date: string,
+  durationMinutes: number,
+  nowMs: number,
+  title: string,
+  category: string,
+  today: string,
+): {startTime: string; label: string} | null => {
+  if (!userId) return null;
+  const isStudyIntent =
+    /\b(?:study|studying|review|revise|revision|read|reading|prep|prepare|flashcard|practice|homework|assignment|capstone|notes?|quiz)\b/i.test(
+      title,
+    ) || category.toLowerCase() === 'study';
+  if (!isStudyIntent) return null;
+
+  let storedPeaks: StudyPeakHour[] = [];
+  try {
+    storedPeaks = preferencesStore.getStored(userId)?.studyPeakHours ?? [];
+  } catch {
+    storedPeaks = [];
+  }
+  const peaks =
+    storedPeaks.length > 0 ? storedPeaks : extractPeakHintsFromMemory(userId);
+  if (peaks.length === 0) return null;
+
+  const nowDate = new Date(nowMs);
+  const rawMinMinute =
+    date === today
+      ? Math.ceil((nowDate.getHours() * 60 + nowDate.getMinutes() + 15) / 30) *
+        30
+      : 0;
+
+  for (const peak of peaks) {
+    const [startH, endH, label] = PEAK_WINDOW_HOURS[peak];
+    const free = findFreeSlotInWindow(
+      userId,
+      date,
+      startH,
+      endH,
+      durationMinutes,
+      rawMinMinute,
+    );
+    if (free) return {startTime: free, label};
+  }
+  return null;
+};
+
+interface PlannedReminderWithAdvice {
+  reminder: PlannedReminder | null;
+  recommendedDelivery?: ReminderDeliveryStyle;
+}
+
+const reminderPlanWithAdvice = (
   userId: string,
   date: string,
   time: string,
   priority: 'High' | 'Medium' | 'Low',
-): PlannedReminder | null => {
+): PlannedReminderWithAdvice => {
   const at = localInstant(date, time);
-  if (!Number.isFinite(at) || at <= Date.now()) return null;
+  if (!Number.isFinite(at) || at <= Date.now()) return {reminder: null};
   const iso = new Date(at).toISOString();
   let triggerAt = iso;
+  let recommendedDelivery: ReminderDeliveryStyle | undefined;
   try {
-    const candidate = getAdaptiveScheduleRecommendation(userId, {
+    const rec = getAdaptiveScheduleRecommendation(userId, {
       scheduledAtIso: iso,
       priority,
-    }).recommendedTriggerAt;
+    });
     if (
-      Number.isFinite(Date.parse(candidate)) &&
-      Date.parse(candidate) > Date.now()
-    )
-      triggerAt = candidate;
+      Number.isFinite(Date.parse(rec.recommendedTriggerAt)) &&
+      Date.parse(rec.recommendedTriggerAt) > Date.now()
+    ) {
+      triggerAt = rec.recommendedTriggerAt;
+    }
+    if (rec.source === 'ml_ensemble' && rec.confidence >= 0.65) {
+      recommendedDelivery =
+        rec.channelRecommendation === 'notification' ? 'notify' : 'call';
+    }
   } catch (error) {
     console.warn(
       '[CommandReview] Adaptive timing unavailable; keeping the requested time:',
       error,
     );
   }
-  return {id: generateId('rem'), scheduledAt: iso, triggerAt};
+  return {
+    reminder: {id: generateId('rem'), scheduledAt: iso, triggerAt},
+    recommendedDelivery,
+  };
 };
 
 // The proposed trigger is frozen in the review; Confirm never silently recomputes it.
@@ -1003,6 +1166,7 @@ const buildCreateTask = (
     );
   }
   let reminder: PlannedReminder | null = null;
+  let recommendedDelivery: ReminderDeliveryStyle | undefined;
   if (!dueDate) {
     details.push(
       'No due date. It will be saved in Notes → To-Do (and Undated tasks in Calendar).',
@@ -1015,7 +1179,14 @@ const buildCreateTask = (
     details.push(
       `Due: ${friendlyDate(dueDate)} at ${format12HourTime(dueTime)}.`,
     );
-    reminder = reminderPlan(userId, dueDate, dueTime, c.priority ?? 'Medium');
+    const plannedReminder = reminderPlanWithAdvice(
+      userId,
+      dueDate,
+      dueTime,
+      c.priority ?? 'Medium',
+    );
+    reminder = plannedReminder.reminder;
+    recommendedDelivery = plannedReminder.recommendedDelivery;
     if (reminder)
       details.push(
         reminder.triggerAt === reminder.scheduledAt
@@ -1043,6 +1214,7 @@ const buildCreateTask = (
       assumptions,
       warnings,
       destructive: false,
+      recommendedDelivery,
       operation: {
         op: 'create_task',
         taskId: generateId('task'),
@@ -1078,6 +1250,34 @@ const buildCreateTimeBlock = (
     );
   const assumptions: string[] = [];
   let date = c.date ?? today;
+  const isEventDraft =
+    c.targetEntityType === 'event' &&
+    !(c.details && c.details.startsWith('[BATCH_CLASSES:'));
+  let eventMemoryDefaults: {
+    startTime: string | null;
+    durationMinutes: number | null;
+  } | null = null;
+  if (isEventDraft && userId) {
+    try {
+      const offered = personalMemoryStore.offer(userId);
+      if (offered) eventMemoryDefaults = offered.value;
+    } catch {
+      eventMemoryDefaults = null;
+    }
+  }
+
+  let requestedDuration = c.durationMinutes ?? null;
+  let durationAssumption: string | null = null;
+  if (!c.endTime && !requestedDuration) {
+    if (eventMemoryDefaults?.durationMinutes) {
+      requestedDuration = eventMemoryDefaults.durationMinutes;
+      durationAssumption = `No length was given, so it uses your saved Event Default (${requestedDuration} minutes).`;
+    } else {
+      requestedDuration = 60;
+      durationAssumption = 'No length was given, so it lasts 1 hour.';
+    }
+  }
+
   if (!c.date) {
     if (c.time) {
       date = resolveUndatedTime(
@@ -1093,14 +1293,43 @@ const buildCreateTimeBlock = (
       );
     }
   }
-  const startTime = c.time ?? '09:00';
-  if (!c.time)
-    assumptions.push('No start time was given, so it starts at 9:00 AM.');
+
+  let startTime = c.time ?? null;
+  if (!startTime) {
+    if (eventMemoryDefaults?.startTime) {
+      startTime = eventMemoryDefaults.startTime;
+      assumptions.push(
+        `No start time was given, so it uses your saved Event Default (${format12HourTime(
+          startTime,
+        )}).`,
+      );
+    } else {
+      const smartStudy = preferredStudyStart(
+        userId,
+        date,
+        requestedDuration ?? 60,
+        nowMs,
+        title,
+        c.category,
+        today,
+      );
+      if (smartStudy) {
+        startTime = smartStudy.startTime;
+        assumptions.push(
+          `No start time was given, so it uses your free ${
+            smartStudy.label
+          } (${format12HourTime(startTime)}).`,
+        );
+      } else {
+        startTime = '09:00';
+        assumptions.push('No start time was given, so it starts at 9:00 AM.');
+      }
+    }
+  }
   let endTime = c.endTime;
   if (!endTime) {
-    const duration = c.durationMinutes ?? 60;
-    if (!c.durationMinutes)
-      assumptions.push('No length was given, so it lasts 1 hour.');
+    const duration = requestedDuration ?? 60;
+    if (durationAssumption) assumptions.push(durationAssumption);
     endTime = addMinutesToTime(startTime, duration);
   }
   if (endTime === startTime) {
@@ -1298,7 +1527,12 @@ const buildCreateReminder = (
   const assumptions: string[] = [];
   const date =
     c.date ?? resolveUndatedTime(c.time, today, nowMs, assumptions, 'it rings');
-  const reminder = reminderPlan(userId, date, c.time, c.priority ?? 'High');
+  const {reminder, recommendedDelivery} = reminderPlanWithAdvice(
+    userId,
+    date,
+    c.time,
+    c.priority ?? 'High',
+  );
   if (!reminder) {
     return {
       result: {
@@ -1331,6 +1565,7 @@ const buildCreateReminder = (
       assumptions,
       warnings: [],
       destructive: false,
+      recommendedDelivery,
       operation: {
         op: 'create_reminder',
         taskId: generateId('task'),
@@ -2923,10 +3158,21 @@ export const prepareReviewedCommand = (
     }
     const operationId = generateId('op');
     const expiresAt = now + REVIEW_TTL_MS;
-    const reminderDelivery: ReminderDeliveryStyle | null =
-      createdReminderIds(draft.operation).length > 0
+    const hasCreatedReminder = createdReminderIds(draft.operation).length > 0;
+    const reminderDelivery: ReminderDeliveryStyle | null = hasCreatedReminder
+      ? clean.hasExplicitDeliveryStyle
         ? clean.deliveryStyle
-        : null;
+        : draft.recommendedDelivery ?? clean.deliveryStyle
+      : null;
+    if (
+      hasCreatedReminder &&
+      !clean.hasExplicitDeliveryStyle &&
+      reminderDelivery === 'notify'
+    ) {
+      draft.assumptions.push(
+        'Delivery: notification (learned from how you respond quickly to reminders).',
+      );
+    }
     const proposal: CommandProposal = Object.freeze({
       operationId,
       conflictAlternatives: Object.freeze(conflictAlternatives),
@@ -3027,6 +3273,51 @@ const scheduleAfterCommit = (
       ),
     );
   });
+};
+
+/** The new name, quoted or bare, at the end: "... to 'Capstone Meeting'." */
+const NEW_NAME = String.raw`['"“]?([^'"”\n]+?)['"”]?\.?$`;
+/** What the student calls the card: "it", "the event", "my capstone meeting". */
+const RENAMED_THING = String.raw`(?:it|this|that|(?:the|this|that|my|our)\s+[^'"\n]{1,40}?)`;
+const RENAME_PATTERNS: readonly RegExp[] = [
+  // "change the title (of the event) to X", "set its name as X"
+  new RegExp(
+    String.raw`(?:change|update|set|make)\s+(?:the\s+|its\s+)?(?:title|name)\s+(?:of\s+${RENAMED_THING}\s+)?(?:(?:to|as|into)\s+)?` +
+      NEW_NAME,
+    'i',
+  ),
+  // "rename (the event) to X", "rename it as X", "retitle this to X"
+  new RegExp(
+    String.raw`(?:re-?name|retitle|relabel)\s+(?:${RENAMED_THING}\s+)?(?:to|as|into)\s+` +
+      NEW_NAME,
+    'i',
+  ),
+  // "rename it X", "rename X"
+  new RegExp(String.raw`(?:re-?name|retitle)\s+(?:it\s+)?` + NEW_NAME, 'i'),
+  // "call it X", "name the event X", "title it: X"
+  new RegExp(
+    String.raw`(?:call|name|title)\s+${RENAMED_THING}\s*(?:(?:to|as|:)\s*)?\s` +
+      NEW_NAME,
+    'i',
+  ),
+];
+
+/**
+ * The new title in a rename, without the words around it: "Rename the event
+ * to just capstone meeting" gives "capstone meeting" (it used to give "the
+ * event to just capstone meeting").
+ */
+export const renamedTitleIn = (instruction: string): string | undefined => {
+  for (const pattern of RENAME_PATTERNS) {
+    const raw = instruction.match(pattern)?.[1];
+    if (!raw) continue;
+    const title = raw
+      .replace(/^(?:just|simply|only)\s+/i, '')
+      .replace(/\s+(?:instead|please|only|na\s+lang|lang)$/i, '')
+      .trim();
+    if (title) return title;
+  }
+  return undefined;
 };
 
 /** Re-check every reminder a rename or move will touch. */
@@ -4017,11 +4308,7 @@ export const reviseReviewedCommand = (
           .durationMinutes || null;
     }
   }
-  const explicitTitle = instruction
-    .match(
-      /(?:(?:change|update|set|make)\s+(?:the\s+)?(?:title|name)\s+(?:of\s+it\s+)?(?:to\s+)?|(?:rename(?:\s+it)?(?:\s+to)?|call\s+it|title(?:\s+it)?\s*(?:to|:))\s+)['"\u201c]?([^'"\u201d\n]+?)['"\u201d]?\.?$/i,
-    )?.[1]
-    ?.trim();
+  const explicitTitle = renamedTitleIn(instruction);
   const body = instruction
     .match(
       /(?:(?:change|update|set|make)\s+(?:the\s+)?)?(?:body|content|details?|description|notes?)\s*(?:to|:)\s*['"\u201c]?([^'"\u201d\n]+?)['"\u201d]?\.?$/i,

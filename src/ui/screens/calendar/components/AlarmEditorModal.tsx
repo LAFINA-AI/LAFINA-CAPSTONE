@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import {
   AlarmClock,
+  ChevronRight,
   Moon,
   Sparkles,
   Sun,
@@ -25,6 +26,7 @@ import {
   Sunset,
   Trash2,
   Vibrate,
+  Volume2,
   X,
 } from 'lucide-react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -46,6 +48,8 @@ import {
 } from '../../../../scheduler/alarmSchedule';
 import {ScrollWheelPicker, type ScrollWheelOption} from './ScrollWheelPicker';
 import {scheduleCardShadow, useSchedulePalette} from './schedulePalette';
+import {TonePickerModal} from '../../../components/alerts/TonePickerModal';
+import {resolveToneTitle} from '../../../../scheduler/soundPicker';
 
 const SNOOZE_CHOICES = [5, 9, 10, 15] as const;
 const QUICK_LABEL_SUGGESTIONS = [
@@ -220,6 +224,11 @@ export const AlarmEditorModal: React.FC<AlarmEditorModalProps> = ({
   const [label, setLabel] = useState(alarm?.label ?? '');
   const [snoozeMinutes, setSnoozeMinutes] = useState(alarm?.snoozeMinutes ?? 9);
   const [vibrate, setVibrate] = useState(alarm?.vibrate ?? true);
+  const [soundUri, setSoundUri] = useState<string | null>(
+    alarm?.soundUri ?? null,
+  );
+  const [soundTitle, setSoundTitle] = useState<string>('Default alarm tone');
+  const [tonePickerVisible, setTonePickerVisible] = useState(false);
   const [briefing, setBriefing] = useState(alarm?.briefing ?? false);
   const [error, setError] = useState<string | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -255,6 +264,10 @@ export const AlarmEditorModal: React.FC<AlarmEditorModalProps> = ({
     setLabel(alarm?.label ?? '');
     setSnoozeMinutes(alarm?.snoozeMinutes ?? 9);
     setVibrate(alarm?.vibrate ?? true);
+    const initialSound = alarm?.soundUri ?? null;
+    setSoundUri(initialSound);
+    setSoundTitle(initialSound ? 'Custom tone' : 'Default alarm tone');
+    setTonePickerVisible(false);
     setBriefing(alarm?.briefing ?? false);
     setError(null);
     dragY.setValue(0);
@@ -284,6 +297,21 @@ export const AlarmEditorModal: React.FC<AlarmEditorModalProps> = ({
     anim.start();
     return () => anim.stop();
   }, [visible, alarm, reducedMotion, backdropAnim, sheetTranslateY, dragY]);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    if (!soundUri) {
+      setSoundTitle('Default alarm tone');
+      return undefined;
+    }
+    let active = true;
+    void resolveToneTitle(soundUri, 'alarm').then(resolved => {
+      if (active) setSoundTitle(resolved);
+    });
+    return () => {
+      active = false;
+    };
+  }, [visible, soundUri]);
 
   const handleCloseAnimated = useCallback(() => {
     if (reducedMotion) {
@@ -441,6 +469,7 @@ export const AlarmEditorModal: React.FC<AlarmEditorModalProps> = ({
       label: label.trim(),
       snoozeMinutes,
       vibrate,
+      soundUri,
       briefing,
       enabled: true,
       // A changed one-shot rings the next time this clock time comes.
@@ -459,12 +488,13 @@ export const AlarmEditorModal: React.FC<AlarmEditorModalProps> = ({
   const combinedTranslateY = Animated.add(sheetTranslateY, dragY);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      transparent
-      onRequestClose={handleCloseAnimated}
-    >
+    <>
+      <Modal
+        visible={visible}
+        animationType="none"
+        transparent
+        onRequestClose={handleCloseAnimated}
+      >
       <View style={styles.modalRoot}>
         <Animated.View
           style={[
@@ -990,6 +1020,43 @@ export const AlarmEditorModal: React.FC<AlarmEditorModalProps> = ({
                   style={[styles.divider, {backgroundColor: palette.border}]}
                 />
 
+                <TouchableOpacity
+                  testID="alarm-sound-row"
+                  onPress={() => setTonePickerVisible(true)}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Alarm sound: ${soundTitle}`}
+                  style={styles.switchRow}
+                >
+                  <View style={styles.switchLeading}>
+                    <View
+                      style={[
+                        styles.optionIconBox,
+                        {backgroundColor: palette.card},
+                      ]}
+                    >
+                      <Volume2 size={16} color={activeAccent} />
+                    </View>
+                    <View style={styles.switchTextCol}>
+                      <Text style={[styles.switchLabel, {color: palette.text}]}>
+                        Alarm sound
+                      </Text>
+                      <Text
+                        testID="alarm-sound-title"
+                        style={[styles.hint, {color: palette.muted}]}
+                        numberOfLines={1}
+                      >
+                        {soundTitle}
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={16} color={palette.muted} />
+                </TouchableOpacity>
+
+                <View
+                  style={[styles.divider, {backgroundColor: palette.border}]}
+                />
+
                 <View style={styles.switchRow}>
                   <View style={styles.switchLeading}>
                     <View
@@ -1113,7 +1180,20 @@ export const AlarmEditorModal: React.FC<AlarmEditorModalProps> = ({
           </Animated.View>
         </KeyboardAvoidingView>
       </View>
-    </Modal>
+      </Modal>
+      <TonePickerModal
+        visible={tonePickerVisible}
+        kind="alarm"
+        selectedUri={soundUri}
+        selectedTitle={soundTitle}
+        allowSilent={false}
+        onSelect={(uri, selectedLabel) => {
+          setSoundUri(uri);
+          setSoundTitle(selectedLabel);
+        }}
+        onClose={() => setTonePickerVisible(false)}
+      />
+    </>
   );
 };
 

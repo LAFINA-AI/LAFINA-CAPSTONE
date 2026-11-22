@@ -1,6 +1,7 @@
 package com.lafina.capstone
 
 import android.content.Intent
+import android.media.AudioFormat
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
@@ -46,8 +47,15 @@ class LafinaMeetingRecorderModule(
     private val transcribeExecutor = Executors.newSingleThreadScheduledExecutor()
     private var whisperContext = 0L
     private var whisperRelease: ScheduledFuture<*>? = null
+    @Volatile private var importCancelled = false
 
     override fun getName(): String = "LafinaMeetingRecorder"
+
+    @ReactMethod
+    fun cancelAudioImport(promise: Promise) {
+        importCancelled = true
+        promise.resolve(true)
+    }
 
     private fun obtainWhisperContext(): Long {
         whisperRelease?.cancel(false)
@@ -384,13 +392,22 @@ class LafinaMeetingRecorderModule(
      */
     @ReactMethod
     fun importAudioFile(fileUri: String, meetingId: String, promise: Promise) {
+        importCancelled = false
         transcribeExecutor.execute {
             var extractor: MediaExtractor? = null
             var codec: MediaCodec? = null
             var pfd: android.os.ParcelFileDescriptor? = null
+            var meetingDir: File? = null
+            var resolved = false
             try {
+                if (importCancelled) {
+                    promise.reject("IMPORT_CANCELLED", "Audio import was cancelled.")
+                    resolved = true
+                    return@execute
+                }
                 if (LafinaMeetingService.isRunning) {
                     promise.reject("RECORDING_IN_PROGRESS", "Cannot import audio while a live recording is in progress.")
+                    resolved = true
                     return@execute
                 }
 
@@ -398,14 +415,16 @@ class LafinaMeetingRecorderModule(
                 val freeMb = stat.availableBytes / (1024L * 1024L)
                 if (freeMb < 50L) {
                     promise.reject("INSUFFICIENT_STORAGE", "At least 50 MB of free storage is required to import an audio recording.")
+                    resolved = true
                     return@execute
                 }
 
                 val uri = Uri.parse(fileUri)
                 val safeMeetingId = File(meetingId).name
-                val meetingDir = File(LafinaMeetingService.meetingsRootDir(reactContext), safeMeetingId)
-                if (!meetingDir.exists()) {
-                    meetingDir.mkdirs()
+                val dir = File(LafinaMeetingService.meetingsRootDir(reactContext), safeMeetingId)
+                meetingDir = dir
+                if (!dir.exists()) {
+                    dir.mkdirs()
                 }
 
                 extractor = MediaExtractor()
@@ -432,17 +451,21 @@ class LafinaMeetingRecorderModule(
 
                 if (audioTrackIndex < 0 || audioFormat == null) {
                     promise.reject("NO_AUDIO_TRACK", "No audio track was found in the selected file.")
+                    resolved = true
                     return@execute
                 }
 
                 extractor.selectTrack(audioTrackIndex)
                 val mime = audioFormat.getString(MediaFormat.KEY_MIME) ?: ""
-                val sampleRate = if (audioFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                var currentSampleRate = if (audioFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
                     audioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
                 } else 16000
-                val channels = if (audioFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                var currentChannels = if (audioFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
                     audioFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
                 } else 1
+                var currentPcmEncoding = if (audioFormat.containsKey(MediaFormat.KEY_PCM_ENCODING)) {
+                    audioFormat.getInteger(MediaFormat.KEY_PCM_ENCODING)
+                } else AudioFormat.ENCODING_PCM_16BIT
 
                 codec = MediaCodec.createDecoderByType(mime)
                 codec.configure(audioFormat, null, null, 0)
@@ -468,7 +491,7 @@ class LafinaMeetingRecorderModule(
 
                 fun flushCurrentChunk() {
                     if (chunkBufferCount <= 0) return
-                    val chunkFile = File(meetingDir, String.format("chunk_%03d.wav", chunkIndex))
+                    val chunkFile = File(dir, String.format("chunk_%03d.wav", chunkIndex))
                     val shortsToSave = chunkBuffer.copyOfRange(0, chunkBufferCount)
                     writeWavFile(chunkFile, shortsToSave, TARGET_SAMPLE_RATE)
 
@@ -501,6 +524,13 @@ class LafinaMeetingRecorderModule(
                 }
 
                 while (!isOutputEOS) {
+                    if (importCancelled) {
+                        dir.listFiles()?.forEach { it.delete() }
+                        dir.delete()
+                        promise.reject("IMPORT_CANCELLED", "Audio import was cancelled.")
+                        resolved = true
+                        return@execute
+                    }
                     if (!isInputEOS) {
                         val inIndex = codec.dequeueInputBuffer(timeoutUs)
                         if (inIndex >= 0) {
@@ -521,7 +551,18 @@ class LafinaMeetingRecorderModule(
                     }
 
                     val outIndex = codec.dequeueOutputBuffer(info, timeoutUs)
-                    if (outIndex >= 0) {
+                    if (outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                        val outFormat = codec.outputFormat
+                        if (outFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                            currentSampleRate = outFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                        }
+                        if (outFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                            currentChannels = outFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+                        }
+                        if (outFormat.containsKey(MediaFormat.KEY_PCM_ENCODING)) {
+                            currentPcmEncoding = outFormat.getInteger(MediaFormat.KEY_PCM_ENCODING)
+                        }
+                    } else if (outIndex >= 0) {
                         if ((info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                             isOutputEOS = true
                         }
@@ -529,27 +570,37 @@ class LafinaMeetingRecorderModule(
                         if (outBuffer != null && info.size > 0) {
                             outBuffer.position(info.offset)
                             outBuffer.limit(info.offset + info.size)
-                            val shortCount = info.size / 2
-                            val rawShorts = ShortArray(shortCount)
-                            outBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(rawShorts)
+                            val rawShorts = if (currentPcmEncoding == AudioFormat.ENCODING_PCM_FLOAT) {
+                                val floatCount = info.size / 4
+                                val floats = FloatArray(floatCount)
+                                outBuffer.order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(floats)
+                                ShortArray(floatCount) { idx ->
+                                    (floats[idx].coerceIn(-1.0f, 1.0f) * 32767.0f).toInt().toShort()
+                                }
+                            } else {
+                                val shortCount = info.size / 2
+                                val shorts = ShortArray(shortCount)
+                                outBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
+                                shorts
+                            }
 
-                            val monoShorts = if (channels > 1 && channels <= 8) {
-                                val monoLen = rawShorts.size / channels
+                            val monoShorts = if (currentChannels > 1 && currentChannels <= 8) {
+                                val monoLen = rawShorts.size / currentChannels
                                 val mono = ShortArray(monoLen)
                                 for (m in 0 until monoLen) {
                                     var sum = 0
-                                    for (c in 0 until channels) {
-                                        sum += rawShorts[m * channels + c]
+                                    for (c in 0 until currentChannels) {
+                                        sum += rawShorts[m * currentChannels + c]
                                     }
-                                    mono[m] = (sum / channels).coerceIn(-32768, 32767).toShort()
+                                    mono[m] = (sum / currentChannels).coerceIn(-32768, 32767).toShort()
                                 }
                                 mono
                             } else {
                                 rawShorts
                             }
 
-                            val targetShorts = if (sampleRate != TARGET_SAMPLE_RATE && sampleRate > 0) {
-                                resampleLinear(monoShorts, sampleRate, TARGET_SAMPLE_RATE)
+                            val targetShorts = if (currentSampleRate != TARGET_SAMPLE_RATE && currentSampleRate > 0) {
+                                resampleLinear(monoShorts, currentSampleRate, TARGET_SAMPLE_RATE)
                             } else {
                                 monoShorts
                             }
@@ -563,7 +614,10 @@ class LafinaMeetingRecorderModule(
                 flushCurrentChunk()
 
                 if (chunkIndex == 0) {
+                    dir.listFiles()?.forEach { it.delete() }
+                    dir.delete()
                     promise.reject("EMPTY_AUDIO", "The imported file contains no playable audio data.")
+                    resolved = true
                     return@execute
                 }
 
@@ -575,8 +629,15 @@ class LafinaMeetingRecorderModule(
                     putArray("chunkDurationsMs", chunkDurations)
                 }
                 promise.resolve(result)
+                resolved = true
             } catch (e: Exception) {
-                promise.reject("AUDIO_IMPORT_ERROR", e.message, e)
+                meetingDir?.let { d ->
+                    d.listFiles()?.forEach { it.delete() }
+                    d.delete()
+                }
+                if (!resolved) {
+                    promise.reject("AUDIO_IMPORT_ERROR", e.message, e)
+                }
             } finally {
                 try { codec?.stop() } catch (_: Exception) {}
                 try { codec?.release() } catch (_: Exception) {}

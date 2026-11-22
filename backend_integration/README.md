@@ -1,3 +1,22 @@
+> **Chat history sync, 2026-11-21 (NOT deployed; patch only).** `LAFINA-backend-chat-history-sync.patch` (two `git am` commits: `ce1b4f0` sync, `aed5442` 20-chat limit) is based on backend main `94f0fa0`. It adds:
+> - chat sync tables `chat_sessions_sync` and `chat_messages_sync` (migration `014_chat_history_sync`, RLS owner policy);
+> - entity types `chat_session` and `chat_message` in `/v1/sync/batch`;
+> - `POST /v1/sync/chat/purge`;
+> - a limit of 20 live chats per account (rejection reason `chat_limit_reached`).
+>
+> Planner sync is unchanged. Design: ADR-040. Evidence: `docs/reports/chat-history-sync-report.md`. Until it is deployed, the app keeps chat on the phone (it declares chat only to a server that lists it).
+>
+> **Owner activation, in order (none were done from this chat):**
+> 1. In a backend checkout on main: `git apply --check LAFINA-backend-chat-history-sync.patch`, then `git am LAFINA-backend-chat-history-sync.patch`. Verified with `git am` on main `94f0fa0`. If main has moved and it does not apply cleanly, tell the agent; do not force it.
+> 2. `python -m pytest`. 310 tests passed on the scratch clone; the 11 new ones are in `tests/test_chat_history_sync.py`.
+> 3. Merge into `main` and let Vercel redeploy.
+> 4. Apply migration 014 to production once, with the unpooled URL: `python -m alembic upgrade head`. Startup `create_all` also creates the tables, but the migration adds the RLS policy.
+> 5. Verify:
+>    - `/openapi.json` lists `/v1/sync/chat/purge`;
+>    - an unauthenticated POST to it returns 401;
+>    - a signed-in `/v1/sync/batch` response lists `chat_session` and `chat_message` in `supportedEntityTypes`;
+>    - then run the phone checklist in the report.
+
 > **Call drops fix, 2026-11-19 (backend deployed and agent settings applied 2026-11-19):** calls ending with "The conversation connection closed" were ElevenLabs ending the call after our custom-LLM route refused or left empty a turn it asked for (12 of the last 40 calls: `custom_llm generation failed`). The backend fix is branch `fix/voice-call-never-drops` in `LAFINA-AI/LAFINA-backend`. It was merged as `38cdd95` and the agent now runs with a 15 s cascade timeout and a 30 s turn timeout (`python -m scripts.provision_voice_agent --check` in the backend shows them). `python -m backend_integration.call_history_check --agent-id <id>` lists how recent calls ended. Evidence and phone checks: `docs/reports/call-connection-drops-20261119.md`.
 
 > **Call LAFINA reliability & first-person follow-up patch (`LAFINA-backend-voice-reliability.patch`):** Based on `LAFINA-AI/LAFINA-backend` branch `codex/call-lafina-tool-bridge` (`d511ceb`). Applies four fixes while keeping existing auth/billing/midstream-SSE contracts intact: (1) switches `VOICE_STYLE_INSTRUCTION` and `system_prompt_voice.txt` to first-person speech ("I", "me", "my") without third-person self-reference; (2) runs Pinecone handbook retrieval only on university/policy turns (`_should_use_voice_handbook`) with a 2.5s timeout so casual/scheduling turns do not stall time-to-first-token; (3) emits `"started"` immediately on DeepSeek `tool_calls` deltas instead of buffering until `[DONE]`; and (4) returns a brief spoken 200 SSE retry on transient pre-stream `DeepSeekError`s (timeout/transport/empty content, preserving HTTP 503 for 402 billing and 401/409/429 limits) so ElevenLabs does not drop the call with `custom_llm generation failed`. Apply via `git apply --check LAFINA-backend-voice-reliability.patch && git apply LAFINA-backend-voice-reliability.patch`, run `pytest tests/test_voice_conversation.py`, and redeploy Vercel.

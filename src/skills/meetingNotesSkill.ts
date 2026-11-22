@@ -1,7 +1,7 @@
-import { cloudClient, CloudResult } from '../cloud';
-import { normalizeNotes } from '../meetings/meetingNotes';
-import type { MeetingNotes } from '../meetings/meetingNotes';
-import type { NotesSkill, SectionPromptInput } from '../meetings/notesPipeline';
+import {cloudClient, CloudResult} from '../cloud';
+import {normalizeNotes} from '../meetings/meetingNotes';
+import type {MeetingNotes} from '../meetings/meetingNotes';
+import type {NotesSkill, SectionPromptInput} from '../meetings/notesPipeline';
 
 interface BackendNotesResponse {
   notes?: unknown;
@@ -39,11 +39,10 @@ export const meetingNotesSkill: NotesSkill = {
       {
         method: 'POST',
         body: JSON.stringify({
-          section_index: input.sectionIndex,
-          section_count: input.sectionCount,
-          start_time_label: input.startTimeLabel,
-          end_time_label: input.endTimeLabel,
-          transcript: input.transcript,
+          content: input.transcript,
+          index: input.sectionIndex,
+          count: input.sectionCount,
+          material: 'transcript',
         }),
       },
       true,
@@ -57,15 +56,19 @@ export const meetingNotesSkill: NotesSkill = {
     sectionSummaries: MeetingNotes[];
     directTranscript?: string;
   }): Promise<CloudResult<MeetingNotes>> => {
+    const isDirect = Boolean(input.directTranscript?.trim());
+    const content = isDirect
+      ? input.directTranscript!.trim()
+      : JSON.stringify(input.sectionSummaries);
     const result = await cloudClient.request<BackendNotesResponse>(
       '/v1/ai/meeting-notes/generate',
       {
         method: 'POST',
         body: JSON.stringify({
-          title_hint: input.titleHint,
-          recorded_at: input.recordedAt,
-          section_summaries: input.sectionSummaries,
-          direct_transcript: input.directTranscript ?? null,
+          content,
+          source: isDirect ? 'transcript' : 'sections',
+          titleHint: input.titleHint,
+          recordedAt: input.recordedAt,
         }),
       },
       true,

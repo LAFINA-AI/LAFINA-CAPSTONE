@@ -5,7 +5,9 @@
  * transaction-safe card confirmations with strict owner isolation and isCurrent guards.
  */
 
+import {DeviceEventEmitter} from 'react-native';
 import {generateId} from '../../utils';
+import {CHAT_MEMORY_CHANGED_EVENT} from '../../cloud/chatMemoryService';
 import type {
   ActionEnvelope,
   ActionLifecycleEvent,
@@ -53,6 +55,8 @@ import type {StructuredActionArgs} from './structuredAction';
 /** What the model hears when it tries to confirm a card it suggested. */
 export const SUGGESTED_CONFIRM_REFUSAL =
   'Not saved: this card was suggested from the conversation, so the student must confirm it themselves. Ask them to say yes or tap Confirm.';
+import {addMinutesToTime} from '../nlu/actionExecutor';
+import {isWallTime} from '../../storage/eventTime';
 import {
   parseGroupedRequest,
   createMultiActionBatch,
@@ -373,7 +377,26 @@ class ActionService {
         }
 
         const p = envelope.payload as {request: string};
-        const fact = explicitMemory(p.request);
+        const rawReq = typeof p.request === 'string' ? p.request.trim() : '';
+        const explicitFact = explicitMemory(rawReq);
+        const sanitizedDirectFact =
+          !explicitFact &&
+          toolDef.kind === 'legacy.save_memory' &&
+          rawReq.length >= 3 &&
+          rawReq.length <= 200 &&
+          !containsPromptInjection(rawReq)
+            ? rawReq
+                .replace(
+                  /^(?:please\s+)?(?:remember|keep\s+in\s+mind|note)\s+(?:that\s+)?/i,
+                  '',
+                )
+                .trim()
+            : null;
+        const fact =
+          explicitFact ||
+          (sanitizedDirectFact && sanitizedDirectFact.length >= 2
+            ? sanitizedDirectFact
+            : null);
         if (fact) {
           const prepared = this.createMemoryProposal(
             userId,
@@ -383,6 +406,9 @@ class ActionService {
           );
           options?.onMemoryProposal?.(prepared.proposal, prepared.actionId);
           return 'A memory review card is shown. Nothing has been saved. Please tap Save to confirm.';
+        }
+        if (toolDef.kind === 'legacy.save_memory') {
+          return 'No valid memory statement was found. Ask the student what personal preference or fact they want remembered.';
         }
         const structured = envelope.payload as StructuredActionArgs;
         let review = await chatOrchestrator.reviewSpokenTurn(
@@ -699,20 +725,29 @@ class ActionService {
         let truncated = false;
 
         if (Array.isArray(rawPayload.items) && rawPayload.items.length > 0) {
-          items = rawPayload.items.map((it, idx) => ({
-            id: `item-${idx + 1}-${generateId().slice(0, 6)}`,
-            kind: (it.kind as MultiActionItemData['kind']) || 'task',
-            title: String(it.title || `Action ${idx + 1}`),
-            date: it.date ? String(it.date) : undefined,
-            time: it.time ? String(it.time) : undefined,
-            endTime: it.endTime ? String(it.endTime) : undefined,
-            priority:
-              (it.priority as MultiActionItemData['priority']) || 'medium',
-            body: it.body ? String(it.body) : undefined,
-            status: 'draft',
-            savedEntityId: null,
-            error: null,
-          }));
+          items = rawPayload.items.map((it, idx) => {
+            const kind = (it.kind as MultiActionItemData['kind']) || 'task';
+            const time = it.time ? String(it.time) : undefined;
+            const endTime = it.endTime
+              ? String(it.endTime)
+              : kind === 'event' && time && isWallTime(time)
+              ? addMinutesToTime(time, 60)
+              : undefined;
+            return {
+              id: `item-${idx + 1}-${generateId().slice(0, 6)}`,
+              kind,
+              title: String(it.title || `Action ${idx + 1}`),
+              date: it.date ? String(it.date) : undefined,
+              time,
+              endTime,
+              priority:
+                (it.priority as MultiActionItemData['priority']) || 'medium',
+              body: it.body ? String(it.body) : undefined,
+              status: 'draft',
+              savedEntityId: null,
+              error: null,
+            };
+          });
           if (items.length > 5) {
             items = items.slice(0, 5);
             truncated = true;
@@ -964,6 +999,15 @@ class ActionService {
       record.memoryProposal.text = textToSave;
       record.envelope.phase = 'done';
       record.status = 'result';
+      DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+        userId,
+        messageId: actionId,
+        changes: {
+          added: [{id: saved.id, text: saved.text}],
+          removed: [],
+          revision: chatMemoryStore.revision(userId),
+        },
+      });
       this.emit(
         actionId,
         record.envelope.kind,
@@ -1004,9 +1048,21 @@ class ActionService {
     }
 
     try {
-      chatMemoryStore.remove(userId, record.memoryProposal.savedMemoryId);
+      const removedId = record.memoryProposal.savedMemoryId;
+      const removedText = record.memoryProposal.text;
+      chatMemoryStore.remove(userId, removedId);
       record.memoryProposal.status = 'undone';
       record.memoryProposal.savedMemoryId = null;
+      DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+        userId,
+        messageId: actionId,
+        changes: {
+          added: [],
+          removed: [{id: removedId, text: removedText}],
+          revision: chatMemoryStore.revision(userId),
+          undone: true,
+        },
+      });
       this.emit(actionId, record.envelope.kind, 'done', 'Memory save undone');
       return {success: true, status: 'undone'};
     } catch (err: unknown) {
@@ -1041,14 +1097,18 @@ class ActionService {
     batch: MultiActionBatchData,
     targetItemId?: string,
     isCurrent: () => boolean = () => true,
+    options: {onDevice?: boolean} = {},
   ): Promise<{batch: MultiActionBatchData; spokenSummary: string}> {
     if (batch.ownerId !== userId) {
       throw new Error('Unauthorized: batch does not belong to user');
     }
+    // The cloud-tool check guards cards an online model described. A card the
+    // device built from the student's own words (the offline call) needs only
+    // the owner and a live session; the student's confirmation is the gate.
     const permitted = () =>
       isCurrent() &&
       !this.retiredSessions.has(batch.sessionId) &&
-      isToolExecutionPermitted(userId).permitted;
+      (options.onDevice === true || isToolExecutionPermitted(userId).permitted);
     if (!permitted())
       throw new Error('This call action is no longer available.');
     return executeMultiActionBatch(batch, userId, targetItemId, permitted);
@@ -1076,8 +1136,15 @@ class ActionService {
     userId: string,
     batch: MultiActionBatchData,
     itemId: string,
+    options: {onDevice?: boolean} = {},
   ): Promise<{batch: MultiActionBatchData; spokenSummary: string}> {
-    return this.confirmMultiActionBatch(userId, batch, itemId);
+    return this.confirmMultiActionBatch(
+      userId,
+      batch,
+      itemId,
+      () => true,
+      options,
+    );
   }
 }
 
