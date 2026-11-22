@@ -9,6 +9,25 @@ const OWNED_SESSION_PREFIX = 'default_chat_session:';
 const MAX_OWNER_ID_LENGTH = 256;
 /** A fresh random token per session row; page cursors are bound to it. */
 export const NEW_SESSION_GENERATION_SQL = 'lower(hex(randomblob(8)))';
+/** Ids of chats started with New chat; the first chat keeps its owner-bound id. */
+export const NEW_CHAT_PREFIX = 'chat_session:';
+/** Sub-prefix for dedicated USTP Student Handbook RAG chats. */
+export const USTP_CHAT_PREFIX = `${NEW_CHAT_PREFIX}ustp_`;
+export const isUstpSessionId = (sessionId?: string | null): boolean =>
+  typeof sessionId === 'string' && sessionId.startsWith(USTP_CHAT_PREFIX);
+/**
+ * The most chats (with at least one message) an account keeps. The server
+ * enforces the same number for synced chats (ADR-040). Temporary Chat and
+ * empty chats do not count.
+ */
+export const MAX_CHATS_PER_ACCOUNT = 20;
+
+/** Stored titles that mean the student has not named the chat. */
+export const PLACEHOLDER_CHAT_TITLES: readonly string[] = [
+  'Default Chat',
+  'New chat',
+  'Ask about USTP',
+];
 
 export const isValidChatOwner = (userId: unknown): userId is string =>
   typeof userId === 'string' &&

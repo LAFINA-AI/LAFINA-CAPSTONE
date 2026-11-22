@@ -1,6 +1,11 @@
 import { accountLinkService } from '../cloud/accountLinkService';
 import { cloudClient } from '../cloud/cloudClient';
 import { reconcileReminderDelivery } from '../scheduler';
+import { runAttachmentCleanup } from '../storage/attachmentCleanup';
+import {
+  CHAT_LIMIT_REASON,
+  chatSyncStore,
+} from '../storage/chatSyncStore';
 import { db, DatabaseTransaction } from '../storage/database';
 import { syncConflictStore } from '../storage/syncConflictStore';
 import { syncMetadataStore } from '../storage/syncMetadataStore';
@@ -12,10 +17,12 @@ import type {
   SyncPayload,
 } from '../storage/syncTypes';
 import { userStore } from '../storage/userStore';
+import { emitChatRemoteChanged } from './chatSyncEvents';
 import {
-  AUTHORITATIVE_SYNC_ENTITY_TYPES,
-  CLIENT_SYNC_ENTITY_TYPES,
+  authoritativeSyncEntityTypes,
+  declaredSyncEntityTypes,
   effectiveSyncEntityTypes,
+  isChatSyncEntityType,
   LAST_WRITE_WINS_ENTITY_TYPES,
   sameEntityTypeSet,
   SINGLETON_SYNC_ENTITY_TYPES,
@@ -94,6 +101,16 @@ interface OutboundMutation {
 
 interface ApplyPageResult {
   reminderTextUpdated: boolean;
+}
+
+interface AppliedChange {
+  reminderTextUpdated: boolean;
+  /** False when a chat row was kept because this phone never synced it. */
+  recordMetadata: boolean;
+  /** A chat row of this phone changed. */
+  chatChanged: boolean;
+  /** A chat delete removed rows whose files now wait for cleanup. */
+  chatRemoved: boolean;
 }
 
 const ACCOUNT_SCOPE = 'account';
@@ -629,14 +646,67 @@ const applyDelete = (
   );
 };
 
+const applyChatChange = (
+  tx: DatabaseTransaction,
+  localUserId: string,
+  change: SyncChange,
+): AppliedChange => {
+  const entityType = change.entityType as 'chat_session' | 'chat_message';
+  if (change.operation === 'delete') {
+    const result = chatSyncStore.applyRemoteDelete(
+      tx,
+      localUserId,
+      entityType,
+      change.entityId,
+    );
+    return {
+      reminderTextUpdated: false,
+      recordMetadata: result.recordMetadata,
+      chatChanged: result.removed,
+      chatRemoved: result.removed,
+    };
+  }
+  const applied =
+    entityType === 'chat_session'
+      ? chatSyncStore.applyRemoteSession(
+          tx,
+          localUserId,
+          change.entityId,
+          change.payload,
+          change.updatedAt,
+        )
+      : chatSyncStore.applyRemoteMessage(
+          tx,
+          localUserId,
+          change.entityId,
+          change.payload,
+          change.updatedAt,
+        );
+  return {
+    reminderTextUpdated: false,
+    recordMetadata: true,
+    chatChanged: applied,
+    chatRemoved: false,
+  };
+};
+
 const applyChange = (
   tx: DatabaseTransaction,
   localUserId: string,
   change: SyncChange,
-): boolean => {
+): AppliedChange => {
+  if (isChatSyncEntityType(change.entityType)) {
+    return applyChatChange(tx, localUserId, change);
+  }
+  const planner = (reminderTextUpdated: boolean): AppliedChange => ({
+    reminderTextUpdated,
+    recordMetadata: true,
+    chatChanged: false,
+    chatRemoved: false,
+  });
   if (change.operation === 'delete') {
     applyDelete(tx, localUserId, change);
-    return change.entityType === 'reminder';
+    return planner(change.entityType === 'reminder');
   }
 
   switch (change.entityType) {
@@ -654,7 +724,7 @@ const applyChange = (
       break;
     case 'reminder':
       applyReminder(tx, localUserId, change);
-      return true;
+      return planner(true);
     case 'note':
       applyNote(tx, localUserId, change);
       break;
@@ -666,7 +736,29 @@ const applyChange = (
         `Unsupported sync entity type: ${String(change.entityType)}`,
       );
   }
-  return false;
+  return planner(false);
+};
+
+/** Counts chat effects of one apply transaction, reported after it commits. */
+interface ChatApplyTally {
+  changed: boolean;
+  removed: boolean;
+}
+
+const tallyChat = (tally: ChatApplyTally, applied: AppliedChange): void => {
+  tally.changed = tally.changed || applied.chatChanged;
+  tally.removed = tally.removed || applied.chatRemoved;
+};
+
+const reportChatChanges = (localUserId: string, tally: ChatApplyTally): void => {
+  if (tally.removed) {
+    // Files of messages deleted on another phone (ADR-026 obligations).
+    void runAttachmentCleanup(
+      localUserId,
+      () => userStore.getActiveSessionToken().userId === localUserId,
+    ).catch(() => undefined);
+  }
+  if (tally.changed) emitChatRemoteChanged(localUserId);
 };
 
 const assertActiveLocalUser = (localUserId: string): void => {
@@ -801,9 +893,7 @@ const validateSnapshotResponse = (
   request: SnapshotRequestPayload,
   effectiveTypes: readonly SyncEntityType[],
 ): SnapshotPage => {
-  const authoritativeTypes = AUTHORITATIVE_SYNC_ENTITY_TYPES.filter((entityType) =>
-    effectiveTypes.includes(entityType),
-  );
+  const authoritativeTypes = authoritativeSyncEntityTypes(effectiveTypes);
   const snapshot = response.snapshot;
   if (!snapshot) {
     throw new Error('Server omitted the requested current-state snapshot page.');
@@ -883,6 +973,7 @@ const pruneServerMissingEntities = (
   items: SyncChange[],
   serverTime: string,
   authoritativeTypes: readonly SyncEntityType[],
+  chatTally: ChatApplyTally,
 ): boolean => {
   const snapshotIds = new Map<SyncEntityType, Set<string>>();
   for (const entityType of authoritativeTypes) {
@@ -894,8 +985,9 @@ const pruneServerMissingEntities = (
 
   let reminderTextUpdated = false;
   for (const entityType of authoritativeTypes) {
-    const table = getPersonalEntityTable(entityType);
-    if (!table) continue;
+    const isChat = isChatSyncEntityType(entityType);
+    const table = isChat ? null : getPersonalEntityTable(entityType);
+    if (!table && !isChat) continue;
     const syncedRows =
       tx.executeSync(
         `SELECT entity_id AS id
@@ -918,15 +1010,29 @@ const pruneServerMissingEntities = (
       ).rows?.[0];
       if (protectedMutation) continue;
 
-      const result = tx.executeSync(
-        `UPDATE ${table}
-         SET deleted_at = ?, updated_at = ?
-         WHERE id = ? AND user_id = ?`,
-        [serverTime, serverTime, entityId, localUserId],
-      );
-      if ((result.rowsAffected ?? 0) > 0) {
-        remoteChangesApplied += 1;
-        if (entityType === 'reminder') reminderTextUpdated = true;
+      if (isChat) {
+        const removed = chatSyncStore.applyRemoteDelete(
+          tx,
+          localUserId,
+          entityType as 'chat_session' | 'chat_message',
+          entityId,
+        ).removed;
+        if (removed) {
+          remoteChangesApplied += 1;
+          chatTally.changed = true;
+          chatTally.removed = true;
+        }
+      } else {
+        const result = tx.executeSync(
+          `UPDATE ${table}
+           SET deleted_at = ?, updated_at = ?
+           WHERE id = ? AND user_id = ?`,
+          [serverTime, serverTime, entityId, localUserId],
+        );
+        if ((result.rowsAffected ?? 0) > 0) {
+          remoteChangesApplied += 1;
+          if (entityType === 'reminder') reminderTextUpdated = true;
+        }
       }
       tx.executeSync(
         `DELETE FROM sync_metadata
@@ -948,6 +1054,7 @@ const applyAuthoritativeSnapshot = (
 ): ApplyPageResult => {
   let reminderTextUpdated = false;
   const beforeCount = remoteChangesApplied;
+  const chatTally: ChatApplyTally = { changed: false, removed: false };
   db.transactionSync((tx: DatabaseTransaction) => {
     syncOutboxStore.setSuppression(
       localUserId,
@@ -962,9 +1069,8 @@ const applyAuthoritativeSnapshot = (
         localUserId,
         items,
         serverTime,
-        AUTHORITATIVE_SYNC_ENTITY_TYPES.filter((entityType) =>
-          effectiveTypes.includes(entityType),
-        ),
+        authoritativeSyncEntityTypes(effectiveTypes),
+        chatTally,
       );
       for (const change of items) {
         const knownVersion = syncMetadataStore.getVersion(
@@ -976,8 +1082,10 @@ const applyAuthoritativeSnapshot = (
           tx,
         );
         if (knownVersion !== change.version) remoteChangesApplied += 1;
-        reminderTextUpdated =
-          applyChange(tx, localUserId, change) || reminderTextUpdated;
+        const applied = applyChange(tx, localUserId, change);
+        reminderTextUpdated = applied.reminderTextUpdated || reminderTextUpdated;
+        if (knownVersion !== change.version) tallyChat(chatTally, applied);
+        if (!applied.recordMetadata) continue;
         syncMetadataStore.upsert(
           localUserId,
           {
@@ -1019,6 +1127,7 @@ const applyAuthoritativeSnapshot = (
   });
   syncState.reload(localUserId);
   notifyRemoteChanges(localUserId, remoteChangesApplied - beforeCount);
+  reportChatChanges(localUserId, chatTally);
   return { reminderTextUpdated };
 };
 
@@ -1036,6 +1145,7 @@ const applyPage = (
     ),
   );
 
+  const chatTally: ChatApplyTally = { changed: false, removed: false };
   db.transactionSync((tx: DatabaseTransaction) => {
     syncOutboxStore.setSuppression(
       localUserId,
@@ -1046,11 +1156,16 @@ const applyPage = (
     );
     try {
       for (const change of response.changes) {
-        if (!ownEchoes.has(`${change.entityType}:${change.entityId}:${change.version}`)) {
+        const ownEcho = ownEchoes.has(
+          `${change.entityType}:${change.entityId}:${change.version}`,
+        );
+        if (!ownEcho) {
           remoteChangesApplied += 1;
         }
-        reminderTextUpdated =
-          applyChange(tx, localUserId, change) || reminderTextUpdated;
+        const applied = applyChange(tx, localUserId, change);
+        reminderTextUpdated = applied.reminderTextUpdated || reminderTextUpdated;
+        if (!ownEcho) tallyChat(chatTally, applied);
+        if (!applied.recordMetadata) continue;
         syncMetadataStore.upsert(
           localUserId,
           {
@@ -1087,6 +1202,7 @@ const applyPage = (
 
   syncState.reload(localUserId);
   notifyRemoteChanges(localUserId, remoteChangesApplied - beforeCount);
+  reportChatChanges(localUserId, chatTally);
   return { reminderTextUpdated };
 };
 
@@ -1098,6 +1214,9 @@ const settleMutationResults = (
   const sentById = new Map(
     inFlightMutations.map((mutation) => [mutation.mutationId, mutation]),
   );
+  // Chats the server refused because the account has its most chats stay on
+  // this phone; they are not conflicts and do not mark the sync as failed.
+  const heldForLimit = new Set<string>();
   db.transactionSync((tx) => {
     for (const result of response.rejected) {
       const sent = sentById.get(result.mutationId);
@@ -1105,6 +1224,20 @@ const settleMutationResults = (
         throw new Error(
           `Cannot persist rejection for unknown mutation ${result.mutationId}.`,
         );
+      }
+      if (
+        isChatSyncEntityType(result.entityType) &&
+        result.reason === CHAT_LIMIT_REASON
+      ) {
+        chatSyncStore.holdForLimit(
+          tx,
+          localUserId,
+          result.entityType as 'chat_session' | 'chat_message',
+          result.entityId,
+          sent.payload,
+        );
+        heldForLimit.add(result.mutationId);
+        continue;
       }
       syncConflictStore.record(
         localUserId,
@@ -1133,13 +1266,15 @@ const settleMutationResults = (
     );
     syncOutboxStore.markMutationsFailed(
       localUserId,
-      response.rejected.map((item) => item.mutationId),
+      response.rejected
+        .map((item) => item.mutationId)
+        .filter((mutationId) => !heldForLimit.has(mutationId)),
       ACCOUNT_SCOPE,
       localUserId,
       tx,
     );
   });
-  return response.rejected.length;
+  return response.rejected.length - heldForLimit.size;
 };
 
 interface PreparedOutboxBatch {
@@ -1180,6 +1315,23 @@ const failOversizedMutations = (
       tx,
     );
   });
+};
+
+/**
+ * Queues chat history the cloud has never had from this phone, a bounded
+ * batch per call (ADR-040). Only once chat is part of this pass's state: right
+ * after its snapshot, or on a pass that needs none.
+ */
+const queueUnsyncedChat = (
+  localUserId: string,
+  effectiveTypes: readonly SyncEntityType[],
+): void => {
+  if (!effectiveTypes.includes('chat_message')) return;
+  try {
+    chatSyncStore.enqueueUnsynced(localUserId);
+  } catch (error) {
+    console.warn('[SyncWorker] Chat history was not queued:', error);
+  }
 };
 
 const prepareOutboxBatch = (
@@ -1330,10 +1482,21 @@ export const syncWorker = {
       );
       const negotiated = syncStateStore.loadEntityTypes(localUserId);
       let knownServerTypes = negotiated.serverEntityTypes;
-      let effectiveTypes = effectiveSyncEntityTypes(knownServerTypes);
+      // Chat is declared only while this account syncs chat and the server
+      // has listed it; the set stays fixed for the whole pass (ADR-040).
+      const chatSyncEnabled = chatSyncStore.isEnabled(localUserId);
+      const declaredTypes = declaredSyncEntityTypes(
+        chatSyncEnabled,
+        knownServerTypes,
+      );
+      let effectiveTypes = effectiveSyncEntityTypes(
+        knownServerTypes,
+        declaredTypes,
+      );
       const snapshotFirst =
         negotiated.snapshotEntityTypes === null ||
         !sameEntityTypeSet(negotiated.snapshotEntityTypes, effectiveTypes);
+      if (!snapshotFirst) queueUnsyncedChat(localUserId, effectiveTypes);
       let preparedBatch: PreparedOutboxBatch = snapshotFirst
         ? { mutations: [], ids: [] }
         : prepareOutboxBatch(localUserId, effectiveTypes);
@@ -1361,7 +1524,7 @@ export const syncWorker = {
             body: JSON.stringify({
               mutations: outboundMutations,
               cursor: requestCursor,
-              entityTypes: CLIENT_SYNC_ENTITY_TYPES,
+              entityTypes: declaredTypes,
               ...(snapshotRequest === null
                 ? {}
                 : { snapshot: snapshotRequest }),
@@ -1416,7 +1579,10 @@ export const syncWorker = {
         validateMutationResults(response, inFlightMutations);
         assertActiveLocalUser(localUserId);
 
-        effectiveTypes = effectiveSyncEntityTypes(response.supportedEntityTypes);
+        effectiveTypes = effectiveSyncEntityTypes(
+          response.supportedEntityTypes,
+          declaredTypes,
+        );
         if (
           response.supportedEntityTypes &&
           (knownServerTypes === null ||
@@ -1424,6 +1590,16 @@ export const syncWorker = {
         ) {
           knownServerTypes = [...response.supportedEntityTypes];
           syncStateStore.saveServerEntityTypes(localUserId, knownServerTypes);
+          // A server that just started listing chat: sync it in the next pass
+          // right away instead of on the next timer tick.
+          if (
+            !sameEntityTypeSet(
+              declaredSyncEntityTypes(chatSyncEnabled, knownServerTypes),
+              declaredTypes,
+            )
+          ) {
+            followUpSyncRequested = true;
+          }
         }
 
         if (snapshotRequest !== null) {
@@ -1467,6 +1643,8 @@ export const syncWorker = {
           snapshotItems = [];
           snapshotItemKeys.clear();
 
+          // Now that the cloud's chats are here, send this phone's own.
+          queueUnsyncedChat(localUserId, effectiveTypes);
           preparedBatch = prepareOutboxBatch(localUserId, effectiveTypes);
           outboundMutations = preparedBatch.mutations;
           inFlightMutationIds = preparedBatch.ids;

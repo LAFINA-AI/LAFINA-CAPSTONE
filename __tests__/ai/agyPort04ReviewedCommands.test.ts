@@ -123,7 +123,11 @@ const footprint = (userId: string) => {
     reminders: count(
       "SELECT COUNT(*) AS n FROM reminders WHERE user_id = ? AND deleted_at IS NULL AND status IN ('pending','snoozed','triggered')",
     ),
-    outbox: count('SELECT COUNT(*) AS n FROM sync_outbox WHERE user_id = ?'),
+    // Planner mutations only: the chat exchange itself is saved and synced
+    // (ADR-040), which is not a planner write.
+    outbox: count(
+      "SELECT COUNT(*) AS n FROM sync_outbox WHERE user_id = ? AND entity_type NOT IN ('chat_session', 'chat_message')",
+    ),
     receipts: count(
       'SELECT COUNT(*) AS n FROM assistant_operation_receipts WHERE user_id = ?',
     ),

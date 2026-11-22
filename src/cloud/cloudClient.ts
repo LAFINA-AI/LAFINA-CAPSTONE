@@ -1,6 +1,6 @@
-import { secureKeystore } from '../utils/keystore';
-import { userStore } from '../storage/userStore';
-import { NativeModules, Platform } from 'react-native';
+import {secureKeystore} from '../utils/keystore';
+import {userStore} from '../storage/userStore';
+import {NativeModules, Platform} from 'react-native';
 
 export type CloudResultStatus =
   | 'success'
@@ -48,11 +48,13 @@ export const apiBaseUrlsFor = (
   if (testServer && /^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(testServer)) {
     return [testServer];
   }
-  return isDevelopment ? [CLOUD_API_BASE_URL, LOCAL_API_BASE_URL] : [CLOUD_API_BASE_URL];
+  return isDevelopment
+    ? [CLOUD_API_BASE_URL, LOCAL_API_BASE_URL]
+    : [CLOUD_API_BASE_URL];
 };
 
 const buildOverride = (
-  NativeModules.CapstoneBuild as { apiBaseUrlOverride?: unknown } | undefined
+  NativeModules.CapstoneBuild as {apiBaseUrlOverride?: unknown} | undefined
 )?.apiBaseUrlOverride;
 
 const defaultApiBaseUrls: readonly string[] = apiBaseUrlsFor(
@@ -67,7 +69,9 @@ interface AndroidConnectivityModule {
 }
 
 const androidConnectivity = (): AndroidConnectivityModule | undefined =>
-  NativeModules.AndroidConnectivityModule as AndroidConnectivityModule | undefined;
+  NativeModules.AndroidConnectivityModule as
+    | AndroidConnectivityModule
+    | undefined;
 
 const DNS_CHECK_TIMEOUT_MS = 5_000;
 
@@ -75,13 +79,14 @@ const hostOf = (baseUrl: string): string =>
   baseUrl.replace(/^[a-z]+:\/\//i, '').replace(/[/:].*$/, '');
 
 const canResolveHost = async (host: string): Promise<boolean | null> => {
-  const connectivity = Platform.OS === 'android' ? androidConnectivity() : undefined;
+  const connectivity =
+    Platform.OS === 'android' ? androidConnectivity() : undefined;
   if (!connectivity?.canResolve) return null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       connectivity.canResolve(host),
-      new Promise<boolean>((resolve) => {
+      new Promise<boolean>(resolve => {
         timer = setTimeout(() => resolve(false), DNS_CHECK_TIMEOUT_MS);
       }),
     ]);
@@ -92,19 +97,23 @@ const canResolveHost = async (host: string): Promise<boolean | null> => {
   }
 };
 
-const describeConnectionFailure = async (baseUrl: string, error: unknown): Promise<string> => {
+const describeConnectionFailure = async (
+  baseUrl: string,
+  error: unknown,
+): Promise<string> => {
   const host = hostOf(baseUrl);
   if ((await canResolveHost(host)) === false) {
     return `This device can't look up ${host}: the connection is up, but its DNS isn't answering. Check the Wi-Fi or mobile data (on an emulator, restart it).`;
   }
-  const reason = error instanceof Error && error.message ? error.message : 'no response';
+  const reason =
+    error instanceof Error && error.message ? error.message : 'no response';
   return `LAFINA's server at ${host} didn't answer (${reason}).`;
 };
 
 /** Maps a non-2xx backend response to the CloudResult every caller expects. */
 const errorResult = (
   httpStatus: number,
-  errorData: { detail?: unknown } | null,
+  errorData: {detail?: unknown} | null,
   endpoint: string,
   method: string,
   requiresAuth: boolean,
@@ -122,9 +131,9 @@ const errorResult = (
             item &&
             typeof item === 'object' &&
             'msg' in item &&
-            typeof (item as { msg?: unknown }).msg === 'string'
+            typeof (item as {msg?: unknown}).msg === 'string'
           ) {
-            return ((item as { msg: string }).msg || '').trim();
+            return ((item as {msg: string}).msg || '').trim();
           }
           return '';
         })
@@ -137,9 +146,9 @@ const errorResult = (
       rawDetail &&
       typeof rawDetail === 'object' &&
       'message' in rawDetail &&
-      typeof (rawDetail as { message?: unknown }).message === 'string'
+      typeof (rawDetail as {message?: unknown}).message === 'string'
     ) {
-      const msg = ((rawDetail as { message: string }).message || '').trim();
+      const msg = ((rawDetail as {message: string}).message || '').trim();
       if (msg) return msg;
     }
     return 'FastAPI request failed.';
@@ -148,7 +157,9 @@ const errorResult = (
   if (httpStatus === 401) {
     return {
       status: 'auth_required',
-      error: requiresAuth ? 'Cloud session expired. Sign in again while online.' : detail,
+      error: requiresAuth
+        ? 'Cloud session expired. Sign in again while online.'
+        : detail,
       httpStatus: httpStatus,
     };
   }
@@ -161,15 +172,13 @@ const errorResult = (
     };
   }
   if (httpStatus === 409) {
-    return { status: 'conflict', error: detail, httpStatus: httpStatus };
+    return {status: 'conflict', error: detail, httpStatus: httpStatus};
   }
   if (httpStatus === 429) {
-    return { status: 'rate_limited', error: detail, httpStatus: httpStatus };
+    return {status: 'rate_limited', error: detail, httpStatus: httpStatus};
   }
   if (httpStatus >= 500) {
-    console.error(
-      `[cloud] ${method} ${endpoint} -> ${httpStatus}: ${detail}`,
-    );
+    console.error(`[cloud] ${method} ${endpoint} -> ${httpStatus}: ${detail}`);
     return {
       status: 'server_error',
       error: `LAFINA's server had a problem (${httpStatus} on ${endpoint}${
@@ -178,7 +187,7 @@ const errorResult = (
       httpStatus: httpStatus,
     };
   }
-  return { status: 'validation_error', error: detail, httpStatus: httpStatus };
+  return {status: 'validation_error', error: detail, httpStatus: httpStatus};
 };
 
 export interface CloudStreamOptions {
@@ -196,9 +205,9 @@ export interface CloudStreamOptions {
 }
 
 type StreamOutcome =
-  | { kind: 'response'; status: number; text: string }
-  | { kind: 'failed'; error: Error }
-  | { kind: 'aborted' };
+  | {kind: 'response'; status: number; text: string}
+  | {kind: 'failed'; error: Error}
+  | {kind: 'aborted'};
 
 /** Minimal surface of XMLHttpRequest used here, so tests can provide one. */
 interface StreamXhr {
@@ -231,14 +240,15 @@ const postStreaming = (
   body: string,
   options: CloudStreamOptions,
 ): Promise<StreamOutcome> =>
-  new Promise((resolve) => {
-    const Xhr = (globalThis as { XMLHttpRequest?: new () => StreamXhr }).XMLHttpRequest;
+  new Promise(resolve => {
+    const Xhr = (globalThis as {XMLHttpRequest?: new () => StreamXhr})
+      .XMLHttpRequest;
     if (!Xhr) {
-      resolve({ kind: 'failed', error: new Error('streaming is not available') });
+      resolve({kind: 'failed', error: new Error('streaming is not available')});
       return;
     }
     if (options.signal?.aborted) {
-      resolve({ kind: 'aborted' });
+      resolve({kind: 'aborted'});
       return;
     }
     const xhr = new Xhr();
@@ -259,12 +269,14 @@ const postStreaming = (
         delivered = text.length;
         options.onText(chunk);
         if (options.isComplete?.()) {
-          finish({ kind: 'response', status: xhr.status, text });
+          finish({kind: 'response', status: xhr.status, text});
         }
       }
     };
     xhr.open('POST', url);
-    Object.entries(headers).forEach(([name, value]) => xhr.setRequestHeader(name, value));
+    Object.entries(headers).forEach(([name, value]) =>
+      xhr.setRequestHeader(name, value),
+    );
     xhr.timeout = options.timeoutMs ?? STREAM_TIMEOUT_MS;
     xhr.onprogress = deliver;
     xhr.onreadystatechange = () => {
@@ -272,11 +284,17 @@ const postStreaming = (
     };
     xhr.onload = () => {
       deliver();
-      finish({ kind: 'response', status: xhr.status, text: xhr.responseText || '' });
+      finish({
+        kind: 'response',
+        status: xhr.status,
+        text: xhr.responseText || '',
+      });
     };
-    xhr.onerror = () => finish({ kind: 'failed', error: new Error('Network request failed') });
-    xhr.ontimeout = () => finish({ kind: 'failed', error: new Error('timed out') });
-    xhr.onabort = () => finish({ kind: 'aborted' });
+    xhr.onerror = () =>
+      finish({kind: 'failed', error: new Error('Network request failed')});
+    xhr.ontimeout = () =>
+      finish({kind: 'failed', error: new Error('timed out')});
+    xhr.onabort = () => finish({kind: 'aborted'});
     options.signal?.addEventListener('abort', onAbort);
     xhr.send(body);
   });
@@ -308,7 +326,10 @@ const renewAccessToken = (): Promise<RenewalOutcome> => {
   if (!renewal) {
     renewal = (async (): Promise<RenewalOutcome> => {
       // Why renewal failed, for the device log; never includes token values.
-      const fail = (outcome: RenewalOutcome, reason: string): RenewalOutcome => {
+      const fail = (
+        outcome: RenewalOutcome,
+        reason: string,
+      ): RenewalOutcome => {
         console.warn(`[cloud] Sign-in renewal failed: ${reason}`);
         return outcome;
       };
@@ -321,25 +342,41 @@ const renewAccessToken = (): Promise<RenewalOutcome> => {
         } catch (error) {
           return fail(
             'ended',
-            `stored refresh token unreadable (${error instanceof Error ? error.message : 'error'})`,
+            `stored refresh token unreadable (${
+              error instanceof Error ? error.message : 'error'
+            })`,
           );
         }
-        if (!refreshToken) return fail('ended', 'no refresh token stored; sign in again');
+        if (!refreshToken)
+          return fail('ended', 'no refresh token stored; sign in again');
         const result = await cloudClient.requestOnce<{
           access_token?: unknown;
           refresh_token?: unknown;
         }>(
           '/v1/auth/refresh',
-          { method: 'POST', body: JSON.stringify({ refresh_token: refreshToken }) },
+          {method: 'POST', body: JSON.stringify({refresh_token: refreshToken})},
           false,
         );
         const access = result.data?.access_token;
         const refresh = result.data?.refresh_token;
-        if (result.status === 'auth_required' || result.status === 'account_disabled') {
-          return fail('ended', `server answered ${result.httpStatus ?? result.status}`);
+        if (
+          result.status === 'auth_required' ||
+          result.status === 'account_disabled'
+        ) {
+          return fail(
+            'ended',
+            `server answered ${result.httpStatus ?? result.status}`,
+          );
         }
-        if (result.status !== 'success' || typeof access !== 'string' || typeof refresh !== 'string') {
-          return fail('failed', `server answered ${result.httpStatus ?? result.status}`);
+        if (
+          result.status !== 'success' ||
+          typeof access !== 'string' ||
+          typeof refresh !== 'string'
+        ) {
+          return fail(
+            'failed',
+            `server answered ${result.httpStatus ?? result.status}`,
+          );
         }
         // Signed out or switched account meanwhile: keep the tokens off it.
         if (userStore.getActiveSessionToken().userId !== owner) {
@@ -348,7 +385,10 @@ const renewAccessToken = (): Promise<RenewalOutcome> => {
         await cloudClient.establishSession(owner, access, refresh);
         return 'renewed';
       } catch (error) {
-        return fail('failed', error instanceof Error ? error.message : 'unexpected error');
+        return fail(
+          'failed',
+          error instanceof Error ? error.message : 'unexpected error',
+        );
       } finally {
         renewal = null;
       }
@@ -358,7 +398,9 @@ const renewAccessToken = (): Promise<RenewalOutcome> => {
 };
 
 /** `renewed` when a newer access token exists than `usedToken`, renewing if needed. */
-const renewedSince = async (usedToken: string | null): Promise<RenewalOutcome> => {
+const renewedSince = async (
+  usedToken: string | null,
+): Promise<RenewalOutcome> => {
   const current = cloudClient.getAccessToken();
   if (current && current !== usedToken) return 'renewed'; // another request renewed it
   return renewAccessToken();
@@ -377,12 +419,12 @@ const withRenewal = async <T>(
   const first = await once();
   if (!shouldRenew(first, requiresAuth, signal)) return first;
   const outcome = await renewedSince(usedToken);
-  if (outcome === 'ended') return { ...first, sessionEnded: true };
+  if (outcome === 'ended') return {...first, sessionEnded: true};
   if (outcome === 'failed') return first;
   const retried = await once();
   // A brand-new token rejected too: the account itself is signed out.
   return retried.status === 'auth_required' && retried.httpStatus === 401
-    ? { ...retried, sessionEnded: true }
+    ? {...retried, sessionEnded: true}
     : retried;
 };
 
@@ -440,10 +482,18 @@ export const cloudClient = {
   ): Promise<void> => {
     const session = userStore.getActiveSessionToken();
     if (session.userId !== localUserId) {
-      throw new Error('Cloud credentials could not be associated with the active local account.');
+      throw new Error(
+        'Cloud credentials could not be associated with the active local account.',
+      );
     }
-    const encryptedRefreshToken = await secureKeystore.encryptString(refreshToken);
-    userStore.saveSessionTokens(localUserId, accessToken, encryptedRefreshToken);
+    const encryptedRefreshToken = await secureKeystore.encryptString(
+      refreshToken,
+    );
+    userStore.saveSessionTokens(
+      localUserId,
+      accessToken,
+      encryptedRefreshToken,
+    );
     inMemoryUserId = localUserId;
     inMemoryAccessToken = accessToken;
   },
@@ -453,7 +503,11 @@ export const cloudClient = {
     if (!session.userId || !inMemoryAccessToken) {
       throw new Error('No active local cloud session is available.');
     }
-    await cloudClient.establishSession(session.userId, inMemoryAccessToken, refreshToken);
+    await cloudClient.establishSession(
+      session.userId,
+      inMemoryAccessToken,
+      refreshToken,
+    );
   },
 
   getEncryptedRefreshToken: async (): Promise<string | null> => {
@@ -485,7 +539,8 @@ export const cloudClient = {
     if (isOnlineMockState !== null) {
       return isOnlineMockState;
     }
-    const connectivity = Platform.OS === 'android' ? androidConnectivity() : undefined;
+    const connectivity =
+      Platform.OS === 'android' ? androidConnectivity() : undefined;
     if (connectivity) {
       try {
         return await connectivity.isOnline();
@@ -493,9 +548,8 @@ export const cloudClient = {
         return false;
       }
     }
-    const navigatorState = (
-      globalThis as { navigator?: { onLine?: boolean } }
-    ).navigator;
+    const navigatorState = (globalThis as {navigator?: {onLine?: boolean}})
+      .navigator;
     return navigatorState?.onLine !== false;
   },
 
@@ -523,9 +577,16 @@ export const cloudClient = {
     options: RequestInit = {},
     requiresAuth: boolean = true,
   ): Promise<CloudResult<T>> => {
+    if (options.signal?.aborted) {
+      return {status: 'server_unavailable', error: 'Request cancelled.'};
+    }
+
     const online = await cloudClient.isOnline();
     if (!online) {
-      return { status: 'offline', error: 'Device is offline. Cloud feature unavailable.' };
+      return {
+        status: 'offline',
+        error: 'Device is offline. Cloud feature unavailable.',
+      };
     }
 
     const headers: Record<string, string> = {
@@ -536,7 +597,10 @@ export const cloudClient = {
     if (requiresAuth) {
       const token = cloudClient.getAccessToken();
       if (!token) {
-        return { status: 'auth_required', error: 'Authentication required. Please sign in.' };
+        return {
+          status: 'auth_required',
+          error: 'Authentication required. Please sign in.',
+        };
       }
       headers.Authorization = `Bearer ${token}`;
     }
@@ -554,7 +618,9 @@ export const cloudClient = {
           headers,
         });
 
-        const isTemporarilyUnavailable = [502, 503, 504].includes(candidateResponse.status);
+        const isTemporarilyUnavailable = [502, 503, 504].includes(
+          candidateResponse.status,
+        );
         if (isTemporarilyUnavailable && hasFallback) {
           continue;
         }
@@ -563,6 +629,12 @@ export const cloudClient = {
         break;
       } catch (error: unknown) {
         lastConnectionError = error;
+        if (
+          options.signal?.aborted ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
+          return {status: 'server_unavailable', error: 'Request cancelled.'};
+        }
         if (!hasFallback) {
           break;
         }
@@ -570,18 +642,31 @@ export const cloudClient = {
     }
 
     if (!response) {
-      const reason = await describeConnectionFailure(apiBaseUrls[0], lastConnectionError);
-      console.warn(`[cloud] ${options.method || 'GET'} ${endpoint} got no response: ${reason}`);
-      return { status: 'server_unavailable', error: reason };
+      const reason = await describeConnectionFailure(
+        apiBaseUrls[0],
+        lastConnectionError,
+      );
+      console.warn(
+        `[cloud] ${
+          options.method || 'GET'
+        } ${endpoint} got no response: ${reason}`,
+      );
+      return {status: 'server_unavailable', error: reason};
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: null }));
-      return errorResult(response.status, errorData, endpoint, options.method || 'GET', requiresAuth);
+      const errorData = await response.json().catch(() => ({detail: null}));
+      return errorResult(
+        response.status,
+        errorData,
+        endpoint,
+        options.method || 'GET',
+        requiresAuth,
+      );
     }
 
     const data = await response.json().catch(() => ({}));
-    return { status: 'success', data: data as T, httpStatus: response.status };
+    return {status: 'success', data: data as T, httpStatus: response.status};
   },
 
   /**
@@ -611,7 +696,10 @@ export const cloudClient = {
     requiresAuth: boolean = true,
   ): Promise<CloudResult<string>> => {
     if (!(await cloudClient.isOnline())) {
-      return { status: 'offline', error: 'Device is offline. Cloud feature unavailable.' };
+      return {
+        status: 'offline',
+        error: 'Device is offline. Cloud feature unavailable.',
+      };
     }
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -620,7 +708,10 @@ export const cloudClient = {
     if (requiresAuth) {
       const token = cloudClient.getAccessToken();
       if (!token) {
-        return { status: 'auth_required', error: 'Authentication required. Please sign in.' };
+        return {
+          status: 'auth_required',
+          error: 'Authentication required. Please sign in.',
+        };
       }
       headers.Authorization = `Bearer ${token}`;
     }
@@ -628,7 +719,7 @@ export const cloudClient = {
     let received = false;
     const forward: CloudStreamOptions = {
       ...options,
-      onText: (chunk) => {
+      onText: chunk => {
         received = true;
         options.onText(chunk);
       },
@@ -638,9 +729,14 @@ export const cloudClient = {
     for (let index = 0; index < apiBaseUrls.length; index += 1) {
       const baseUrl = apiBaseUrls[index];
       const hasFallback = index < apiBaseUrls.length - 1;
-      const outcome = await postStreaming(`${baseUrl}${endpoint}`, headers, payload, forward);
+      const outcome = await postStreaming(
+        `${baseUrl}${endpoint}`,
+        headers,
+        payload,
+        forward,
+      );
       if (outcome.kind === 'aborted') {
-        return { status: 'server_unavailable', error: 'cancelled' };
+        return {status: 'server_unavailable', error: 'cancelled'};
       }
       if (outcome.kind === 'failed') {
         lastError = outcome.error;
@@ -652,20 +748,32 @@ export const cloudClient = {
         continue;
       }
       if (outcome.status < 200 || outcome.status >= 300) {
-        let errorData: { detail?: unknown } | null = null;
+        let errorData: {detail?: unknown} | null = null;
         try {
           errorData = JSON.parse(outcome.text);
         } catch {
-          errorData = { detail: null };
+          errorData = {detail: null};
         }
-        return errorResult(outcome.status, errorData, endpoint, 'POST', requiresAuth);
+        return errorResult(
+          outcome.status,
+          errorData,
+          endpoint,
+          'POST',
+          requiresAuth,
+        );
       }
-      return { status: 'success', data: outcome.text, httpStatus: outcome.status };
+      return {
+        status: 'success',
+        data: outcome.text,
+        httpStatus: outcome.status,
+      };
     }
     const reason = received
       ? 'The connection dropped while the reply was arriving.'
       : await describeConnectionFailure(apiBaseUrls[0], lastError);
-    console.warn(`[cloud] POST ${endpoint} stream ended without a response: ${reason}`);
-    return { status: 'server_unavailable', error: reason };
+    console.warn(
+      `[cloud] POST ${endpoint} stream ended without a response: ${reason}`,
+    );
+    return {status: 'server_unavailable', error: reason};
   },
 };

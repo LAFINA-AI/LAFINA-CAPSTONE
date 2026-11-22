@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   Alert,
   Animated,
+  DeviceEventEmitter,
   Easing,
   FlatList,
   LayoutAnimation,
@@ -37,12 +38,17 @@ import {Fonts, FontSize, Shadows} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {
   chatStore,
+  isChatLimitReachedError,
   isUstpSessionId,
   MAX_CHAT_TITLE,
   type ChatSessionKind,
   type ChatSummary,
 } from '../../../storage/chatStore';
 import {removeAttachmentFiles} from './chatFiles';
+import {
+  CHAT_REMOTE_CHANGED_EVENT,
+  type ChatRemoteChangedEvent,
+} from '../../../sync/chatSyncEvents';
 import {isUstpSchoolEnabled} from '../../../storage/ustpEligibility';
 
 export interface ChatHistorySheetProps {
@@ -313,6 +319,16 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
 
   const isCurrentUstp = !isTemporaryChat && isUstpSessionId(currentSessionId);
 
+  // Saved chats against the per-account limit, read again with the list.
+  const chatLimit = React.useMemo(() => {
+    try {
+      return chatStore.chatLimit(userId);
+    } catch {
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chats, userId]);
+
   const reload = useCallback(() => {
     try {
       setChats(chatStore.listSessions(userId, search, kindFilter));
@@ -346,6 +362,18 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   useEffect(() => {
     if (visible) reload();
   }, [visible, reload]);
+
+  // Chats synced from another phone show while the list is open (ADR-040).
+  useEffect(() => {
+    if (!visible) return;
+    const subscription = DeviceEventEmitter.addListener(
+      CHAT_REMOTE_CHANGED_EVENT,
+      (event: ChatRemoteChangedEvent) => {
+        if (event?.userId === userId) reload();
+      },
+    );
+    return () => subscription.remove();
+  }, [visible, reload, userId]);
 
   useEffect(() => {
     if (visible) {
@@ -445,6 +473,10 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     try {
       chatStore.startNewChat(userId, 'general');
     } catch (error) {
+      if (isChatLimitReachedError(error)) {
+        Alert.alert('Chat Limit Reached', error.message);
+        return;
+      }
       console.error('[ChatHistory] Could not start a chat:', error);
       Alert.alert(
         'Could Not Start',
@@ -465,6 +497,10 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     try {
       chatStore.startNewUstpChat(userId);
     } catch (error) {
+      if (isChatLimitReachedError(error)) {
+        Alert.alert('Chat Limit Reached', error.message);
+        return;
+      }
       console.error('[ChatHistory] Could not start USTP chat:', error);
       Alert.alert(
         'Could Not Start',
@@ -619,6 +655,20 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                 </TouchableOpacity>
               )}
             </View>
+
+            {chatLimit ? (
+              <Text
+                style={[
+                  styles.chatLimitText,
+                  {color: chatLimit.reached ? accent : textSecondary},
+                ]}
+                testID="chat-history-limit"
+              >
+                {chatLimit.reached
+                  ? `${chatLimit.count} of ${chatLimit.max} chats. Delete a chat to start a new one.`
+                  : `${chatLimit.count} of ${chatLimit.max} chats`}
+              </Text>
+            ) : null}
 
             {showUstp && (
               <TouchableOpacity
@@ -1139,6 +1189,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.heading,
     fontSize: FontSize.body,
     fontWeight: '700',
+  },
+  chatLimitText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    marginTop: -4,
+    marginBottom: 8,
   },
   tempChatBtn: {
     flexDirection: 'row',

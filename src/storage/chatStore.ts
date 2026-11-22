@@ -1,16 +1,32 @@
 import {db} from './database';
 import type {DatabaseTransaction} from './database';
 import {generateId} from '../utils';
-import {NEW_SESSION_GENERATION_SQL, ownedChatSessionId} from './chatOwnership';
+import {
+  MAX_CHATS_PER_ACCOUNT,
+  NEW_CHAT_PREFIX,
+  NEW_SESSION_GENERATION_SQL,
+  PLACEHOLDER_CHAT_TITLES,
+  USTP_CHAT_PREFIX,
+  isUstpSessionId,
+  ownedChatSessionId,
+} from './chatOwnership';
 import type {ChatMemoryChanges, RemovedChatMemory} from './chatMemoryStore';
+import {chatSyncStore} from './chatSyncStore';
+
+export {NEW_CHAT_PREFIX, USTP_CHAT_PREFIX, isUstpSessionId};
 
 export interface ChatAttachment {
+  /** Empty for a file that stayed on the phone that sent it (synced chat). */
   uri: string;
   fileName: string;
   format: string;
   mimeType: string;
   sizeBytes: number;
 }
+
+/** True for a synced message whose file is on another phone. */
+export const isRemoteOnlyAttachment = (attachment: ChatAttachment): boolean =>
+  attachment.uri.length === 0;
 
 export interface ChatMessage {
   id: string;
@@ -99,14 +115,8 @@ export interface LegacyChatSummary {
 export const CHAT_PAGE_SIZE = 50;
 /** local_settings key holding the chat the student has open. */
 export const CURRENT_CHAT_KEY = 'chat.currentSession';
-/** Ids of chats started with New chat; the first chat keeps its owner-bound id. */
-export const NEW_CHAT_PREFIX = 'chat_session:';
-/** Sub-prefix for dedicated USTP Student Handbook RAG chats. */
-export const USTP_CHAT_PREFIX = `${NEW_CHAT_PREFIX}ustp_`;
-export const isUstpSessionId = (sessionId?: string | null): boolean =>
-  typeof sessionId === 'string' && sessionId.startsWith(USTP_CHAT_PREFIX);
 export const MAX_CHAT_TITLE = 60;
-const PLACEHOLDER_TITLES = ['Default Chat', 'New chat', 'Ask about USTP'];
+const PLACEHOLDER_TITLES = PLACEHOLDER_CHAT_TITLES;
 const MAX_PAGE_SIZE = 100;
 const CURSOR_VERSION = 1;
 
@@ -195,6 +205,33 @@ const parseMemoryChanges = (raw: unknown): ChatMemoryChanges | null => {
                 ...(typeof extra.rowId === 'number' &&
                 Number.isSafeInteger(extra.rowId)
                   ? {rowId: extra.rowId}
+                  : {}),
+                ...(extra.tier === 'core' ||
+                extra.tier === 'preference' ||
+                extra.tier === 'episodic'
+                  ? {tier: extra.tier}
+                  : {}),
+                ...(extra.category === 'identity' ||
+                extra.category === 'academic' ||
+                extra.category === 'study' ||
+                extra.category === 'goal' ||
+                extra.category === 'routine' ||
+                extra.category === 'general'
+                  ? {category: extra.category}
+                  : {}),
+                ...(typeof extra.isPinned === 'boolean'
+                  ? {isPinned: extra.isPinned}
+                  : {}),
+                ...(typeof extra.slotKey === 'string' || extra.slotKey === null
+                  ? {slotKey: extra.slotKey}
+                  : {}),
+                ...(typeof extra.lastUsedAt === 'string' ||
+                extra.lastUsedAt === null
+                  ? {lastUsedAt: extra.lastUsedAt}
+                  : {}),
+                ...(typeof extra.expiresAt === 'string' ||
+                extra.expiresAt === null
+                  ? {expiresAt: extra.expiresAt}
                   : {}),
               };
             })
@@ -375,6 +412,32 @@ const messageCount = (sessionId: string, tx: Executor): number =>
     ).rows[0]?.count ?? 0,
   );
 
+/** Chats of this owner that hold at least one message. */
+const savedChatCount = (userId: string, tx: Executor): number =>
+  Number(
+    tx.executeSync(
+      `SELECT COUNT(*) AS count FROM (${OWNED_SESSIONS}) s
+       WHERE EXISTS (SELECT 1 FROM messages m WHERE m.session_id = s.id)`,
+      ownedSessionParams(userId),
+    ).rows[0]?.count ?? 0,
+  );
+
+/** Thrown when a new chat would exceed MAX_CHATS_PER_ACCOUNT. */
+export class ChatLimitReachedError extends Error {
+  constructor() {
+    super(
+      `You have ${MAX_CHATS_PER_ACCOUNT} chats, the most an account can keep. Delete a chat to start a new one.`,
+    );
+    this.name = 'ChatLimitReachedError';
+  }
+}
+
+export const isChatLimitReachedError = (
+  error: unknown,
+): error is ChatLimitReachedError =>
+  error instanceof ChatLimitReachedError ||
+  (error instanceof Error && error.name === 'ChatLimitReachedError');
+
 /** Empty New chats left behind are removed, except `keep`. */
 const dropEmptyNewChats = (
   userId: string,
@@ -553,6 +616,10 @@ export const chatStore = {
    */
   startNewChat: (userId: string, kind: ChatSessionKind = 'general'): string =>
     db.transactionSync(tx => {
+      // At the limit no chat can take a first message, so none is opened.
+      if (savedChatCount(userId, tx) >= MAX_CHATS_PER_ACCOUNT) {
+        throw new ChatLimitReachedError();
+      }
       const open = currentSession(userId, tx);
       const openIsUstp = isUstpSessionId(open.sessionId);
       if (kind === 'ustp') {
@@ -591,6 +658,38 @@ export const chatStore = {
       return next;
     }),
 
+  /** How many of the MAX_CHATS_PER_ACCOUNT chats this account uses. */
+  chatLimit: (
+    userId: string,
+  ): {count: number; max: number; reached: boolean} => {
+    const count = savedChatCount(userId, db);
+    return {
+      count,
+      max: MAX_CHATS_PER_ACCOUNT,
+      reached: count >= MAX_CHATS_PER_ACCOUNT,
+    };
+  },
+
+  /**
+   * Opens the newest general chat that has messages, for flows that must
+   * leave a USTP or Temporary Chat when no new chat can be started.
+   */
+  openLatestGeneralChat: (userId: string): string | null =>
+    db.transactionSync(tx => {
+      const row = tx.executeSync(
+        `SELECT s.id FROM (${OWNED_SESSIONS}) o JOIN chat_sessions s ON s.id = o.id
+         WHERE substr(s.id, 1, ${USTP_CHAT_PREFIX.length}) <> '${USTP_CHAT_PREFIX}'
+           AND EXISTS (SELECT 1 FROM messages m WHERE m.session_id = s.id)
+         ORDER BY s.updated_at DESC LIMIT 1`,
+        ownedSessionParams(userId),
+      ).rows[0];
+      if (!row) return null;
+      const id = String(row.id);
+      setCurrentChat(userId, id, tx);
+      dropEmptyNewChats(userId, id, tx);
+      return id;
+    }),
+
   /** Starts a dedicated empty USTP Student Handbook RAG chat and opens it. */
   startNewUstpChat: (userId: string): string =>
     chatStore.startNewChat(userId, 'ustp'),
@@ -614,6 +713,7 @@ export const chatStore = {
           userId,
         ],
       );
+      chatSyncStore.afterSessionWrite(tx, userId, chosen.sessionId);
     });
   },
 
@@ -637,6 +737,7 @@ export const chatStore = {
         .filter(
           (uri): uri is string => typeof uri === 'string' && uri.length > 0,
         );
+      chatSyncStore.beforeSessionDelete(tx, userId, chosen.sessionId);
       tx.executeSync('DELETE FROM messages WHERE session_id = ?', [
         chosen.sessionId,
       ]);
@@ -774,6 +875,52 @@ export const chatStore = {
     return executor ? write(executor) : db.transactionSync(write);
   },
 
+  /**
+   * Adds a message to a general chat (never a dedicated USTP handbook chat),
+   * falling back to the latest general chat if the 20-chat limit prevents
+   * turning an empty chat into a new saved one.
+   */
+  addGeneralMessage: (
+    userId: string,
+    sender: 'user' | 'assistant',
+    content: string,
+    metadata?: ChatMessageMetadata | null,
+  ): ChatMessage | null => {
+    const openId = chatStore.currentSessionId(userId);
+    let targetSessionId: string | null = openId;
+    if (isUstpSessionId(openId)) {
+      try {
+        targetSessionId = chatStore.startNewChat(userId, 'general');
+      } catch (error) {
+        if (!isChatLimitReachedError(error)) throw error;
+        targetSessionId = chatStore.openLatestGeneralChat(userId);
+      }
+    }
+    if (!targetSessionId) return null;
+    try {
+      return chatStore.addMessage(
+        userId,
+        sender,
+        content,
+        null,
+        metadata,
+        targetSessionId,
+      );
+    } catch (error) {
+      if (!isChatLimitReachedError(error)) throw error;
+      const fallback = chatStore.openLatestGeneralChat(userId);
+      if (!fallback) return null;
+      return chatStore.addMessage(
+        userId,
+        sender,
+        content,
+        null,
+        metadata,
+        fallback,
+      );
+    }
+  },
+
   /** Inserts into a session only after checking that `userId` owns it. */
   insertMessage: (
     msg: {
@@ -799,6 +946,13 @@ export const chatStore = {
         ownedNewChat(userId, msg.sessionId, tx) !== null;
       if (owner !== userId || !ownedId) {
         throw new Error('Chat message owner does not match its session.');
+      }
+      // A first message turns an empty chat into a saved one.
+      if (
+        messageCount(msg.sessionId, tx) === 0 &&
+        savedChatCount(userId, tx) >= MAX_CHATS_PER_ACCOUNT
+      ) {
+        throw new ChatLimitReachedError();
       }
       const now = new Date().toISOString();
       const metadataValue = {
@@ -835,6 +989,7 @@ export const chatStore = {
         now,
         msg.sessionId,
       ]);
+      chatSyncStore.afterMessageWrite(tx, userId, msg.id);
       const row = tx.executeSync('SELECT seq FROM messages WHERE id = ?', [
         msg.id,
       ]).rows[0];
@@ -857,7 +1012,10 @@ export const chatStore = {
     try {
       return executor ? write(executor) : db.transactionSync(write);
     } catch (error) {
-      console.error('Error inserting chat message:', error);
+      // The chat limit is an expected answer, shown to the student.
+      if (!isChatLimitReachedError(error)) {
+        console.error('Error inserting chat message:', error);
+      }
       throw error;
     }
   },
@@ -972,6 +1130,7 @@ export const chatStore = {
           messageId,
         ],
       );
+      chatSyncStore.afterMessageWrite(tx, userId, messageId);
       return true;
     };
     return executor ? write(executor) : db.transactionSync(write);
@@ -1030,6 +1189,12 @@ export const chatStore = {
   clearHistory: (userId: string, executor?: DatabaseTransaction): void => {
     const clear = (tx: DatabaseTransaction) => {
       const {sessionId} = ensureOwnedSession(userId, tx);
+      for (const row of tx.executeSync(
+        OWNED_SESSIONS,
+        ownedSessionParams(userId),
+      ).rows) {
+        chatSyncStore.beforeSessionDelete(tx, userId, String(row.id));
+      }
       tx.executeSync(
         `DELETE FROM messages WHERE session_id IN (${OWNED_SESSIONS})`,
         ownedSessionParams(userId),
