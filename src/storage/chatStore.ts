@@ -540,6 +540,7 @@ export const chatStore = {
       `SELECT s.id, s.title,
          (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) AS message_count,
          (SELECT MAX(m.created_at) FROM messages m WHERE m.session_id = s.id) AS last_at,
+         (SELECT MAX(m.seq) FROM messages m WHERE m.session_id = s.id) AS last_seq,
          (SELECT m.content FROM messages m WHERE m.session_id = s.id AND m.sender = 'user'
             ORDER BY m.created_at, m.seq LIMIT 1) AS first_user,
          (SELECT m.content FROM messages m WHERE m.session_id = s.id
@@ -548,7 +549,7 @@ export const chatStore = {
        WHERE s.id IN (${OWNED_SESSIONS})
          AND EXISTS (SELECT 1 FROM messages m WHERE m.session_id = s.id)
          ${filter}
-       ORDER BY last_at DESC, s.id`,
+       ORDER BY last_at DESC, last_seq DESC, s.id`,
       params,
     ).rows;
     return rows.map(row => {
@@ -680,7 +681,9 @@ export const chatStore = {
         `SELECT s.id FROM (${OWNED_SESSIONS}) o JOIN chat_sessions s ON s.id = o.id
          WHERE substr(s.id, 1, ${USTP_CHAT_PREFIX.length}) <> '${USTP_CHAT_PREFIX}'
            AND EXISTS (SELECT 1 FROM messages m WHERE m.session_id = s.id)
-         ORDER BY s.updated_at DESC LIMIT 1`,
+         ORDER BY s.updated_at DESC,
+           (SELECT MAX(m.seq) FROM messages m WHERE m.session_id = s.id) DESC
+         LIMIT 1`,
         ownedSessionParams(userId),
       ).rows[0];
       if (!row) return null;

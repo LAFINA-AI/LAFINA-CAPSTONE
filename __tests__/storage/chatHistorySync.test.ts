@@ -765,6 +765,26 @@ describe('the 20-chat limit', () => {
     expect(chatStore.openLatestGeneralChat(me)).toBe(fresh);
   });
 
+  test('the latest chat is the one written last, even within the same millisecond', () => {
+    // CI runners are fast enough that two chats get the same timestamp; the
+    // newest message (its global seq) must decide, not SQLite's row order.
+    const me = newUser('same-ms');
+    chatSyncStore.setEnabled(me, false);
+    jest.useFakeTimers({now: new Date('2030-03-04T05:06:07.008Z')});
+    try {
+      const first = chatStore.startNewChat(me);
+      chatStore.addMessage(me, 'user', 'one', null, null, first);
+      const second = chatStore.startNewChat(me);
+      chatStore.addMessage(me, 'user', 'two', null, null, second);
+      chatStore.addMessage(me, 'user', 'one again', null, null, first);
+      expect(chatStore.openLatestGeneralChat(me)).toBe(first);
+      chatStore.addMessage(me, 'user', 'two again', null, null, second);
+      expect(chatStore.openLatestGeneralChat(me)).toBe(second);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test('a first message into an empty chat is refused at the limit; nothing is saved', () => {
     const me = newUser('limitfirst');
     chatSyncStore.setEnabled(me, false);
