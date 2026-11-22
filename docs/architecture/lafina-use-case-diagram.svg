@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1660" viewBox="0 0 1400 1660" role="img" aria-labelledby="title description">
+<title id="title">LAFINA core student use case diagram</title>
+<desc id="description">A student, as a guest or signed-in user, manages local plans, notes, reminders, and assistant requests. COR imports and assistant changes require review. Push-to-talk optionally extends chat. Handbook questions retrieve evidence. Android supports alerts. The external LAFINA backend supports optional accounts, sync, online chat, and live voice.</desc>
+<rect width="1400" height="1660" fill="white"/>
+<rect x="220" y="45" width="970" height="1460" fill="none" stroke="#252525" stroke-width="1.8"/>
+<text x="705" y="88" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#252525">LAFINA</text>
+<text x="705" y="115" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555">Core student use cases</text>
+<polyline points="110,690 315,170" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,258" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,346" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,434" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,522" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,610" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,698" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,786" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,874" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,962" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,1050" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,1160" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,1248" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,1336" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="110,690 315,1424" fill="none" stroke="#555555" stroke-width="1.25"/>
+<polyline points="1260,728 675,698" fill="none" stroke="#555555" stroke-width="1.5"/>
+<polyline points="1260,728 675,786" fill="none" stroke="#555555" stroke-width="1.5"/>
+<polyline points="1260,1290 675,1160" fill="none" stroke="#555555" stroke-width="1.5"/>
+<polyline points="1260,1290 675,1248" fill="none" stroke="#555555" stroke-width="1.5"/>
+<polyline points="1260,1290 675,1336" fill="none" stroke="#555555" stroke-width="1.5"/>
+<polyline points="1260,1290 675,1424" fill="none" stroke="#555555" stroke-width="1.5"/>
+<ellipse cx="495" cy="170" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="177.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Continue as guest</text>
+<ellipse cx="495" cy="258" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="253.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Manage profile</text>
+<text x="495" y="277.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">and preferences</text>
+<ellipse cx="495" cy="346" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="353.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Manage tasks</text>
+<ellipse cx="495" cy="434" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="429.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Manage calendar events</text>
+<text x="495" y="453.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">and time blocks</text>
+<ellipse cx="495" cy="522" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="517.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Manage notes</text>
+<text x="495" y="541.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">and categories</text>
+<ellipse cx="495" cy="610" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="605.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Import class schedule</text>
+<text x="495" y="629.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">from COR</text>
+<ellipse cx="495" cy="698" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="693.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Manage alarms</text>
+<text x="495" y="717.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">and reminders</text>
+<ellipse cx="495" cy="786" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="781.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Respond to reminder alerts</text>
+<text x="495" y="805.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">and simulated calls</text>
+<ellipse cx="495" cy="874" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="869.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Chat and query</text>
+<text x="495" y="893.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">personal plans</text>
+<ellipse cx="495" cy="962" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="957.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Request assistant</text>
+<text x="495" y="981.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">planning changes</text>
+<ellipse cx="495" cy="1050" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="1045.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Ask USTP handbook</text>
+<text x="495" y="1069.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">questions</text>
+<ellipse cx="495" cy="1160" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="1155.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Manage cloud account</text>
+<text x="495" y="1179.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Register / sign in / sign out</text>
+<ellipse cx="495" cy="1248" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="1255.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Sync personal records</text>
+<ellipse cx="495" cy="1336" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="1343.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Chat with online AI</text>
+<ellipse cx="495" cy="1424" rx="180" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="495" y="1419.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Start online</text>
+<text x="495" y="1443.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">voice conversation</text>
+<ellipse cx="960" cy="610" rx="165" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="960" y="605.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Review and confirm</text>
+<text x="960" y="629.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">extracted classes</text>
+<polyline points="675,610 795,610" fill="none" stroke="#252525" stroke-width="1.5" stroke-dasharray="7 5"/>
+<polyline points="784.1946347717678,615.2195864093347 795,610 784.1946347717678,604.7804135906653" fill="none" stroke="#252525" stroke-width="1.5"/>
+<text x="735" y="596" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#252525">&lt;&lt;include&gt;&gt;</text>
+<ellipse cx="960" cy="874" rx="165" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="960" y="869.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Use push-to-talk</text>
+<text x="960" y="893.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">voice input</text>
+<polyline points="795,874 675,874" fill="none" stroke="#252525" stroke-width="1.5" stroke-dasharray="7 5"/>
+<polyline points="685.8053652282322,868.7804135906653 675,874 685.8053652282322,879.2195864093347" fill="none" stroke="#252525" stroke-width="1.5"/>
+<text x="735" y="860" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#252525">&lt;&lt;extend&gt;&gt;</text>
+<ellipse cx="960" cy="962" rx="165" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="960" y="957.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Review and confirm</text>
+<text x="960" y="981.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">proposed change</text>
+<polyline points="675,962 795,962" fill="none" stroke="#252525" stroke-width="1.5" stroke-dasharray="7 5"/>
+<polyline points="784.1946347717678,967.2195864093347 795,962 784.1946347717678,956.7804135906653" fill="none" stroke="#252525" stroke-width="1.5"/>
+<text x="735" y="948" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#252525">&lt;&lt;include&gt;&gt;</text>
+<ellipse cx="960" cy="1050" rx="165" ry="35" fill="white" stroke="#252525" stroke-width="1.6"/>
+<text x="960" y="1045.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">Retrieve supporting</text>
+<text x="960" y="1069.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#252525">handbook evidence</text>
+<polyline points="675,1050 795,1050" fill="none" stroke="#252525" stroke-width="1.5" stroke-dasharray="7 5"/>
+<polyline points="784.1946347717678,1055.2195864093349 795,1050 784.1946347717678,1044.7804135906651" fill="none" stroke="#252525" stroke-width="1.5"/>
+<text x="735" y="1036" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#252525">&lt;&lt;include&gt;&gt;</text>
+<text x="735" y="899" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555">[Voice selected]</text>
+<text x="495" y="1117" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#555555">OPTIONAL CLOUD SERVICES</text>
+<circle cx="85" cy="654" r="12" fill="white" stroke="#252525" stroke-width="1.8"/>
+<polyline points="85,666 85,710" fill="none" stroke="#252525" stroke-width="1.8"/>
+<polyline points="60,690 110,690" fill="none" stroke="#252525" stroke-width="1.8"/>
+<polyline points="63,740 85,710 107,740" fill="none" stroke="#252525" stroke-width="1.8"/>
+<text x="85" y="768" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#252525">Student</text>
+<text x="85" y="791" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555">Guest or</text>
+<text x="85" y="814" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555">signed-in</text>
+<circle cx="1285" cy="692" r="12" fill="white" stroke="#252525" stroke-width="1.8"/>
+<polyline points="1285,704 1285,748" fill="none" stroke="#252525" stroke-width="1.8"/>
+<polyline points="1260,728 1310,728" fill="none" stroke="#252525" stroke-width="1.8"/>
+<polyline points="1263,778 1285,748 1307,778" fill="none" stroke="#252525" stroke-width="1.8"/>
+<text x="1285" y="806" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#252525">Android OS</text>
+<text x="1285" y="829" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555">Alert delivery</text>
+<circle cx="1285" cy="1254" r="12" fill="white" stroke="#252525" stroke-width="1.8"/>
+<polyline points="1285,1266 1285,1310" fill="none" stroke="#252525" stroke-width="1.8"/>
+<polyline points="1260,1290 1310,1290" fill="none" stroke="#252525" stroke-width="1.8"/>
+<polyline points="1263,1340 1285,1310 1307,1340" fill="none" stroke="#252525" stroke-width="1.8"/>
+<text x="1285" y="1368" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#252525">LAFINA backend</text>
+<text x="1285" y="1391" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555">Account, sync, AI</text>
+<text x="1285" y="1414" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555">and voice services</text>
+<text x="220" y="1545" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#252525">Solid line: actor participation</text>
+<text x="220" y="1574" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#252525">&lt;&lt;include&gt;&gt;: required behavior     &lt;&lt;extend&gt;&gt;: optional behavior</text>
+<text x="220" y="1603" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555">Cloud features require connectivity and applicable account / Online Mode authorization.</text>
+<text x="220" y="1632" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555">Core planning stays local. Android services are specific to the Android client.</text>
+</svg>

@@ -1,0 +1,3474 @@
+{
+  "schemaVersion": 28,
+  "tables": [
+    {
+      "name": "active_session",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "access_token",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "refresh_token",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "pending_cloud_credential",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_active_session_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "user_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE active_session (\n      user_id TEXT PRIMARY KEY,\n      access_token TEXT,\n      refresh_token TEXT,\n      pending_cloud_credential TEXT,\n      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP\n    )"
+    },
+    {
+      "name": "alarms",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "hour",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "minute",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "repeat_days",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "one_shot_date",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "label",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "''"
+        },
+        {
+          "name": "enabled",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "snooze_minutes",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "9"
+        },
+        {
+          "name": "vibrate",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "sound_uri",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "briefing",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "generation",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "next_trigger_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "last_fired_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "last_outcome",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "source_reminder_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_alarms_user",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "hour",
+            "minute"
+          ],
+          "sql": "CREATE INDEX idx_alarms_user ON alarms(user_id, hour, minute)"
+        },
+        {
+          "name": "sqlite_autoindex_alarms_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE alarms (\n    id TEXT PRIMARY KEY NOT NULL,\n    user_id TEXT NOT NULL,\n    hour INTEGER NOT NULL CHECK (hour BETWEEN 0 AND 23),\n    minute INTEGER NOT NULL CHECK (minute BETWEEN 0 AND 59),\n    repeat_days INTEGER NOT NULL DEFAULT 0 CHECK (repeat_days BETWEEN 0 AND 127),\n    one_shot_date TEXT,\n    label TEXT NOT NULL DEFAULT '',\n    enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0,1)),\n    snooze_minutes INTEGER NOT NULL DEFAULT 9 CHECK (snooze_minutes BETWEEN 1 AND 30),\n    vibrate INTEGER NOT NULL DEFAULT 1 CHECK (vibrate IN (0,1)),\n    sound_uri TEXT,\n    briefing INTEGER NOT NULL DEFAULT 0 CHECK (briefing IN (0,1)),\n    generation INTEGER NOT NULL DEFAULT 1,\n    next_trigger_at TEXT,\n    last_fired_at TEXT,\n    last_outcome TEXT,\n    source_reminder_id TEXT,\n    created_at TEXT NOT NULL,\n    updated_at TEXT NOT NULL\n  )"
+    },
+    {
+      "name": "assistant_operation_receipts",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "seq",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "operation_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "intent",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "operation",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "entity_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "reminder_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "reply",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "applied_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_assistant_receipts_owner",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "seq"
+          ],
+          "sql": "CREATE INDEX idx_assistant_receipts_owner ON assistant_operation_receipts(user_id, seq)"
+        },
+        {
+          "name": "sqlite_autoindex_assistant_operation_receipts_1",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "operation_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE assistant_operation_receipts (\n    seq INTEGER PRIMARY KEY AUTOINCREMENT,\n    operation_id TEXT NOT NULL UNIQUE,\n    user_id TEXT NOT NULL,\n    intent TEXT NOT NULL,\n    operation TEXT NOT NULL,\n    entity_type TEXT,\n    entity_id TEXT,\n    reminder_id TEXT,\n    reply TEXT NOT NULL,\n    applied_at TEXT NOT NULL\n  )"
+    },
+    {
+      "name": "attachment_cleanup",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "path",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 2,
+          "default": null
+        },
+        {
+          "name": "recorded_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "attempts",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "last_attempt_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "queue_order",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_attachment_cleanup_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "path"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE attachment_cleanup (\n    user_id TEXT NOT NULL,\n    path TEXT NOT NULL CHECK (length(path) BETWEEN 2 AND 1024),\n    recorded_at TEXT NOT NULL,\n    attempts INTEGER NOT NULL DEFAULT 0,\n    last_attempt_at TEXT, queue_order INTEGER NOT NULL DEFAULT 0,\n    PRIMARY KEY (user_id, path)\n  )"
+    },
+    {
+      "name": "chat_legacy_quarantine",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "session_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "recorded_owner",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "message_count",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_chat_legacy_quarantine_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "session_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE chat_legacy_quarantine (\n      session_id TEXT PRIMARY KEY NOT NULL,\n      recorded_owner TEXT,\n      message_count INTEGER NOT NULL,\n      reason TEXT NOT NULL,\n      created_at TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "chat_memories",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "text",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_chat_memories_owner",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "created_at"
+          ],
+          "sql": "CREATE INDEX idx_chat_memories_owner ON chat_memories(user_id, created_at)"
+        },
+        {
+          "name": "sqlite_autoindex_chat_memories_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE chat_memories (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL,\n      text TEXT NOT NULL,\n      source TEXT NOT NULL,\n      session_id TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "chat_sessions",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'local_guest_user'"
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "generation",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_chat_sessions_owner",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "updated_at"
+          ],
+          "sql": "CREATE INDEX idx_chat_sessions_owner ON chat_sessions(user_id, updated_at)"
+        },
+        {
+          "name": "sqlite_autoindex_chat_sessions_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE chat_sessions (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL DEFAULT 'local_guest_user',\n      title TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL\n    , generation TEXT)"
+    },
+    {
+      "name": "custom_categories",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'local_guest_user'"
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "color",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_custom_categories_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE custom_categories (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL DEFAULT 'local_guest_user',\n      name TEXT NOT NULL,\n      color TEXT NOT NULL,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n      deleted_at TEXT\n    )"
+    },
+    {
+      "name": "entity_local_revisions",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "entity_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 2,
+          "default": null
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_entity_local_revisions_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "entity_type",
+            "entity_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE entity_local_revisions (\n    entity_type TEXT NOT NULL\n      CHECK (entity_type IN ('task','event','time_block','note','reminder')),\n    entity_id TEXT NOT NULL,\n    revision INTEGER NOT NULL CHECK (revision >= 0),\n    PRIMARY KEY (entity_type, entity_id)\n  )"
+    },
+    {
+      "name": "event_time_local",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "time_zone",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "start_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "end_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "start_fold",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "end_fold",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "base_date",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "base_start_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "base_end_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "recorded_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_event_time_local_owner",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "event_id"
+          ],
+          "sql": "CREATE INDEX idx_event_time_local_owner ON event_time_local(user_id, event_id)"
+        },
+        {
+          "name": "sqlite_autoindex_event_time_local_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "event_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE event_time_local (\n    event_id TEXT PRIMARY KEY NOT NULL,\n    user_id TEXT NOT NULL,\n    time_zone TEXT NOT NULL CHECK (length(time_zone) BETWEEN 1 AND 100),\n    start_at TEXT NOT NULL,\n    end_at TEXT NOT NULL,\n    start_fold TEXT CHECK (start_fold IS NULL OR start_fold IN ('earlier', 'later')),\n    end_fold TEXT CHECK (end_fold IS NULL OR end_fold IN ('earlier', 'later')),\n    base_date TEXT NOT NULL,\n    base_start_time TEXT NOT NULL,\n    base_end_time TEXT NOT NULL,\n    recorded_at TEXT NOT NULL\n  )"
+    },
+    {
+      "name": "events",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'local_guest_user'"
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "date",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "start_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "end_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "location",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "linked_calendar_block",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "recurrence_rule",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_events_user_date",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "date",
+            "start_time"
+          ],
+          "sql": "CREATE INDEX idx_events_user_date ON events(user_id, date, start_time)"
+        },
+        {
+          "name": "sqlite_autoindex_events_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE events (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL DEFAULT 'local_guest_user',\n      title TEXT NOT NULL,\n      date TEXT NOT NULL,\n      start_time TEXT NOT NULL,\n      end_time TEXT NOT NULL,\n      location TEXT,\n      linked_calendar_block TEXT,\n      recurrence_rule TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      deleted_at TEXT\n    )"
+    },
+    {
+      "name": "handbook_chunks",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "seq",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "chapter",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "section",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "page_label",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "source_label",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "keywords",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "''"
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "content_chars",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_handbook_chunks_seq",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "seq"
+          ],
+          "sql": "CREATE INDEX idx_handbook_chunks_seq ON handbook_chunks(seq)"
+        },
+        {
+          "name": "sqlite_autoindex_handbook_chunks_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE handbook_chunks (\n      id TEXT PRIMARY KEY NOT NULL,\n      seq INTEGER NOT NULL,\n      chapter TEXT NOT NULL,\n      section TEXT NOT NULL,\n      page_label TEXT,\n      source_label TEXT NOT NULL,\n      keywords TEXT NOT NULL DEFAULT '',\n      content TEXT NOT NULL,\n      content_chars INTEGER NOT NULL\n    )"
+    },
+    {
+      "name": "handbook_chunks_fts",
+      "kind": "virtual",
+      "columns": [
+        {
+          "name": "chapter",
+          "type": "",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "section",
+          "type": "",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "keywords",
+          "type": "",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [],
+      "sql": "CREATE VIRTUAL TABLE handbook_chunks_fts USING fts5(\n      chapter,\n      section,\n      keywords,\n      content,\n      content='handbook_chunks',\n      content_rowid='rowid',\n      tokenize='porter unicode61 remove_diacritics 2'\n    )"
+    },
+    {
+      "name": "handbook_meta",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "edition",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "source_label",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "sha256",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "chunk_count",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_handbook_meta_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE handbook_meta (\n      id TEXT PRIMARY KEY NOT NULL CHECK (id = 'active'),\n      title TEXT NOT NULL,\n      edition TEXT NOT NULL,\n      source_label TEXT NOT NULL,\n      sha256 TEXT NOT NULL,\n      chunk_count INTEGER NOT NULL DEFAULT 0,\n      updated_at TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "job_queue_items",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "reminder_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "job_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "payload",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'queued'"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_job_queue_items_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE job_queue_items (\n      id TEXT PRIMARY KEY,\n      user_id TEXT NOT NULL,\n      reminder_id TEXT,\n      job_type TEXT NOT NULL,\n      payload TEXT,\n      status TEXT NOT NULL DEFAULT 'queued',\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "local_settings",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "key",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 2,
+          "default": null
+        },
+        {
+          "name": "value",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_local_settings_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "key"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE local_settings (\n      user_id TEXT NOT NULL,\n      key TEXT NOT NULL,\n      value TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      PRIMARY KEY (user_id, key)\n    )"
+    },
+    {
+      "name": "messages",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "sender",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "attachment_json",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "seq",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "metadata_json",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "chat_sessions",
+          "from": "session_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_messages_seq",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "seq"
+          ],
+          "sql": "CREATE INDEX idx_messages_seq ON messages(seq)"
+        },
+        {
+          "name": "idx_messages_session",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "session_id",
+            "created_at"
+          ],
+          "sql": "CREATE INDEX idx_messages_session ON messages(session_id, created_at)"
+        },
+        {
+          "name": "idx_messages_session_order",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "session_id",
+            "created_at",
+            "seq"
+          ],
+          "sql": "CREATE INDEX idx_messages_session_order ON messages(session_id, created_at, seq)"
+        },
+        {
+          "name": "sqlite_autoindex_messages_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE messages (\n      id TEXT PRIMARY KEY NOT NULL,\n      session_id TEXT NOT NULL,\n      sender TEXT NOT NULL,\n      content TEXT NOT NULL,\n      attachment_json TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL, seq INTEGER, metadata_json TEXT,\n      FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE\n    )"
+    },
+    {
+      "name": "ml_feature_snapshots",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "feature_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "feature_vector",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "computed_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_ml_feature_snapshots_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE ml_feature_snapshots (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL,\n      feature_type TEXT NOT NULL,\n      feature_vector TEXT NOT NULL,\n      computed_at TEXT NOT NULL,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "notes",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'local_guest_user'"
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "body",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "is_pinned",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "tags",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'[]'"
+        },
+        {
+          "name": "category",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'General'"
+        },
+        {
+          "name": "is_voice_transcribed",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "image_uri",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_notes_user_page",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "is_pinned",
+            "sort_order",
+            "updated_at",
+            "id"
+          ],
+          "sql": "CREATE INDEX idx_notes_user_page\n       ON notes(user_id, is_pinned DESC, sort_order ASC, updated_at DESC, id ASC)"
+        },
+        {
+          "name": "idx_notes_user_sort",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "is_pinned",
+            "sort_order",
+            "updated_at"
+          ],
+          "sql": "CREATE INDEX idx_notes_user_sort ON notes(user_id, is_pinned, sort_order, updated_at)"
+        },
+        {
+          "name": "sqlite_autoindex_notes_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE notes (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL DEFAULT 'local_guest_user',\n      title TEXT NOT NULL,\n      body TEXT NOT NULL,\n      is_pinned INTEGER NOT NULL DEFAULT 0,\n      tags TEXT NOT NULL DEFAULT '[]',\n      category TEXT NOT NULL DEFAULT 'General',\n      is_voice_transcribed INTEGER NOT NULL DEFAULT 0,\n      image_uri TEXT,\n      sort_order INTEGER NOT NULL DEFAULT 0,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      deleted_at TEXT\n    )"
+    },
+    {
+      "name": "notes_search_index",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "note_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "source_revision",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "normalized_text",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "indexed_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_notes_search_owner",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "note_id"
+          ],
+          "sql": "CREATE INDEX idx_notes_search_owner ON notes_search_index(user_id, note_id)"
+        },
+        {
+          "name": "sqlite_autoindex_notes_search_index_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "note_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE notes_search_index (\n    note_id TEXT PRIMARY KEY NOT NULL,\n    user_id TEXT NOT NULL,\n    source_revision INTEGER NOT NULL CHECK (source_revision >= 0),\n    normalized_text TEXT NOT NULL,\n    indexed_at TEXT NOT NULL\n  )"
+    },
+    {
+      "name": "recorded_meetings",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'recording'"
+        },
+        {
+          "name": "error_code",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "error_detail",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "duration_seconds",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "audio_bytes",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "microphone_label",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "whisper_model",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "transcription_device",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "language",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "transcript_json",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "notes_json",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "notes_edited",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "section_cache_json",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'{}'"
+        },
+        {
+          "name": "recovered",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'recording'"
+        },
+        {
+          "name": "source_file_name",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "has_audio",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "user_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_recorded_meetings_user",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "started_at"
+          ],
+          "sql": "CREATE INDEX idx_recorded_meetings_user ON recorded_meetings (user_id, started_at)"
+        },
+        {
+          "name": "sqlite_autoindex_recorded_meetings_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE recorded_meetings (\n      id TEXT PRIMARY KEY,\n      user_id TEXT NOT NULL,\n      title TEXT NOT NULL,\n      status TEXT NOT NULL DEFAULT 'recording',\n      error_code TEXT,\n      error_detail TEXT,\n      started_at TEXT NOT NULL,\n      duration_seconds INTEGER NOT NULL DEFAULT 0,\n      audio_bytes INTEGER NOT NULL DEFAULT 0,\n      microphone_label TEXT,\n      whisper_model TEXT,\n      transcription_device TEXT,\n      language TEXT,\n      transcript_json TEXT,\n      notes_json TEXT,\n      notes_edited INTEGER NOT NULL DEFAULT 0,\n      section_cache_json TEXT NOT NULL DEFAULT '{}',\n      recovered INTEGER NOT NULL DEFAULT 0,\n      source TEXT NOT NULL DEFAULT 'recording',\n      source_file_name TEXT,\n      has_audio INTEGER NOT NULL DEFAULT 1,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      deleted_at TEXT,\n      FOREIGN KEY (user_id) REFERENCES users (id)\n    )"
+    },
+    {
+      "name": "remember_me",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "enabled",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "password",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [],
+      "sql": "CREATE TABLE remember_me (\n      id INTEGER PRIMARY KEY CHECK (id = 1),\n      enabled INTEGER NOT NULL DEFAULT 0,\n      email TEXT,\n      password TEXT,\n      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n      updated_at TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "reminder_delivery_events",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "reminder_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "generation",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "event",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "code",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "origin",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "occurred_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_delivery_events_reminder",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "reminder_id",
+            "id"
+          ],
+          "sql": "CREATE INDEX idx_delivery_events_reminder ON reminder_delivery_events(reminder_id, id)"
+        }
+      ],
+      "sql": "CREATE TABLE reminder_delivery_events (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    reminder_id TEXT NOT NULL,\n    user_id TEXT NOT NULL,\n    generation INTEGER NOT NULL,\n    event TEXT NOT NULL,\n    code TEXT,\n    origin TEXT NOT NULL CHECK (origin IN ('js','native')),\n    occurred_at TEXT NOT NULL,\n    created_at TEXT NOT NULL\n  )"
+    },
+    {
+      "name": "reminder_delivery_jobs",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "reminder_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "generation",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "trigger_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "registration_state",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'unregistered'"
+        },
+        {
+          "name": "registered_generation",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "registration_error",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "registration_attempts",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "source_type",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_delivery_jobs_owner",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "state",
+            "trigger_at"
+          ],
+          "sql": "CREATE INDEX idx_delivery_jobs_owner ON reminder_delivery_jobs(user_id, state, trigger_at)"
+        },
+        {
+          "name": "idx_delivery_jobs_source",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "source_type",
+            "source_id"
+          ],
+          "sql": "CREATE INDEX idx_delivery_jobs_source ON reminder_delivery_jobs(user_id, source_type, source_id)"
+        },
+        {
+          "name": "sqlite_autoindex_reminder_delivery_jobs_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "reminder_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE reminder_delivery_jobs (\n    reminder_id TEXT PRIMARY KEY NOT NULL,\n    user_id TEXT NOT NULL,\n    generation INTEGER NOT NULL CHECK (generation >= 1),\n    state TEXT NOT NULL CHECK (state IN ('armed','ringing','retired')),\n    trigger_at TEXT NOT NULL,\n    registration_state TEXT NOT NULL DEFAULT 'unregistered'\n      CHECK (registration_state IN ('unregistered','registered','failed','suppressed','idle')),\n    registered_generation INTEGER NOT NULL DEFAULT 0,\n    registration_error TEXT,\n    registration_attempts INTEGER NOT NULL DEFAULT 0,\n    source_type TEXT CHECK (source_type IS NULL OR source_type IN ('task','event','time_block')),\n    source_id TEXT,\n    created_at TEXT NOT NULL,\n    updated_at TEXT NOT NULL\n  )"
+    },
+    {
+      "name": "reminder_delivery_styles",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "reminder_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "style",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_reminder_delivery_styles_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "reminder_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE reminder_delivery_styles (\n    reminder_id TEXT PRIMARY KEY NOT NULL,\n    style TEXT NOT NULL CHECK (style IN ('call','notify')),\n    updated_at TEXT NOT NULL\n  )"
+    },
+    {
+      "name": "reminders",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'local_guest_user'"
+        },
+        {
+          "name": "task",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "scheduled_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "trigger_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'pending'"
+        },
+        {
+          "name": "precast_audio_path",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "snooze_count",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_reminders_user_trigger",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "status",
+            "trigger_at"
+          ],
+          "sql": "CREATE INDEX idx_reminders_user_trigger ON reminders(user_id, status, trigger_at)"
+        },
+        {
+          "name": "sqlite_autoindex_reminders_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE reminders (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL DEFAULT 'local_guest_user',\n      task TEXT NOT NULL,\n      description TEXT,\n      scheduled_at TEXT NOT NULL,\n      trigger_at TEXT NOT NULL,\n      status TEXT NOT NULL DEFAULT 'pending',\n      precast_audio_path TEXT,\n      snooze_count INTEGER NOT NULL DEFAULT 0,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      deleted_at TEXT\n    )"
+    },
+    {
+      "name": "sync_conflicts",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "scope_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 2,
+          "default": "'account'"
+        },
+        {
+          "name": "scope_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 3,
+          "default": null
+        },
+        {
+          "name": "mutation_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 4,
+          "default": null
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "entity_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "operation",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "local_payload",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "base_version",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "server_version",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "server_payload",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "resolved_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_sync_conflicts_unresolved",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "scope_type",
+            "scope_id",
+            "resolved_at",
+            "updated_at"
+          ],
+          "sql": "CREATE INDEX idx_sync_conflicts_unresolved ON sync_conflicts(user_id, scope_type, scope_id, resolved_at, updated_at)"
+        },
+        {
+          "name": "sqlite_autoindex_sync_conflicts_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "scope_type",
+            "scope_id",
+            "mutation_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE sync_conflicts (\n      user_id TEXT NOT NULL,\n      scope_type TEXT NOT NULL DEFAULT 'account',\n      scope_id TEXT NOT NULL,\n      mutation_id TEXT NOT NULL,\n      entity_type TEXT NOT NULL,\n      entity_id TEXT NOT NULL,\n      operation TEXT NOT NULL,\n      reason TEXT NOT NULL,\n      local_payload TEXT NOT NULL,\n      base_version INTEGER,\n      server_version INTEGER,\n      server_payload TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      resolved_at TEXT,\n      PRIMARY KEY (user_id, scope_type, scope_id, mutation_id)\n    )"
+    },
+    {
+      "name": "sync_control",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "scope_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 2,
+          "default": "'account'"
+        },
+        {
+          "name": "scope_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 3,
+          "default": null
+        },
+        {
+          "name": "suppress",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_sync_control_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "scope_type",
+            "scope_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE sync_control (\n      user_id TEXT NOT NULL,\n      scope_type TEXT NOT NULL DEFAULT 'account',\n      scope_id TEXT NOT NULL,\n      suppress INTEGER NOT NULL DEFAULT 0,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      PRIMARY KEY (user_id, scope_type, scope_id)\n    )"
+    },
+    {
+      "name": "sync_metadata",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "scope_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 2,
+          "default": "'account'"
+        },
+        {
+          "name": "scope_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 3,
+          "default": null
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 4,
+          "default": null
+        },
+        {
+          "name": "entity_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 5,
+          "default": null
+        },
+        {
+          "name": "version",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "change_id",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_sync_metadata_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "scope_type",
+            "scope_id",
+            "entity_type",
+            "entity_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE sync_metadata (\n      user_id TEXT NOT NULL,\n      scope_type TEXT NOT NULL DEFAULT 'account',\n      scope_id TEXT NOT NULL,\n      entity_type TEXT NOT NULL,\n      entity_id TEXT NOT NULL,\n      version INTEGER NOT NULL DEFAULT 1,\n      change_id INTEGER,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      PRIMARY KEY (user_id, scope_type, scope_id, entity_type, entity_id)\n    )"
+    },
+    {
+      "name": "sync_outbox",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "scope_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'account'"
+        },
+        {
+          "name": "scope_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "entity_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "operation",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "payload",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "base_version",
+          "type": "INTEGER",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'pending'"
+        },
+        {
+          "name": "attempts",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_sync_outbox_user_scope_entity",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "scope_type",
+            "scope_id",
+            "entity_type",
+            "entity_id",
+            "status"
+          ],
+          "sql": "CREATE INDEX idx_sync_outbox_user_scope_entity ON sync_outbox(user_id, scope_type, scope_id, entity_type, entity_id, status)"
+        },
+        {
+          "name": "idx_sync_outbox_user_scope_status_created",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "scope_type",
+            "scope_id",
+            "status",
+            "created_at"
+          ],
+          "sql": "CREATE INDEX idx_sync_outbox_user_scope_status_created ON sync_outbox(user_id, scope_type, scope_id, status, created_at)"
+        },
+        {
+          "name": "sqlite_autoindex_sync_outbox_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE sync_outbox (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL,\n      scope_type TEXT NOT NULL DEFAULT 'account',\n      scope_id TEXT NOT NULL,\n      entity_type TEXT NOT NULL,\n      entity_id TEXT NOT NULL,\n      operation TEXT NOT NULL,\n      payload TEXT NOT NULL,\n      base_version INTEGER,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      status TEXT NOT NULL DEFAULT 'pending',\n      attempts INTEGER NOT NULL DEFAULT 0\n    )"
+    },
+    {
+      "name": "sync_state",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "scope_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 2,
+          "default": "'account'"
+        },
+        {
+          "name": "scope_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 3,
+          "default": null
+        },
+        {
+          "name": "cursor",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "last_synced_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'Local only'"
+        },
+        {
+          "name": "error_message",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "server_entity_types",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "snapshot_entity_types",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_sync_state_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "scope_type",
+            "scope_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE sync_state (\n      user_id TEXT NOT NULL,\n      scope_type TEXT NOT NULL DEFAULT 'account',\n      scope_id TEXT NOT NULL,\n      cursor INTEGER NOT NULL DEFAULT 0,\n      last_synced_at TEXT,\n      status TEXT NOT NULL DEFAULT 'Local only',\n      error_message TEXT,\n      server_entity_types TEXT,\n      snapshot_entity_types TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      PRIMARY KEY (user_id, scope_type, scope_id)\n    )"
+    },
+    {
+      "name": "tasks",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'local_guest_user'"
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "due_date",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "due_time",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "is_completed",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "priority",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'Medium'"
+        },
+        {
+          "name": "category",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'General'"
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "recurrence_rule",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_tasks_user_due",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "is_completed",
+            "due_date",
+            "due_time"
+          ],
+          "sql": "CREATE INDEX idx_tasks_user_due ON tasks(user_id, is_completed, due_date, due_time)"
+        },
+        {
+          "name": "sqlite_autoindex_tasks_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE tasks (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL DEFAULT 'local_guest_user',\n      title TEXT NOT NULL,\n      due_date TEXT,\n      due_time TEXT,\n      is_completed INTEGER NOT NULL DEFAULT 0,\n      priority TEXT NOT NULL DEFAULT 'Medium',\n      category TEXT NOT NULL DEFAULT 'General',\n      notes TEXT,\n      recurrence_rule TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      deleted_at TEXT\n    )"
+    },
+    {
+      "name": "time_blocks",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'local_guest_user'"
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "date",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "start_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "end_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "color",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'#E6003A'"
+        },
+        {
+          "name": "category",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'personal'"
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "recurrence_rule",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_time_blocks_user_date",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "date",
+            "start_time"
+          ],
+          "sql": "CREATE INDEX idx_time_blocks_user_date ON time_blocks(user_id, date, start_time)"
+        },
+        {
+          "name": "sqlite_autoindex_time_blocks_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE time_blocks (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL DEFAULT 'local_guest_user',\n      title TEXT NOT NULL,\n      date TEXT NOT NULL,\n      start_time TEXT NOT NULL,\n      end_time TEXT NOT NULL,\n      color TEXT NOT NULL DEFAULT '#E6003A',\n      category TEXT NOT NULL DEFAULT 'personal',\n      notes TEXT,\n      recurrence_rule TEXT,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      deleted_at TEXT\n    )"
+    },
+    {
+      "name": "user_behavior_logs",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "event_type",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "event_key",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "event_value",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_user_behavior_logs_user_type",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "user_id",
+            "event_type"
+          ],
+          "sql": "CREATE INDEX idx_user_behavior_logs_user_type ON user_behavior_logs(user_id, event_type)"
+        },
+        {
+          "name": "sqlite_autoindex_user_behavior_logs_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE user_behavior_logs (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL,\n      event_type TEXT NOT NULL,\n      event_key TEXT NOT NULL,\n      event_value TEXT NOT NULL,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "user_preferences",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "wake_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'07:00'"
+        },
+        {
+          "name": "sleep_time",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'23:00'"
+        },
+        {
+          "name": "study_peak_hours",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'[\"morning\"]'"
+        },
+        {
+          "name": "busiest_day",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'Monday'"
+        },
+        {
+          "name": "reminder_lead_minutes",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "15"
+        },
+        {
+          "name": "snooze_tendency",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'snooze_once'"
+        },
+        {
+          "name": "weekly_class_count",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'4-6'"
+        },
+        {
+          "name": "longest_class_gap",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'1 hour'"
+        },
+        {
+          "name": "enable_voice_calls",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "enable_notifications",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "daily_digest",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "quiet_hours",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'22:00-07:00'"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "user_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_user_preferences_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        },
+        {
+          "name": "sqlite_autoindex_user_preferences_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "user_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE user_preferences (\n      id TEXT PRIMARY KEY NOT NULL,\n      user_id TEXT NOT NULL UNIQUE,\n      wake_time TEXT NOT NULL DEFAULT '07:00',\n      sleep_time TEXT NOT NULL DEFAULT '23:00',\n      study_peak_hours TEXT NOT NULL DEFAULT '[\"morning\"]',\n      busiest_day TEXT NOT NULL DEFAULT 'Monday',\n      reminder_lead_minutes INTEGER NOT NULL DEFAULT 15,\n      snooze_tendency TEXT NOT NULL DEFAULT 'snooze_once',\n      weekly_class_count TEXT NOT NULL DEFAULT '4-6',\n      longest_class_gap TEXT NOT NULL DEFAULT '1 hour',\n      enable_voice_calls INTEGER NOT NULL DEFAULT 1,\n      enable_notifications INTEGER NOT NULL DEFAULT 1,\n      daily_digest INTEGER NOT NULL DEFAULT 0,\n      quiet_hours TEXT NOT NULL DEFAULT '22:00-07:00',\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL,\n      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE\n    )"
+    },
+    {
+      "name": "users",
+      "kind": "table",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 1,
+          "default": null
+        },
+        {
+          "name": "username",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "password_hash",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "'student'"
+        },
+        {
+          "name": "is_new_user",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "1"
+        },
+        {
+          "name": "time_format_24h",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "week_starts_monday",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "dark_mode",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "cloud_account_id",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "cloud_linked",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "cloud_linked_at",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "avatar_uri",
+          "type": "TEXT",
+          "notNull": false,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "product_tour_version",
+          "type": "INTEGER",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": "0"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "primaryKeyOrder": 0,
+          "default": null
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "idx_users_cloud_account_id",
+          "unique": true,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "cloud_account_id"
+          ],
+          "sql": "CREATE UNIQUE INDEX idx_users_cloud_account_id ON users(cloud_account_id)"
+        },
+        {
+          "name": "sqlite_autoindex_users_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ],
+          "sql": null
+        },
+        {
+          "name": "sqlite_autoindex_users_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "email"
+          ],
+          "sql": null
+        },
+        {
+          "name": "sqlite_autoindex_users_3",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "cloud_account_id"
+          ],
+          "sql": null
+        }
+      ],
+      "sql": "CREATE TABLE users (\n      id TEXT PRIMARY KEY NOT NULL,\n      username TEXT NOT NULL,\n      email TEXT UNIQUE,\n      password_hash TEXT,\n      role TEXT NOT NULL DEFAULT 'student',\n      is_new_user INTEGER NOT NULL DEFAULT 1,\n      time_format_24h INTEGER NOT NULL DEFAULT 0,\n      week_starts_monday INTEGER NOT NULL DEFAULT 0,\n      dark_mode INTEGER NOT NULL DEFAULT 0,\n      cloud_account_id TEXT UNIQUE,\n      cloud_linked INTEGER NOT NULL DEFAULT 0,\n      cloud_linked_at TEXT,\n      avatar_uri TEXT,\n      product_tour_version INTEGER NOT NULL DEFAULT 0,\n      created_at TEXT NOT NULL,\n      updated_at TEXT NOT NULL\n    )"
+    }
+  ]
+}

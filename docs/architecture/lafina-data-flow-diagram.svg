@@ -1,0 +1,776 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="3570" viewBox="0 0 2000 3570" role="img" aria-labelledby="title description">
+<title id="title">LAFINA Level 1 Data Flow Diagram</title>
+<desc id="description">Eight logical processes decompose LAFINA Process 0: accounts and preferences; personal planning; COR and calendar imports and exports; assistant and handbook answers; alarms and reminder calls; personal synchronization; speech and live voice; documents and recordings. Yellow external entities are the Student, DeepSeek, Pinecone and ElevenLabs. Open-ended D1 to D7 symbols are logical data stores. Repeated symbols are aliases, not separate users, services or databases. The system covers the Android and owner-confirmed Electron clients and shared backend; platform-specific labels describe the inspected Android implementation.</desc>
+<defs>
+ <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#525b66" stroke-width="1.4"/></marker>
+ <style>
+  text { font-family: Arial, Helvetica, sans-serif; fill: #25303c; }
+  .heading { font-size: 34px; font-weight: 700; }
+  .sub { font-size: 20px; fill: #5c6773; }
+  .column { font-size: 17px; font-weight: 700; letter-spacing: 1px; fill: #69727d; }
+  .flow { fill: none; stroke: #525b66; stroke-width: 1.5; marker-end: url(#arrow); }
+  .label { font-size: 17px; paint-order: stroke; stroke: white; stroke-width: 5px; stroke-linejoin: round; }
+  .process { fill: white; stroke: #66717e; stroke-width: 1.6; }
+  .entity { fill: #fff3cf; stroke: #d3b35f; stroke-width: 1.5; }
+  .entity-text { font-size: 22px; font-weight: 700; }
+  .name { font-size: 22px; font-weight: 700; }
+  .detail { font-size: 18px; fill: #596574; }
+  .store { fill: none; stroke: #66717e; stroke-width: 1.5; }
+  .store-name { font-size: 20px; font-weight: 700; }
+ </style>
+</defs>
+<rect width="2000" height="3570" fill="white"/>
+
+<text x="40" y="62" class="heading" text-anchor="start">
+<tspan x="40" dy="0">LAFINA Data Flow Diagram</tspan>
+</text>
+<text x="40" y="99" class="sub" text-anchor="start">
+<tspan x="40" dy="0">Level 1 · Decomposition of Process 0 · Android / Electron clients + shared backend</tspan>
+</text>
+<text x="40" y="131" class="sub" text-anchor="start">
+<tspan x="40" dy="0">Logical flows verified against this checkout; desktop adapters are owner-confirmed, not inspected here.</tspan>
+</text>
+<text x="135" y="185" class="column" text-anchor="middle">
+<tspan x="135" dy="0">EXTERNAL ENTITY</tspan>
+</text>
+<text x="935.0" y="185" class="column" text-anchor="middle">
+<tspan x="935.0" dy="0">LAFINA PROCESSES</tspan>
+</text>
+<text x="1745.0" y="185" class="column" text-anchor="middle">
+<tspan x="1745.0" dy="0">LOGICAL DATA STORES</tspan>
+</text>
+<rect x="760" y="220" width="350" height="375" class="process"/>
+<path d="M760 255H1110" class="store"/>
+<text x="935.0" y="245" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">1.0</tspan>
+</text>
+<text x="935.0" y="297" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Manage accounts</tspan>
+<tspan x="935.0" dy="28">and preferences</tspan>
+</text>
+<text x="935.0" y="431.5" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">Local guest or cloud account</tspan>
+<tspan x="935.0" dy="25">Backend authentication</tspan>
+<tspan x="935.0" dy="25">Profile / mode / voice settings</tspan>
+</text>
+<rect x="40" y="260" width="190" height="90" class="entity"/>
+<text x="135" y="285" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="315" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 290H760" class="flow"/>
+<text x="495.0" y="260" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Guest choice; account credentials;</tspan>
+<tspan x="495.0" dy="20">profile and preference changes</tspan>
+</text>
+<path d="M760 330H230" class="flow"/>
+<text x="495.0" y="356" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Account / access status;</tspan>
+<tspan x="495.0" dy="20">saved profile and preferences</tspan>
+</text>
+<path d="M1950 220H1540V320H1950M1595 220V320" class="store"/>
+<text x="1568" y="275" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D1</tspan>
+</text>
+<text x="1615" y="249" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Local identity / settings</tspan>
+</text>
+<text x="1615" y="276" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Users, session references,</tspan>
+<tspan x="1615" dy="22">preferences and local settings</tspan>
+</text>
+<path d="M1110 248H1540" class="flow"/>
+<text x="1325.0" y="238" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Local session / preference updates</tspan>
+</text>
+<path d="M1540 296H1110" class="flow"/>
+<text x="1325.0" y="286" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Current identity / saved settings</tspan>
+</text>
+<path d="M1950 350H1540V450H1950M1595 350V450" class="store"/>
+<text x="1568" y="405" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D2</tspan>
+</text>
+<text x="1615" y="379" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Personal records + sync</tspan>
+</text>
+<text x="1615" y="406" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Syncable profile payload and</tspan>
+<tspan x="1615" dy="22">queued profile mutations</tspan>
+</text>
+<path d="M1110 378H1540" class="flow"/>
+<text x="1325.0" y="368" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Profile changes + queued mutations</tspan>
+</text>
+<path d="M1540 426H1110" class="flow"/>
+<text x="1325.0" y="416" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Syncable profile fields</tspan>
+</text>
+<path d="M1950 480H1540V580H1950M1595 480V580" class="store"/>
+<text x="1568" y="535" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D7</tspan>
+</text>
+<text x="1615" y="509" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Cloud database</tspan>
+</text>
+<text x="1615" y="536" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Accounts, access / subscription</tspan>
+<tspan x="1615" dy="22">and authentication records</tspan>
+</text>
+<path d="M1110 508H1540" class="flow"/>
+<text x="1325.0" y="498" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Validated account / session changes</tspan>
+</text>
+<path d="M1540 556H1110" class="flow"/>
+<text x="1325.0" y="546" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Account / session / access records</tspan>
+</text>
+<path d="M40 615H1950" stroke="#e5e8eb" stroke-width="1"/>
+<rect x="760" y="640" width="350" height="245" class="process"/>
+<path d="M760 675H1110" class="store"/>
+<text x="935.0" y="665" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">2.0</tspan>
+</text>
+<text x="935.0" y="717" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Manage personal</tspan>
+<tspan x="935.0" dy="28">plans and notes</tspan>
+</text>
+<text x="935.0" y="786.5" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">Validate and persist changes</tspan>
+<tspan x="935.0" dy="25">Core records + queued mutation</tspan>
+<tspan x="935.0" dy="25">share a SQLite transaction</tspan>
+</text>
+<rect x="40" y="680" width="190" height="90" class="entity"/>
+<text x="135" y="705" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="735" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 710H760" class="flow"/>
+<text x="495.0" y="680" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Planner / note / alarm edits;</tspan>
+<tspan x="495.0" dy="20">save and completion choices</tspan>
+</text>
+<path d="M760 750H230" class="flow"/>
+<text x="495.0" y="776" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Saved plans / notes / alarms;</tspan>
+<tspan x="495.0" dy="20">validation and operation results</tspan>
+</text>
+<path d="M1950 640H1540V740H1950M1595 640V740" class="store"/>
+<text x="1568" y="695" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D2</tspan>
+</text>
+<text x="1615" y="669" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Personal records + sync</tspan>
+</text>
+<text x="1615" y="696" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">7 core entity types; outbox,</tspan>
+<tspan x="1615" dy="22">metadata, state and conflicts</tspan>
+</text>
+<path d="M1110 668H1540" class="flow"/>
+<text x="1325.0" y="658" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Record mutations + queued sync changes</tspan>
+</text>
+<path d="M1540 716H1110" class="flow"/>
+<text x="1325.0" y="706" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Planner / note records</tspan>
+</text>
+<path d="M1950 775H1540V875H1950M1595 775V875" class="store"/>
+<text x="1568" y="830" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D5</tspan>
+</text>
+<text x="1615" y="804" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Local alarms / delivery</tspan>
+</text>
+<text x="1615" y="831" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Device alarm clocks; alert jobs,</tspan>
+<tspan x="1615" dy="22">events and response history</tspan>
+</text>
+<path d="M1110 803H1540" class="flow"/>
+<text x="1325.0" y="793" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Device-local alarm changes</tspan>
+</text>
+<path d="M1540 851H1110" class="flow"/>
+<text x="1325.0" y="841" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Alarm clock records</tspan>
+</text>
+<path d="M40 905H1950" stroke="#e5e8eb" stroke-width="1"/>
+<rect x="760" y="930" width="350" height="245" class="process"/>
+<path d="M760 965H1110" class="store"/>
+<text x="935.0" y="955" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">3.0</tspan>
+</text>
+<text x="935.0" y="1007" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Import / export</tspan>
+<tspan x="935.0" dy="28">academic schedules</tspan>
+</text>
+<text x="935.0" y="1076.5" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">On-device COR text / OCR</tspan>
+<tspan x="935.0" dy="25">Calendar (.ics) parsing</tspan>
+<tspan x="935.0" dy="25">Review before import writes</tspan>
+</text>
+<rect x="40" y="970" width="190" height="90" class="entity"/>
+<text x="135" y="995" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="1025" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 1000H760" class="flow"/>
+<text x="495.0" y="970" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">COR PDF / image; calendar file;</tspan>
+<tspan x="495.0" dy="20">reviewed import / export choices</tspan>
+</text>
+<path d="M760 1040H230" class="flow"/>
+<text x="495.0" y="1066" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Extraction checks and import preview;</tspan>
+<tspan x="495.0" dy="20">saved schedule / exported .ics</tspan>
+</text>
+<path d="M1950 930H1540V1030H1950M1595 930V1030" class="store"/>
+<text x="1568" y="985" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D2</tspan>
+</text>
+<text x="1615" y="959" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Personal records + sync</tspan>
+</text>
+<text x="1615" y="986" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Imported schedule entries and</tspan>
+<tspan x="1615" dy="22">queued core-entity mutations</tspan>
+</text>
+<path d="M1110 958H1540" class="flow"/>
+<text x="1325.0" y="948" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Confirmed classes / calendar records</tspan>
+</text>
+<path d="M1540 1006H1110" class="flow"/>
+<text x="1325.0" y="996" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Existing schedule / export records</tspan>
+</text>
+<path d="M1950 1065H1540V1165H1950M1595 1065V1165" class="store"/>
+<text x="1568" y="1120" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D6</tspan>
+</text>
+<text x="1615" y="1094" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Local files / metadata</tspan>
+</text>
+<text x="1615" y="1121" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Import batches, COR metadata;</tspan>
+<tspan x="1615" dy="22">device files and attachments</tspan>
+</text>
+<path d="M1110 1093H1540" class="flow"/>
+<text x="1325.0" y="1083" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Import batch / academic setup metadata</tspan>
+</text>
+<path d="M1540 1141H1110" class="flow"/>
+<text x="1325.0" y="1131" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Imported batch / source metadata</tspan>
+</text>
+<path d="M40 1195H1950" stroke="#e5e8eb" stroke-width="1"/>
+<rect x="760" y="1220" width="350" height="595" class="process"/>
+<path d="M760 1255H1110" class="store"/>
+<text x="935.0" y="1245" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">4.0</tspan>
+</text>
+<text x="935.0" y="1297" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Answer questions</tspan>
+<tspan x="935.0" dy="28">and review actions</tspan>
+</text>
+<text x="935.0" y="1541.5" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">Rules / SmolLM2 for local intents</tspan>
+<tspan x="935.0" dy="25">Local planner and handbook reads</tspan>
+<tspan x="935.0" dy="25">Backend DeepSeek / handbook RAG</tspan>
+<tspan x="935.0" dy="25">Student confirmation before writes</tspan>
+<tspan x="935.0" dy="25">Chat + optional personal memory</tspan>
+<tspan x="935.0" dy="25">Temporary Chat skips history</tspan>
+</text>
+<rect x="40" y="1225" width="190" height="90" class="entity"/>
+<text x="135" y="1250" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="1280" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 1255H760" class="flow"/>
+<text x="495.0" y="1225" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Questions / commands;</tspan>
+<tspan x="495.0" dy="20">review edits, confirmation or cancel</tspan>
+</text>
+<path d="M760 1295H230" class="flow"/>
+<text x="495.0" y="1321" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Replies / sources; proposed changes;</tspan>
+<tspan x="495.0" dy="20">confirmed-operation receipts</tspan>
+</text>
+<rect x="40" y="1365" width="190" height="90" class="entity"/>
+<text x="135" y="1390" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E2</tspan>
+</text>
+<text x="135" y="1420" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">DeepSeek</tspan>
+</text>
+<path d="M230 1395H760" class="flow"/>
+<text x="495.0" y="1365" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Assistant replies / action proposals</tspan>
+<tspan x="495.0" dy="20">and optional memory extraction</tspan>
+</text>
+<path d="M760 1435H230" class="flow"/>
+<text x="495.0" y="1461" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Backend prompts, relevant context</tspan>
+<tspan x="495.0" dy="20">and applicable handbook evidence</tspan>
+</text>
+<rect x="40" y="1505" width="190" height="90" class="entity"/>
+<text x="135" y="1530" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E3</tspan>
+</text>
+<text x="135" y="1560" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Pinecone</tspan>
+</text>
+<path d="M230 1535H760" class="flow"/>
+<text x="495.0" y="1525" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Handbook passages / source metadata</tspan>
+</text>
+<path d="M760 1575H230" class="flow"/>
+<text x="495.0" y="1601" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Backend handbook retrieval queries</tspan>
+</text>
+<rect x="40" y="1665" width="190" height="90" class="process"/>
+<text x="135" y="1690" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">7.0 · process alias</tspan>
+</text>
+<text x="135" y="1720" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Speech</tspan>
+</text>
+<path d="M230 1695H760" class="flow"/>
+<text x="495.0" y="1665" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Recognized text / live-agent turns;</tspan>
+<tspan x="495.0" dy="20">voice action requests</tspan>
+</text>
+<path d="M760 1735H230" class="flow"/>
+<text x="495.0" y="1761" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Reply text / voice-bridge responses;</tspan>
+<tspan x="495.0" dy="20">reviewed-action results</tspan>
+</text>
+<path d="M1950 1220H1540V1320H1950M1595 1220V1320" class="store"/>
+<text x="1568" y="1275" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D2</tspan>
+</text>
+<text x="1615" y="1249" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Personal records + sync</tspan>
+</text>
+<text x="1615" y="1276" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Student plans, reminders,</tspan>
+<tspan x="1615" dy="22">notes and profile context</tspan>
+</text>
+<path d="M1540 1296H1110" class="flow"/>
+<text x="1325.0" y="1286" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Personal planner context / lookup results</tspan>
+</text>
+<path d="M1950 1340H1540V1440H1950M1595 1340V1440" class="store"/>
+<text x="1568" y="1395" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D3</tspan>
+</text>
+<text x="1615" y="1369" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Chat / personal memory</tspan>
+</text>
+<text x="1615" y="1396" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Chat sessions, messages,</tspan>
+<tspan x="1615" dy="22">chat memories / preferences</tspan>
+</text>
+<path d="M1110 1368H1540" class="flow"/>
+<text x="1325.0" y="1358" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Non-temporary chat; enabled memory edits</tspan>
+</text>
+<path d="M1540 1416H1110" class="flow"/>
+<text x="1325.0" y="1406" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Conversation history / relevant memories</tspan>
+</text>
+<path d="M1950 1460H1540V1560H1950M1595 1460V1560" class="store"/>
+<text x="1568" y="1515" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D4</tspan>
+</text>
+<text x="1615" y="1489" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Local handbook</tspan>
+</text>
+<text x="1615" y="1516" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Handbook pack, chunks,</tspan>
+<tspan x="1615" dy="22">source metadata and FTS5 index</tspan>
+</text>
+<path d="M1540 1536H1110" class="flow"/>
+<text x="1325.0" y="1526" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Local excerpts / citations / search results</tspan>
+</text>
+<path d="M1950 1580H1540V1680H1950M1595 1580V1680" class="store"/>
+<text x="1568" y="1635" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D7</tspan>
+</text>
+<text x="1615" y="1609" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Cloud database</tspan>
+</text>
+<text x="1615" y="1636" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Account access, service settings,</tspan>
+<tspan x="1615" dy="22">AI usage / quota records</tspan>
+</text>
+<path d="M1110 1608H1540" class="flow"/>
+<text x="1325.0" y="1598" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">AI usage / request bookkeeping</tspan>
+</text>
+<path d="M1540 1656H1110" class="flow"/>
+<text x="1325.0" y="1646" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Account access / quota / service settings</tspan>
+</text>
+<rect x="1540" y="1710" width="410" height="90" class="process"/>
+<text x="1745.0" y="1736" class="detail" text-anchor="middle">
+<tspan x="1745.0" dy="0">2.0 · repeated process</tspan>
+</text>
+<text x="1745.0" y="1768" class="store-name" text-anchor="middle">
+<tspan x="1745.0" dy="0">Manage personal plans and notes</tspan>
+</text>
+<path d="M1110 1736H1540" class="flow"/>
+<text x="1325.0" y="1726" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Confirmed, validated planner mutations</tspan>
+</text>
+<path d="M1540 1780H1110" class="flow"/>
+<text x="1325.0" y="1770" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Saved-operation result / receipt</tspan>
+</text>
+<path d="M40 1835H1950" stroke="#e5e8eb" stroke-width="1"/>
+<rect x="760" y="1860" width="350" height="340" class="process"/>
+<path d="M760 1895H1110" class="store"/>
+<text x="935.0" y="1885" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">5.0</tspan>
+</text>
+<text x="935.0" y="1937" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Deliver alarms</tspan>
+<tspan x="935.0" dy="28">and reminder calls</tspan>
+</text>
+<text x="935.0" y="2054.0" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">Android AlarmManager / recovery</tspan>
+<tspan x="935.0" dy="25">Simulated incoming call UI</tspan>
+<tspan x="935.0" dy="25">Acknowledge is not task complete</tspan>
+<tspan x="935.0" dy="25">Speech through process 7.0</tspan>
+</text>
+<rect x="40" y="1895" width="190" height="90" class="entity"/>
+<text x="135" y="1920" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="1950" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 1925H760" class="flow"/>
+<text x="495.0" y="1895" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Answer / dismiss / snooze;</tspan>
+<tspan x="495.0" dy="20">explicit follow-up choices</tspan>
+</text>
+<path d="M760 1965H230" class="flow"/>
+<text x="495.0" y="1991" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Alarm / reminder alerts;</tspan>
+<tspan x="495.0" dy="20">simulated call and action results</tspan>
+</text>
+<rect x="40" y="2080" width="190" height="90" class="process"/>
+<text x="135" y="2105" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">7.0 · process alias</tspan>
+</text>
+<text x="135" y="2135" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Speech</tspan>
+</text>
+<path d="M230 2110H760" class="flow"/>
+<text x="495.0" y="2100" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Speech / playback result</tspan>
+</text>
+<path d="M760 2150H230" class="flow"/>
+<text x="495.0" y="2176" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Reminder / briefing text to speak</tspan>
+</text>
+<path d="M1950 1860H1540V1960H1950M1595 1860V1960" class="store"/>
+<text x="1568" y="1915" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D2</tspan>
+</text>
+<text x="1615" y="1889" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Personal records + sync</tspan>
+</text>
+<text x="1615" y="1916" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Reminders and their linked</tspan>
+<tspan x="1615" dy="22">tasks / events / time blocks</tspan>
+</text>
+<path d="M1110 1888H1540" class="flow"/>
+<text x="1325.0" y="1878" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Reminder acknowledgement / snooze + queue</tspan>
+</text>
+<path d="M1540 1936H1110" class="flow"/>
+<text x="1325.0" y="1926" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Pending reminders / linked plan details</tspan>
+</text>
+<path d="M1950 2010H1540V2110H1950M1595 2010V2110" class="store"/>
+<text x="1568" y="2065" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D5</tspan>
+</text>
+<text x="1615" y="2039" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Local alarms / delivery</tspan>
+</text>
+<text x="1615" y="2066" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Device alarms; delivery jobs,</tspan>
+<tspan x="1615" dy="22">events and response history</tspan>
+</text>
+<path d="M1110 2038H1540" class="flow"/>
+<text x="1325.0" y="2028" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Delivery outcomes / alarm state / history</tspan>
+</text>
+<path d="M1540 2086H1110" class="flow"/>
+<text x="1325.0" y="2076" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Alarm times / recovery / delivery state</tspan>
+</text>
+<path d="M40 2220H1950" stroke="#e5e8eb" stroke-width="1"/>
+<rect x="760" y="2245" width="350" height="245" class="process"/>
+<path d="M760 2280H1110" class="store"/>
+<text x="935.0" y="2270" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">6.0</tspan>
+</text>
+<text x="935.0" y="2322" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Synchronize personal</tspan>
+<tspan x="935.0" dy="28">account records</tspan>
+</text>
+<text x="935.0" y="2391.5" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">Authenticated /v1/sync/batch</tspan>
+<tspan x="935.0" dy="25">Send queue; apply remote changes</tspan>
+<tspan x="935.0" dy="25">Track conflicts and sync cursors</tspan>
+</text>
+<rect x="40" y="2285" width="190" height="90" class="entity"/>
+<text x="135" y="2310" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="2340" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 2315H760" class="flow"/>
+<text x="495.0" y="2305" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Sync / account and conflict choices</tspan>
+</text>
+<path d="M760 2355H230" class="flow"/>
+<text x="495.0" y="2381" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Sync state / pending conflicts</tspan>
+</text>
+<path d="M1950 2245H1540V2345H1950M1595 2245V2345" class="store"/>
+<text x="1568" y="2300" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D2</tspan>
+</text>
+<text x="1615" y="2274" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Personal records + sync</tspan>
+</text>
+<text x="1615" y="2301" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">7 core entity types; outbox,</tspan>
+<tspan x="1615" dy="22">metadata, state and conflicts</tspan>
+</text>
+<path d="M1110 2273H1540" class="flow"/>
+<text x="1325.0" y="2263" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Applied remote changes / acks / conflicts</tspan>
+</text>
+<path d="M1540 2321H1110" class="flow"/>
+<text x="1325.0" y="2311" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Queued mutations / cursor / local versions</tspan>
+</text>
+<path d="M1950 2380H1540V2480H1950M1595 2380V2480" class="store"/>
+<text x="1568" y="2435" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D7</tspan>
+</text>
+<text x="1615" y="2409" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Cloud database</tspan>
+</text>
+<text x="1615" y="2436" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Account-scoped personal records</tspan>
+<tspan x="1615" dy="22">and synchronization versions</tspan>
+</text>
+<path d="M1110 2408H1540" class="flow"/>
+<text x="1325.0" y="2398" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Authorized personal mutations / versions</tspan>
+</text>
+<path d="M1540 2456H1110" class="flow"/>
+<text x="1325.0" y="2446" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Remote records / versions / conflict data</tspan>
+</text>
+<path d="M40 2510H1950" stroke="#e5e8eb" stroke-width="1"/>
+<rect x="760" y="2535" width="350" height="350" class="process"/>
+<path d="M760 2570H1110" class="store"/>
+<text x="935.0" y="2560" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">7.0</tspan>
+</text>
+<text x="935.0" y="2612" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Recognize speech</tspan>
+<tspan x="935.0" dy="28">and provide voice</tspan>
+</text>
+<text x="935.0" y="2734.0" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">Local Whisper + Silero VAD</tspan>
+<tspan x="935.0" dy="25">Local react-native-tts</tspan>
+<tspan x="935.0" dy="25">Backend TTS / live-session grant</tspan>
+<tspan x="935.0" dy="25">Signed live WebSocket to ElevenLabs</tspan>
+<tspan x="935.0" dy="25">Live LLM bridge uses process 4.0</tspan>
+<tspan x="935.0" dy="25">Speech requests from 4.0 / 5.0</tspan>
+</text>
+<rect x="40" y="2555" width="190" height="90" class="entity"/>
+<text x="135" y="2580" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="2610" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 2585H760" class="flow"/>
+<text x="495.0" y="2555" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Authorized microphone audio;</tspan>
+<tspan x="495.0" dy="20">speech / live-session controls</tspan>
+</text>
+<path d="M760 2625H230" class="flow"/>
+<text x="495.0" y="2651" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Transcripts, spoken replies</tspan>
+<tspan x="495.0" dy="20">and session / fallback status</tspan>
+</text>
+<rect x="40" y="2735" width="190" height="90" class="entity"/>
+<text x="135" y="2760" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E4</tspan>
+</text>
+<text x="135" y="2790" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">ElevenLabs</tspan>
+</text>
+<path d="M230 2765H760" class="flow"/>
+<text x="495.0" y="2735" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Speech audio; live transcripts</tspan>
+<tspan x="495.0" dy="20">and conversation events</tspan>
+</text>
+<path d="M760 2805H230" class="flow"/>
+<text x="495.0" y="2831" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Backend speech / session requests;</tspan>
+<tspan x="495.0" dy="20">authorized live audio / context</tspan>
+</text>
+<path d="M1950 2550H1540V2650H1950M1595 2550V2650" class="store"/>
+<text x="1568" y="2605" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D1</tspan>
+</text>
+<text x="1615" y="2579" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Local identity / settings</tspan>
+</text>
+<text x="1615" y="2606" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Speech mode, selected voice,</tspan>
+<tspan x="1615" dy="22">preferences and account session</tspan>
+</text>
+<path d="M1540 2626H1110" class="flow"/>
+<text x="1325.0" y="2616" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Mode / voice / session settings</tspan>
+</text>
+<path d="M1950 2725H1540V2825H1950M1595 2725V2825" class="store"/>
+<text x="1568" y="2780" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D7</tspan>
+</text>
+<text x="1615" y="2754" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Cloud database</tspan>
+</text>
+<text x="1615" y="2781" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Voice session / account access</tspan>
+<tspan x="1615" dy="22">and usage / quota records</tspan>
+</text>
+<path d="M1110 2753H1540" class="flow"/>
+<text x="1325.0" y="2743" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Authorized voice-session / usage records</tspan>
+</text>
+<path d="M1540 2801H1110" class="flow"/>
+<text x="1325.0" y="2791" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Session state / account access / quota</tspan>
+</text>
+<path d="M40 2905H1950" stroke="#e5e8eb" stroke-width="1"/>
+<rect x="760" y="2930" width="350" height="350" class="process"/>
+<path d="M760 2965H1110" class="store"/>
+<text x="935.0" y="2955" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">8.0</tspan>
+</text>
+<text x="935.0" y="3007" class="name" text-anchor="middle">
+<tspan x="935.0" dy="0">Create documents</tspan>
+<tspan x="935.0" dy="28">and process recordings</tspan>
+</text>
+<text x="935.0" y="3129.0" class="detail" text-anchor="middle">
+<tspan x="935.0" dy="0">User-started audio recording</tspan>
+<tspan x="935.0" dy="25">Current UI uses local Whisper STT</tspan>
+<tspan x="935.0" dy="25">Backend document / notes requests</tspan>
+<tspan x="935.0" dy="25">Audio stays local in this UI path</tspan>
+<tspan x="935.0" dy="25">Generated files saved on device</tspan>
+</text>
+<rect x="40" y="2950" width="190" height="90" class="entity"/>
+<text x="135" y="2975" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E1</tspan>
+</text>
+<text x="135" y="3005" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">Student</tspan>
+</text>
+<path d="M230 2980H760" class="flow"/>
+<text x="495.0" y="2950" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Document prompts / selected context;</tspan>
+<tspan x="495.0" dy="20">recording audio and notes requests</tspan>
+</text>
+<path d="M760 3020H230" class="flow"/>
+<text x="495.0" y="3046" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">PDF / DOCX / XLSX / PPTX files;</tspan>
+<tspan x="495.0" dy="20">recording transcript / organized notes</tspan>
+</text>
+<rect x="40" y="3130" width="190" height="90" class="entity"/>
+<text x="135" y="3155" class="detail" text-anchor="middle">
+<tspan x="135" dy="0">E2</tspan>
+</text>
+<text x="135" y="3185" class="entity-text" text-anchor="middle">
+<tspan x="135" dy="0">DeepSeek</tspan>
+</text>
+<path d="M230 3160H760" class="flow"/>
+<text x="495.0" y="3150" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Document content / structured notes</tspan>
+</text>
+<path d="M760 3200H230" class="flow"/>
+<text x="495.0" y="3226" class="label" text-anchor="middle">
+<tspan x="495.0" dy="0">Backend document / transcript prompts</tspan>
+</text>
+<path d="M1950 2945H1540V3045H1950M1595 2945V3045" class="store"/>
+<text x="1568" y="3000" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D6</tspan>
+</text>
+<text x="1615" y="2974" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Local files / metadata</tspan>
+</text>
+<text x="1615" y="3001" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Recorded-meeting rows, audio</tspan>
+<tspan x="1615" dy="22">chunks, attachments / output files</tspan>
+</text>
+<path d="M1110 2973H1540" class="flow"/>
+<text x="1325.0" y="2963" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Recording metadata / transcripts / files</tspan>
+</text>
+<path d="M1540 3021H1110" class="flow"/>
+<text x="1325.0" y="3011" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Recorded audio / saved transcript / files</tspan>
+</text>
+<path d="M1950 3120H1540V3220H1950M1595 3120V3220" class="store"/>
+<text x="1568" y="3175" class="detail" text-anchor="middle">
+<tspan x="1568" dy="0">D7</tspan>
+</text>
+<text x="1615" y="3149" class="store-name" text-anchor="start">
+<tspan x="1615" dy="0">Cloud database</tspan>
+</text>
+<text x="1615" y="3176" class="detail" text-anchor="start">
+<tspan x="1615" dy="0">Account access / service settings</tspan>
+<tspan x="1615" dy="22">and online AI usage records</tspan>
+</text>
+<path d="M1110 3148H1540" class="flow"/>
+<text x="1325.0" y="3138" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Document / notes usage bookkeeping</tspan>
+</text>
+<path d="M1540 3196H1110" class="flow"/>
+<text x="1325.0" y="3186" class="label" text-anchor="middle">
+<tspan x="1325.0" dy="0">Account access / quota / service settings</tspan>
+</text>
+<path d="M40 3305H1950" stroke="#e5e8eb" stroke-width="1"/>
+<text x="40" y="3345" class="name" text-anchor="start">
+<tspan x="40" dy="0">Notation and boundaries</tspan>
+</text>
+<text x="40" y="3380" class="detail" text-anchor="start">
+<tspan x="40" dy="0">Yellow rectangles = external entities. Numbered white boxes = processes. Open-ended D boxes = logical stores.</tspan>
+<tspan x="40" dy="28">Arrows name data and show its direction. Repeated E / D / process IDs refer to the same entity, store or process.</tspan>
+<tspan x="40" dy="28">D1–D5 and SQLite metadata in D6 share lafina.db on Android; D6 also includes device files. D7 is cloud PostgreSQL (Neon).</tspan>
+<tspan x="40" dy="28">D2 sync scope: profile, task, event, time_block, reminder, note, custom_category. Device alarm clocks / files are outside that scope.</tspan>
+<tspan x="40" dy="28">Online AI / voice require the applicable mode choice, connectivity and backend access. Local resources are needed for offline voice / search.</tspan>
+<tspan x="40" dy="28">This is a logical feature DFD, not a call sequence or exhaustive table list. See lafina-data-flow.md for source evidence and limitations.</tspan>
+</text>
+</svg>
