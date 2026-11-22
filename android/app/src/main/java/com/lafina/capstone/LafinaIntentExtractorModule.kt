@@ -187,6 +187,51 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
     }
   }
 
+  /**
+   * Loads the selected model ahead of the first request (an offline call
+   * starts this as it connects), so that request does not also pay the load.
+   * Resolves true when the model is loaded. Generates nothing.
+   */
+  @ReactMethod
+  fun warmupModel(modelPath: String, promptFormat: String?, minValidBytes: Double, promise: Promise) {
+    executor.execute {
+      try {
+        if (!LafinaLlamaBridge.isLoaded() || modelPath.isBlank()) {
+          promise.resolve(false)
+          return@execute
+        }
+        val modelFile = File(modelPath)
+        if (!modelFile.exists() || modelFile.length() <= resolveMinValidBytes(minValidBytes)) {
+          promise.resolve(false)
+          return@execute
+        }
+        if (nativeContextPointer.get() == 0L || loadedModelPath != modelPath) {
+          unloadNativeModelInternal()
+          val startedAt = System.currentTimeMillis()
+          val nThreads = maxOf(2, minOf(4, Runtime.getRuntime().availableProcessors() - 1))
+          val ptr = LafinaLlamaBridge.initModel(modelPath, nThreads)
+          if (ptr == 0L) {
+            promise.resolve(false)
+            return@execute
+          }
+          nativeContextPointer.set(ptr)
+          loadedModelPath = modelPath
+          Log.i(TAG, "Loaded on-device SLM in ${System.currentTimeMillis() - startedAt}ms")
+          // Read the shared instructions now; requests then read only the
+          // student's words (the native side keeps this prefix).
+          val primedAt = System.currentTimeMillis()
+          LafinaLlamaBridge.generate(ptr, buildNluPrompt("", resolvePromptFormat(promptFormat, modelPath)), 1)
+          Log.i(TAG, "Primed on-device SLM instructions in ${System.currentTimeMillis() - primedAt}ms")
+        }
+        scheduleAutoUnload()
+        promise.resolve(true)
+      } catch (e: Exception) {
+        Log.w(TAG, "On-device SLM warmup failed", e)
+        promise.resolve(false)
+      }
+    }
+  }
+
   @ReactMethod
   fun unloadModel(promise: Promise) {
     executor.execute {
@@ -314,7 +359,9 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
 
     val prompt = buildNluPrompt(transcript, promptFormat)
 
+    val startedAt = System.currentTimeMillis()
     val rawOutput = LafinaLlamaBridge.generate(ptr, prompt, 128)
+    Log.i(TAG, "On-device SLM answered in ${System.currentTimeMillis() - startedAt}ms (${rawOutput.length} chars)")
     val jsonStart = rawOutput.indexOf('{')
     val jsonEnd = rawOutput.lastIndexOf('}')
     if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {

@@ -108,7 +108,11 @@ export const hasOfflineSpeechCapture = (): boolean =>
  * warmup just means the next capture loads the model itself, as before.
  */
 export const warmupOfflineSpeech = (): void => {
-  getNativeModule()?.warmup?.().catch(() => undefined);
+  try {
+    void Promise.resolve(getNativeModule()?.warmup?.()).catch(() => undefined);
+  } catch {
+    // A missing or throwing warmup only means a cold first capture.
+  }
 };
 
 /**

@@ -46,6 +46,10 @@ struct LafinaLlamaContext {
   llama_context *ctx = nullptr;
   int32_t n_threads = 2;
   std::mutex mutex;
+  // Tokens whose keys/values are in the context now. Every request starts
+  // with the same instructions, so only the part after the shared prefix
+  // (the student's words) is read again.
+  std::vector<llama_token> cached;
 };
 
 struct JsonTrackState {
@@ -206,7 +210,7 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
   }
 
   std::lock_guard<std::mutex> lock(handle->mutex);
-  llama_memory_clear(llama_get_memory(handle->ctx), true);
+  llama_memory_t memory = llama_get_memory(handle->ctx);
 
   const llama_vocab *vocab = llama_model_get_vocab(handle->model);
   if (vocab == nullptr) {
@@ -259,15 +263,40 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
     return env->NewStringUTF("");
   }
 
+  // Keep the shared prefix; at least the last prompt token is read again so
+  // there are fresh logits to sample from.
+  size_t reuse = 0;
+  const size_t reusable = std::min(handle->cached.size(), promptTokens.size() - 1);
+  while (reuse < reusable && handle->cached[reuse] == promptTokens[reuse]) {
+    ++reuse;
+  }
+  if (reuse == 0 || !llama_memory_seq_rm(memory, 0, static_cast<llama_pos>(reuse), -1)) {
+    llama_memory_clear(memory, true);
+    reuse = 0;
+  }
+  handle->cached.assign(promptTokens.begin(), promptTokens.begin() + reuse);
+  __android_log_print(
+      ANDROID_LOG_INFO,
+      kTag,
+      "Prompt %zu tokens, %zu reused from the last request",
+      promptTokens.size(),
+      reuse);
+
   const uint32_t nBatch = std::max<uint32_t>(1, llama_n_batch(handle->ctx));
-  for (size_t offset = 0; offset < promptTokens.size(); offset += nBatch) {
+  for (size_t offset = reuse; offset < promptTokens.size(); offset += nBatch) {
     const int32_t chunkSize = static_cast<int32_t>(
         std::min<size_t>(nBatch, promptTokens.size() - offset));
     llama_batch batch = llama_batch_get_one(promptTokens.data() + offset, chunkSize);
     if (llama_decode(handle->ctx, batch) != 0) {
       __android_log_print(ANDROID_LOG_ERROR, kTag, "llama_decode failed on prompt chunk");
+      llama_memory_clear(memory, true);
+      handle->cached.clear();
       return env->NewStringUTF("");
     }
+    handle->cached.insert(
+        handle->cached.end(),
+        promptTokens.begin() + offset,
+        promptTokens.begin() + offset + chunkSize);
   }
 
   auto sparams = llama_sampler_chain_default_params();
@@ -307,8 +336,11 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
       llama_batch nextBatch = llama_batch_get_one(&tokenId, 1);
       if (llama_decode(handle->ctx, nextBatch) != 0) {
         __android_log_print(ANDROID_LOG_ERROR, kTag, "llama_decode failed during generation");
+        llama_memory_clear(memory, true);
+        handle->cached.clear();
         break;
       }
+      handle->cached.push_back(tokenId);
     }
   }
 

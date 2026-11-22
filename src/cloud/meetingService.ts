@@ -1,5 +1,5 @@
-import { cloudClient, CloudResult } from './cloudClient';
-import { TranscriptSegment } from '../ai/native/meetingRecorder';
+import {cloudClient, CloudResult} from './cloudClient';
+import {TranscriptSegment} from '../ai/native/meetingRecorder';
 
 export interface MeetingActionItem {
   title: string;
@@ -17,18 +17,32 @@ export interface MeetingSummaryResponse {
   createdAt: string;
 }
 
+interface BackendNestedSummary {
+  key_points?: string[];
+  decisions?: string[];
+  open_questions?: string[];
+  action_items?: Array<{
+    task?: string;
+    assignee?: string | null;
+    due?: string | null;
+  }>;
+}
+
 interface BackendMeetingSummaryResponse {
-  id: string;
-  title: string;
-  summary: string;
-  decisions: string[];
-  action_items: Array<{
+  id?: string;
+  requestId?: string;
+  title?: string;
+  meetingTitle?: string;
+  summary: string | BackendNestedSummary;
+  decisions?: string[];
+  action_items?: Array<{
     title: string;
     assignee?: string | null;
     due_date?: string | null;
     priority?: string;
   }>;
-  created_at: string;
+  created_at?: string;
+  createdAt?: string;
 }
 
 export interface RequestMeetingSummaryInput {
@@ -65,18 +79,18 @@ export const requestMeetingSummary = async (
     };
   }
 
+  const transcript = input.segments
+    .map(s => s.text.trim())
+    .filter(Boolean)
+    .join('\n');
+
   const response = await cloudClient.request<BackendMeetingSummaryResponse>(
     '/v1/meetings/summary',
     {
       method: 'POST',
       body: JSON.stringify({
-        title: input.title.trim() || 'Lecture Notes',
-        consent_given: true,
-        segments: input.segments.map((s) => ({
-          start_ms: Math.max(0, Math.round(s.start_ms)),
-          end_ms: Math.max(0, Math.round(s.end_ms)),
-          text: s.text,
-        })),
+        meetingTitle: input.title.trim() || 'Lecture Notes',
+        transcript,
       }),
     },
     true,
@@ -91,20 +105,44 @@ export const requestMeetingSummary = async (
   }
 
   const data = response.data;
+  if (typeof data.summary === 'object' && data.summary !== null) {
+    const nested = data.summary;
+    const keyPoints = Array.isArray(nested.key_points) ? nested.key_points : [];
+    const decisions = Array.isArray(nested.decisions) ? nested.decisions : [];
+    const actionItems = (nested.action_items ?? []).map(item => ({
+      title: item.task || 'Untitled Task',
+      assignee: item.assignee ?? null,
+      dueDate: item.due ?? null,
+      priority: 'Medium' as const,
+    }));
+    return {
+      status: 'success',
+      data: {
+        id: data.requestId || data.id || 'meeting_summary',
+        title: input.title.trim() || 'Lecture Notes',
+        summary: keyPoints.join('\n'),
+        decisions,
+        actionItems,
+        createdAt:
+          data.createdAt || data.created_at || new Date().toISOString(),
+      },
+    };
+  }
+
   return {
     status: 'success',
     data: {
-      id: data.id,
-      title: data.title,
-      summary: data.summary,
+      id: data.id || data.requestId || 'meeting_summary',
+      title: data.title || input.title.trim() || 'Lecture Notes',
+      summary: typeof data.summary === 'string' ? data.summary : '',
       decisions: Array.isArray(data.decisions) ? data.decisions : [],
-      actionItems: (data.action_items ?? []).map((item) => ({
+      actionItems: (data.action_items ?? []).map(item => ({
         title: item.title,
         assignee: item.assignee ?? null,
         dueDate: item.due_date ?? null,
         priority: normalizePriority(item.priority),
       })),
-      createdAt: data.created_at,
+      createdAt: data.created_at || data.createdAt || new Date().toISOString(),
     },
   };
 };

@@ -391,6 +391,12 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
             "capturedMs=${captured.audioDurationMs}, maxVad=${captured.maxVadProbability}, " +
             "peak=${captured.peakAmplitude}, wallMs=$captureDurationMs"
         )
+        // Recording is over. The call screen shows that the words are being
+        // written down, and starts its own wait limit for Whisper.
+        sendEvent("onSpeechCaptureEnded", Arguments.createMap().apply {
+          putString("captureId", captureId)
+          putBoolean("speechDetected", captured.speechDetected && captured.samples.isNotEmpty())
+        })
         if (discardRequested.get()) {
           promise.resolve(resultMap(captureId, "", false, true, captureDurationMs, 0L))
           return
