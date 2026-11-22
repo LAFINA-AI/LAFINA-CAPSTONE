@@ -1,5 +1,5 @@
-import { cloudClient, CloudResult } from '../cloud';
-import type { OnlineChatMessage } from './onlineChatSkill';
+import {cloudClient, CloudResult} from '../cloud';
+import type {OnlineChatMessage} from './onlineChatSkill';
 
 export type DocumentFormat = 'pdf' | 'docx' | 'xlsx' | 'pptx';
 
@@ -86,6 +86,7 @@ const MAX_DOCUMENT_MESSAGES = 10;
 const MAX_DOCUMENT_CHARS = 8_000;
 const MAX_HISTORY_MESSAGE_CHARS = 4_000;
 const MAX_PROMPT_CHARS = 4_000;
+const DEFAULT_DOCUMENT_TIMEOUT_MS = 90_000;
 
 const sanitizeFileName = (raw: string, extension: string): string => {
   const withoutExt = raw.replace(/\.[a-z0-9]{2,5}$/i, '');
@@ -93,7 +94,10 @@ const sanitizeFileName = (raw: string, extension: string): string => {
     .replace(/[^A-Za-z0-9._ -]+/g, ' ')
     .trim()
     .replace(/\s+/g, '_')
-    .slice(0, 60);
+    .replace(/\.{2,}/g, '_')
+    .replace(/^[._]+|[._]+$/g, '')
+    .slice(0, 60)
+    .replace(/^[._]+|[._]+$/g, '');
   const stem = cleaned || 'lafina_document';
   return `${stem}.${extension}`;
 };
@@ -119,11 +123,11 @@ export const trimDocumentHistory = (
   messages: OnlineChatMessage[],
 ): OnlineChatMessage[] => {
   const recent = messages
-    .map((message) => ({
+    .map(message => ({
       role: message.role,
       content: message.content.trim().slice(0, MAX_HISTORY_MESSAGE_CHARS),
     }))
-    .filter((message) => message.content.length > 0)
+    .filter(message => message.content.length > 0)
     .slice(-MAX_DOCUMENT_MESSAGES);
 
   while (recent.length > 1 && totalChars(recent) > MAX_DOCUMENT_CHARS) {
@@ -168,7 +172,15 @@ export const documentSkill = {
     prompt: string;
     format: DocumentFormat;
     history?: OnlineChatMessage[];
+    signal?: AbortSignal;
+    timeoutMs?: number;
   }): Promise<CloudResult<GeneratedDocument>> => {
+    if (params.signal?.aborted) {
+      return {
+        status: 'server_unavailable',
+        error: 'Document generation was cancelled.',
+      };
+    }
     const prompt = params.prompt.trim().slice(0, MAX_PROMPT_CHARS);
     if (!prompt) {
       return {
@@ -191,20 +203,61 @@ export const documentSkill = {
       lastHistoryMsg.role === 'user' &&
       lastHistoryMsg.content.trim() === prompt
         ? [...priorHistory]
-        : [...priorHistory, { role: 'user', content: prompt }];
+        : [...priorHistory, {role: 'user', content: prompt}];
     const messages = trimDocumentHistory(combinedMessages);
 
-    const result = await cloudClient.request<BackendDocumentResponse>(
-      '/v1/ai/documents',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          format: params.format,
-          messages,
-        }),
-      },
-      true,
-    );
+    const controller =
+      typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timedOut = false;
+    const timeoutMs =
+      typeof params.timeoutMs === 'number' && params.timeoutMs > 0
+        ? params.timeoutMs
+        : DEFAULT_DOCUMENT_TIMEOUT_MS;
+    const onParentAbort = () => controller?.abort();
+    if (params.signal && controller) {
+      params.signal.addEventListener('abort', onParentAbort);
+    }
+    const timer = controller
+      ? setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, timeoutMs)
+      : null;
+
+    let result: CloudResult<BackendDocumentResponse>;
+    try {
+      result = await cloudClient.request<BackendDocumentResponse>(
+        '/v1/ai/documents',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            format: params.format,
+            messages,
+          }),
+          ...(controller ? {signal: controller.signal} : {}),
+        },
+        true,
+      );
+    } finally {
+      if (timer) clearTimeout(timer);
+      if (params.signal && controller) {
+        params.signal.removeEventListener('abort', onParentAbort);
+      }
+    }
+
+    if (params.signal?.aborted) {
+      return {
+        status: 'server_unavailable',
+        error: 'Document generation was cancelled.',
+      };
+    }
+    if (timedOut) {
+      return {
+        status: 'server_unavailable',
+        error:
+          'Document generation timed out. Please try again with a shorter prompt or source.',
+      };
+    }
 
     if (result.status !== 'success' || !result.data) {
       return {

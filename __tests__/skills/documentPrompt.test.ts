@@ -37,4 +37,12 @@ test('slide and document length choices reach the existing document endpoint', (
       context: 'Actual source',
     }).prompt,
   ).toContain('1–2 pages');
+  expect(
+    buildSkillDocumentPrompt({
+      prompt: 'My tracker',
+      format: 'xlsx',
+      length: 'Detailed',
+      context: 'Rows',
+    }).prompt,
+  ).toContain('Multi-sheet workbook');
 });

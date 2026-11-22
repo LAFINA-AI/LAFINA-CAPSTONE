@@ -36,6 +36,13 @@ test.each(
         expect(skillContrast(ink, background)).toBeGreaterThanOrEqual(4.5);
     expect(skillContrast(p.onAccent, p.accent)).toBeGreaterThanOrEqual(4.5);
     expect(skillContrast('#FFFFFF', p.darkInkBtn)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast('#FFFFFF', p.answerCardBg)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+    expect(skillContrast(p.againInk, p.dangerSoft)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast(p.hardInk, p.peach)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast(p.goodInk, p.blueSoft)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast(p.easyInk, p.mint)).toBeGreaterThanOrEqual(4.5);
     unmount();
   },
 );
@@ -57,6 +64,13 @@ test.each([false, true])(
       for (const ink of [p.text, p.muted, p.accent])
         expect(skillContrast(ink, bg)).toBeGreaterThanOrEqual(4.5);
     expect(skillContrast(p.onAccent, p.accent)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast('#FFFFFF', p.answerCardBg)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+    expect(skillContrast(p.againInk, p.dangerSoft)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast(p.hardInk, p.peach)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast(p.goodInk, p.blueSoft)).toBeGreaterThanOrEqual(4.5);
+    expect(skillContrast(p.easyInk, p.mint)).toBeGreaterThanOrEqual(4.5);
     unmount();
   },
 );

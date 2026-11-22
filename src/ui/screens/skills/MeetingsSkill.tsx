@@ -1,12 +1,17 @@
 import React, {useEffect, useState} from 'react';
-import {Alert, NativeModules, Switch, Text, View} from 'react-native';
+import {Alert, Linking, NativeModules, Switch, Text, View} from 'react-native';
 import {notesEditStore} from '../../../storage/notesEditStore';
 import {tasksStore} from '../../../storage/tasksStore';
 import {db} from '../../../storage/database';
 import {useMeetings} from '../../contexts/MeetingsContext';
 import {requireStudyOnline} from '../../../skills/studyAi';
 import {SKILLS_CAPABILITIES} from '../../../skills/skillsCapabilities';
-import {STATUS_LABELS, transcriptToText} from '../../../meetings';
+import {
+  describeMeetingError,
+  notesToMarkdown,
+  STATUS_LABELS,
+  transcriptToText,
+} from '../../../meetings';
 import {generateId} from '../../../utils';
 import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 import {useReducedMotion} from '../../hooks/useReducedMotion';
@@ -24,7 +29,10 @@ export function MeetingsSkill({
   const meetings = useMeetings();
   const [title, setTitle] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<{text: string; danger?: boolean} | null>(
+    null,
+  );
+  const [savedNoteKey, setSavedNoteKey] = useState('');
   const [levels, setLevels] = useState<number[]>([]);
   const recording = meetings.recorder;
   const recordingId = recording?.meetingId;
@@ -59,26 +67,57 @@ export function MeetingsSkill({
     };
   }, [recordingId, reduced]);
   const run = (operation: () => Promise<unknown>) => {
-    setNotice('');
-    void operation().catch(e => setNotice((e as Error).message));
+    setNotice(null);
+    void operation().catch(e =>
+      setNotice({
+        text: (e as Error).message || 'Something went wrong.',
+        danger: true,
+      }),
+    );
   };
   const saveTranscript = () => {
-    if (!open?.transcript?.length) return;
+    if (!open || (!open.transcript?.length && !open.notes)) return;
+    const transcriptText = open.transcript?.length
+      ? transcriptToText(open.transcript, {timestamps: true})
+      : '';
+    const notesText = open.notes
+      ? notesToMarkdown(open.notes, {
+          title: open.title,
+          recordedAt: open.startedAt,
+          durationSeconds: open.durationSeconds,
+        })
+      : '';
+    const key = `${open.id}:${transcriptText.length}:${notesText.length}`;
+    if (savedNoteKey === key) {
+      setNotice({text: 'Already saved to Notes · AI Transcribed.'});
+      return;
+    }
+    const body = notesText
+      ? transcriptText
+        ? `${notesText}\n\n## Transcript\n\n${transcriptText}`
+        : notesText
+      : transcriptText;
     try {
       notesEditStore.create({
         id: generateId('note'),
         userId,
         title: open.title,
-        body: transcriptToText(open.transcript, {timestamps: true}),
+        body,
         category: 'Learning',
-        tags: ['AI Transcribed', 'Transcript'],
+        tags: open.notes
+          ? ['AI Transcribed', 'Transcript', 'Summary']
+          : ['AI Transcribed', 'Transcript'],
         isVoiceTranscribed: true,
         isPinned: false,
       });
-      setNotice('Saved to Notes · AI Transcribed.');
+      setSavedNoteKey(key);
+      setNotice({text: 'Saved to Notes · AI Transcribed.'});
       onSaved();
     } catch (e) {
-      setNotice((e as Error).message);
+      setNotice({
+        text: (e as Error).message || 'Could not save transcript.',
+        danger: true,
+      });
     }
   };
   const addTodos = () => {
@@ -87,7 +126,7 @@ export function MeetingsSkill({
     Alert.alert(
       'Add detected to-dos?',
       `Review these ${items.length} items:\n\n${items
-        .map(i => `• ${i.task}`)
+        .map(i => `• ${i.task}${i.assignee ? ` (${i.assignee})` : ''}`)
         .join('\n')}`,
       [
         {text: 'Cancel', style: 'cancel'},
@@ -95,8 +134,30 @@ export function MeetingsSkill({
           text: 'Add to To-do',
           onPress: () => {
             try {
+              const existingTitles = new Set(
+                tasksStore
+                  .getAllTasks(userId)
+                  .map(t => t.title.trim().toLowerCase()),
+              );
+              const fresh = items.filter(item => {
+                const k = item.task.trim().toLowerCase();
+                if (!k || existingTitles.has(k)) return false;
+                existingTitles.add(k);
+                return true;
+              });
+              if (!fresh.length) {
+                setNotice({
+                  text: 'All detected to-dos are already in your To-do list.',
+                });
+                return;
+              }
               db.transactionSync(tx => {
-                items.forEach(item =>
+                fresh.forEach(item => {
+                  const detailParts = [`From meeting: ${open?.title}`];
+                  if (item.assignee)
+                    detailParts.push(`Owner: ${item.assignee}`);
+                  if (item.deadline)
+                    detailParts.push(`Mentioned deadline: ${item.deadline}`);
                   tasksStore.insertTask(
                     {
                       id: generateId('task'),
@@ -105,22 +166,27 @@ export function MeetingsSkill({
                       isCompleted: item.status === 'done',
                       priority: 'Medium',
                       category: 'Learning',
-                      notes: `From meeting: ${open?.title}${
-                        item.deadline
-                          ? ` · Mentioned deadline: ${item.deadline}`
-                          : ''
-                      }`,
+                      notes: detailParts.join(' · '),
                       dueDate: null,
                       dueTime: null,
                     },
                     tx,
-                  ),
-                );
+                  );
+                });
               });
-              setNotice('Added to your existing To-do list.');
+              const skipped = items.length - fresh.length;
+              setNotice({
+                text:
+                  skipped > 0
+                    ? `Added ${fresh.length} new to-dos (${skipped} already existed).`
+                    : 'Added to your existing To-do list.',
+              });
               onSaved();
             } catch (e) {
-              setNotice((e as Error).message);
+              setNotice({
+                text: (e as Error).message || 'Could not add to-dos.',
+                danger: true,
+              });
             }
           },
         },
@@ -345,19 +411,93 @@ export function MeetingsSkill({
             />
           </>
         )}
-        {open?.errorCode && (
-          <>
-            <SkillText muted>
-              {open.errorDetail || open.errorCode.replace(/_/g, ' ')}
-            </SkillText>
-            <SkillButton
-              secondary
-              label="Retry transcription"
-              disabled={Boolean(recording) || Boolean(meetings.processing)}
-              onPress={() => run(() => meetings.transcribeMeeting(open.id))}
-            />
-          </>
-        )}
+        {open?.errorCode &&
+          (() => {
+            const errInfo = describeMeetingError(
+              open.errorCode,
+              open.errorDetail ?? undefined,
+            );
+            const hasTranscript = Boolean(open.transcript?.length);
+            const canRetryNotes =
+              hasTranscript &&
+              (errInfo.recovery === 'retry_notes' ||
+                open.errorCode === 'cancelled' ||
+                errInfo.recovery !== 'retry_transcription');
+            const canRetryTranscription =
+              !hasTranscript &&
+              (errInfo.recovery === 'retry_transcription' ||
+                open.errorCode === 'cancelled' ||
+                open.errorCode === 'transcription_interrupted');
+            return (
+              <>
+                <SkillText danger>{errInfo.title}</SkillText>
+                <SkillText muted>
+                  {open.errorDetail || errInfo.message}
+                </SkillText>
+                {canRetryNotes && (
+                  <SkillButton
+                    secondary
+                    label={
+                      errInfo.recovery === 'retry_notes' &&
+                      errInfo.recoveryLabel
+                        ? errInfo.recoveryLabel
+                        : 'Retry notes'
+                    }
+                    disabled={
+                      Boolean(recording) || Boolean(meetings.processing)
+                    }
+                    onPress={() =>
+                      run(async () => {
+                        await requireStudyOnline(userId);
+                        await meetings.generateNotes(open.id);
+                      })
+                    }
+                  />
+                )}
+                {canRetryTranscription && (
+                  <SkillButton
+                    secondary
+                    label={
+                      errInfo.recovery === 'retry_transcription' &&
+                      errInfo.recoveryLabel
+                        ? errInfo.recoveryLabel
+                        : 'Retry transcription'
+                    }
+                    disabled={
+                      Boolean(recording) || Boolean(meetings.processing)
+                    }
+                    onPress={() =>
+                      run(() => meetings.transcribeMeeting(open.id))
+                    }
+                  />
+                )}
+                {errInfo.recovery === 'choose_another_file' && (
+                  <SkillButton
+                    secondary
+                    label={errInfo.recoveryLabel || 'Choose another file'}
+                    disabled={
+                      Boolean(recording) || Boolean(meetings.processing)
+                    }
+                    onPress={() =>
+                      run(async () => {
+                        const id = await meetings.importAudio();
+                        if (id) setOpenId(id);
+                      })
+                    }
+                  />
+                )}
+                {errInfo.recovery === 'open_privacy_settings' && (
+                  <SkillButton
+                    secondary
+                    label={errInfo.recoveryLabel || 'Open Privacy Settings'}
+                    onPress={() => {
+                      void Linking.openSettings();
+                    }}
+                  />
+                )}
+              </>
+            );
+          })()}
       </SkillCard>
       {open?.notes && (
         <SkillCard>
@@ -365,9 +505,21 @@ export function MeetingsSkill({
             Summary
           </SkillText>
           <SkillText>{open.notes.summary}</SkillText>
+          {open.notes.decisions.length > 0 && (
+            <>
+              <SkillText strong>Decisions</SkillText>
+              {open.notes.decisions.map((decision, i) => (
+                <SkillText key={i}>• {decision}</SkillText>
+              ))}
+            </>
+          )}
           <SkillText strong>Detected to-dos</SkillText>
           {open.notes.action_items.map((item, i) => (
-            <SkillText key={i}>• {item.task}</SkillText>
+            <SkillText key={i}>
+              • {item.task}
+              {item.assignee ? ` (${item.assignee})` : ''}
+              {item.deadline ? ` — ${item.deadline}` : ''}
+            </SkillText>
           ))}
           {!open.notes.action_items.length && (
             <SkillText muted>No action items detected.</SkillText>
@@ -379,7 +531,11 @@ export function MeetingsSkill({
           />
         </SkillCard>
       )}
-      {!!notice && <SkillText muted>{notice}</SkillText>}
+      {!!notice && (
+        <SkillText danger={notice.danger} muted={!notice.danger}>
+          {notice.text}
+        </SkillText>
+      )}
       <View style={ui.section}>
         <SkillText strong size={17}>
           Recent meetings
@@ -407,7 +563,7 @@ export function MeetingsSkill({
             label={`Open ${m.title}`}
             onPress={() => {
               setOpenId(m.id);
-              setNotice('');
+              setNotice(null);
             }}
           />
           <SkillButton
@@ -420,7 +576,11 @@ export function MeetingsSkill({
                 {
                   text: 'Delete',
                   style: 'destructive',
-                  onPress: () => run(() => meetings.deleteMeeting(m.id)),
+                  onPress: () =>
+                    run(async () => {
+                      await meetings.deleteMeeting(m.id);
+                      if (openId === m.id) setOpenId(null);
+                    }),
                 },
               ])
             }

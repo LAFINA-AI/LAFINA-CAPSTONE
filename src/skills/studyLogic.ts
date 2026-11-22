@@ -27,11 +27,13 @@ export const stepGrade = (grade: number | null, delta: number) =>
     ? 1
     : Math.min(5, Math.max(1, Math.round((grade + delta) * 4) / 4));
 export type Rating = 'Again' | 'Hard' | 'Good' | 'Easy';
+export const MAX_INTERVAL_DAYS = 365;
 export interface StudyCard {
   id: string;
   question: string;
   answer: string;
   sourceNoteId?: string;
+  sourceLabel?: string;
   intervalDays: number;
   ease: number;
   dueAt: number;
@@ -43,41 +45,164 @@ export interface Deck {
   cards: StudyCard[];
   createdAt: string;
 }
-/** Small SM-2 inspired scheduler: failed recall returns in a minute, Hard in >=10m. */
+export interface ScheduleOptions {
+  practice?: boolean;
+  isRetry?: boolean;
+}
+/** Hard grows a learned card's gap a little (Anki-style), never shrinks it. */
+export const HARD_INTERVAL_FACTOR = 1.2;
+
+/**
+ * Small SM-2 inspired scheduler: failed recall returns in a minute; Hard
+ * returns in 10 minutes while learning, otherwise ~1.2x the last gap.
+ * A retry inside the same session (after Again) never changes ease again, so
+ * one hard card is not penalised twice in one sitting.
+ */
 export function scheduleCard(
   card: StudyCard,
   rating: Rating,
   now = Date.now(),
+  options?: ScheduleOptions,
 ): StudyCard {
-  const ease = Math.max(
-    1.3,
-    Math.min(
-      3.5,
-      card.ease +
-        (rating === 'Again'
-          ? -0.2
-          : rating === 'Hard'
-          ? -0.15
-          : rating === 'Easy'
-          ? 0.15
-          : 0),
-    ),
-  );
+  if (options?.practice && card.dueAt > now) {
+    return {...card};
+  }
+  const ease = options?.isRetry
+    ? card.ease
+    : Math.max(
+        1.3,
+        Math.min(
+          3.5,
+          card.ease +
+            (rating === 'Again'
+              ? -0.2
+              : rating === 'Hard'
+              ? -0.15
+              : rating === 'Easy'
+              ? 0.15
+              : 0),
+        ),
+      );
   const interval =
     rating === 'Again'
       ? 1 / 1440
       : rating === 'Hard'
-      ? Math.max(10 / 1440, card.intervalDays * 1.2)
+      ? card.intervalDays < 1
+        ? 10 / 1440
+        : Math.min(
+            MAX_INTERVAL_DAYS,
+            Math.max(
+              card.intervalDays,
+              Math.round(card.intervalDays * HARD_INTERVAL_FACTOR),
+            ),
+          )
       : rating === 'Good'
-      ? Math.max(1, Math.round(card.intervalDays * ease))
-      : Math.max(4, Math.round(card.intervalDays * ease * 1.3));
+      ? card.intervalDays < 1
+        ? 1
+        : Math.min(
+            MAX_INTERVAL_DAYS,
+            Math.max(
+              card.intervalDays + 1,
+              Math.round(card.intervalDays * ease),
+            ),
+          )
+      : Math.min(
+          MAX_INTERVAL_DAYS,
+          Math.max(
+            4,
+            card.intervalDays >= 1 ? card.intervalDays + 2 : 4,
+            Math.round(card.intervalDays * ease * 1.3),
+          ),
+        );
   return {
     ...card,
     ease,
     intervalDays: interval,
     dueAt: now + Math.round(interval * 86400000),
-    reviews: card.reviews + 1,
+    reviews: options?.isRetry ? card.reviews : card.reviews + 1,
   };
+}
+export function formatScheduleInterval(days: number): string {
+  const minutes = Math.max(1, Math.round(days * 1440));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr`;
+  if (days >= 365) {
+    const years = Math.max(1, Math.round(days / 365));
+    return `${years} yr`;
+  }
+  if (days >= 30) {
+    const months = Math.max(1, Math.round(days / 30));
+    return `${months} mo`;
+  }
+  const roundedDays = Math.max(1, Math.round(days));
+  return `${roundedDays} ${roundedDays === 1 ? 'day' : 'days'}`;
+}
+export const previewCardInterval = (
+  card: StudyCard,
+  rating: Rating,
+  options?: {practice?: boolean; isRetry?: boolean; now?: number},
+): string => {
+  if (options?.practice && card.dueAt > (options.now ?? Date.now())) {
+    return 'Practice';
+  }
+  return formatScheduleInterval(
+    scheduleCard(card, rating, 0, {isRetry: options?.isRetry}).intervalDays,
+  );
+};
+export interface DeckStats {
+  total: number;
+  due: number;
+  newCount: number;
+  learningCount: number;
+  masteredCount: number;
+  nextDueAt: number | null;
+}
+/** Computes card maturity, due count, and earliest upcoming due timestamp for a deck. */
+export function getDeckStats(deck: Deck, now = Date.now()): DeckStats {
+  let due = 0;
+  let newCount = 0;
+  let learningCount = 0;
+  let masteredCount = 0;
+  let nextDueAt: number | null = null;
+  for (const card of deck.cards) {
+    if (card.dueAt <= now) {
+      due += 1;
+    } else if (nextDueAt === null || card.dueAt < nextDueAt) {
+      nextDueAt = card.dueAt;
+    }
+    if (card.reviews === 0) {
+      newCount += 1;
+    } else if (card.intervalDays >= 7) {
+      masteredCount += 1;
+    } else {
+      learningCount += 1;
+    }
+  }
+  return {
+    total: deck.cards.length,
+    due,
+    newCount,
+    learningCount,
+    masteredCount,
+    nextDueAt,
+  };
+}
+/** Formats the countdown until the next non-due card in a deck becomes due. */
+export function formatNextDueIn(
+  nextDueAt: number | null,
+  now = Date.now(),
+): string | null {
+  if (nextDueAt === null || nextDueAt <= now) return null;
+  const diffMs = nextDueAt - now;
+  if (diffMs < 60000) return 'Next due in < 1 min';
+  const minutes = Math.round(diffMs / 60000);
+  if (minutes < 60) return `Next due in ${minutes} min`;
+  const hours = Math.round(diffMs / 3600000);
+  if (hours < 24) return `Next due in ${hours} hr`;
+  const days = Math.round(diffMs / 86400000);
+  if (days <= 1) return 'Next due tomorrow';
+  return `Next due in ${days} days`;
 }
 export type PomodoroMode = 'Focus 25' | 'Break 5' | 'Long 15';
 export const MODE_SECONDS: Record<PomodoroMode, number> = {
@@ -91,6 +216,7 @@ export interface PomodoroState {
   deadline: number | null;
   cycle: number;
   counts: Record<string, number>;
+  countsMinutes?: Record<string, number>;
   taskId: string | null;
   silence: boolean;
 }
@@ -117,9 +243,17 @@ export function finishPomodoro(
 ): PomodoroState {
   const cycle = state.cycle + (completed && state.mode === 'Focus 25' ? 1 : 0);
   const counts = {...state.counts};
+  let countsMinutes = state.countsMinutes;
   if (completed && state.mode === 'Focus 25') {
     const day = localDay(at);
-    counts[day] = (counts[day] ?? 0) + 1;
+    const prevCount = counts[day] ?? 0;
+    counts[day] = prevCount + 1;
+    countsMinutes = {
+      ...(countsMinutes ?? {}),
+      [day]:
+        (countsMinutes?.[day] ?? prevCount * 25) +
+        Math.round(MODE_SECONDS[state.mode] / 60),
+    };
   }
   const mode =
     state.mode === 'Focus 25'
@@ -131,6 +265,7 @@ export function finishPomodoro(
     ...state,
     cycle,
     counts,
+    ...(countsMinutes ? {countsMinutes} : {}),
     mode,
     remaining: MODE_SECONDS[mode],
     deadline: null,

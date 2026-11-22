@@ -18,5 +18,7 @@ export interface NotesScreenProps {
   onBackToSkills?: () => void;
   onSkillsPageChange?: (open: boolean) => void;
   onRecordMeeting?: () => void;
+  onOpenProfile?: () => void;
+  onNavigateToRegister?: () => void;
   onRefresh: () => void;
 }

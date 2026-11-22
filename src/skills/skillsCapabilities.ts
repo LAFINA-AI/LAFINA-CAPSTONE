@@ -2,5 +2,5 @@
 export const SKILLS_CAPABILITIES = {
   liveMeetingTranscript: false,
   embeddedOfficePreview: false,
-  docxSourceExtraction: false,
+  docxSourceExtraction: true,
 } as const;

@@ -231,7 +231,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   onCategoryChange,
   onPinToggle,
   onSelectionChange,
-  onClose: _onClose,
+  onClose,
   onSave,
   onDelete,
   onFormatting,
@@ -252,7 +252,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   );
 
   /** False while writing, true while reading — where to-dos can be ticked. */
-  const [preview, setPreview] = useState(false);
+  const editingNoteId = editingNote?.id ?? null;
+  const [preview, setPreview] = useState(() => Boolean(editingNoteId));
   const [showAiMenu, setShowAiMenu] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
   const bodyInputRef = useRef<TextInput>(null);
@@ -261,8 +262,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     if (!visible) {
       setShowFullImage(false);
       setShowAiMenu(false);
+      return;
     }
-  }, [visible]);
+    setPreview(Boolean(editingNoteId));
+  }, [visible, editingNoteId]);
 
   // Controlled selection during programmatic actions, uncontrolled during natural typing
   const [tempSelection, setTempSelection] = useState<
@@ -422,6 +425,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       animationType="slide"
       transparent={false}
       statusBarTranslucent
+      onRequestClose={onClose}
     >
       <StatusBar
         barStyle={colors.statusBarStyle}
@@ -678,7 +682,15 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           )}
 
           {/* Add Custom Category Modal */}
-          <Modal visible={showAddModal} transparent={true} animationType="fade">
+          <Modal
+            visible={showAddModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => {
+              setShowAddModal(false);
+              setNewCatName('');
+            }}
+          >
             <View style={styles.modalOverlay}>
               <View
                 style={[
@@ -768,6 +780,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             visible={showUpdateModal}
             transparent={true}
             animationType="fade"
+            onRequestClose={() => {
+              setShowUpdateModal(false);
+              setUpdatedCatName('');
+            }}
           >
             <View style={styles.modalOverlay}>
               <View
@@ -1079,6 +1095,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             {([false, true] as const).map(wantsPreview => (
               <TouchableOpacity
                 key={wantsPreview ? 'preview' : 'write'}
+                testID={wantsPreview ? 'note-mode-preview' : 'note-mode-write'}
                 onPress={() => setPreview(wantsPreview)}
                 style={[
                   styles.modeBtn,

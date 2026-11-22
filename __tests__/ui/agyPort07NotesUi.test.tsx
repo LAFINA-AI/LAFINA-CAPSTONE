@@ -287,4 +287,41 @@ describe('AGY-PORT 07 Notes UI', () => {
     ).rows[0];
     expect(saved?.category).toBe('');
   });
+
+  test('AI summarize extracts real bullet points from note text and task extraction avoids duplicates', () => {
+    jest.useFakeTimers();
+    seed(GUEST_USER_ID, {
+      title: 'Exam Prep',
+      body: 'Review chapter three kinematics.\nPractice projectile motion sets.',
+    });
+    const {result} = renderNotesHook();
+    act(() => result.current.openEditNote(result.current.notes[0]));
+    act(() => result.current.triggerAiAction('summarize'));
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(result.current.noteBody).toContain('### Summary');
+    expect(result.current.noteBody).toContain(
+      '- Review chapter three kinematics.',
+    );
+    expect(result.current.noteBody).not.toContain(
+      'centers on productivity details',
+    );
+
+    // Prepare clean short lines & run task extraction twice
+    act(() => result.current.setNoteBody('Go\nGo\nRead page 12'));
+    act(() => result.current.triggerAiAction('tasks'));
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(
+      tasksStore.getAllTasks(GUEST_USER_ID).map(t => t.title),
+    ).toEqual(['Go', 'Read page 12']);
+
+    act(() => result.current.triggerAiAction('tasks'));
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(tasksStore.getAllTasks(GUEST_USER_ID)).toHaveLength(2);
+  });
 });

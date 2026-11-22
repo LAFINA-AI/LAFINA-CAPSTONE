@@ -33,6 +33,7 @@ export interface SendChatMessageOptions {
   useHandbook?: boolean;
   /** What LAFINA remembers about the student, newest first (sent only when non-empty). */
   memories?: { id: string; text: string }[];
+  signal?: AbortSignal;
 }
 
 export interface StreamChatMessageOptions extends SendChatMessageOptions {
@@ -283,6 +284,7 @@ export const onlineChatSkill = {
       '/v1/ai/chat',
       {
         method: 'POST',
+        signal: options.signal,
         body: JSON.stringify({
           messages: bounded,
           useHandbook: handbookAllowed(options.useHandbook),
@@ -341,7 +343,14 @@ export const onlineChatSkill = {
     const useHandbook = handbookAllowed(options.useHandbook);
     const memoryField = options.memories?.length ? { memories: options.memories } : {};
     const fallback = () =>
-      onlineChatSkill.sendChatMessage(bounded, { useHandbook, ...memoryField });
+      onlineChatSkill.sendChatMessage(bounded, {
+        useHandbook,
+        ...memoryField,
+        signal: options.signal,
+      });
+    if (options.signal?.aborted) {
+      return { status: 'server_unavailable', error: 'cancelled' };
+    }
     if (streamRouteMissing) return fallback();
 
     let buffer = '';
@@ -363,6 +372,7 @@ export const onlineChatSkill = {
       '/v1/ai/chat/stream',
       { messages: bounded, useHandbook, ...memoryField },
       {
+        signal: options.signal,
         onText: (chunk) => {
           const before = reply;
           const parsed = takeEvents(buffer + chunk);
@@ -382,6 +392,9 @@ export const onlineChatSkill = {
 
     const text = normalizeName(reply.trim());
     if (!text) {
+      if (options.signal?.aborted) {
+        return { status: 'server_unavailable', error: 'cancelled' };
+      }
       if (result.httpStatus === 404 || result.httpStatus === 405) {
         streamRouteMissing = true;
         return fallback();

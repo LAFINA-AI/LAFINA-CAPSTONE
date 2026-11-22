@@ -1,5 +1,13 @@
 import {act, renderHook} from '@testing-library/react-native';
-import {useStudyJob} from '../../src/skills/studyJobs';
+import {
+  resetStudyJobsForTests,
+  useStudyJob,
+  type StudyJobContext,
+} from '../../src/skills/studyJobs';
+
+beforeEach(() => {
+  resetStudyJobsForTests();
+});
 
 test('a job survives page navigation, preserves progress, and consumes its result once', async () => {
   let finish: (value: string) => void = () => {};
@@ -32,4 +40,78 @@ test('a job survives page navigation, preserves progress, and consumes its resul
   );
   expect(third.result.current.result).toBeNull();
   expect(third.result.current.busy).toBe(false);
+});
+
+test('study jobs support clearError, cancellation with AbortSignal, statusText, startedAt, and test reset', async () => {
+  const hook = renderHook(() =>
+    useStudyJob<string>('synthetic-owner', 'cancel-and-error'),
+  );
+  await act(async () => {
+    await hook.result.current.run(async () => {
+      throw new Error('Boom');
+    });
+  });
+  expect(hook.result.current.error).toBe('Boom');
+  expect(hook.result.current.startedAt).toBeNull();
+  act(() => hook.result.current.clearError());
+  expect(hook.result.current.error).toBe('');
+
+  let resolveLate: (value: string) => void = () => {};
+  let capturedCtx: StudyJobContext | null = null;
+  let pendingRun: Promise<void>;
+  act(() => {
+    pendingRun = hook.result.current.run(ctx => {
+      capturedCtx = ctx;
+      ctx.setProgress(1, 'Working on part 1');
+      return new Promise<string>(resolve => {
+        resolveLate = resolve;
+      });
+    });
+  });
+  expect(hook.result.current.busy).toBe(true);
+  expect(hook.result.current.statusText).toBe('Working on part 1');
+  expect(typeof hook.result.current.startedAt).toBe('number');
+  expect(capturedCtx!.aborted).toBe(false);
+  expect(capturedCtx!.signal.aborted).toBe(false);
+  expect(capturedCtx!.isCancelled()).toBe(false);
+
+  act(() => hook.result.current.cancel());
+  expect(hook.result.current.busy).toBe(false);
+  expect(capturedCtx!.aborted).toBe(true);
+  expect(capturedCtx!.signal.aborted).toBe(true);
+  expect(capturedCtx!.isCancelled()).toBe(true);
+
+  await act(async () => {
+    resolveLate('Should be ignored');
+    await pendingRun;
+  });
+  expect(hook.result.current.result).toBeNull();
+  expect(hook.result.current.busy).toBe(false);
+
+  // Late rejection after cancel must not populate error
+  let rejectLate: (err: Error) => void = () => {};
+  let failingRun: Promise<void>;
+  act(() => {
+    failingRun = hook.result.current.run(
+      () =>
+        new Promise<string>((_resolve, reject) => {
+          rejectLate = reject;
+        }),
+    );
+  });
+  act(() => hook.result.current.cancel());
+  await act(async () => {
+    rejectLate(new Error('Late failure'));
+    await failingRun;
+  });
+  expect(hook.result.current.error).toBe('');
+
+  await act(async () => {
+    await hook.result.current.run(async () => {
+      throw new Error('Reset check');
+    });
+  });
+  expect(hook.result.current.error).toBe('Reset check');
+  act(() => resetStudyJobsForTests());
+  expect(hook.result.current.error).toBe('');
 });

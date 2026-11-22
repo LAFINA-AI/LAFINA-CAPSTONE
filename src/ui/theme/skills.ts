@@ -13,7 +13,7 @@ export const SkillFonts = {
 export const SkillMotion = {
   entry: 450,
   hubEntry: 550,
-  flip: 550,
+  flip: 360,
   draw: 350,
   stagger: 30,
 };
@@ -73,6 +73,12 @@ function getSkillsStyles(
 
   const backgrounds = [card, surface, bg];
   const action = skillInk(accent, backgrounds);
+  const darkInkBtn = mixColors(accent, '#121022', 0.2);
+  const answerCandidate = mixColors(accent, '#121022', isDarkMode ? 0.34 : 0.2);
+  const answerCardBg =
+    skillContrast('#FFFFFF', answerCandidate) >= 4.5
+      ? answerCandidate
+      : darkInkBtn;
   return {
     palette: {
       bg,
@@ -82,7 +88,8 @@ function getSkillsStyles(
       muted: skillInk(muted, backgrounds),
       accent: action,
       onAccent: skillContrast('#FFFFFF', action) >= 4.5 ? '#FFFFFF' : '#14142B',
-      darkInkBtn: mixColors(accent, '#121022', 0.2),
+      darkInkBtn,
+      answerCardBg,
       border,
       peach,
       mint,
@@ -91,6 +98,10 @@ function getSkillsStyles(
       peachInk: skillInk(peachInk, backgrounds),
       dangerSoft,
       danger: skillInk(danger, backgrounds),
+      againInk: skillInk(danger, [dangerSoft, ...backgrounds]),
+      hardInk: skillInk(peachInk, [peach, ...backgrounds]),
+      goodInk: skillInk(accent, [blueSoft, ...backgrounds]),
+      easyInk: skillInk(mintInk, [mint, ...backgrounds]),
       isDarkMode,
     },
   };

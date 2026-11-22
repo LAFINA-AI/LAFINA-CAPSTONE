@@ -22,6 +22,8 @@ import {
   Pin,
   CheckSquare,
   ArrowLeft,
+  BookOpen,
+  Mic,
 } from 'lucide-react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -613,44 +615,51 @@ export const NotesScreen = React.memo(function NotesScreenView({
           />
           {onBackToSkills && (
             <View
-              style={[
-                styles.emptyStarterRow,
-                {marginTop: 0, marginBottom: 14, flexWrap: 'wrap'},
-              ]}
+              testID="notes-quick-actions-row"
+              style={styles.quickActionsRow}
             >
               <TouchableOpacity
+                testID="notes-quick-note-btn"
                 accessibilityRole="button"
                 accessibilityLabel="Quick note"
                 style={[
-                  styles.starterChip,
+                  styles.quickActionBtn,
                   {
-                    minHeight: 44,
                     borderColor: palette.border,
                     backgroundColor: palette.card,
                   },
+                  !palette.isDarkMode && scheduleCardShadow,
                 ]}
                 onPress={data.openNewNote}
               >
+                <View
+                  style={[
+                    styles.quickActionIconWrap,
+                    {backgroundColor: palette.blueSoft},
+                  ]}
+                >
+                  <FileText size={15} color={palette.accent} />
+                </View>
                 <Text
-                  style={{
-                    fontFamily: SkillFonts.medium,
-                    fontSize: 12,
-                    color: palette.accent,
-                  }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={[styles.quickActionLabel, {color: palette.text}]}
                 >
                   Quick note
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                testID="notes-quick-checklist-btn"
                 accessibilityRole="button"
                 accessibilityLabel="New checklist"
                 style={[
-                  styles.starterChip,
+                  styles.quickActionBtn,
                   {
-                    minHeight: 44,
                     borderColor: palette.border,
                     backgroundColor: palette.card,
                   },
+                  !palette.isDarkMode && scheduleCardShadow,
                 ]}
                 onPress={() => {
                   data.openNewNote();
@@ -658,26 +667,34 @@ export const NotesScreen = React.memo(function NotesScreenView({
                   data.setSelection({start: 6, end: 6});
                 }}
               >
+                <View
+                  style={[
+                    styles.quickActionIconWrap,
+                    {backgroundColor: palette.mint},
+                  ]}
+                >
+                  <CheckSquare size={15} color={palette.mintInk} />
+                </View>
                 <Text
-                  style={{
-                    fontFamily: SkillFonts.medium,
-                    fontSize: 12,
-                    color: palette.accent,
-                  }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={[styles.quickActionLabel, {color: palette.text}]}
                 >
                   Checklist
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                testID="notes-quick-lecture-btn"
                 accessibilityRole="button"
                 accessibilityLabel="Lecture note template"
                 style={[
-                  styles.starterChip,
+                  styles.quickActionBtn,
                   {
-                    minHeight: 44,
                     borderColor: palette.border,
                     backgroundColor: palette.card,
                   },
+                  !palette.isDarkMode && scheduleCardShadow,
                 ]}
                 onPress={() => {
                   data.openNewNote();
@@ -688,36 +705,51 @@ export const NotesScreen = React.memo(function NotesScreenView({
                   );
                 }}
               >
+                <View
+                  style={[
+                    styles.quickActionIconWrap,
+                    {backgroundColor: palette.peach},
+                  ]}
+                >
+                  <BookOpen size={15} color={palette.peachInk} />
+                </View>
                 <Text
-                  style={{
-                    fontFamily: SkillFonts.medium,
-                    fontSize: 12,
-                    color: palette.accent,
-                  }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={[styles.quickActionLabel, {color: palette.text}]}
                 >
                   Lecture
                 </Text>
               </TouchableOpacity>
               {onRecordMeeting && (
                 <TouchableOpacity
+                  testID="notes-quick-record-btn"
                   accessibilityRole="button"
                   accessibilityLabel="Record a meeting"
                   style={[
-                    styles.starterChip,
+                    styles.quickActionBtn,
                     {
-                      minHeight: 44,
                       borderColor: palette.border,
                       backgroundColor: palette.card,
                     },
+                    !palette.isDarkMode && scheduleCardShadow,
                   ]}
                   onPress={onRecordMeeting}
                 >
+                  <View
+                    style={[
+                      styles.quickActionIconWrap,
+                      {backgroundColor: palette.dangerSoft},
+                    ]}
+                  >
+                    <Mic size={15} color={palette.danger} />
+                  </View>
                   <Text
-                    style={{
-                      fontFamily: SkillFonts.medium,
-                      fontSize: 12,
-                      color: palette.accent,
-                    }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    style={[styles.quickActionLabel, {color: palette.text}]}
                   >
                     Record
                   </Text>
@@ -1065,6 +1097,34 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 18,
     justifyContent: 'center',
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  quickActionBtn: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  quickActionIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontFamily: SkillFonts.medium,
+    fontSize: 11.5,
+    textAlign: 'center',
   },
   starterChip: {
     flexDirection: 'row',

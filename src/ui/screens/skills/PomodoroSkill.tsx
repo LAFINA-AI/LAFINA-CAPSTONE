@@ -4,8 +4,7 @@ import {
   Alert,
   AppState,
   NativeModules,
-  PermissionsAndroid,
-  Platform,
+  ScrollView,
   Switch,
   Text,
   TouchableOpacity,
@@ -26,6 +25,12 @@ import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 import {Choices, SkillButton, SkillCard, SkillText, ui} from './SkillUI';
 import {SkillRing} from './SkillRing';
 import {useStorageRevision} from '../../hooks/useStorageRevision';
+import {
+  applyPomodoro,
+  readPomodoro,
+  subscribePomodoro,
+} from '../../../skills/pomodoroService';
+import type {SkillLaunchRequest} from '../../../skills/skillLaunch';
 const TASK_TABLES = ['tasks'] as const;
 
 interface FocusNative {
@@ -42,9 +47,14 @@ interface FocusNative {
 export function PomodoroSkill({
   userId,
   onOpenTodo,
+  launch,
+  onLaunchHandled,
 }: {
   userId: string;
   onOpenTodo: (id?: string) => void;
+  /** LAFINA opened Pomodoro (ADR-041); "start" starts it once. */
+  launch?: SkillLaunchRequest | null;
+  onLaunchHandled?: (id: string) => void;
 }) {
   const p = useSkillsPalette();
   const native = NativeModules.LafinaFocus as FocusNative | undefined;
@@ -58,6 +68,7 @@ export function PomodoroSkill({
   ref.current = timer;
   const busy = useRef(false);
   const [notice, setNotice] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [pickTask, setPickTask] = useState(false);
   const taskRevision = useStorageRevision(TASK_TABLES);
   const [tasks, setTasks] = useState(() =>
@@ -68,12 +79,12 @@ export function PomodoroSkill({
   }, [userId, taskRevision]);
   const save = useCallback(
     (state: PomodoroState) => {
-      ref.current = state;
-      setTimer(state);
       try {
         writeSkillState(userId, 'pomodoro', state);
+        ref.current = state;
+        setTimer(state);
       } catch (e) {
-        setNotice((e as Error).message);
+        setErrorMsg((e as Error).message || 'Could not save timer.');
       }
     },
     [userId],
@@ -98,44 +109,73 @@ export function PomodoroSkill({
       sub.remove();
     };
   }, [save]);
-  const apply = async (next: PomodoroState) => {
-    if (busy.current) return;
+  // LAFINA can pause or resume the timer during a call; show what she did.
+  useEffect(
+    () =>
+      subscribePomodoro(userId, () => {
+        if (busy.current) return;
+        const next = readPomodoro(userId);
+        ref.current = next;
+        setTimer(next);
+      }),
+    [userId],
+  );
+  const apply = async (
+    draft: PomodoroState,
+    options?: {starting?: boolean},
+  ): Promise<boolean> => {
+    if (busy.current) return false;
     busy.current = true;
     setNotice('');
+    setErrorMsg('');
     try {
       // Save first; a failed local write must not start a timer the UI cannot restore.
-      writeSkillState(userId, 'pomodoro', next);
-      if (next.deadline) {
-        if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-          );
-          if (granted !== PermissionsAndroid.RESULTS.GRANTED)
-            setNotice('Notifications are off. The visual timer still works.');
-        }
-        const exact = await native?.schedule(
-          userId,
-          next.deadline,
-          next.mode === 'Focus 25',
-          next.silence,
-        );
-        if (exact === false)
-          setNotice(
-            'Exact alarms are not allowed. The session notification may arrive late.',
-          );
-        if (!native)
-          setNotice('Background notifications are unavailable in this build.');
-      } else await native?.cancel();
-      save(next);
+      const result = await applyPomodoro(userId, draft, options);
+      save(result.state);
+      if (result.notice) setNotice(result.notice);
+      if (result.error) setErrorMsg(result.error);
+      return true;
     } catch (e) {
-      save(next);
-      setNotice(
-        `Timer saved; notification setup failed. ${(e as Error).message}`,
-      );
+      setErrorMsg((e as Error).message || 'Could not save timer.');
+      return false;
     } finally {
       busy.current = false;
     }
   };
+  // A launch from LAFINA (ADR-041): start the focus session or a break the
+  // student asked for, once. A session already running is left alone.
+  const handledLaunch = useRef<string | null>(null);
+  useEffect(() => {
+    if (!launch || handledLaunch.current === launch.id) return;
+    handledLaunch.current = launch.id;
+    onLaunchHandled?.(launch.id);
+    if (launch.action !== 'start' && launch.action !== 'break') return;
+    const current = reconcilePomodoro(ref.current, Date.now());
+    if (current.deadline) {
+      setNotice('Your focus session is already running.');
+      return;
+    }
+    const mode: PomodoroMode =
+      launch.action === 'break'
+        ? launch.breakKind === 'long'
+          ? 'Long 15'
+          : 'Break 5'
+        : 'Focus 25';
+    const draft =
+      current.mode === mode && current.remaining > 0
+        ? {...current, deadline: null}
+        : {...current, mode, remaining: MODE_SECONDS[mode], deadline: null};
+    void apply(draft, {starting: true}).then(started => {
+      if (started)
+        setNotice(
+          mode === 'Focus 25'
+            ? 'LAFINA started your focus session. Tap Pause any time.'
+            : 'LAFINA started your break. Tap Pause any time.',
+        );
+    });
+    // Runs once per launch id; apply reads the latest timer through ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [launch]);
   const changeMode = (mode: PomodoroMode) => {
     void apply({
       ...reconcilePomodoro(ref.current, Date.now()),
@@ -146,11 +186,11 @@ export function PomodoroSkill({
   };
   const toggle = () => {
     const current = reconcilePomodoro(ref.current, Date.now());
-    void apply(
-      current.deadline
-        ? {...current, deadline: null}
-        : {...current, deadline: Date.now() + current.remaining * 1000},
-    );
+    if (current.deadline) {
+      void apply({...current, deadline: null});
+    } else {
+      void apply({...current, deadline: null}, {starting: true});
+    }
   };
   const silence = async (value: boolean) => {
     if (value && (!native || !(await native.silenceAccess()))) {
@@ -165,7 +205,7 @@ export function PomodoroSkill({
               void native
                 ?.openSilenceSettings()
                 .catch(() =>
-                  setNotice('Could not open notification policy settings.'),
+                  setErrorMsg('Could not open notification policy settings.'),
                 );
             },
           },
@@ -173,9 +213,15 @@ export function PomodoroSkill({
       );
       return;
     }
-    await apply({...ref.current, silence: value});
+    const current = reconcilePomodoro(ref.current, Date.now());
+    await apply({...current, silence: value});
   };
-  const today = timer.counts[localDay(Date.now())] ?? 0;
+  const todayKey = localDay(Date.now());
+  const today = timer.counts[todayKey] ?? 0;
+  const todayMinutes = timer.countsMinutes?.[todayKey] ?? today * 25;
+  const selectedTask = timer.taskId
+    ? tasks.find(t => t.id === timer.taskId) ?? null
+    : null;
   return (
     <>
       <Choices
@@ -253,30 +299,55 @@ export function PomodoroSkill({
       >
         <SkillText size={13}>
           Working on ·{' '}
-          {tasks.find(t => t.id === timer.taskId)?.title ?? 'Choose a to-do'} ›
+          {selectedTask?.title ??
+            (timer.taskId
+              ? 'Task no longer open (Clear)'
+              : 'Choose a to-do')}{' '}
+          ›
         </SkillText>
       </TouchableOpacity>
       {pickTask && (
         <SkillCard>
+          {timer.taskId && !selectedTask && (
+            <SkillText muted size={12}>
+              Your previously selected to-do was completed or removed.
+            </SkillText>
+          )}
           {tasks.length ? (
-            tasks.map(t => (
-              <SkillButton
-                key={t.id}
-                secondary
-                label={t.title}
-                onPress={() => {
-                  save({...ref.current, taskId: t.id});
-                  setPickTask(false);
-                }}
-              />
-            ))
+            <ScrollView
+              style={{maxHeight: 220}}
+              nestedScrollEnabled
+              contentContainerStyle={{gap: 8}}
+            >
+              {tasks.map(t => (
+                <SkillButton
+                  key={t.id}
+                  secondary
+                  label={t.title}
+                  onPress={() => {
+                    save({...ref.current, taskId: t.id});
+                    setPickTask(false);
+                  }}
+                />
+              ))}
+            </ScrollView>
           ) : (
             <SkillText muted>No open to-dos yet.</SkillText>
+          )}
+          {!!timer.taskId && (
+            <SkillButton
+              secondary
+              label="Clear task"
+              onPress={() => {
+                save({...ref.current, taskId: null});
+                setPickTask(false);
+              }}
+            />
           )}
           <SkillButton
             secondary
             label="Open To-do"
-            onPress={() => onOpenTodo(timer.taskId ?? undefined)}
+            onPress={() => onOpenTodo(selectedTask?.id)}
           />
         </SkillCard>
       )}
@@ -359,7 +430,7 @@ export function PomodoroSkill({
         <View style={ui.between}>
           <SkillText muted>Today</SkillText>
           <SkillText strong>
-            {today} sessions · {today * 25} min
+            {today} sessions · {todayMinutes} min
           </SkillText>
         </View>
         <View style={ui.between}>
@@ -374,12 +445,17 @@ export function PomodoroSkill({
             accessibilityLabel="Silence notifications while focusing"
             value={timer.silence}
             onValueChange={v => {
-              void silence(v).catch(e => setNotice((e as Error).message));
+              void silence(v).catch(e =>
+                setErrorMsg(
+                  (e as Error).message || 'Could not update focus silence.',
+                ),
+              );
             }}
             trackColor={{true: p.accent, false: p.border}}
           />
         </View>
       </SkillCard>
+      {!!errorMsg && <SkillText danger>{errorMsg}</SkillText>}
       {!!notice && <SkillText muted>{notice}</SkillText>}
     </>
   );

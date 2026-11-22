@@ -29,9 +29,15 @@ import {
   Timer,
   AlignLeft,
 } from 'lucide-react-native';
-import {db, notesQueryStore} from '../../../storage';
+import {db, materialStore, notesQueryStore} from '../../../storage';
+import type {UserMaterialRecord} from '../../../storage';
 import {escapeLike} from '../../../storage/notesQueryStore';
 import {readSkillState, writeSkillState} from '../../../skills/skillsState';
+import {useStudyJob} from '../../../skills/studyJobs';
+import {readDecks, subscribeDecks} from '../../../skills/studyDecks';
+import {getDeckStats} from '../../../skills/studyLogic';
+import type {Deck} from '../../../skills/studyLogic';
+import {useScreenActive} from '../../navigation/RetainedTab';
 import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 import {Entry, SkillButton, SkillCard, SkillText, ui} from './SkillUI';
 
@@ -40,6 +46,7 @@ export type SkillRoute =
   | 'alarms'
   | 'todo'
   | 'notes'
+  | 'materials'
   | 'pomodoro'
   | 'flashcards'
   | 'quiz'
@@ -49,6 +56,12 @@ export type SkillRoute =
   | 'docgen'
   | 'all';
 export const SKILLS = [
+  {
+    id: 'materials',
+    title: 'Lesson Q&A',
+    description: 'Upload PDFs & ask',
+    icon: BookOpen,
+  },
   {id: 'pomodoro', title: 'Pomodoro', description: '25-min focus', icon: Timer},
   {
     id: 'flashcards',
@@ -83,28 +96,50 @@ export const SKILLS = [
   {
     id: 'docgen',
     title: 'Create with LAFINA',
-    description: 'Slides, docs & PDF',
+    description: 'Slides, docs, PDF & sheets',
     icon: Sparkles,
   },
 ] as const;
+const SKILL_SEARCH_ALIASES: Record<string, string> = {
+  docgen:
+    'pptx docx xlsx word excel powerpoint spreadsheet presentation report document handout deck',
+};
 const noRefresh = () => {};
 const ESSENTIALS = [
   {id: 'alarms', title: 'Alarms', icon: AlarmClock},
   {id: 'todo', title: 'To-do', icon: CheckCheck},
   {id: 'notes', title: 'Notes', icon: FileText},
 ] as const;
+const normalizeSkillOrder = (raw: readonly string[]): string[] => {
+  const validIds: readonly string[] = SKILLS.map(s => s.id);
+  const kept = raw.filter(id => validIds.includes(id));
+  const missing = validIds.filter(id => !kept.includes(id));
+  return Array.from(new Set([...kept, ...missing]));
+};
+
 export function SkillsHub({
   userId,
   refreshTrigger,
   onOpen,
+  onOpenMaterial,
   onEntity,
+  onOpenDeck,
 }: {
   userId: string;
   refreshTrigger: number;
   onOpen: (route: SkillRoute) => void;
+  onOpenMaterial?: (materialId: string) => void;
   onEntity: (kind: 'task' | 'note', id: string) => void;
+  onOpenDeck?: (deckId: string) => void;
 }) {
   const p = useSkillsPalette();
+  const docJob = useStudyJob(userId, 'document');
+  const screenActive = useScreenActive();
+  const [decks, setDecks] = useState<Deck[]>(() => readDecks(userId));
+  useEffect(() => {
+    setDecks(readDecks(userId));
+    return subscribeDecks(userId, () => setDecks(readDecks(userId)));
+  }, [userId, refreshTrigger, screenActive]);
   const todo = useTodoData({
     userId,
     refreshTrigger,
@@ -113,21 +148,29 @@ export function SkillsHub({
     onRefresh: noRefresh,
   });
   const [query, setQuery] = useState('');
+  const trimmedQuery = query.trim();
+  const normalizedQuery = trimmedQuery.toLowerCase();
   const [edit, setEdit] = useState(false);
   const [order, setOrder] = useState<string[]>(() =>
-    readSkillState(
-      userId,
-      'order',
-      SKILLS.map(s => s.id),
+    normalizeSkillOrder(
+      readSkillState(
+        userId,
+        'order',
+        SKILLS.map(s => s.id),
+      ),
     ),
   );
+  const normalizedOrder = normalizeSkillOrder(order);
   const [pinned, setPinned] = useState<string[]>(() =>
     readSkillState(userId, 'pins', []),
   );
-  const [counts, setCounts] = useState({alarms: 0, todo: 0, notes: 0});
+  const [counts, setCounts] = useState({alarms: 0, notes: 0});
   const [results, setResults] = useState<
     Array<{id: string; kind: 'note' | 'task'; title: string}>
   >([]);
+  const [materialMatches, setMaterialMatches] = useState<UserMaterialRecord[]>(
+    [],
+  );
   const [indexing, setIndexing] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -135,34 +178,39 @@ export function SkillsHub({
     let retry: ReturnType<typeof setTimeout> | undefined;
     const load = () => {
       try {
-        const count = (table: string, extra = '') =>
-          Number(
-            db.executeSync(
-              `SELECT COUNT(*) AS count FROM ${table} WHERE user_id = ? AND deleted_at IS NULL ${extra}`,
-              [userId],
-            ).rows[0]?.count ?? 0,
-          );
+        const notesCount = Number(
+          db.executeSync(
+            'SELECT COUNT(*) AS count FROM notes WHERE user_id = ? AND deleted_at IS NULL',
+            [userId],
+          ).rows[0]?.count ?? 0,
+        );
+        if (!active) return;
         setCounts({
           alarms: alarmsStore.list(userId).filter(a => a.enabled).length,
-          todo: count('tasks', 'AND is_completed = 0'),
-          notes: count('notes'),
+          notes: notesCount,
         });
-        if (!query.trim()) {
+        if (!trimmedQuery) {
           setResults([]);
+          setMaterialMatches([]);
           setIndexing(false);
           setError('');
           return;
         }
         const page = notesQueryStore.page({
           userId,
-          search: query,
+          search: trimmedQuery,
           filter: 'All',
           limit: 20,
         });
         const tasks = db.executeSync(
           "SELECT id,title FROM tasks WHERE user_id = ? AND deleted_at IS NULL AND title LIKE ? ESCAPE '\\' ORDER BY is_completed,updated_at DESC LIMIT 20",
-          [userId, `%${escapeLike(query.trim())}%`],
+          [userId, `%${escapeLike(trimmedQuery)}%`],
         ).rows;
+        const foundMaterials = materialStore.searchMaterialTitles(
+          userId,
+          trimmedQuery,
+          10,
+        );
         if (!active) return;
         setResults([
           ...page.items.map(n => ({
@@ -176,10 +224,12 @@ export function SkillsHub({
             title: String(t.title),
           })),
         ]);
+        setMaterialMatches(foundMaterials);
         setIndexing(page.indexing);
         setError('');
         if (page.indexing) retry = setTimeout(load, 80);
       } catch {
+        if (!active) return;
         setError(
           'Could not read your skills data. Try opening the page again.',
         );
@@ -190,35 +240,43 @@ export function SkillsHub({
       active = false;
       if (retry) clearTimeout(retry);
     };
-  }, [query, userId, refreshTrigger]);
+  }, [trimmedQuery, userId, refreshTrigger]);
   const ordered = [...SKILLS].sort(
     (a, b) =>
       Number(pinned.includes(b.id)) - Number(pinned.includes(a.id)) ||
-      order.indexOf(a.id) - order.indexOf(b.id),
+      normalizedOrder.indexOf(a.id) - normalizedOrder.indexOf(b.id),
   );
-  const shown = query.trim()
+  const shown = trimmedQuery
     ? ordered.filter(s =>
-        `${s.title} ${s.description}`
+        `${s.title} ${s.description} ${SKILL_SEARCH_ALIASES[s.id] ?? ''}`
           .toLowerCase()
-          .includes(query.toLowerCase()),
+          .includes(normalizedQuery),
       )
-    : ordered
-        .filter(s => s.id !== 'docgen' || pinned.includes(s.id))
-        .slice(0, 6);
+    : ordered.filter(s => s.id !== 'docgen' || pinned.includes(s.id));
+  const now = Date.now();
+  const deckCount = decks.length;
+  const dueCardsCount = decks.reduce(
+    (sum, d) => sum + getDeckStats(d, now).due,
+    0,
+  );
+  const deckMatches = trimmedQuery
+    ? decks.filter(d => d.title.toLowerCase().includes(normalizedQuery))
+    : [];
   const save = (nextOrder: string[], nextPins: string[]) => {
+    const cleanOrder = normalizeSkillOrder(nextOrder);
     try {
       db.transactionSync(() => {
-        writeSkillState(userId, 'order', nextOrder);
+        writeSkillState(userId, 'order', cleanOrder);
         writeSkillState(userId, 'pins', nextPins);
       });
-      setOrder(nextOrder);
+      setOrder(cleanOrder);
       setPinned(nextPins);
     } catch (e) {
       Alert.alert('Skills not saved', (e as Error).message);
     }
   };
   const move = (id: string, delta: number) => {
-    const next = [...order];
+    const next = [...normalizedOrder];
     const i = next.indexOf(id);
     const j = i + delta;
     if (i < 0 || j < 0 || j >= next.length) return;
@@ -267,7 +325,8 @@ export function SkillsHub({
         </Entry>
         <View style={styles.essentials}>
           {ESSENTIALS.filter(
-            s => !query || s.title.toLowerCase().includes(query.toLowerCase()),
+            s =>
+              !trimmedQuery || s.title.toLowerCase().includes(normalizedQuery),
           ).map((s, i) => (
             <Entry key={s.id} delay={60 + i * 30} style={ui.fill}>
               <TouchableOpacity
@@ -307,7 +366,7 @@ export function SkillsHub({
             </Entry>
           ))}
         </View>
-        {!query && (
+        {!trimmedQuery && (
           <Entry duration={550} delay={150}>
             <TouchableOpacity
               accessibilityRole="button"
@@ -316,13 +375,20 @@ export function SkillsHub({
               style={[styles.create, {backgroundColor: p.darkInkBtn}]}
             >
               <Sparkles size={100} color={p.accent} style={styles.sparkle} />
-              <Text style={styles.eyebrow}>✦ CREATE WITH LAFINA</Text>
+              <View style={ui.between}>
+                <Text style={styles.eyebrow}>✦ CREATE WITH LAFINA</Text>
+                {(docJob.busy || docJob.result !== null) && (
+                  <Text style={styles.statusPill}>
+                    {docJob.busy ? 'Creating your file…' : 'File ready →'}
+                  </Text>
+                )}
+              </View>
               <Text style={styles.createTitle}>
-                Turn your notes into slides,{'\n'}docs or a PDF
+                Turn your notes into slides,{'\n'}docs, sheets or a PDF
               </Text>
               <View style={ui.between}>
                 <View style={ui.row}>
-                  {['Slides', 'Doc', 'PDF'].map(t => (
+                  {['Slides', 'Doc', 'PDF', 'Sheet'].map(t => (
                     <Text key={t} style={styles.badge}>
                       {t}
                     </Text>
@@ -338,7 +404,7 @@ export function SkillsHub({
         <Entry duration={550} delay={200}>
           <View style={[ui.between, ui.section]}>
             <SkillText strong size={17}>
-              {query ? 'Skills' : 'Study skills'}
+              {trimmedQuery ? 'Skills' : 'Study skills'}
             </SkillText>
             <TouchableOpacity
               style={ui.icon}
@@ -375,14 +441,20 @@ export function SkillsHub({
                 <View style={ui.fill}>
                   <SkillText strong>{s.title}</SkillText>
                   <SkillText muted size={12}>
-                    {s.description}
+                    {s.id === 'flashcards'
+                      ? dueCardsCount > 0
+                        ? `${dueCardsCount} due today`
+                        : deckCount > 0
+                        ? `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'}`
+                        : s.description
+                      : s.description}
                   </SkillText>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         </Entry>
-        {query && (
+        {!!trimmedQuery && (
           <>
             <View style={ui.section}>
               <SkillText strong size={17}>
@@ -405,7 +477,9 @@ export function SkillsHub({
                 <SkillCard>
                   <View style={ui.row}>
                     <BookOpen size={18} color={p.accent} />
-                    <SkillText>{r.title}</SkillText>
+                    <View style={ui.fill}>
+                      <SkillText>{r.title}</SkillText>
+                    </View>
                   </View>
                   <SkillText muted size={12}>
                     {r.kind === 'note' ? 'Note' : 'To-do'}
@@ -417,6 +491,75 @@ export function SkillsHub({
               Showing up to 20 of each. Open Notes or To-do for the full
               searchable list.
             </SkillText>
+            {materialMatches.length > 0 && (
+              <>
+                <View style={ui.section}>
+                  <SkillText strong size={17}>
+                    Lesson materials
+                  </SkillText>
+                </View>
+                {materialMatches.map(mat => (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open Lesson Q&A for ${mat.title}`}
+                    key={`mat:${mat.id}`}
+                    onPress={() =>
+                      onOpenMaterial
+                        ? onOpenMaterial(mat.id)
+                        : onOpen('materials')
+                    }
+                  >
+                    <SkillCard>
+                      <View style={ui.row}>
+                        <BookOpen size={18} color={p.accent} />
+                        <View style={ui.fill}>
+                          <SkillText>{mat.title}</SkillText>
+                        </View>
+                      </View>
+                      <SkillText muted size={12}>
+                        {mat.fileKind.toUpperCase()} · {mat.pagesRead} page
+                        {mat.pagesRead === 1 ? '' : 's'} · Open Lesson Q&A
+                      </SkillText>
+                    </SkillCard>
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+            {deckMatches.length > 0 && (
+              <>
+                <View style={ui.section}>
+                  <SkillText strong size={17}>
+                    Flashcard decks
+                  </SkillText>
+                </View>
+                {deckMatches.map(d => {
+                  const stats = getDeckStats(d, now);
+                  return (
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open deck ${d.title}`}
+                      key={`deck:${d.id}`}
+                      onPress={() =>
+                        onOpenDeck ? onOpenDeck(d.id) : onOpen('flashcards')
+                      }
+                    >
+                      <SkillCard>
+                        <View style={ui.row}>
+                          <Copy size={18} color={p.accent} />
+                          <View style={ui.fill}>
+                            <SkillText>{d.title}</SkillText>
+                          </View>
+                        </View>
+                        <SkillText muted size={12}>
+                          {stats.total} {stats.total === 1 ? 'card' : 'cards'} ·{' '}
+                          {stats.due > 0 ? `${stats.due} due` : 'All caught up'}
+                        </SkillText>
+                      </SkillCard>
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
           </>
         )}
         {!!error && (
@@ -436,7 +579,7 @@ export function SkillsHub({
             Pin & reorder skills
           </SkillText>
           <ScrollView>
-            {order.map((id, i) => {
+            {normalizedOrder.map((id, i) => {
               const s = SKILLS.find(x => x.id === id);
               return s ? (
                 <SkillCard key={id}>
@@ -448,7 +591,7 @@ export function SkillsHub({
                       accessibilityLabel={`Pin ${s.title}`}
                       onPress={() =>
                         save(
-                          order,
+                          normalizedOrder,
                           pinned.includes(id)
                             ? pinned.filter(x => x !== id)
                             : [...pinned, id],
@@ -473,7 +616,7 @@ export function SkillsHub({
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityLabel={`Move ${s.title} down`}
-                      disabled={i === order.length - 1}
+                      disabled={i === normalizedOrder.length - 1}
                       onPress={() => move(id, 1)}
                       style={ui.icon}
                     >
@@ -541,6 +684,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.96,
     color: '#FFFFFF',
+  },
+  statusPill: {
+    backgroundColor: '#FFFFFF28',
+    color: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontFamily: SkillFonts.semibold,
+    fontSize: 11,
+    overflow: 'hidden',
   },
   createTitle: {
     fontFamily: SkillFonts.semibold,

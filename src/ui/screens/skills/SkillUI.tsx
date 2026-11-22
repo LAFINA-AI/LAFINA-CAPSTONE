@@ -2,6 +2,8 @@ import React, {useEffect, useRef} from 'react';
 import {
   Animated,
   Easing,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -66,11 +68,13 @@ export function Entry({
 export function SkillText({
   children,
   muted = false,
+  danger = false,
   size = 14,
   strong = false,
   center = false,
 }: React.PropsWithChildren<{
   muted?: boolean;
+  danger?: boolean;
   size?: number;
   strong?: boolean;
   center?: boolean;
@@ -78,8 +82,9 @@ export function SkillText({
   const p = useSkillsPalette();
   return (
     <Text
+      accessibilityRole={danger ? 'alert' : undefined}
       style={{
-        color: muted ? p.muted : p.text,
+        color: danger ? p.danger : muted ? p.muted : p.text,
         fontFamily: strong ? SkillFonts.semibold : SkillFonts.body,
         fontSize: size,
         lineHeight: size * 1.45,
@@ -138,10 +143,12 @@ export function SkillButton({
 export function SkillCard({
   children,
   style,
-}: React.PropsWithChildren<{style?: StyleProp<ViewStyle>}>) {
+  testID,
+}: React.PropsWithChildren<{style?: StyleProp<ViewStyle>; testID?: string}>) {
   const p = useSkillsPalette();
   return (
     <View
+      testID={testID}
       style={[ui.card, {backgroundColor: p.card, borderColor: p.border}, style]}
     >
       {children}
@@ -252,12 +259,17 @@ export function SkillPage({
         </Text>
         {action}
       </View>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={ui.content}
+      <KeyboardAvoidingView
+        style={ui.fill}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Entry>{children}</Entry>
-      </ScrollView>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={ui.content}
+        >
+          <Entry>{children}</Entry>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
