@@ -1,0 +1,27 @@
+{
+    "timestamp":  "2026-11-22T19:25:30.5302710Z",
+    "serial":  "ZTFMR479NF5PZHVW",
+    "modelAsset":  "models/ggml-base.en-q5_1.bin",
+    "threads":  3,
+    "whisperLoadMs":  424,
+    "ttsReady":  true,
+    "realWavClips":  20,
+    "utterances":  100,
+    "transcriptsNonEmpty":  100,
+    "L_vad":  {
+                  "mean":  196.7,
+                  "std":  76,
+                  "unit":  "ms"
+              },
+    "L_whisper":  {
+                      "mean":  3848.2,
+                      "std":  261.5,
+                      "unit":  "ms"
+                  },
+    "L_stt":  {
+                  "mean":  4044.8,
+                  "std":  298.6,
+                  "unit":  "ms",
+                  "met":  false
+              }
+}

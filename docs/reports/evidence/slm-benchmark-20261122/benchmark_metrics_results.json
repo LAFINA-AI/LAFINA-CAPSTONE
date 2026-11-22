@@ -1,0 +1,411 @@
+{
+  "primary_physical_device": {
+    "serial": "ZTFMR479NF5PZHVW",
+    "model": "23106RN0DA",
+    "abi": "arm64-v8a,armeabi-v7a,armeabi",
+    "android": "14",
+    "isEmulator": false,
+    "avd": null
+  },
+  "emulator_device": {
+    "serial": "emulator-5554",
+    "model": "sdk_gphone64_x86_64",
+    "abi": "x86_64,arm64-v8a",
+    "android": "16",
+    "isEmulator": true,
+    "avd": "Lafina"
+  },
+  "benchmark_metrics": [
+    {
+      "metric": "L_e2e",
+      "description": "end-to-end latency",
+      "instrument": "ADB timestamp log, 100 utterances",
+      "threshold": {
+        "operator": "<=",
+        "value": 2000,
+        "unit": "ms"
+      },
+      "results": {
+        "SmolLM2-125M-Instruct": {
+          "mean": 14939,
+          "std": 556.6,
+          "unit": "ms"
+        },
+        "Gemma-3-270M-Instruct": {
+          "mean": 13776.8,
+          "std": 707.2,
+          "unit": "ms"
+        },
+        "Qwen2.5-0.5B-Instruct": {
+          "mean": 35003.5,
+          "std": 592.6,
+          "unit": "ms"
+        },
+        "Gemma-3-1B-Instruct": {
+          "mean": 64939.2,
+          "std": 617.6,
+          "unit": "ms"
+        },
+        "Deepseek-V4": {
+          "status": "cloud_only_not_offline_slm",
+          "value": null
+        }
+      },
+      "met": false
+    },
+    {
+      "metric": "L_stt",
+      "description": null,
+      "instrument": "ADB timestamp log",
+      "threshold": {
+        "operator": "<=",
+        "value": 800,
+        "unit": "ms"
+      },
+      "results": {
+        "mean": 3838.7,
+        "std": 211.8,
+        "unit": "ms"
+      },
+      "met": false
+    },
+    {
+      "metric": "L_tft",
+      "description": null,
+      "instrument": "ADB timestamp log",
+      "threshold": {
+        "operator": "<=",
+        "value": 700,
+        "unit": "ms"
+      },
+      "results": {
+        "SmolLM2-125M-Instruct": {
+          "mean": 10889.1,
+          "std": 452.8,
+          "unit": "ms"
+        },
+        "Gemma-3-270M-Instruct": {
+          "mean": 9727,
+          "std": 673.5,
+          "unit": "ms"
+        },
+        "Qwen2.5-0.5B-Instruct": {
+          "mean": 30953.7,
+          "std": 552,
+          "unit": "ms"
+        },
+        "Gemma-3-1B-Instruct": {
+          "mean": 60889.4,
+          "std": 578.7,
+          "unit": "ms"
+        },
+        "Deepseek-V4": {
+          "status": "cloud_only_not_offline_slm",
+          "value": null
+        }
+      },
+      "met": false
+    },
+    {
+      "metric": "L_tts",
+      "description": null,
+      "instrument": "ADB timestamp log",
+      "threshold": {
+        "operator": "<=",
+        "value": 500,
+        "unit": "ms"
+      },
+      "results": {
+        "mean": 211.1,
+        "std": 40.9,
+        "unit": "ms"
+      },
+      "met": true
+    },
+    {
+      "metric": "R_peak",
+      "description": "peak RAM",
+      "instrument": "ADB meminfo",
+      "threshold": {
+        "operator": "<=",
+        "value": 3400,
+        "unit": "MB"
+      },
+      "results": {
+        "SmolLM2-125M-Instruct": {
+          "value": 548.6,
+          "unit": "MB"
+        },
+        "Gemma-3-270M-Instruct": {
+          "value": 374.2,
+          "unit": "MB"
+        },
+        "Qwen2.5-0.5B-Instruct": {
+          "value": 613.4,
+          "unit": "MB"
+        },
+        "Gemma-3-1B-Instruct": {
+          "value": 936.2,
+          "unit": "MB"
+        },
+        "Deepseek-V4": {
+          "status": "cloud_only_not_offline_slm",
+          "value": null
+        }
+      },
+      "met": true
+    },
+    {
+      "metric": "TCR",
+      "description": "thermal compliance",
+      "instrument": "ADB thermal sensor, n=3 participants. Should not exceed 42°C",
+      "threshold": {
+        "operator": ">=",
+        "value": 80,
+        "unit": "%"
+      },
+      "results": {
+        "value": 100,
+        "unit": "%"
+      },
+      "met": true
+    }
+  ],
+  "physical_summary": {
+    "timestamp": "2026-11-22T15:44:20.3558142Z",
+    "device": {
+      "serial": "ZTFMR479NF5PZHVW",
+      "model": "23106RN0DA",
+      "abi": "arm64-v8a,armeabi-v7a,armeabi",
+      "android": "14",
+      "isEmulator": false,
+      "avd": null
+    },
+    "baseline": {
+      "L_stt_mean_ms": 3838.7067,
+      "L_stt_sd_ms": 211.7661,
+      "L_tts_mean_ms": 211.1306,
+      "L_tts_sd_ms": 40.9389
+    },
+    "offlineModels": [
+      {
+        "model": "Gemma-3-270M-Instruct",
+        "loadMs": 626.5,
+        "nThreads": 4,
+        "utterances": 20,
+        "L_tft": {
+          "mean": 9727,
+          "std": 673.5,
+          "unit": "ms",
+          "met": false
+        },
+        "L_e2e": {
+          "mean": 13776.8,
+          "std": 707.2,
+          "unit": "ms",
+          "met": false
+        },
+        "R_peak": {
+          "value": 374.2,
+          "peakKb": 383144,
+          "samples": 39,
+          "unit": "MB",
+          "met": true
+        }
+      },
+      {
+        "model": "Qwen2.5-0.5B-Instruct",
+        "loadMs": 2401.5,
+        "nThreads": 4,
+        "utterances": 20,
+        "L_tft": {
+          "mean": 30953.7,
+          "std": 552,
+          "unit": "ms",
+          "met": false
+        },
+        "L_e2e": {
+          "mean": 35003.5,
+          "std": 592.6,
+          "unit": "ms",
+          "met": false
+        },
+        "R_peak": {
+          "value": 613.4,
+          "peakKb": 628145,
+          "samples": 113,
+          "unit": "MB",
+          "met": true
+        }
+      },
+      {
+        "model": "Gemma-3-1B-Instruct",
+        "loadMs": 3769.4,
+        "nThreads": 4,
+        "utterances": 20,
+        "L_tft": {
+          "mean": 60889.4,
+          "std": 578.7,
+          "unit": "ms",
+          "met": false
+        },
+        "L_e2e": {
+          "mean": 64939.2,
+          "std": 617.6,
+          "unit": "ms",
+          "met": false
+        },
+        "R_peak": {
+          "value": 936.2,
+          "peakKb": 958620,
+          "samples": 228,
+          "unit": "MB",
+          "met": true
+        }
+      }
+    ],
+    "cloudOnlyModels": [
+      {
+        "model": "Deepseek-V4",
+        "status": "cloud_only_not_offline_slm",
+        "note": "DeepSeek (deepseek-flash / deepseek-chat) runs via LAFINA-backend cloud API, not offline via llama.cpp; no offline GGUF exists in src/ai/nlu/modelManager.ts.",
+        "L_tft": null,
+        "L_e2e": null,
+        "R_peak": null
+      }
+    ]
+  },
+  "emulator_summary": {
+    "timestamp": "2026-11-22T18:31:00.1400009Z",
+    "device": {
+      "serial": "emulator-5554",
+      "model": "sdk_gphone64_x86_64",
+      "abi": "x86_64,arm64-v8a",
+      "android": "16",
+      "isEmulator": true,
+      "avd": "Lafina"
+    },
+    "baseline": {
+      "L_stt_mean_ms": 7982.6387,
+      "L_stt_sd_ms": 546.2628,
+      "L_tts_mean_ms": 326.7628,
+      "L_tts_sd_ms": 48.2617
+    },
+    "offlineModels": [
+      {
+        "model": "SmolLM2-135M-Instruct",
+        "status": "ok",
+        "loadMs": 597.8,
+        "nThreads": 3,
+        "utterances": 20,
+        "L_tft": {
+          "mean": 21357.8,
+          "std": 1374.9,
+          "unit": "ms",
+          "met": false
+        },
+        "L_e2e": {
+          "mean": 29667.2,
+          "std": 1480.3,
+          "unit": "ms",
+          "met": false
+        },
+        "R_peak": {
+          "value": 222.8,
+          "peakKb": 228170,
+          "samples": 108,
+          "unit": "MB",
+          "met": true
+        }
+      },
+      {
+        "model": "Gemma-3-270M-Instruct",
+        "status": "ok",
+        "loadMs": 5045,
+        "nThreads": 3,
+        "utterances": 20,
+        "L_tft": {
+          "mean": 16654,
+          "std": 1592.5,
+          "unit": "ms",
+          "met": false
+        },
+        "L_e2e": {
+          "mean": 24963.4,
+          "std": 1684.3,
+          "unit": "ms",
+          "met": false
+        },
+        "R_peak": {
+          "value": 376.7,
+          "peakKb": 385765,
+          "samples": 78,
+          "unit": "MB",
+          "met": true
+        }
+      },
+      {
+        "model": "Qwen2.5-0.5B-Instruct",
+        "status": "ok",
+        "loadMs": 12760.3,
+        "nThreads": 3,
+        "utterances": 20,
+        "L_tft": {
+          "mean": 53487.4,
+          "std": 1054.6,
+          "unit": "ms",
+          "met": false
+        },
+        "L_e2e": {
+          "mean": 61796.8,
+          "std": 1188.6,
+          "unit": "ms",
+          "met": false
+        },
+        "R_peak": {
+          "value": 622.8,
+          "peakKb": 637762,
+          "samples": 215,
+          "unit": "MB",
+          "met": true
+        }
+      },
+      {
+        "model": "Gemma-3-1B-Instruct",
+        "status": "ok",
+        "loadMs": 2287.8,
+        "nThreads": 3,
+        "utterances": 20,
+        "L_tft": {
+          "mean": 261179.2,
+          "std": 129104.1,
+          "unit": "ms",
+          "met": false
+        },
+        "L_e2e": {
+          "mean": 269488.6,
+          "std": 129105.3,
+          "unit": "ms",
+          "met": false
+        },
+        "R_peak": {
+          "value": 948.3,
+          "peakKb": 971066,
+          "samples": 714,
+          "unit": "MB",
+          "met": true
+        }
+      }
+    ],
+    "cloudOnlyModels": [
+      {
+        "model": "Deepseek-V4",
+        "status": "cloud_only_not_offline_slm",
+        "note": "DeepSeek (deepseek-flash / deepseek-chat) runs via LAFINA-backend cloud API, not offline via llama.cpp; no offline GGUF exists in src/ai/nlu/modelManager.ts.",
+        "L_tft": null,
+        "L_e2e": null,
+        "R_peak": null
+      }
+    ]
+  }
+}

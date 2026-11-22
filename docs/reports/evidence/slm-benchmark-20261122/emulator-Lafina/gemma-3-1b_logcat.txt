@@ -1,0 +1,10 @@
+--------- beginning of main
+11-22 16:00:45.982  6277  6277 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-22 16:00:46.180  6277  6277 I AndroidRuntime: Using default boot image
+11-22 16:00:46.180  6277  6277 I AndroidRuntime: Leaving lock profiling enabled
+11-22 16:00:47.178  6277  6277 D AndroidRuntime: Calling main entry com.android.commands.am.Am
+11-22 16:00:59.853  6333  6352 W LafinaLlama: load: control-looking token:    212 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+11-22 16:01:01.074  6333  6352 W LafinaLlama: llama_kv_cache_iswa: using full-size SWA cache (ref: https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+11-22 16:01:01.202  6333  6352 I LafinaLlama: Loaded GGUF model with 3 threads (n_ctx=1024)
+11-22 17:30:41.670  6333  6352 I SlmTftBenchmark: SLM_TFT_SUMMARY [Gemma-3-1B-Instruct]: load=2287.8ms tft=261179.2±129104.1ms (n=20)
+11-22 17:30:43.269  6277  6277 I AndroidRuntime: VM exiting with result code 0.

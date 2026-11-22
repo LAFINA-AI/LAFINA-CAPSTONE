@@ -1,0 +1,4 @@
+--------- beginning of main
+11-22 17:36:02.665  3111  3294 W LafinaLlama: load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+11-22 17:36:12.433  3111  3294 I LafinaLlama: Loaded GGUF model with 3 threads (n_ctx=1024)
+11-22 17:55:11.906  3111  3294 I SlmTftBenchmark: SLM_TFT_SUMMARY [Qwen2.5-0.5B-Instruct]: load=12760.3ms tft=53487.4±1054.6ms (n=20)

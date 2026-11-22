@@ -1,0 +1,113 @@
+{
+  "modelName": "Gemma-3-270M-Instruct",
+  "modelFile": "models\/gemma-3-270m-it-Q4_K_M.gguf",
+  "modelBytes": 253115424,
+  "promptFormat": "gemma",
+  "nThreads": 4,
+  "loadMs": 626.549308,
+  "utterances": 20,
+  "l_tft_mean_ms": 9726.958496700001,
+  "l_tft_sd_ms": 673.501644999062,
+  "samples": [
+    {
+      "i": 0,
+      "utterance": "Remind me to submit my lab report tomorrow at 9 AM.",
+      "tftMs": 9556.18677
+    },
+    {
+      "i": 1,
+      "utterance": "Add a task to study operating systems tonight at 8 PM.",
+      "tftMs": 9543.277923
+    },
+    {
+      "i": 2,
+      "utterance": "Create a reminder for software engineering exam this Friday at 2 PM.",
+      "tftMs": 9556.254847
+    },
+    {
+      "i": 3,
+      "utterance": "Remind me every Monday at 8 AM for my morning class.",
+      "tftMs": 9656.79477
+    },
+    {
+      "i": 4,
+      "utterance": "Schedule a study block from 2 PM to 4 PM today for thesis writing.",
+      "tftMs": 9647.738693
+    },
+    {
+      "i": 5,
+      "utterance": "Take a note review chapters 4 and 5 for the quiz.",
+      "tftMs": 9557.283154
+    },
+    {
+      "i": 6,
+      "utterance": "What is on my schedule for today?",
+      "tftMs": 9401.495078
+    },
+    {
+      "i": 7,
+      "utterance": "Remind me in ten minutes to take a short break.",
+      "tftMs": 9536.768846
+    },
+    {
+      "i": 8,
+      "utterance": "Snooze for five minutes.",
+      "tftMs": 9377.531923
+    },
+    {
+      "i": 9,
+      "utterance": "OK got it thanks.",
+      "tftMs": 9349.86977
+    },
+    {
+      "i": 10,
+      "utterance": "Add a task to finish the database project by Friday.",
+      "tftMs": 9530.206077
+    },
+    {
+      "i": 11,
+      "utterance": "Remind me tomorrow morning at 7 AM to pack my lab coat.",
+      "tftMs": 9588.467386
+    },
+    {
+      "i": 12,
+      "utterance": "Create a time block for math homework from 6 PM to 7 PM.",
+      "tftMs": 9596.311385
+    },
+    {
+      "i": 13,
+      "utterance": "Show my schedule for tomorrow.",
+      "tftMs": 9374.316847
+    },
+    {
+      "i": 14,
+      "utterance": "Save a note-bring calculator for Physics exam.",
+      "tftMs": 9472.917539
+    },
+    {
+      "i": 15,
+      "utterance": "Remind me to email the professor at 3pm.",
+      "tftMs": 9498.725847
+    },
+    {
+      "i": 16,
+      "utterance": "Add a task prepare presentation slides for capstone defense.",
+      "tftMs": 9497.917539
+    },
+    {
+      "i": 17,
+      "utterance": "Remind me every weekday at 7.30 AM to check announcements.",
+      "tftMs": 12498.37377
+    },
+    {
+      "i": 18,
+      "utterance": "Take a note check the USTP Handbook Grading Policy.",
+      "tftMs": 10402.016616
+    },
+    {
+      "i": 19,
+      "utterance": "Snooze for ten minutes.",
+      "tftMs": 9896.715154
+    }
+  ]
+}

@@ -1,0 +1,1017 @@
+{
+  "modelAsset": "models\/ggml-base.en-q5_1.bin",
+  "threads": 3,
+  "whisperLoadMs": 424.027153,
+  "ttsReady": true,
+  "realWavClips": 20,
+  "utterances": 100,
+  "transcriptsNonEmpty": 100,
+  "l_vad_mean_ms": 196.65469847999998,
+  "l_vad_sd_ms": 76.01962983629575,
+  "l_whisper_mean_ms": 3848.1577455800025,
+  "l_whisper_sd_ms": 261.4617052371718,
+  "l_stt_mean_ms": 4044.812444060001,
+  "l_stt_sd_ms": 298.56740466552344,
+  "samples": [
+    {
+      "i": 0,
+      "noisy": false,
+      "maxVad": 0.9999978542327881,
+      "samples": 60573,
+      "transcript": "Remind me to submit my lab report tomorrow at 9 AM.",
+      "vadMs": 264.967384,
+      "whisperMs": 3635.299693,
+      "sttMs": 3900.267077
+    },
+    {
+      "i": 1,
+      "noisy": false,
+      "maxVad": 0.9999995231628418,
+      "samples": 59402,
+      "transcript": "Add a task to study operating systems tonight at 8 PM.",
+      "vadMs": 198.513615,
+      "whisperMs": 3830.269462,
+      "sttMs": 4028.783077
+    },
+    {
+      "i": 2,
+      "noisy": false,
+      "maxVad": 0.9999990463256836,
+      "samples": 72328,
+      "transcript": "Create a reminder for software engineering exam this Friday at 2 PM.",
+      "vadMs": 277.185154,
+      "whisperMs": 3556.085,
+      "sttMs": 3833.270154
+    },
+    {
+      "i": 3,
+      "noisy": false,
+      "maxVad": 0.9999940395355225,
+      "samples": 59645,
+      "transcript": "Remind me every Monday at 8 AM for my morning class.",
+      "vadMs": 231.943693,
+      "whisperMs": 3719.916692,
+      "sttMs": 3951.860385
+    },
+    {
+      "i": 4,
+      "noisy": false,
+      "maxVad": 0.9999992847442627,
+      "samples": 73773,
+      "transcript": "Schedule a study block from 2 PM to 4 PM today for thesis writing.",
+      "vadMs": 314.413461,
+      "whisperMs": 3662.77577,
+      "sttMs": 3977.189231
+    },
+    {
+      "i": 5,
+      "noisy": false,
+      "maxVad": 0.9999985694885254,
+      "samples": 48062,
+      "transcript": "Take a note review chapters 4 and 5 for the quiz.",
+      "vadMs": 231.834846,
+      "whisperMs": 3550.973462,
+      "sttMs": 3782.808308
+    },
+    {
+      "i": 6,
+      "noisy": false,
+      "maxVad": 0.9999980926513672,
+      "samples": 32090,
+      "transcript": "What is on my schedule for today?",
+      "vadMs": 134.124308,
+      "whisperMs": 3480.49077,
+      "sttMs": 3614.615078
+    },
+    {
+      "i": 7,
+      "noisy": false,
+      "maxVad": 0.9999990463256836,
+      "samples": 43516,
+      "transcript": "Remind me in ten minutes to take a short break.",
+      "vadMs": 208.707,
+      "whisperMs": 3630.585308,
+      "sttMs": 3839.292308
+    },
+    {
+      "i": 8,
+      "noisy": false,
+      "maxVad": 0.9999035596847534,
+      "samples": 25509,
+      "transcript": "Snooze for five minutes.",
+      "vadMs": 117.546461,
+      "whisperMs": 3627.497231,
+      "sttMs": 3745.043692
+    },
+    {
+      "i": 9,
+      "noisy": false,
+      "maxVad": 0.9999544024467468,
+      "samples": 25266,
+      "transcript": "OK got it thanks.",
+      "vadMs": 120.66923,
+      "whisperMs": 3574.328539,
+      "sttMs": 3694.997769
+    },
+    {
+      "i": 10,
+      "noisy": false,
+      "maxVad": 0.9999984502792358,
+      "samples": 49721,
+      "transcript": "Add a task to finish the database project by Friday.",
+      "vadMs": 184.441462,
+      "whisperMs": 3598.418462,
+      "sttMs": 3782.859924
+    },
+    {
+      "i": 11,
+      "noisy": false,
+      "maxVad": 0.9999986886978149,
+      "samples": 65052,
+      "transcript": "Remind me tomorrow morning at 7 AM to pack my lab code.",
+      "vadMs": 301.317615,
+      "whisperMs": 3828.104539,
+      "sttMs": 4129.422154
+    },
+    {
+      "i": 12,
+      "noisy": false,
+      "maxVad": 0.999998927116394,
+      "samples": 67704,
+      "transcript": "Create a time block for math homework from 6pm to 7pm.",
+      "vadMs": 350.933,
+      "whisperMs": 4045.123616,
+      "sttMs": 4396.056616
+    },
+    {
+      "i": 13,
+      "noisy": false,
+      "maxVad": 0.9999973773956299,
+      "samples": 31464,
+      "transcript": "Show my schedule for tomorrow.",
+      "vadMs": 154.426154,
+      "whisperMs": 3664.112615,
+      "sttMs": 3818.538769
+    },
+    {
+      "i": 14,
+      "noisy": false,
+      "maxVad": 0.9999985694885254,
+      "samples": 45658,
+      "transcript": "Save a note-bring calculator for physics exam.",
+      "vadMs": 234.503692,
+      "whisperMs": 3779.712539,
+      "sttMs": 4014.216231
+    },
+    {
+      "i": 15,
+      "noisy": false,
+      "maxVad": 0.9999971985816956,
+      "samples": 45299,
+      "transcript": "Remind me to email the professor at 3pm.",
+      "vadMs": 203.140308,
+      "whisperMs": 3739.132616,
+      "sttMs": 3942.272924
+    },
+    {
+      "i": 16,
+      "noisy": false,
+      "maxVad": 0.9999985098838806,
+      "samples": 57528,
+      "transcript": "Add a task prepare presentation slides for capstone defense.",
+      "vadMs": 212.652231,
+      "whisperMs": 3658.913,
+      "sttMs": 3871.565231
+    },
+    {
+      "i": 17,
+      "noisy": false,
+      "maxVad": 0.9999984502792358,
+      "samples": 66886,
+      "transcript": "Remind me every weekday at 7.30 AM to check announcements.",
+      "vadMs": 292.462154,
+      "whisperMs": 3712.778769,
+      "sttMs": 4005.240923
+    },
+    {
+      "i": 18,
+      "noisy": false,
+      "maxVad": 0.999998927116394,
+      "samples": 58256,
+      "transcript": "Take a note check the USTP Handbook Grading Policy.",
+      "vadMs": 290.128615,
+      "whisperMs": 3689.098154,
+      "sttMs": 3979.226769
+    },
+    {
+      "i": 19,
+      "noisy": false,
+      "maxVad": 0.9999586939811707,
+      "samples": 24117,
+      "transcript": "Snooze for ten minutes.",
+      "vadMs": 118.667461,
+      "whisperMs": 3696.935385,
+      "sttMs": 3815.602846
+    },
+    {
+      "i": 20,
+      "noisy": false,
+      "maxVad": 0.9999978542327881,
+      "samples": 60573,
+      "transcript": "Remind me to submit my lab report tomorrow at 9 AM.",
+      "vadMs": 262.236923,
+      "whisperMs": 3884.733231,
+      "sttMs": 4146.970154
+    },
+    {
+      "i": 21,
+      "noisy": false,
+      "maxVad": 0.9999995231628418,
+      "samples": 59402,
+      "transcript": "Add a task to study operating systems tonight at 8 PM.",
+      "vadMs": 247.076,
+      "whisperMs": 3901.933539,
+      "sttMs": 4149.009539
+    },
+    {
+      "i": 22,
+      "noisy": false,
+      "maxVad": 0.9999990463256836,
+      "samples": 72328,
+      "transcript": "Create a reminder for software engineering exam this Friday at 2 PM.",
+      "vadMs": 343.043,
+      "whisperMs": 4107.466462,
+      "sttMs": 4450.509462
+    },
+    {
+      "i": 23,
+      "noisy": false,
+      "maxVad": 0.9999940395355225,
+      "samples": 59645,
+      "transcript": "Remind me every Monday at 8 AM for my morning class.",
+      "vadMs": 246.184,
+      "whisperMs": 3944.736385,
+      "sttMs": 4190.920385
+    },
+    {
+      "i": 24,
+      "noisy": false,
+      "maxVad": 0.9999992847442627,
+      "samples": 73773,
+      "transcript": "Schedule a study block from 2 PM to 4 PM today for thesis writing.",
+      "vadMs": 345.876693,
+      "whisperMs": 3788.673846,
+      "sttMs": 4134.550539
+    },
+    {
+      "i": 25,
+      "noisy": false,
+      "maxVad": 0.9999985694885254,
+      "samples": 48062,
+      "transcript": "Take a note review chapters 4 and 5 for the quiz.",
+      "vadMs": 177.883308,
+      "whisperMs": 3709.343462,
+      "sttMs": 3887.22677
+    },
+    {
+      "i": 26,
+      "noisy": false,
+      "maxVad": 0.9999980926513672,
+      "samples": 32090,
+      "transcript": "What is on my schedule for today?",
+      "vadMs": 122.307693,
+      "whisperMs": 3678.146461,
+      "sttMs": 3800.454154
+    },
+    {
+      "i": 27,
+      "noisy": false,
+      "maxVad": 0.9999990463256836,
+      "samples": 43516,
+      "transcript": "Remind me in ten minutes to take a short break.",
+      "vadMs": 204.048077,
+      "whisperMs": 3838.605462,
+      "sttMs": 4042.653539
+    },
+    {
+      "i": 28,
+      "noisy": false,
+      "maxVad": 0.9999035596847534,
+      "samples": 25509,
+      "transcript": "Snooze for five minutes.",
+      "vadMs": 88.144923,
+      "whisperMs": 3468.58377,
+      "sttMs": 3556.728693
+    },
+    {
+      "i": 29,
+      "noisy": false,
+      "maxVad": 0.9999544024467468,
+      "samples": 25266,
+      "transcript": "OK got it thanks.",
+      "vadMs": 104.114692,
+      "whisperMs": 3606.092923,
+      "sttMs": 3710.207615
+    },
+    {
+      "i": 30,
+      "noisy": false,
+      "maxVad": 0.9999984502792358,
+      "samples": 49721,
+      "transcript": "Add a task to finish the database project by Friday.",
+      "vadMs": 189.367077,
+      "whisperMs": 3767.766461,
+      "sttMs": 3957.133538
+    },
+    {
+      "i": 31,
+      "noisy": false,
+      "maxVad": 0.9999986886978149,
+      "samples": 65052,
+      "transcript": "Remind me tomorrow morning at 7 AM to pack my lab code.",
+      "vadMs": 236.982153,
+      "whisperMs": 4065.398462,
+      "sttMs": 4302.380615
+    },
+    {
+      "i": 32,
+      "noisy": false,
+      "maxVad": 0.999998927116394,
+      "samples": 67704,
+      "transcript": "Create a time block for math homework from 6pm to 7pm.",
+      "vadMs": 341.392615,
+      "whisperMs": 4366.086385,
+      "sttMs": 4707.479
+    },
+    {
+      "i": 33,
+      "noisy": false,
+      "maxVad": 0.9999973773956299,
+      "samples": 31464,
+      "transcript": "Show my schedule for tomorrow.",
+      "vadMs": 138.339923,
+      "whisperMs": 3764.317923,
+      "sttMs": 3902.657846
+    },
+    {
+      "i": 34,
+      "noisy": false,
+      "maxVad": 0.9999985694885254,
+      "samples": 45658,
+      "transcript": "Save a note-bring calculator for physics exam.",
+      "vadMs": 208.136539,
+      "whisperMs": 3715.205,
+      "sttMs": 3923.341539
+    },
+    {
+      "i": 35,
+      "noisy": false,
+      "maxVad": 0.9999971985816956,
+      "samples": 45299,
+      "transcript": "Remind me to email the professor at 3pm.",
+      "vadMs": 190.522461,
+      "whisperMs": 3880.415001,
+      "sttMs": 4070.937462
+    },
+    {
+      "i": 36,
+      "noisy": false,
+      "maxVad": 0.9999985098838806,
+      "samples": 57528,
+      "transcript": "Add a task prepare presentation slides for capstone defense.",
+      "vadMs": 230.460077,
+      "whisperMs": 3881.782769,
+      "sttMs": 4112.242846
+    },
+    {
+      "i": 37,
+      "noisy": false,
+      "maxVad": 0.9999984502792358,
+      "samples": 66886,
+      "transcript": "Remind me every weekday at 7.30 AM to check announcements.",
+      "vadMs": 435.502462,
+      "whisperMs": 3980.821154,
+      "sttMs": 4416.323616
+    },
+    {
+      "i": 38,
+      "noisy": false,
+      "maxVad": 0.999998927116394,
+      "samples": 58256,
+      "transcript": "Take a note check the USTP Handbook Grading Policy.",
+      "vadMs": 252.317769,
+      "whisperMs": 3898.555078,
+      "sttMs": 4150.872847
+    },
+    {
+      "i": 39,
+      "noisy": false,
+      "maxVad": 0.9999586939811707,
+      "samples": 24117,
+      "transcript": "Snooze for ten minutes.",
+      "vadMs": 89.427385,
+      "whisperMs": 3672.055307,
+      "sttMs": 3761.482692
+    },
+    {
+      "i": 40,
+      "noisy": false,
+      "maxVad": 0.9999978542327881,
+      "samples": 60573,
+      "transcript": "Remind me to submit my lab report tomorrow at 9 AM.",
+      "vadMs": 344.791154,
+      "whisperMs": 3783.232308,
+      "sttMs": 4128.023462
+    },
+    {
+      "i": 41,
+      "noisy": false,
+      "maxVad": 0.9999995231628418,
+      "samples": 59402,
+      "transcript": "Add a task to study operating systems tonight at 8 PM.",
+      "vadMs": 231.602461,
+      "whisperMs": 3751.034154,
+      "sttMs": 3982.636615
+    },
+    {
+      "i": 42,
+      "noisy": false,
+      "maxVad": 0.9999990463256836,
+      "samples": 72328,
+      "transcript": "Create a reminder for software engineering exam this Friday at 2 PM.",
+      "vadMs": 273.988923,
+      "whisperMs": 3926.560308,
+      "sttMs": 4200.549231
+    },
+    {
+      "i": 43,
+      "noisy": false,
+      "maxVad": 0.9999940395355225,
+      "samples": 59645,
+      "transcript": "Remind me every Monday at 8 AM for my morning class.",
+      "vadMs": 233.508308,
+      "whisperMs": 5546.731385,
+      "sttMs": 5780.239693
+    },
+    {
+      "i": 44,
+      "noisy": false,
+      "maxVad": 0.9999992847442627,
+      "samples": 73773,
+      "transcript": "Schedule a study block from 2 PM to 4 PM today for thesis writing.",
+      "vadMs": 263.617539,
+      "whisperMs": 5008.065769,
+      "sttMs": 5271.683308
+    },
+    {
+      "i": 45,
+      "noisy": false,
+      "maxVad": 0.9999985694885254,
+      "samples": 48062,
+      "transcript": "Take a note review chapters 4 and 5 for the quiz.",
+      "vadMs": 259.114693,
+      "whisperMs": 4182.667385,
+      "sttMs": 4441.782078
+    },
+    {
+      "i": 46,
+      "noisy": false,
+      "maxVad": 0.9999980926513672,
+      "samples": 32090,
+      "transcript": "What is on my schedule for today?",
+      "vadMs": 124.477462,
+      "whisperMs": 3784.317231,
+      "sttMs": 3908.794693
+    },
+    {
+      "i": 47,
+      "noisy": false,
+      "maxVad": 0.9999990463256836,
+      "samples": 43516,
+      "transcript": "Remind me in ten minutes to take a short break.",
+      "vadMs": 141.504231,
+      "whisperMs": 3857.728077,
+      "sttMs": 3999.232308
+    },
+    {
+      "i": 48,
+      "noisy": false,
+      "maxVad": 0.9999035596847534,
+      "samples": 25509,
+      "transcript": "Snooze for five minutes.",
+      "vadMs": 76.625462,
+      "whisperMs": 3722.980923,
+      "sttMs": 3799.606385
+    },
+    {
+      "i": 49,
+      "noisy": false,
+      "maxVad": 0.9999544024467468,
+      "samples": 25266,
+      "transcript": "OK got it thanks.",
+      "vadMs": 71.3,
+      "whisperMs": 3636.574462,
+      "sttMs": 3707.874462
+    },
+    {
+      "i": 50,
+      "noisy": true,
+      "maxVad": 0.999994695186615,
+      "samples": 49721,
+      "transcript": "Add a task to finish the database project by Friday.",
+      "vadMs": 183.254769,
+      "whisperMs": 3745.219385,
+      "sttMs": 3928.474154
+    },
+    {
+      "i": 51,
+      "noisy": true,
+      "maxVad": 0.9999918937683105,
+      "samples": 65052,
+      "transcript": "Remind me tomorrow morning at 7 AM to pack my lab coat.",
+      "vadMs": 181.546154,
+      "whisperMs": 3875.497001,
+      "sttMs": 4057.043155
+    },
+    {
+      "i": 52,
+      "noisy": true,
+      "maxVad": 0.9999956488609314,
+      "samples": 67704,
+      "transcript": "Create a time block for Mac Homework from 6 PM to 7 PM.",
+      "vadMs": 194.540923,
+      "whisperMs": 3905.759692,
+      "sttMs": 4100.300615
+    },
+    {
+      "i": 53,
+      "noisy": true,
+      "maxVad": 0.9999931454658508,
+      "samples": 31464,
+      "transcript": "Show my schedule for tomorrow.",
+      "vadMs": 88.860231,
+      "whisperMs": 3762.532385,
+      "sttMs": 3851.392616
+    },
+    {
+      "i": 54,
+      "noisy": true,
+      "maxVad": 0.9999982118606567,
+      "samples": 45658,
+      "transcript": "Save a note-bring calculator for Physics exam.",
+      "vadMs": 158.656308,
+      "whisperMs": 3806.997308,
+      "sttMs": 3965.653616
+    },
+    {
+      "i": 55,
+      "noisy": true,
+      "maxVad": 0.9999845027923584,
+      "samples": 45299,
+      "transcript": "Remind me to email the professor at 3 PM.",
+      "vadMs": 137.220846,
+      "whisperMs": 3830.373846,
+      "sttMs": 3967.594692
+    },
+    {
+      "i": 56,
+      "noisy": true,
+      "maxVad": 0.9999967813491821,
+      "samples": 57528,
+      "transcript": "Add a task prepare presentation slides for capstone defense.",
+      "vadMs": 176.915693,
+      "whisperMs": 3953.052692,
+      "sttMs": 4129.968385
+    },
+    {
+      "i": 57,
+      "noisy": true,
+      "maxVad": 0.9999919533729553,
+      "samples": 66886,
+      "transcript": "Remind me every weekday at 7 30 AM to check announcements.",
+      "vadMs": 327.557231,
+      "whisperMs": 3930.923154,
+      "sttMs": 4258.480385
+    },
+    {
+      "i": 58,
+      "noisy": true,
+      "maxVad": 0.9999969005584717,
+      "samples": 58256,
+      "transcript": "Take a note check the USTP Handbook rating policy.",
+      "vadMs": 164.444538,
+      "whisperMs": 3812.437539,
+      "sttMs": 3976.882077
+    },
+    {
+      "i": 59,
+      "noisy": true,
+      "maxVad": 0.9999701976776123,
+      "samples": 24117,
+      "transcript": "Snooze for ten minutes.",
+      "vadMs": 88.748692,
+      "whisperMs": 3654.993846,
+      "sttMs": 3743.742538
+    },
+    {
+      "i": 60,
+      "noisy": true,
+      "maxVad": 0.999988853931427,
+      "samples": 60573,
+      "transcript": "Remind me to submit my lab report tomorrow at 9 AM.",
+      "vadMs": 170.628846,
+      "whisperMs": 3874.330231,
+      "sttMs": 4044.959077
+    },
+    {
+      "i": 61,
+      "noisy": true,
+      "maxVad": 0.9999969005584717,
+      "samples": 59402,
+      "transcript": "Add a task to study operating systems tonight at 8 PM.",
+      "vadMs": 173.409,
+      "whisperMs": 3834.305539,
+      "sttMs": 4007.714539
+    },
+    {
+      "i": 62,
+      "noisy": true,
+      "maxVad": 0.9999926090240479,
+      "samples": 72328,
+      "transcript": "Create a reminder for software engineering exam this Friday at 2 PM.",
+      "vadMs": 213.075923,
+      "whisperMs": 3834.595769,
+      "sttMs": 4047.671692
+    },
+    {
+      "i": 63,
+      "noisy": true,
+      "maxVad": 0.9999663829803467,
+      "samples": 59645,
+      "transcript": "Remind me every Monday at 8 AM for my morning class.",
+      "vadMs": 185.945847,
+      "whisperMs": 3827.536538,
+      "sttMs": 4013.482385
+    },
+    {
+      "i": 64,
+      "noisy": true,
+      "maxVad": 0.9999985694885254,
+      "samples": 73773,
+      "transcript": "Schedule a study block from 2 PM to 4 PM today for thesis writing.",
+      "vadMs": 210.941308,
+      "whisperMs": 3912.192,
+      "sttMs": 4123.133308
+    },
+    {
+      "i": 65,
+      "noisy": true,
+      "maxVad": 0.9999964833259583,
+      "samples": 48062,
+      "transcript": "Take a note review chapters 4 and 5 for the quiz.",
+      "vadMs": 134.053538,
+      "whisperMs": 3830.545308,
+      "sttMs": 3964.598846
+    },
+    {
+      "i": 66,
+      "noisy": true,
+      "maxVad": 0.9999931454658508,
+      "samples": 32090,
+      "transcript": "What is on my schedule for today?",
+      "vadMs": 97.396077,
+      "whisperMs": 3717.172846,
+      "sttMs": 3814.568923
+    },
+    {
+      "i": 67,
+      "noisy": true,
+      "maxVad": 0.9999859929084778,
+      "samples": 43516,
+      "transcript": "Remind me in ten minutes to take a short break.",
+      "vadMs": 120.375,
+      "whisperMs": 3829.467385,
+      "sttMs": 3949.842385
+    },
+    {
+      "i": 68,
+      "noisy": true,
+      "maxVad": 0.9999562501907349,
+      "samples": 25509,
+      "transcript": "Snooze for five minutes.",
+      "vadMs": 80.092231,
+      "whisperMs": 3707.420923,
+      "sttMs": 3787.513154
+    },
+    {
+      "i": 69,
+      "noisy": true,
+      "maxVad": 0.99955815076828,
+      "samples": 25266,
+      "transcript": "Okay got it thanks.",
+      "vadMs": 92.004307,
+      "whisperMs": 3866.382385,
+      "sttMs": 3958.386692
+    },
+    {
+      "i": 70,
+      "noisy": true,
+      "maxVad": 0.9999932646751404,
+      "samples": 49721,
+      "transcript": "Add a task to finish the database project by Friday.",
+      "vadMs": 229.109462,
+      "whisperMs": 4282.121538,
+      "sttMs": 4511.231
+    },
+    {
+      "i": 71,
+      "noisy": true,
+      "maxVad": 0.9999916553497314,
+      "samples": 65052,
+      "transcript": "Remind me tomorrow morning at 7 AM to pack my lab coat.",
+      "vadMs": 309.797769,
+      "whisperMs": 4297.575155,
+      "sttMs": 4607.372924
+    },
+    {
+      "i": 72,
+      "noisy": true,
+      "maxVad": 0.9999954700469971,
+      "samples": 67704,
+      "transcript": "Create a time block for Mac Homework from 6 PM to 7 PM.",
+      "vadMs": 302.946461,
+      "whisperMs": 4157.137847,
+      "sttMs": 4460.084308
+    },
+    {
+      "i": 73,
+      "noisy": true,
+      "maxVad": 0.9999940395355225,
+      "samples": 31464,
+      "transcript": "Show my schedule for tomorrow.",
+      "vadMs": 124.988,
+      "whisperMs": 3730.456077,
+      "sttMs": 3855.444077
+    },
+    {
+      "i": 74,
+      "noisy": true,
+      "maxVad": 0.9999979734420776,
+      "samples": 45658,
+      "transcript": "Save a note-bring calculator for Physics exam.",
+      "vadMs": 167.245769,
+      "whisperMs": 3834.125231,
+      "sttMs": 4001.371
+    },
+    {
+      "i": 75,
+      "noisy": true,
+      "maxVad": 0.9999858736991882,
+      "samples": 45299,
+      "transcript": "Remind me to email the professor at 3pm.",
+      "vadMs": 127.507077,
+      "whisperMs": 3825.251,
+      "sttMs": 3952.758077
+    },
+    {
+      "i": 76,
+      "noisy": true,
+      "maxVad": 0.9999967217445374,
+      "samples": 57528,
+      "transcript": "Add a task-prepared presentation slides for capstone defense.",
+      "vadMs": 211.266461,
+      "whisperMs": 3869.679385,
+      "sttMs": 4080.945846
+    },
+    {
+      "i": 77,
+      "noisy": true,
+      "maxVad": 0.9999918341636658,
+      "samples": 66886,
+      "transcript": "Remind me every weekday at 7.30 AM to check announcements.",
+      "vadMs": 197.39877,
+      "whisperMs": 4009.707461,
+      "sttMs": 4207.106231
+    },
+    {
+      "i": 78,
+      "noisy": true,
+      "maxVad": 0.9999966025352478,
+      "samples": 58256,
+      "transcript": "Take a note check the USTP Handbook Grading Policy.",
+      "vadMs": 162.413,
+      "whisperMs": 3850.469539,
+      "sttMs": 4012.882539
+    },
+    {
+      "i": 79,
+      "noisy": true,
+      "maxVad": 0.999974250793457,
+      "samples": 24117,
+      "transcript": "Snooze for ten minutes.",
+      "vadMs": 68.769615,
+      "whisperMs": 3718.251616,
+      "sttMs": 3787.021231
+    },
+    {
+      "i": 80,
+      "noisy": true,
+      "maxVad": 0.9999862313270569,
+      "samples": 60573,
+      "transcript": "Remind me to submit my lab report tomorrow at 9 AM.",
+      "vadMs": 194.906692,
+      "whisperMs": 3890.649924,
+      "sttMs": 4085.556616
+    },
+    {
+      "i": 81,
+      "noisy": true,
+      "maxVad": 0.9999961853027344,
+      "samples": 59402,
+      "transcript": "Add a task to study operating systems tonight at 8 PM.",
+      "vadMs": 215.203384,
+      "whisperMs": 3863.422154,
+      "sttMs": 4078.625538
+    },
+    {
+      "i": 82,
+      "noisy": true,
+      "maxVad": 0.9999936819076538,
+      "samples": 72328,
+      "transcript": "Create a reminder for software engineering exam this Friday at 2 PM.",
+      "vadMs": 236.216077,
+      "whisperMs": 3852.229461,
+      "sttMs": 4088.445538
+    },
+    {
+      "i": 83,
+      "noisy": true,
+      "maxVad": 0.9999628067016602,
+      "samples": 59645,
+      "transcript": "Remind me every Monday at 8 AM for my morning class.",
+      "vadMs": 200.33877,
+      "whisperMs": 3887.928,
+      "sttMs": 4088.26677
+    },
+    {
+      "i": 84,
+      "noisy": true,
+      "maxVad": 0.9999982118606567,
+      "samples": 73773,
+      "transcript": "Schedule a study block from 2 PM to 4 PM today for thesis writing.",
+      "vadMs": 312.865461,
+      "whisperMs": 4020.341231,
+      "sttMs": 4333.206692
+    },
+    {
+      "i": 85,
+      "noisy": true,
+      "maxVad": 0.9999954700469971,
+      "samples": 48062,
+      "transcript": "Take a note review chapters 4 and 5 for the quiz.",
+      "vadMs": 211.416,
+      "whisperMs": 3929.416077,
+      "sttMs": 4140.832077
+    },
+    {
+      "i": 86,
+      "noisy": true,
+      "maxVad": 0.9999904036521912,
+      "samples": 32090,
+      "transcript": "What is on my schedule for today?",
+      "vadMs": 115.611692,
+      "whisperMs": 3783.288924,
+      "sttMs": 3898.900616
+    },
+    {
+      "i": 87,
+      "noisy": true,
+      "maxVad": 0.9999889135360718,
+      "samples": 43516,
+      "transcript": "Remind me in ten minutes to take a short break.",
+      "vadMs": 155.892923,
+      "whisperMs": 3878.563077,
+      "sttMs": 4034.456
+    },
+    {
+      "i": 88,
+      "noisy": true,
+      "maxVad": 0.9999812841415405,
+      "samples": 25509,
+      "transcript": "Snooze for five minutes.",
+      "vadMs": 91.392308,
+      "whisperMs": 3745.782461,
+      "sttMs": 3837.174769
+    },
+    {
+      "i": 89,
+      "noisy": true,
+      "maxVad": 0.9992164373397827,
+      "samples": 25266,
+      "transcript": "Okay got it thanks.",
+      "vadMs": 91.597846,
+      "whisperMs": 3592.346692,
+      "sttMs": 3683.944538
+    },
+    {
+      "i": 90,
+      "noisy": true,
+      "maxVad": 0.9999934434890747,
+      "samples": 49721,
+      "transcript": "Add a task to finish the database project by Friday.",
+      "vadMs": 181.492615,
+      "whisperMs": 3859.01977,
+      "sttMs": 4040.512385
+    },
+    {
+      "i": 91,
+      "noisy": true,
+      "maxVad": 0.9999889135360718,
+      "samples": 65052,
+      "transcript": "Remind me tomorrow morning at 7 AM to pack my lab coat.",
+      "vadMs": 187.765462,
+      "whisperMs": 3919.171692,
+      "sttMs": 4106.937154
+    },
+    {
+      "i": 92,
+      "noisy": true,
+      "maxVad": 0.999995768070221,
+      "samples": 67704,
+      "transcript": "Create a time block for Matt Homework from 6 PM to 7 PM.",
+      "vadMs": 284.604307,
+      "whisperMs": 3962.030847,
+      "sttMs": 4246.635154
+    },
+    {
+      "i": 93,
+      "noisy": true,
+      "maxVad": 0.9999934434890747,
+      "samples": 31464,
+      "transcript": "Show my schedule for tomorrow.",
+      "vadMs": 98.640846,
+      "whisperMs": 3700.134846,
+      "sttMs": 3798.775692
+    },
+    {
+      "i": 94,
+      "noisy": true,
+      "maxVad": 0.9999977350234985,
+      "samples": 45658,
+      "transcript": "Save a note-bring calculator for Physics exam.",
+      "vadMs": 236.629847,
+      "whisperMs": 3842.750154,
+      "sttMs": 4079.380001
+    },
+    {
+      "i": 95,
+      "noisy": true,
+      "maxVad": 0.9999878406524658,
+      "samples": 45299,
+      "transcript": "Remind me to email the professor at 3 PM.",
+      "vadMs": 163.295693,
+      "whisperMs": 3782.147384,
+      "sttMs": 3945.443077
+    },
+    {
+      "i": 96,
+      "noisy": true,
+      "maxVad": 0.9999969005584717,
+      "samples": 57528,
+      "transcript": "Add a task prepare presentation slides for capstone defense.",
+      "vadMs": 188.751462,
+      "whisperMs": 3870.021154,
+      "sttMs": 4058.772616
+    },
+    {
+      "i": 97,
+      "noisy": true,
+      "maxVad": 0.9999909400939941,
+      "samples": 66886,
+      "transcript": "Remind me every weekday at 7.30 AM to check announcements.",
+      "vadMs": 185.185231,
+      "whisperMs": 3914.624692,
+      "sttMs": 4099.809923
+    },
+    {
+      "i": 98,
+      "noisy": true,
+      "maxVad": 0.9999963641166687,
+      "samples": 58256,
+      "transcript": "Take a note check the USTP Handbook Grading Policy.",
+      "vadMs": 160.975693,
+      "whisperMs": 3859.787692,
+      "sttMs": 4020.763385
+    },
+    {
+      "i": 99,
+      "noisy": true,
+      "maxVad": 0.9999585151672363,
+      "samples": 24117,
+      "transcript": "Snooze for ten minutes.",
+      "vadMs": 155.105846,
+      "whisperMs": 3774.445,
+      "sttMs": 3929.550846
+    }
+  ]
+}

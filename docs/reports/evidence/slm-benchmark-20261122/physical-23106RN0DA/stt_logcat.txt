@@ -1,0 +1,276 @@
+--------- beginning of main
+11-23 03:18:20.570 22623 22623 W libc    : Access denied finding property "ro.vendor.audio.dolby.dax3_3point8"
+11-23 03:18:20.575 22623 22623 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-23 03:18:20.604 22623 22623 I AndroidRuntime: Using default boot image
+11-23 03:18:20.605 22623 22623 I AndroidRuntime: Leaving lock profiling enabled
+11-23 03:18:21.172 22623 22623 W libc    : Access denied finding property "ro.product.name_for_attestation"
+11-23 03:18:21.173 22623 22623 W libc    : Access denied finding property "ro.product.device_for_attestation"
+11-23 03:18:21.173 22623 22623 W libc    : Access denied finding property "ro.product.manufacturer_for_attestation"
+11-23 03:18:21.173 22623 22623 W libc    : Access denied finding property "ro.product.brand_for_attestation"
+11-23 03:18:21.174 22623 22623 W libc    : Access denied finding property "ro.product.model_for_attestation"
+11-23 03:18:21.179 22623 22623 W libc    : Access denied finding property "ro.vendor.mtk.hbt_binfmt_misc_support"
+11-23 03:18:21.181 22623 22623 W libc    : Access denied finding property "ro.vendor.mtk.hbt_dyn_type"
+11-23 03:18:21.181 22623 22623 W libc    : Access denied finding property "persist.vendor.mtk.hbt_dyn_type"
+11-23 03:18:21.257 22623 22623 D AndroidRuntime: Calling main entry com.android.commands.am.Am
+11-23 03:18:23.216 22638 22665 W libc    : Access denied finding property "ro.hardware.chipname"
+11-23 03:18:26.167 22676 22711 W libc    : Access denied finding property "ro.hardware.chipname"
+11-23 03:18:26.439  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:18:36.421  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:18:38.462 22638 22665 I LafinaWhisper: Transcribing 60573 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:18:41.837 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:18:42.112 22638 22665 I LafinaWhisper: Transcribing 60573 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:18:45.737 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:18:45.942 22638 22665 I LafinaWhisper: Transcribing 59402 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:18:46.403  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:18:49.766 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 54 characters
+11-23 03:18:50.051 22638 22665 I LafinaWhisper: Transcribing 72328 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:18:53.600 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 68 characters
+11-23 03:18:53.838 22638 22665 I LafinaWhisper: Transcribing 59645 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:18:57.552 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:18:57.874 22638 22665 I LafinaWhisper: Transcribing 73773 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:01.529 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 66 characters
+11-23 03:19:01.766 22638 22665 I LafinaWhisper: Transcribing 48062 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:05.312 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 49 characters
+11-23 03:19:05.450 22638 22665 I LafinaWhisper: Transcribing 32090 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:06.404  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:19:08.927 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 33 characters
+11-23 03:19:09.142 22638 22665 I LafinaWhisper: Transcribing 43516 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:12.643  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:19:12.698  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:19:12.766 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 47 characters
+11-23 03:19:12.887 22638 22665 I LafinaWhisper: Transcribing 25509 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:16.511 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 24 characters
+11-23 03:19:16.635 22638 22665 I LafinaWhisper: Transcribing 25266 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:20.207 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 17 characters
+11-23 03:19:20.396 22638 22665 I LafinaWhisper: Transcribing 49721 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:23.989 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:19:24.297 22638 22665 I LafinaWhisper: Transcribing 65052 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:26.414  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:19:28.119 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 55 characters
+11-23 03:19:28.477 22638 22665 I LafinaWhisper: Transcribing 67704 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:32.515 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 54 characters
+11-23 03:19:32.673 22638 22665 I LafinaWhisper: Transcribing 31464 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:36.334 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 30 characters
+11-23 03:19:36.438  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:19:36.576 22638 22665 I LafinaWhisper: Transcribing 45658 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:40.348 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 46 characters
+11-23 03:19:40.596 22638 22665 I LafinaWhisper: Transcribing 45299 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:44.291 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 40 characters
+11-23 03:19:44.509 22638 22665 I LafinaWhisper: Transcribing 57528 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:46.450  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:19:48.162 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 60 characters
+11-23 03:19:48.462 22638 22665 I LafinaWhisper: Transcribing 66886 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:52.168 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 58 characters
+11-23 03:19:52.467 22638 22665 I LafinaWhisper: Transcribing 58256 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:56.147 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:19:56.270 22638 22665 I LafinaWhisper: Transcribing 24117 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:19:59.963 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 23 characters
+11-23 03:20:00.231 22638 22665 I LafinaWhisper: Transcribing 60573 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:04.110 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:20:04.363 22638 22665 I LafinaWhisper: Transcribing 59402 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:06.470  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:20:08.259 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 54 characters
+11-23 03:20:08.610 22638 22665 I LafinaWhisper: Transcribing 72328 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:09.665  9415  9930 W libc    : Access denied finding property "persist.adb.tls_server.enable"
+11-23 03:20:09.665  9415  9930 W libc    : Access denied finding property "service.adb.tls.port"
+11-23 03:20:12.710 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 68 characters
+11-23 03:20:12.962 22638 22665 I LafinaWhisper: Transcribing 59645 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:16.901 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:20:17.254 22638 22665 I LafinaWhisper: Transcribing 73773 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:21.035 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 66 characters
+11-23 03:20:21.218 22638 22665 I LafinaWhisper: Transcribing 48062 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:24.923 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 49 characters
+11-23 03:20:25.049 22638 22665 I LafinaWhisper: Transcribing 32090 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:26.439  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:20:28.723 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 33 characters
+11-23 03:20:28.932 22638 22665 I LafinaWhisper: Transcribing 43516 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:32.766 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 47 characters
+11-23 03:20:32.857 22638 22665 I LafinaWhisper: Transcribing 25509 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:36.323 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 24 characters
+11-23 03:20:36.430 22638 22665 I LafinaWhisper: Transcribing 25266 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:36.452  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:20:40.033 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 17 characters
+11-23 03:20:40.228 22638 22665 I LafinaWhisper: Transcribing 49721 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:41.361  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:20:41.398  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:20:43.991 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:20:44.234 22638 22665 I LafinaWhisper: Transcribing 65052 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:47.612  1028 17896 W libc    : Access denied finding property "persist.vendor.camera.provider.pid"
+11-23 03:20:48.293 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 55 characters
+11-23 03:20:48.642 22638 22665 I LafinaWhisper: Transcribing 67704 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:53.001 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 54 characters
+11-23 03:20:53.143 22638 22665 I LafinaWhisper: Transcribing 31464 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:20:56.458  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:20:56.904 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 30 characters
+11-23 03:20:57.119 22638 22665 I LafinaWhisper: Transcribing 45658 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:00.827 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 46 characters
+11-23 03:21:01.023 22638 22665 I LafinaWhisper: Transcribing 45299 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:04.898 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 40 characters
+11-23 03:21:05.135 22638 22665 I LafinaWhisper: Transcribing 57528 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:06.466  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:21:09.011 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 60 characters
+11-23 03:21:09.454 22638 22665 I LafinaWhisper: Transcribing 66886 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:13.427 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 58 characters
+11-23 03:21:13.686 22638 22665 I LafinaWhisper: Transcribing 58256 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:17.578 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:21:17.671 22638 22665 I LafinaWhisper: Transcribing 24117 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:21.340 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 23 characters
+11-23 03:21:21.691 22638 22665 I LafinaWhisper: Transcribing 60573 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:25.468 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:21:25.706 22638 22665 I LafinaWhisper: Transcribing 59402 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:26.470  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:21:29.451 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 54 characters
+11-23 03:21:29.732 22638 22665 I LafinaWhisper: Transcribing 72328 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:33.651 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 68 characters
+11-23 03:21:33.891 22638 22665 I LafinaWhisper: Transcribing 59645 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:35.663   865  1300 W libc    : Access denied finding property "init.svc.vendor.displayfeature-hal-1-0"
+11-23 03:21:38.027  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:21:39.432 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:21:39.707 22638 22665 I LafinaWhisper: Transcribing 73773 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:40.247  2185  2550 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+11-23 03:21:43.282 25224 25224 W libc    : Access denied finding property "ro.vendor.df.effect.conflict"
+11-23 03:21:44.090 25224 25263 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+11-23 03:21:44.225 25224 25263 W libc    : Access denied finding property "vendor.migl.debug"
+11-23 03:21:44.261 25224 25263 W libc    : Access denied finding property "ro.vendor.magt.mtk_magt_support"
+11-23 03:21:44.268 25224 25263 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+11-23 03:21:44.275 25224 25263 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+11-23 03:21:44.703 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 66 characters
+11-23 03:21:44.843 25224 25263 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+11-23 03:21:44.971 22638 22665 I LafinaWhisper: Transcribing 48062 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:45.557 25224 25263 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+11-23 03:21:49.146 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 49 characters
+11-23 03:21:49.276 22638 22665 I LafinaWhisper: Transcribing 32090 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:53.055 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 33 characters
+11-23 03:21:53.201 22638 22665 I LafinaWhisper: Transcribing 43516 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:21:56.495  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:21:57.054 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 47 characters
+11-23 03:21:57.134 22638 22665 I LafinaWhisper: Transcribing 25509 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:00.854 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 24 characters
+11-23 03:22:00.928 22638 22665 I LafinaWhisper: Transcribing 25266 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:04.562 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 17 characters
+11-23 03:22:04.805 22638 22665 I LafinaWhisper: Transcribing 49721 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:06.495  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:22:08.545 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:22:08.790 22638 22665 I LafinaWhisper: Transcribing 65052 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:12.659 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 55 characters
+11-23 03:22:12.863 22638 22665 I LafinaWhisper: Transcribing 67704 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:16.519  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:22:16.762 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 55 characters
+11-23 03:22:16.855 22638 22665 I LafinaWhisper: Transcribing 31464 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:20.614 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 30 characters
+11-23 03:22:20.779 22638 22665 I LafinaWhisper: Transcribing 45658 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:24.581 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 46 characters
+11-23 03:22:24.725 22638 22665 I LafinaWhisper: Transcribing 45299 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:28.551 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 41 characters
+11-23 03:22:28.735 22638 22665 I LafinaWhisper: Transcribing 57528 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:32.682 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 60 characters
+11-23 03:22:33.019 22638 22665 I LafinaWhisper: Transcribing 66886 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:36.943 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 58 characters
+11-23 03:22:37.115 22638 22665 I LafinaWhisper: Transcribing 58256 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:40.921 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 50 characters
+11-23 03:22:41.014 22638 22665 I LafinaWhisper: Transcribing 24117 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:44.666 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 23 characters
+11-23 03:22:44.844 22638 22665 I LafinaWhisper: Transcribing 60573 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:46.505  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:22:48.712 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:22:48.893 22638 22665 I LafinaWhisper: Transcribing 59402 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:52.722 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 54 characters
+11-23 03:22:52.944 22638 22665 I LafinaWhisper: Transcribing 72328 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:22:56.542  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:22:56.772 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 68 characters
+11-23 03:22:56.966 22638 22665 I LafinaWhisper: Transcribing 59645 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:00.787 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:23:01.008 22638 22665 I LafinaWhisper: Transcribing 73773 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:04.913 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 66 characters
+11-23 03:23:05.053 22638 22665 I LafinaWhisper: Transcribing 48062 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:06.519  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:23:08.879 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 49 characters
+11-23 03:23:08.980 22638 22665 I LafinaWhisper: Transcribing 32090 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:12.694 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 33 characters
+11-23 03:23:12.820 22638 22665 I LafinaWhisper: Transcribing 43516 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:14.158  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:23:16.645 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 47 characters
+11-23 03:23:16.729 22638 22665 I LafinaWhisper: Transcribing 25509 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:20.433 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 24 characters
+11-23 03:23:20.530 22638 22665 I LafinaWhisper: Transcribing 25266 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:23.101 26502 26690 W libc    : Access denied finding property "ro.boot.serialno"
+11-23 03:23:23.107 26502 26690 W libc    : Access denied finding property "ro.serialno"
+11-23 03:23:24.393 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 19 characters
+11-23 03:23:24.549 26815 26815 E libc    : SetHeapTaggingLevel: re-enabling tagging after it was disabled is not supported
+11-23 03:23:24.631 22638 22665 I LafinaWhisper: Transcribing 49721 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:25.658 26502 26864 W libc    : Access denied finding property "vendor.camera.aux.packagelist"
+11-23 03:23:25.658 26502 26864 W libc    : Access denied finding property "vendor.camera.aux.packagelistext"
+11-23 03:23:25.665 26502 26791 W libc    : Access denied finding property "vendor.camera.aux.packagelist"
+11-23 03:23:25.666 26502 26791 W libc    : Access denied finding property "vendor.camera.aux.packagelistext"
+11-23 03:23:25.682 26502 26867 W libc    : Access denied finding property "vendor.migl.debug"
+11-23 03:23:28.905 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:23:29.228 22638 22665 I LafinaWhisper: Transcribing 65052 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:32.033  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:23:32.061  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:23:33.515 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 55 characters
+11-23 03:23:33.831 22638 22665 I LafinaWhisper: Transcribing 67704 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:37.978 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 55 characters
+11-23 03:23:38.109 22638 22665 I LafinaWhisper: Transcribing 31464 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:41.834 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 30 characters
+11-23 03:23:42.010 22638 22665 I LafinaWhisper: Transcribing 45658 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:42.016  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:23:45.837 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 46 characters
+11-23 03:23:45.970 22638 22665 I LafinaWhisper: Transcribing 45299 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:49.791 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 40 characters
+11-23 03:23:50.013 22638 22665 I LafinaWhisper: Transcribing 57528 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:53.874 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 61 characters
+11-23 03:23:54.080 22638 22665 I LafinaWhisper: Transcribing 66886 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:23:58.083 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 58 characters
+11-23 03:23:58.253 22638 22665 I LafinaWhisper: Transcribing 58256 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:02.034  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:24:02.098 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:24:02.170 22638 22665 I LafinaWhisper: Transcribing 24117 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:05.885 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 23 characters
+11-23 03:24:06.088 22638 22665 I LafinaWhisper: Transcribing 60573 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:09.973 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:24:10.199 22638 22665 I LafinaWhisper: Transcribing 59402 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:12.022  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:24:14.053 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 54 characters
+11-23 03:24:14.299 22638 22665 I LafinaWhisper: Transcribing 72328 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:18.144 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 68 characters
+11-23 03:24:18.353 22638 22665 I LafinaWhisper: Transcribing 59645 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:22.235 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:24:22.561 22638 22665 I LafinaWhisper: Transcribing 73773 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:26.571 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 66 characters
+11-23 03:24:26.792 22638 22665 I LafinaWhisper: Transcribing 48062 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:30.713 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 49 characters
+11-23 03:24:30.835 22638 22665 I LafinaWhisper: Transcribing 32090 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:32.030  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:24:34.613 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 33 characters
+11-23 03:24:34.777 22638 22665 I LafinaWhisper: Transcribing 43516 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:38.649 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 47 characters
+11-23 03:24:38.746 22638 22665 I LafinaWhisper: Transcribing 25509 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:42.487 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 24 characters
+11-23 03:24:42.584 22638 22665 I LafinaWhisper: Transcribing 25266 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:46.172 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 19 characters
+11-23 03:24:46.363 22638 22665 I LafinaWhisper: Transcribing 49721 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:50.214 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 52 characters
+11-23 03:24:50.411 22638 22665 I LafinaWhisper: Transcribing 65052 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:52.032  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:24:54.324 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 55 characters
+11-23 03:24:54.620 22638 22665 I LafinaWhisper: Transcribing 67704 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:24:58.572 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 56 characters
+11-23 03:24:58.675 22638 22665 I LafinaWhisper: Transcribing 31464 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:25:02.372 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 30 characters
+11-23 03:25:02.617 22638 22665 I LafinaWhisper: Transcribing 45658 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:25:06.453 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 46 characters
+11-23 03:25:06.625 22638 22665 I LafinaWhisper: Transcribing 45299 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:25:10.400 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 41 characters
+11-23 03:25:10.596 22638 22665 I LafinaWhisper: Transcribing 57528 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:25:12.040  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:25:14.158  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:25:14.461 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 60 characters
+11-23 03:25:14.654 22638 22665 I LafinaWhisper: Transcribing 66886 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:25:18.562 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 58 characters
+11-23 03:25:18.730 22638 22665 I LafinaWhisper: Transcribing 58256 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:25:22.049  4528  4528 W libc    : Access denied finding property "persist.vendor.battery.erp"
+11-23 03:25:22.584 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 51 characters
+11-23 03:25:22.743 22638 22665 I LafinaWhisper: Transcribing 24117 samples with 3 threads (commandMode=0, audioCtx=512)
+11-23 03:25:26.515 22638 22665 I LafinaWhisper: Transcription completed with 1 segments and 23 characters
+11-23 03:25:26.669 22638 22665 I SlmTftBenchmark: STT_SUMMARY: stt=4044.8±298.6ms (vad=196.7ms + whisper=3848.2ms, n=100)
+11-23 03:25:26.724 22623 22623 I AndroidRuntime: VM exiting with result code 0.

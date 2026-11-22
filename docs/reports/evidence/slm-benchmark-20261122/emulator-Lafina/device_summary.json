@@ -1,0 +1,133 @@
+{
+    "timestamp":  "2026-11-22T18:31:00.1400009Z",
+    "device":  {
+                   "serial":  "emulator-5554",
+                   "model":  "sdk_gphone64_x86_64",
+                   "abi":  "x86_64,arm64-v8a",
+                   "android":  "16",
+                   "isEmulator":  true,
+                   "avd":  "Lafina"
+               },
+    "baseline":  {
+                     "L_stt_mean_ms":  7982.6387,
+                     "L_stt_sd_ms":  546.2628,
+                     "L_tts_mean_ms":  326.7628,
+                     "L_tts_sd_ms":  48.2617
+                 },
+    "offlineModels":  [
+                          {
+                              "model":  "SmolLM2-135M-Instruct",
+                              "status":  "ok",
+                              "loadMs":  597.8,
+                              "nThreads":  3,
+                              "utterances":  20,
+                              "L_tft":  {
+                                            "mean":  21357.8,
+                                            "std":  1374.9,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "L_e2e":  {
+                                            "mean":  29667.2,
+                                            "std":  1480.3,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "R_peak":  {
+                                             "value":  222.8,
+                                             "peakKb":  228170,
+                                             "samples":  108,
+                                             "unit":  "MB",
+                                             "met":  true
+                                         }
+                          },
+                          {
+                              "model":  "Gemma-3-270M-Instruct",
+                              "status":  "ok",
+                              "loadMs":  5045,
+                              "nThreads":  3,
+                              "utterances":  20,
+                              "L_tft":  {
+                                            "mean":  16654,
+                                            "std":  1592.5,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "L_e2e":  {
+                                            "mean":  24963.4,
+                                            "std":  1684.3,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "R_peak":  {
+                                             "value":  376.7,
+                                             "peakKb":  385765,
+                                             "samples":  78,
+                                             "unit":  "MB",
+                                             "met":  true
+                                         }
+                          },
+                          {
+                              "model":  "Qwen2.5-0.5B-Instruct",
+                              "status":  "ok",
+                              "loadMs":  12760.3,
+                              "nThreads":  3,
+                              "utterances":  20,
+                              "L_tft":  {
+                                            "mean":  53487.4,
+                                            "std":  1054.6,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "L_e2e":  {
+                                            "mean":  61796.8,
+                                            "std":  1188.6,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "R_peak":  {
+                                             "value":  622.8,
+                                             "peakKb":  637762,
+                                             "samples":  215,
+                                             "unit":  "MB",
+                                             "met":  true
+                                         }
+                          },
+                          {
+                              "model":  "Gemma-3-1B-Instruct",
+                              "status":  "ok",
+                              "loadMs":  2287.8,
+                              "nThreads":  3,
+                              "utterances":  20,
+                              "L_tft":  {
+                                            "mean":  261179.2,
+                                            "std":  129104.1,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "L_e2e":  {
+                                            "mean":  269488.6,
+                                            "std":  129105.3,
+                                            "unit":  "ms",
+                                            "met":  false
+                                        },
+                              "R_peak":  {
+                                             "value":  948.3,
+                                             "peakKb":  971066,
+                                             "samples":  714,
+                                             "unit":  "MB",
+                                             "met":  true
+                                         }
+                          }
+                      ],
+    "cloudOnlyModels":  [
+                            {
+                                "model":  "Deepseek-V4",
+                                "status":  "cloud_only_not_offline_slm",
+                                "note":  "DeepSeek (deepseek-flash / deepseek-chat) runs via LAFINA-backend cloud API, not offline via llama.cpp; no offline GGUF exists in src/ai/nlu/modelManager.ts.",
+                                "L_tft":  null,
+                                "L_e2e":  null,
+                                "R_peak":  null
+                            }
+                        ]
+}

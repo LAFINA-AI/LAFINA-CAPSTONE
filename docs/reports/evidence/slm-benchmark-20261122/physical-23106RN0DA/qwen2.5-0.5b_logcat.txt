@@ -1,0 +1,11 @@
+--------- beginning of main
+11-22 23:11:51.730 11454 11454 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-22 23:11:51.754 11454 11454 I AndroidRuntime: Using default boot image
+11-22 23:11:51.754 11454 11454 I AndroidRuntime: Leaving lock profiling enabled
+11-22 23:11:52.267 11454 11454 D AndroidRuntime: Calling main entry com.android.commands.am.Am
+11-22 23:11:54.583 11471 11495 W LafinaLlama: load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+11-22 23:11:56.588 11471 11495 I LafinaLlama: Loaded GGUF model with 4 threads (n_ctx=1024)
+11-22 23:15:46.684 30510 30510 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-22 23:15:49.160   788   798 ? cust_nvram: chipId[0x6768], adieId[0x0000]
+11-22 23:22:45.372 11471 11495 I SlmTftBenchmark: SLM_TFT_SUMMARY [Qwen2.5-0.5B-Instruct]: load=2401.5ms tft=30953.7±552.0ms (n=20)
+11-22 23:22:45.436 11454 11454 I AndroidRuntime: VM exiting with result code 0.
