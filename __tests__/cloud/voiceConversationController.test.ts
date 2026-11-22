@@ -655,10 +655,7 @@ describe('voice conversation controller: lifecycle', () => {
   });
 
   /** The student keeps talking (a new words turn each minute). */
-  const talkUntil = (
-    t: ReturnType<typeof setup>,
-    totalMs: number,
-  ): void => {
+  const talkUntil = (t: ReturnType<typeof setup>, totalMs: number): void => {
     let elapsed = 0;
     let turn = 0;
     while (elapsed + 60_000 <= totalMs) {
@@ -1253,4 +1250,172 @@ it('times out a stalled pre-socket API call instead of hanging in connecting', a
   await started;
   expect(app.controller.getSnapshot().phase).toBe('failed');
   expect(app.controller.getSnapshot().failure?.kind).toBe('connect_failed');
+});
+
+describe('prepare: capabilities asked for when the call screen opens', () => {
+  const counted = (
+    answers: Array<ApiOutcome<{
+      enabled: boolean;
+      maxDurationSeconds: number;
+      maxTurns: number;
+    }> | null>,
+  ) => {
+    const counter = {calls: 0};
+    const capabilities: VoiceConversationDeps['api']['capabilities'] =
+      async () => {
+        const answer = answers[Math.min(counter.calls, answers.length - 1)];
+        counter.calls += 1;
+        // null stands for a request that never answers.
+        return answer ?? new Promise(() => undefined);
+      };
+    return {counter, capabilities};
+  };
+  const ENABLED = {
+    ok: true as const,
+    data: {enabled: true, maxDurationSeconds: 300, maxTurns: 30},
+  };
+
+  it('asks once, and the next start reuses the answer', async () => {
+    const {controller, calls} = setup();
+    controller.prepare();
+    controller.prepare();
+    await flush();
+    expect(calls.capabilities).toBe(1);
+    await controller.start();
+    expect(calls.capabilities).toBe(1);
+    expect(calls.createSession).toHaveLength(1);
+    expect(controller.getSnapshot().phase).toBe('listening');
+    expect(
+      calls.logs.some(line =>
+        /connected in \d+ms \(server \d+ms, audio \d+ms, capabilities prepared\)/.test(
+          line,
+        ),
+      ),
+    ).toBe(true);
+    controller.end();
+  });
+
+  it('asks again once the prepared answer is a minute old', async () => {
+    const {controller, calls, clock} = setup();
+    controller.prepare();
+    await flush();
+    clock.advance(60_001);
+    await controller.start();
+    expect(calls.capabilities).toBe(2);
+    expect(calls.logs.some(line => /capabilities fetched/.test(line))).toBe(
+      true,
+    );
+    controller.end();
+  });
+
+  it.each<[string, Partial<VoiceConversationDeps['gates']>]>([
+    ['no consent', {hasConsent: () => false}],
+    ['guest', {isGuest: () => true}],
+    ['signed out', {isSignedInOwner: () => false}],
+    ['Offline Mode', {isOnlineMode: () => false}],
+  ])('%s: nothing is sent', async (_name, gates) => {
+    const {controller, calls} = setup({gates});
+    controller.prepare();
+    await flush();
+    expect(calls.capabilities).toBe(0);
+  });
+
+  it('is not offered without the native module', async () => {
+    const {controller, calls} = setup({available: false});
+    controller.prepare();
+    await flush();
+    expect(calls.capabilities).toBe(0);
+  });
+
+  it('a failed or disabled answer is never reused', async () => {
+    const {counter, capabilities} = counted([
+      {ok: false, status: 'server_unavailable', message: 'down'},
+      ENABLED,
+    ]);
+    const {controller} = setup({capabilities});
+    controller.prepare();
+    await flush();
+    await controller.start();
+    expect(counter.calls).toBe(2);
+    expect(controller.getSnapshot().phase).toBe('listening');
+    controller.end();
+  });
+
+  it('a stalled prepare is waited for only briefly', async () => {
+    const {counter, capabilities} = counted([null, ENABLED]);
+    const {controller, clock} = setup({capabilities});
+    controller.prepare();
+    await flush();
+    clock.advance(5_001);
+    await controller.start();
+    expect(counter.calls).toBe(2);
+    expect(controller.getSnapshot().phase).toBe('listening');
+    controller.end();
+  });
+
+  it('an answer still on its way is shared with an early tap', async () => {
+    let answer!: (value: typeof ENABLED) => void;
+    let count = 0;
+    const {controller} = setup({
+      capabilities: () => {
+        count += 1;
+        return new Promise(resolve => {
+          answer = resolve;
+        });
+      },
+    });
+    controller.prepare();
+    await flush();
+    const started = controller.start();
+    await flush();
+    answer(ENABLED);
+    await started;
+    expect(count).toBe(1);
+    expect(controller.getSnapshot().phase).toBe('listening');
+    controller.end();
+  });
+});
+
+describe('endAfterReply (CALLFIX-03)', () => {
+  it('ends the call once the next spoken answer has finished playing', async () => {
+    const {controller, clock, emit, message, calls} = setup();
+    await controller.start();
+    message(userFinal('bye', 901));
+    controller.endAfterReply(10_000);
+    message(agentFinal('Bye for now!', 902));
+    emit({kind: 'playback', speaking: true});
+    clock.advance(1_000);
+    expect(controller.getSnapshot().phase).toBe('speaking');
+    emit({kind: 'playback', speaking: false});
+    expect(controller.getSnapshot().phase).toBe('listening');
+    clock.advance(500);
+    expect(controller.getSnapshot().phase).toBe('ended');
+    expect(calls.transportEnd).toHaveLength(1);
+  });
+
+  it('ends after the cap when no answer is heard', async () => {
+    const {controller, clock} = setup();
+    await controller.start();
+    controller.endAfterReply(10_000);
+    clock.advance(9_000);
+    expect(controller.getSnapshot().phase).not.toBe('ended');
+    clock.advance(1_500);
+    expect(controller.getSnapshot().phase).toBe('ended');
+  });
+
+  it('a new student turn or cancel keeps the call open', async () => {
+    const {controller, clock, emit, message} = setup();
+    await controller.start();
+    controller.endAfterReply(10_000);
+    message(userFinal('wait, one more thing', 911));
+    emit({kind: 'playback', speaking: true});
+    emit({kind: 'playback', speaking: false});
+    clock.advance(11_000);
+    expect(controller.getSnapshot().phase).not.toBe('ended');
+
+    controller.endAfterReply(10_000);
+    controller.cancelEndAfterReply();
+    clock.advance(11_000);
+    expect(controller.getSnapshot().phase).not.toBe('ended');
+  });
 });

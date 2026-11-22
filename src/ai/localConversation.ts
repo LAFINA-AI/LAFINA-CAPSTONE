@@ -109,6 +109,9 @@ const firstName = (userId: string): string | null => {
   }
 };
 
+/** The name LAFINA greets the student by, or null. */
+export const studentFirstName = firstName;
+
 /** 12-hour time, as the rest of the app shows it. */
 const formatTime = (hhmm: string): string => {
   const [h, m] = hhmm.split(':').map(Number);

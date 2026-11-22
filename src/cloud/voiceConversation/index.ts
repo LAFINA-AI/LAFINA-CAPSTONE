@@ -13,12 +13,16 @@ import {handbookPreference} from '../../skills/onlineChatSkill';
 import {accountLinkService} from '../accountLinkService';
 import {cloudClient} from '../cloudClient';
 import {isGuestAccount} from '../entitlements';
-import {VoiceConversationController} from './controller';
 import type {VoiceConversationDeps} from './controller';
+import type {ConversationController} from './types';
 import {nativeVoiceTransport} from './nativeTransport';
 import {voiceConversationApi} from './voiceConversationApi';
 import {buildStudentVoiceContext} from './localVoiceData';
 import {isUstpSchoolEnabled} from '../../storage/ustpEligibility';
+import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {chatMemoryService} from '../chatMemoryService';
+import {explicitMemory} from '../../ai/explicitMemory';
+import {isForgetAllMemoriesRequest} from '../../ai/chatMemoryCommands';
 
 export {
   VoiceConversationController,
@@ -113,6 +117,51 @@ const allowLocalTestServer = (): boolean => {
   return typeof override === 'string' && override.trim().length > 0;
 };
 
+const createVoicePersistence = (userId: string) => {
+  let lastUserTurn: {text: string; revision: string} | null = null;
+  return {
+    // Saved to this account's general Chat only while it is still the signed-in one.
+    userTurn: (text: string) => {
+      if (!isSignedInOwner(userId)) return;
+      lastUserTurn = {
+        text,
+        revision: chatMemoryStore.revision(userId),
+      };
+      chatStore.addGeneralMessage(userId, 'user', text);
+    },
+    assistantTurn: (text: string, heard: 'complete' | 'interrupted') => {
+      if (!isSignedInOwner(userId)) return;
+      const saved = chatStore.addGeneralMessage(userId, 'assistant', text, {
+        voiceInterrupted: heard === 'interrupted',
+      });
+      const captured = lastUserTurn;
+      lastUserTurn = null;
+      if (
+        saved &&
+        heard === 'complete' &&
+        captured &&
+        captured.text.trim().length >= 8 &&
+        text.trim().length >= 4 &&
+        !directProviderTestEnabled() &&
+        (!explicitMemory(captured.text) ||
+          isForgetAllMemoriesRequest(captured.text)) &&
+        (isForgetAllMemoriesRequest(captured.text) ||
+          (chatMemoryService.isActive(userId) &&
+            Boolean(cloudClient.getAccessToken())))
+      ) {
+        void chatMemoryService.afterExchange({
+          userId,
+          sessionId: saved.sessionId,
+          assistantMessageId: saved.id,
+          userText: captured.text,
+          replyText: text,
+          memoryRevision: captured.revision,
+        });
+      }
+    },
+  };
+};
+
 /** Production dependencies for one account's conversation. */
 export const defaultVoiceConversationDeps = (
   userId: string,
@@ -122,8 +171,9 @@ export const defaultVoiceConversationDeps = (
     isForeground: () => AppState.currentState === 'active',
     isGuest: () => isGuestAccount(userId),
     isSignedInOwner: () => isSignedInOwner(userId),
+    // Matches callMode.ts: only an explicit Offline Mode ('false') blocks online calls.
     isOnlineMode: () =>
-      localSettingsStore.get(userId, ONLINE_MODE_KEY, null) === 'true',
+      localSettingsStore.get(userId, ONLINE_MODE_KEY, null) !== 'false',
     isOnline: () => cloudClient.isOnline(),
     hasConsent: () =>
       voiceConsent.read(userId) &&
@@ -142,24 +192,13 @@ export const defaultVoiceConversationDeps = (
   api: directProviderTestEnabled() ? directTestVoiceApi : voiceConversationApi,
   transport: nativeVoiceTransport,
   allowLocalTestServer: allowLocalTestServer(),
-  persistence: {
-    // Saved to this account's Chat only while it is still the signed-in one.
-    userTurn: text => {
-      if (isSignedInOwner(userId)) chatStore.addMessage(userId, 'user', text);
-    },
-    assistantTurn: (text, heard) => {
-      if (!isSignedInOwner(userId)) return;
-      chatStore.addMessage(userId, 'assistant', text, null, {
-        voiceInterrupted: heard === 'interrupted',
-      });
-    },
-  },
+  persistence: createVoicePersistence(userId),
   log: line => console.log(line),
   ...extra,
 });
 
 // One conversation app-wide, so a reminder call or sign-out can end it.
-let active: VoiceConversationController | null = null;
+let active: ConversationController | null = null;
 let pendingRelease: Promise<void> = Promise.resolve();
 const voiceOwners = new Set<() => void>();
 const notifyVoiceOwner = (): void =>
@@ -176,7 +215,7 @@ let acquisition = 0;
 
 /** Every explicit start reacquires ownership, including a retained panel restart. */
 export const startVoiceConversation = async (
-  controller: VoiceConversationController,
+  controller: ConversationController,
 ): Promise<void> => {
   const token = ++acquisition;
   if (active && active !== controller) {
@@ -191,7 +230,7 @@ export const startVoiceConversation = async (
 };
 
 export const registerVoiceConversation = (
-  controller: VoiceConversationController,
+  controller: ConversationController,
 ): (() => void) => {
   // Mounting an idle reminder panel must not displace a retained live panel.
   const update = () => {
@@ -231,5 +270,5 @@ export const waitForVoiceConversationRelease = (): Promise<void> =>
 export const isVoiceConversationActive = (): boolean =>
   active?.isActive() === true;
 
-export const getActiveVoiceConversation =
-  (): VoiceConversationController | null => active;
+export const getActiveVoiceConversation = (): ConversationController | null =>
+  active;

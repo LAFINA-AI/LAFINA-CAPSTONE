@@ -8,6 +8,7 @@ import type {
   ConversationSnapshot,
   ConversationTurn,
   TransportEvent,
+  VoiceCapabilities,
   VoiceConversationApi,
   VoiceTransport,
 } from './types';
@@ -124,6 +125,8 @@ const ACTIVE: ReadonlySet<ConversationPhase> = new Set([
 const MEANINGFUL = /[0-9A-Za-zÀ-ɏͰ-῿぀-￯]/;
 /** Quiet playback this long after a complete answer means it was heard to the end. */
 const PLAYBACK_SETTLE_MS = 1200;
+/** After a goodbye finishes playing, the line closes this much later. */
+const END_AFTER_REPLY_TAIL_MS = 400;
 /** End this long before the server's limit; its clock starts at socket open. */
 const LIMIT_EARLY_MS = 5000;
 /** A remote close this close to the limit is the limit, not a dropped call. */
@@ -238,8 +241,19 @@ export const reminderCallContext = (
   }. A planner change appears as a card only when an app update says a card is shown; never say a card is on screen otherwise.`;
 };
 
+/** A capabilities answer fetched by `prepare()` is reused this long. */
+const PREPARED_FRESH_MS = 60_000;
+/** A `prepare()` request still on its way is waited for only this long. */
+const PREPARED_PENDING_MS = 5_000;
+
 export class VoiceConversationController {
   private readonly deps: VoiceConversationDeps;
+  /** The server's capabilities, asked for when the call screen opened. */
+  private prepared: {
+    at: number;
+    state: 'pending' | 'ready' | 'failed';
+    result: Promise<ApiOutcome<VoiceCapabilities>>;
+  } | null = null;
   private readonly clock: ConversationClock;
   private readonly limits: VoiceConversationLimits;
   private readonly timers: ReturnType<typeof ownTimers>;
@@ -278,6 +292,8 @@ export class VoiceConversationController {
   private silenceRequestedAt: number | null = null;
   private turnCounter = 0;
   private speechPaused = false;
+  /** endAfterReply is waiting for LAFINA's next spoken answer to finish. */
+  private endAfter: {sawSpeech: boolean} | null = null;
   private muteQueue: Promise<boolean> = Promise.resolve(true);
 
   private queueMute(live: LiveSession, muted: boolean): Promise<boolean> {
@@ -332,8 +348,57 @@ export class VoiceConversationController {
 
   private update(patch: Partial<ConversationSnapshot>) {
     if (this.disposed) return;
+    const before = this.snapshot.phase;
     this.snapshot = {...this.snapshot, ...patch};
     for (const listener of [...this.listeners]) listener(this.snapshot);
+    this.checkEndAfterReply(before);
+  }
+
+  /**
+   * Ends the call once LAFINA's next spoken answer has finished playing (a
+   * goodbye, or "opening Pomodoro"), or after `maxMs` if no answer is heard.
+   * A new student turn cancels it.
+   */
+  endAfterReply = (maxMs = 10_000): void => {
+    if (!this.live) {
+      this.end();
+      return;
+    }
+    this.endAfter = {sawSpeech: false};
+    const gen = this.generation;
+    this.timers.set('endAfterReply', maxMs, () => {
+      if (gen !== this.generation || !this.endAfter) return;
+      this.endAfter = null;
+      this.log('endAfterReply: no answer heard in time; ending');
+      this.end();
+    });
+  };
+
+  cancelEndAfterReply = (): void => {
+    if (!this.endAfter) return;
+    this.endAfter = null;
+    this.timers.clear('endAfterReply');
+  };
+
+  isEndingAfterReply = (): boolean => this.endAfter !== null;
+
+  private checkEndAfterReply(before: ConversationPhase) {
+    const waiting = this.endAfter;
+    if (!waiting) return;
+    const phase = this.snapshot.phase;
+    if (phase === 'speaking') {
+      waiting.sawSpeech = true;
+      return;
+    }
+    if (!waiting.sawSpeech || before !== 'speaking' || phase !== 'listening')
+      return;
+    // The answer finished. A short pause lets its last syllable leave the
+    // speaker before the line closes.
+    this.endAfter = null;
+    const gen = this.generation;
+    this.timers.set('endAfterReply', END_AFTER_REPLY_TAIL_MS, () => {
+      if (gen === this.generation) this.end();
+    });
   }
 
   private log(line: string) {
@@ -341,6 +406,56 @@ export class VoiceConversationController {
   }
 
   // ── Start ─────────────────────────────────────────────────────────────
+
+  /**
+   * Asks the server what it offers before the student taps Call, so the
+   * call starts one round trip sooner (an expired sign-in token is renewed
+   * then too). Only for a signed-in student in Online Mode who already
+   * consented; no audio, context or student data is sent.
+   */
+  prepare = (): void => {
+    if (this.disposed || ACTIVE.has(this.snapshot.phase)) return;
+    const {gates, transport, api} = this.deps;
+    try {
+      if (
+        !transport.available() ||
+        gates.isGuest() ||
+        !gates.isSignedInOwner() ||
+        !gates.isOnlineMode() ||
+        !gates.hasConsent()
+      )
+        return;
+    } catch {
+      return;
+    }
+    if (this.takePrepared()) return;
+    const entry = {
+      at: this.clock.now(),
+      state: 'pending' as 'pending' | 'ready' | 'failed',
+      result: Promise.resolve()
+        .then(() => api.capabilities(new AbortController().signal))
+        .then(outcome => {
+          entry.state =
+            outcome?.ok && outcome.data.enabled ? 'ready' : 'failed';
+          return outcome;
+        }),
+    };
+    entry.result.catch(() => {
+      entry.state = 'failed';
+    });
+    this.prepared = entry;
+  };
+
+  /** A recent, usable `prepare()` answer, or null to ask the server again. */
+  private takePrepared(): Promise<ApiOutcome<VoiceCapabilities>> | null {
+    const entry = this.prepared;
+    if (!entry) return null;
+    const age = this.clock.now() - entry.at;
+    if (entry.state === 'ready' && age < PREPARED_FRESH_MS) return entry.result;
+    if (entry.state === 'pending' && age < PREPARED_PENDING_MS)
+      return entry.result;
+    return null;
+  }
 
   start = async (): Promise<void> => {
     if (this.disposed || ACTIVE.has(this.snapshot.phase)) return; // double tap
@@ -452,8 +567,10 @@ export class VoiceConversationController {
           },
         );
       });
+    const startedAt = this.clock.now();
+    const prepared = this.takePrepared();
     const capabilities = await awaitUntilAborted(
-      api.capabilities(controller.signal),
+      prepared ?? api.capabilities(controller.signal),
     );
     if (stale()) {
       this.timers.clear('api_connect');
@@ -506,7 +623,11 @@ export class VoiceConversationController {
         }
         return outcome;
       });
+    // Built while the server creates the session, not after; handed to
+    // native once, never stored or logged.
+    const rawContext = this.deps.getStudentContext?.() ?? '';
     const session = await awaitUntilAborted(sessionPromise);
+    const sessionAt = this.clock.now();
     this.timers.clear('api_connect');
     if (stale()) {
       // Ended while the server was creating it: close it there too.
@@ -544,8 +665,6 @@ export class VoiceConversationController {
       this.onEvent(gen, event),
     );
     this.live = live;
-    // Built here, handed to native once, never stored or logged.
-    const rawContext = this.deps.getStudentContext?.() ?? '';
     const studentContext =
       rawContext.length > 12000 ? rawContext.slice(0, 12000) : rawContext;
     const initiation = JSON.stringify({
@@ -600,6 +719,14 @@ export class VoiceConversationController {
     }
     this.timers.clear('connect');
     if (stale()) return;
+    // Timings only, for logcat: how long the student waited, and where.
+    this.log(
+      `connected in ${this.clock.now() - startedAt}ms (server ${
+        sessionAt - startedAt
+      }ms, audio ${this.clock.now() - sessionAt}ms, capabilities ${
+        prepared ? 'prepared' : 'fetched'
+      })`,
+    );
     const endsAt = this.clock.now() + session.data.maxDurationSeconds * 1000;
     this.update({
       phase: 'listening',
@@ -725,6 +852,7 @@ export class VoiceConversationController {
   };
 
   dispose = (): void => {
+    this.prepared = null;
     this.generation += 1;
     this.teardown();
     this.disposed = true;
@@ -1219,6 +1347,8 @@ export class VoiceConversationController {
 
   private acceptUserTurn(trimmed: string, turnId: string) {
     this.turnGeneration += 1;
+    // New words from the student: they are not leaving after all.
+    this.cancelEndAfterReply();
     // A new turn closes the previous answer.
     if (this.pending && !this.pending.committed) {
       if (!this.pending.complete || this.snapshot.phase === 'speaking') {
@@ -1471,6 +1601,7 @@ export class VoiceConversationController {
   /** Releases everything this controller owns. Safe to call repeatedly. */
   private teardown() {
     this.speechPaused = false;
+    this.endAfter = null;
     this.abort?.abort();
     this.abort = null;
     this.timers.clearAll();
