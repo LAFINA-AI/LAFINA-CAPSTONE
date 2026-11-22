@@ -4,7 +4,7 @@
  */
 import {DeviceEventEmitter} from 'react-native';
 import {chatStore} from '../../storage/chatStore';
-import {studentFirstName} from '../localConversation';
+import {callGreetingFor} from '../callGreetings';
 import {
   cancelOfflineSpeechCapture,
   isMicrophoneBusyError,
@@ -12,15 +12,18 @@ import {
 } from '../native/speechCapture';
 import {ensureMicrophonePermission, isSTTAvailable} from '../stt/sttService';
 import {initTts, startOwnedSpeech, stopOwnedSpeech} from '../tts/ttsService';
+import {
+  OFFLINE_CALL_END_SILENCE_MS,
+  OFFLINE_CALL_LEAD_IN_IGNORE_MS,
+} from './offlineCallController';
 import type {OfflineCallDeps} from './offlineCallController';
-import {offlineGreeting} from './spokenReplies';
 
 export const defaultOfflineCallDeps = (
   userId: string,
   respond: OfflineCallDeps['respond'],
 ): OfflineCallDeps => ({
   respond,
-  greeting: () => offlineGreeting(studentFirstName(userId)),
+  greeting: () => callGreetingFor(userId, 'offline'),
   speech: {
     isAvailable: isSTTAvailable,
     ensurePermission: ensureMicrophonePermission,
@@ -46,6 +49,12 @@ export const defaultOfflineCallDeps = (
       );
       return () => subscription.remove();
     },
+  },
+  // A shorter end-of-turn pause, and the first moments after LAFINA spoke
+  // ignored so her own voice in the room is not heard as the student.
+  capture: {
+    endSilenceMs: OFFLINE_CALL_END_SILENCE_MS,
+    leadInIgnoreMs: OFFLINE_CALL_LEAD_IN_IGNORE_MS,
   },
   voice: {
     ready: initTts,

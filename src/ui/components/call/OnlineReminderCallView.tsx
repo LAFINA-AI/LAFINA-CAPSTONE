@@ -28,6 +28,11 @@ import {Fonts, Layout, ModernLayout, Shadows} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {SynthWaveAvatar} from '../callLafina/SynthWaveAvatar';
 import {CallWaveform} from '../callLafina/CallWaveform';
+import {
+  MeteredCallWaveform,
+  MeteredSynthWaveAvatar,
+} from '../callLafina/MeteredCallVisuals';
+import type {CallMeter} from '../../hooks/callMeter';
 import {ChatReplyText} from '../chat/ChatReplyText';
 import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
 import {formatCallReplyMarkdown} from '../../../utils';
@@ -38,6 +43,7 @@ interface OnlineReminderCallViewProps {
   task: string;
   /** The online conversation's latest state; null until it is mounted. */
   snapshot: ConversationSnapshot | null;
+  meter?: CallMeter | null;
   /** The scheduler's call state ("speaking" while the reminder is read). */
   callState: CallState;
   resolution: CallResolution | null;
@@ -79,6 +85,7 @@ const formatClock = (seconds: number): string => {
 export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
   task,
   snapshot,
+  meter,
   callState,
   resolution,
   reply,
@@ -238,13 +245,22 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
                   },
                 ]}
               >
-                <SynthWaveAvatar
-                  phase={avatarPhase}
-                  outputLevel={snapshot?.outputLevel ?? 0}
-                  userLevel={snapshot?.level ?? 0}
-                  muted={muted}
-                  size={reviewCard ? 48 : 76}
-                />
+                {meter ? (
+                  <MeteredSynthWaveAvatar
+                    meter={meter}
+                    phase={avatarPhase}
+                    muted={muted}
+                    size={reviewCard ? 48 : 76}
+                  />
+                ) : (
+                  <SynthWaveAvatar
+                    phase={avatarPhase}
+                    outputLevel={snapshot?.outputLevel ?? 0}
+                    userLevel={snapshot?.level ?? 0}
+                    muted={muted}
+                    size={reviewCard ? 48 : 76}
+                  />
+                )}
               </View>
               <Text
                 style={[styles.timerText, {color: colors.textPrimary}]}
@@ -267,15 +283,26 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
                 {statusText}
               </Text>
               {live && !reviewCard ? (
-                <CallWaveform
-                  phase={phase}
-                  muted={muted}
-                  micCapturing={!!snapshot?.micCapturing}
-                  userLevel={snapshot?.level ?? 0}
-                  outputLevel={snapshot?.outputLevel ?? 0}
-                  activeTool={snapshot?.toolPhrase ?? null}
-                  showStatusText={false}
-                />
+                meter ? (
+                  <MeteredCallWaveform
+                    meter={meter}
+                    phase={phase}
+                    muted={muted}
+                    micCapturing={!!snapshot?.micCapturing}
+                    activeTool={snapshot?.toolPhrase ?? null}
+                    showStatusText={false}
+                  />
+                ) : (
+                  <CallWaveform
+                    phase={phase}
+                    muted={muted}
+                    micCapturing={!!snapshot?.micCapturing}
+                    userLevel={snapshot?.level ?? 0}
+                    outputLevel={snapshot?.outputLevel ?? 0}
+                    activeTool={snapshot?.toolPhrase ?? null}
+                    showStatusText={false}
+                  />
+                )
               ) : null}
             </View>
 

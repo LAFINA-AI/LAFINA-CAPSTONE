@@ -6,6 +6,16 @@ export interface OfflineSpeechCaptureOptions {
   mode: OfflineSpeechCaptureMode;
   bargeIn: boolean;
   context: 'main_mic' | 'reminder_call';
+  /**
+   * Automatic mode: how long a pause ends the utterance (native default 1000
+   * ms for main_mic). The offline call uses a shorter pause to answer sooner.
+   */
+  endSilenceMs?: number;
+  /**
+   * Audio in the first milliseconds is ignored, so the tail of LAFINA's own
+   * line still in the room is never heard as the student.
+   */
+  leadInIgnoreMs?: number;
 }
 
 export interface OfflineSpeechResult {
@@ -15,6 +25,8 @@ export interface OfflineSpeechResult {
   cancelled: boolean;
   captureDurationMs: number;
   inferenceDurationMs: number;
+  /** Peak Silero VAD score of the capture (0–1); absent from older builds. */
+  maxVadProbability?: number;
 }
 
 export interface OfflineSpeechCaptureHandle {
@@ -104,14 +116,20 @@ export const hasOfflineSpeechCapture = (): boolean =>
   getNativeModule() !== null;
 
 /**
- * Preloads the Whisper model in the background. Fire-and-forget: a failed or missing
- * warmup just means the next capture loads the model itself, as before.
+ * Preloads the Whisper model in the background. Never rejects: a failed or
+ * missing warmup just means the next capture loads the model itself. The
+ * returned promise settles when loading is done, so a caller can start other
+ * heavy work (the offline language model) after it instead of beside it.
  */
-export const warmupOfflineSpeech = (): void => {
+export const warmupOfflineSpeech = (): Promise<void> => {
   try {
-    void Promise.resolve(getNativeModule()?.warmup?.()).catch(() => undefined);
+    return Promise.resolve(getNativeModule()?.warmup?.()).then(
+      () => undefined,
+      () => undefined,
+    );
   } catch {
     // A missing or throwing warmup only means a cold first capture.
+    return Promise.resolve();
   }
 };
 

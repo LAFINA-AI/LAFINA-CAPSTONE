@@ -15,6 +15,10 @@ import type {
 } from '../../cloud/voiceConversation';
 import {createCallMeter, levelsOf, routeSnapshot} from './callMeter';
 import type {CallMeter} from './callMeter';
+import {setKeepScreenOn} from '../../utils/keepScreenOn';
+
+/** Each mounted conversation holds the screen under its own name. */
+let screenOwnerSeq = 0;
 
 /** Why an online call stops when the connection drops; the call screen offers offline. */
 export const NETWORK_DROP_REASON =
@@ -89,6 +93,8 @@ export const useVoiceConversation = (
      * answered reminder). Read once, when the conversation is created.
      */
     extraContext?: string;
+    /** Hide and silence the agent's fixed opening line (the app already spoke). */
+    quietOpening?: boolean;
     /** Tests inject fakes here. */
     deps?: (userId: string) => VoiceConversationDeps;
   } = {},
@@ -109,6 +115,7 @@ export const useVoiceConversation = (
   toolRef.current = options.onClientTool;
   const depsFactory = useRef(options.deps ?? defaultVoiceConversationDeps);
   const extraContext = useRef(options.extraContext?.trim() ?? '');
+  const quietOpening = useRef(options.quietOpening === true);
 
   useEffect(() => {
     const deps = depsFactory.current(userId);
@@ -127,6 +134,7 @@ export const useVoiceConversation = (
       onAgentText: text => agentTextRef.current?.(text),
       suppressAgentResponse: () => suppressRef.current?.() ?? false,
       appOwnedAudio: appOwnedAudio.current,
+      quietOpening: quietOpening.current,
       onClientTool: (name, parameters, isCurrent) =>
         toolRef.current
           ? toolRef.current(name, parameters, isCurrent)
@@ -137,9 +145,18 @@ export const useVoiceConversation = (
     const first = controller.getSnapshot();
     setSnapshot(first);
     meter.set(levelsOf(first));
-    const unsubscribe = controller.subscribe(next =>
-      routeSnapshot(meter, setSnapshot, next),
-    );
+    const screenOwner = `voice-conversation-${++screenOwnerSeq}`;
+    let screenHeld = false;
+    const holdScreen = (live: boolean): void => {
+      if (live === screenHeld) return;
+      screenHeld = live;
+      // A screen that times out pauses the app, which ends the call.
+      setKeepScreenOn(screenOwner, live);
+    };
+    const unsubscribe = controller.subscribe(next => {
+      routeSnapshot(meter, setSnapshot, next);
+      holdScreen(controller.isActive());
+    });
     const unregister = registerVoiceConversation(controller);
 
     const app = AppState.addEventListener('change', state => {
@@ -182,6 +199,7 @@ export const useVoiceConversation = (
       unsubscribe();
       unregister();
       controller.dispose();
+      holdScreen(false);
       if (controllerRef.current === controller) controllerRef.current = null;
     };
   }, [userId, meter]);

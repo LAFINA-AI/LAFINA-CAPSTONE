@@ -6,6 +6,7 @@ import {
   useRef,
 } from 'react';
 import {useVoiceConversation} from '../../hooks/useVoiceConversation';
+import type {CallMeter} from '../../hooks/callMeter';
 import {reminderCallContext} from '../../../cloud/voiceConversation';
 import type {ConversationSnapshot} from '../../../cloud/voiceConversation';
 import {actionService} from '../../../ai/voiceActions/actionService';
@@ -26,6 +27,7 @@ interface Props {
   userId: string;
   task: string;
   onSnapshot: (snapshot: ConversationSnapshot) => void;
+  onMeter?: (meter: CallMeter) => void;
   onSpokenTurn: (text: string) => void;
   /** Snoozes the reminder this call is about (the agent's snooze_reminder). */
   onSnooze?: (minutes: number) => Promise<string>;
@@ -58,7 +60,11 @@ export const REMINDER_CALL_WRITE_NOTE =
 export const OnlineReminderConversation = forwardRef<
   OnlineReminderHandle,
   Props
->(({userId, task, onSnapshot, onSpokenTurn, onSnooze, snoozeMinutes}, ref) => {
+>(
+  (
+    {userId, task, onSnapshot, onMeter, onSpokenTurn, onSnooze, snoozeMinutes},
+    ref,
+  ) => {
   const snooze = useRef(onSnooze);
   snooze.current = onSnooze;
   const toolSession = useRef(generateId('reminder-call'));
@@ -102,6 +108,9 @@ export const OnlineReminderConversation = forwardRef<
   const conversation = useVoiceConversation(userId, {
     onFinalUserText: onSpokenTurn,
     extraContext: reminderCallContext(task, snoozeMinutes),
+    // The app read the reminder aloud already; skip the agent's generic
+    // "I'm listening" greeting so the call does not start over.
+    quietOpening: true,
     onClientTool,
   });
   const current = useRef(conversation);
@@ -130,21 +139,28 @@ export const OnlineReminderConversation = forwardRef<
       current.current.end();
     };
   }, []);
-  // The reminder call screen draws its own avatar from these snapshots, so
-  // the live levels (kept apart from the hook's snapshot) are put back in.
   const {snapshot, meter} = conversation;
   const latestSnapshot = useRef(snapshot);
   latestSnapshot.current = snapshot;
+  const hasMeterCallback = Boolean(onMeter);
+  const meterCallback = useRef(onMeter);
+  meterCallback.current = onMeter;
   useEffect(() => {
-    snapshotCallback.current({...snapshot, ...meter.get()});
-  }, [snapshot, meter]);
-  useEffect(
-    () =>
-      meter.subscribe(() =>
-        snapshotCallback.current({...latestSnapshot.current, ...meter.get()}),
-      ),
-    [meter],
-  );
+    meterCallback.current?.(meter);
+  }, [meter, hasMeterCallback]);
+  useEffect(() => {
+    if (hasMeterCallback) {
+      snapshotCallback.current(snapshot);
+    } else {
+      snapshotCallback.current({...snapshot, ...meter.get()});
+    }
+  }, [snapshot, meter, hasMeterCallback]);
+  useEffect(() => {
+    if (hasMeterCallback) return undefined;
+    return meter.subscribe(() =>
+      snapshotCallback.current({...latestSnapshot.current, ...meter.get()}),
+    );
+  }, [meter, hasMeterCallback]);
 
   return null;
 });

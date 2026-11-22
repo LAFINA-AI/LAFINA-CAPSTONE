@@ -1419,3 +1419,129 @@ describe('endAfterReply (CALLFIX-03)', () => {
     expect(controller.getSnapshot().phase).not.toBe('ended');
   });
 });
+
+describe('quiet opening (reminder call: the app already read the reminder)', () => {
+  it('asks the transport to drop the opening audio and hides the fixed greeting', async () => {
+    const {controller, deps, calls, message} = setup();
+    deps.quietOpening = true;
+    await controller.start();
+    expect(calls.transportStart[0]).toMatchObject({suppressOpeningAudio: true});
+    message(agentFinal("Hi, I'm listening. What's on your mind?", 50));
+    expect(
+      controller.getSnapshot().turns.filter(t => t.role === 'assistant'),
+    ).toEqual([]);
+    expect(calls.assistantTurns).toEqual([]);
+    controller.dispose();
+  });
+
+  it('answers normally from the student\'s first spoken words', async () => {
+    const {controller, deps, message} = setup();
+    deps.quietOpening = true;
+    await controller.start();
+    message(agentFinal("Hi, I'm listening. What's on your mind?", 50));
+    message(userFinal('Call me back in ten minutes', 51));
+    message(agentFinal('Okay, I will call you back in ten minutes.', 52));
+    const answers = controller
+      .getSnapshot()
+      .turns.filter(t => t.role === 'assistant')
+      .map(t => t.text);
+    expect(answers).toEqual(['Okay, I will call you back in ten minutes.']);
+    controller.dispose();
+  });
+
+  it('answers normally after a typed first turn', async () => {
+    const {controller, deps, message} = setup();
+    deps.quietOpening = true;
+    await controller.start();
+    await controller.sendText('What else is due today?');
+    message(agentFinal('Your lab report is due at 5 PM.', 60));
+    expect(
+      controller.getSnapshot().turns.some(
+        t => t.role === 'assistant' && t.text === 'Your lab report is due at 5 PM.',
+      ),
+    ).toBe(true);
+    controller.dispose();
+  });
+
+  it('a normal Call LAFINA still shows its greeting', async () => {
+    const {controller, calls, message} = setup();
+    await controller.start();
+    expect(calls.transportStart[0]).not.toHaveProperty('suppressOpeningAudio');
+    message(agentFinal("Hi, I'm listening. What's on your mind?", 70));
+    expect(
+      controller.getSnapshot().turns.some(t => t.role === 'assistant'),
+    ).toBe(true);
+    controller.dispose();
+  });
+});
+
+describe('opening line', () => {
+  const allowOpening = (): VoiceConversationDeps['api']['capabilities'] =>
+    async () => ({
+      ok: true,
+      data: {
+        enabled: true,
+        maxDurationSeconds: 300,
+        maxTurns: 30,
+        openingLine: true,
+      },
+    });
+
+  it("keeps the agent's own line when the server does not allow another", async () => {
+    const app = setup();
+    app.deps.getOpeningLine = () => 'Hey Ana! What is up?';
+    await app.controller.start();
+    const initiation = JSON.parse(app.calls.transportStart[0].initiation);
+    expect(initiation.conversation_config_override).toEqual({
+      tts: {voice_id: 'voice_1'},
+    });
+    app.controller.end();
+  });
+
+  it("sends LAFINA's chosen line when the agent accepts it", async () => {
+    const app = setup({capabilities: allowOpening()});
+    app.deps.getOpeningLine = () => 'Hey Ana! What is up?';
+    await app.controller.start();
+    const initiation = JSON.parse(app.calls.transportStart[0].initiation);
+    expect(initiation.conversation_config_override).toEqual({
+      tts: {voice_id: 'voice_1'},
+      agent: {first_message: 'Hey Ana! What is up?'},
+    });
+    app.controller.end();
+  });
+
+  it('a reminder call asks the agent for no opening at all', async () => {
+    const app = setup({capabilities: allowOpening()});
+    app.deps.quietOpening = true;
+    app.deps.getOpeningLine = () => 'Hey Ana! What is up?';
+    await app.controller.start();
+    const initiation = JSON.parse(app.calls.transportStart[0].initiation);
+    expect(initiation.conversation_config_override.agent).toEqual({
+      first_message: '',
+    });
+    app.controller.end();
+  });
+
+  it("drops the agent's variable braces, and falls back on a broken picker", async () => {
+    const braces = setup({capabilities: allowOpening()});
+    braces.deps.getOpeningLine = () => 'Hi {{system__time}} Ana!';
+    await braces.controller.start();
+    expect(
+      JSON.parse(braces.calls.transportStart[0].initiation)
+        .conversation_config_override.agent,
+    ).toEqual({first_message: 'Hi system__time Ana!'});
+    braces.controller.end();
+
+    const broken = setup({capabilities: allowOpening()});
+    broken.deps.getOpeningLine = () => {
+      throw new Error('settings unreadable');
+    };
+    await broken.controller.start();
+    expect(
+      JSON.parse(broken.calls.transportStart[0].initiation)
+        .conversation_config_override.agent,
+    ).toBeUndefined();
+    expect(broken.controller.getSnapshot().phase).toBe('listening');
+    broken.controller.end();
+  });
+});

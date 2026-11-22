@@ -1898,6 +1898,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         modelPath: getModelPathForId('gemma-3-270m'),
         promptFormat: 'gemma',
         minValidBytes: expect.any(Number),
+        requestId: expect.any(String),
       });
 
       await downloadOfflineModel('gemma-3-1b', undefined, presetTestUser);
@@ -1915,6 +1916,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         modelPath: getModelPathForId('gemma-3-1b'),
         promptFormat: 'gemma',
         minValidBytes: expect.any(Number),
+        requestId: expect.any(String),
       });
     });
 
@@ -1962,6 +1964,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         modelPath: getModelPathForId('smollm2-135m'),
         promptFormat: 'chatml',
         minValidBytes: expect.any(Number),
+        requestId: expect.any(String),
       });
     });
 

@@ -89,6 +89,12 @@ export interface VoiceCapabilities {
   maxDurationSeconds: number;
   maxTurns: number;
   detail?: string | null;
+  /**
+   * The voice agent accepts the app's opening line (its `first_message`
+   * override is enabled). Absent or false: the agent's fixed line is used,
+   * since sending an override it does not allow would end the call.
+   */
+  openingLine?: boolean;
 }
 
 export interface VoiceSessionGrant {
@@ -158,6 +164,8 @@ export interface VoiceTransport {
     initiation: string;
     allowLocalTestServer?: boolean;
     appOwnedAudio?: boolean;
+    /** Drop the agent's audio until the student first speaks or types. */
+    suppressOpeningAudio?: boolean;
   }): Promise<void>;
   setMuted(sessionKey: string, muted: boolean): Promise<boolean>;
   stopResponse(sessionKey: string): Promise<boolean>;

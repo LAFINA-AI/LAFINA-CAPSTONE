@@ -71,7 +71,7 @@ const ANSWER_MODES: ReadonlyArray<{
   {
     value: 'auto_online',
     label: 'Online AI when available',
-    help: 'Uses Call LAFINA when Online Mode & internet are active',
+    help: 'Talks with online LAFINA when you are signed in, online and agreed to Call LAFINA; otherwise Offline Voice. No pop-up while it rings.',
     testID: 'call-settings-mode-auto',
   },
   {

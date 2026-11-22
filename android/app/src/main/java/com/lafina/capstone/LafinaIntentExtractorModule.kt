@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.StatFs
+import android.os.SystemClock
 import android.util.Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -37,6 +38,8 @@ object LafinaLlamaBridge {
   external fun initModel(modelPath: String, nThreads: Int): Long
   external fun generate(contextPointer: Long, prompt: String, maxTokens: Int): String
   external fun freeModel(contextPointer: Long)
+  /** Asks a running generate() on this context to stop (or clears that request). */
+  external fun setCancel(contextPointer: Long, cancel: Boolean)
 }
 
 /**
@@ -60,6 +63,26 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
     internal fun resolveMinValidBytes(requested: Double?): Long {
       val asLong = requested?.takeIf { it.isFinite() && it > 0 }?.toLong() ?: 0L
       return maxOf(MIN_VALID_MODEL_BYTES, asLong)
+    }
+
+    /**
+     * Adds `"timing"` (milliseconds on the monotonic clock) so Developer timing
+     * can show model load apart from inference. `cold` is true when this
+     * request loaded the model. Never contains the student's words.
+     */
+    @JvmStatic
+    internal fun tagTiming(json: String, loadMs: Long, inferenceMs: Long, cold: Boolean): String {
+      return try {
+        JSONObject(json).apply {
+          put("timing", JSONObject().apply {
+            put("load_ms", loadMs)
+            put("inference_ms", inferenceMs)
+            put("cold", cold)
+          })
+        }.toString()
+      } catch (_: Exception) {
+        json
+      }
     }
 
     /** Adds `"engine"` so JS can tell a real model answer from the regex fallback. */
@@ -145,6 +168,57 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
   private val mainHandler = Handler(Looper.getMainLooper())
   private val nativeContextPointer = AtomicLong(0L)
   private var loadedModelPath: String? = null
+  // Timings of the latest model request; read only on the single executor thread.
+  private var lastLoadMs = 0L
+  private var lastInferenceMs = 0L
+  private var lastColdLoad = false
+
+  /**
+   * The app gave up waiting for a request (its time limit passed, or the
+   * student moved on). The model stops instead of finishing an answer nobody
+   * reads while the next request waits behind it on the single executor.
+   */
+  private val requestLock = Any()
+  private var runningRequestId: String? = null
+  private val cancelledRequestIds = LinkedHashSet<String>()
+
+  private fun setGenerationCancel(ptr: Long, cancel: Boolean) {
+    if (ptr == 0L || !LafinaLlamaBridge.isLoaded()) return
+    try {
+      LafinaLlamaBridge.setCancel(ptr, cancel)
+    } catch (_: UnsatisfiedLinkError) {
+    }
+  }
+
+  /** Claims the model for a request; false when that request was cancelled while queued. */
+  private fun beginGeneration(ptr: Long, requestId: String?): Boolean = synchronized(requestLock) {
+    if (requestId != null && cancelledRequestIds.remove(requestId)) return false
+    setGenerationCancel(ptr, false)
+    runningRequestId = requestId
+    true
+  }
+
+  private fun endGeneration() = synchronized(requestLock) { runningRequestId = null }
+
+  @ReactMethod
+  fun cancelExtraction(requestId: String, promise: Promise) {
+    synchronized(requestLock) {
+      if (requestId.isBlank()) {
+        promise.resolve(false)
+        return
+      }
+      if (runningRequestId == requestId) {
+        setGenerationCancel(nativeContextPointer.get(), true)
+      } else {
+        cancelledRequestIds.add(requestId)
+        // Only recent ids matter; a stale one is dropped.
+        while (cancelledRequestIds.size > 16) {
+          cancelledRequestIds.remove(cancelledRequestIds.first())
+        }
+      }
+    }
+    promise.resolve(true)
+  }
 
   private val autoUnloadRunnable = Runnable {
     executor.execute {
@@ -158,7 +232,13 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
   }
 
   private fun unloadNativeModelInternal() {
-    val ptr = nativeContextPointer.getAndSet(0L)
+    val ptr = synchronized(requestLock) {
+      val current = nativeContextPointer.getAndSet(0L)
+      if (current != 0L && runningRequestId != null) {
+        setGenerationCancel(current, true)
+      }
+      current
+    }
     if (ptr != 0L && LafinaLlamaBridge.isLoaded()) {
       try {
         LafinaLlamaBridge.freeModel(ptr)
@@ -220,7 +300,12 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
           // Read the shared instructions now; requests then read only the
           // student's words (the native side keeps this prefix).
           val primedAt = System.currentTimeMillis()
-          LafinaLlamaBridge.generate(ptr, buildNluPrompt("", resolvePromptFormat(promptFormat, modelPath)), 1)
+          beginGeneration(ptr, null)
+          try {
+            LafinaLlamaBridge.generate(ptr, buildNluPrompt("", resolvePromptFormat(promptFormat, modelPath)), 1)
+          } finally {
+            endGeneration()
+          }
           Log.i(TAG, "Primed on-device SLM instructions in ${System.currentTimeMillis() - primedAt}ms")
         }
         scheduleAutoUnload()
@@ -301,6 +386,7 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
     val minValidBytes = resolveMinValidBytes(
       if (options.hasKey("minValidBytes") && !options.isNull("minValidBytes")) options.getDouble("minValidBytes") else null
     )
+    val requestId = if (options.hasKey("requestId")) options.getString("requestId")?.takeIf { it.isNotBlank() } else null
 
     executor.execute {
       try {
@@ -324,10 +410,12 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
           val modelFile = File(modelPath)
           if (modelFile.exists() && modelFile.length() > minValidBytes) {
             try {
-              val resultJson = executeOnDeviceLlm(modelPath, trimmed, promptFormat)
+              val resultJson = executeOnDeviceLlm(modelPath, trimmed, promptFormat, requestId)
               if (resultJson != null) {
                 scheduleAutoUnload()
-                promise.resolve(tagEngine(resultJson, ENGINE_SLM))
+                promise.resolve(
+                  tagTiming(tagEngine(resultJson, ENGINE_SLM), lastLoadMs, lastInferenceMs, lastColdLoad)
+                )
                 return@execute
               }
             } catch (e: Exception) {
@@ -346,21 +434,47 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
     }
   }
 
-  private fun executeOnDeviceLlm(modelPath: String, transcript: String, promptFormat: String): String? {
+  private fun executeOnDeviceLlm(
+    modelPath: String,
+    transcript: String,
+    promptFormat: String,
+    requestId: String? = null
+  ): String? {
+    // Cancelled while it waited in the queue: skip the model entirely.
+    if (requestId != null && synchronized(requestLock) { cancelledRequestIds.remove(requestId) }) {
+      Log.i(TAG, "On-device SLM request cancelled before it started")
+      return null
+    }
     var ptr = nativeContextPointer.get()
+    lastLoadMs = 0L
+    lastInferenceMs = 0L
+    lastColdLoad = false
     if (ptr == 0L || loadedModelPath != modelPath) {
+      val loadStartedAt = SystemClock.elapsedRealtime()
       unloadNativeModelInternal()
       val nThreads = maxOf(2, minOf(4, Runtime.getRuntime().availableProcessors() - 1))
       ptr = LafinaLlamaBridge.initModel(modelPath, nThreads)
       if (ptr == 0L) return null
       nativeContextPointer.set(ptr)
       loadedModelPath = modelPath
+      lastLoadMs = SystemClock.elapsedRealtime() - loadStartedAt
+      lastColdLoad = true
     }
 
     val prompt = buildNluPrompt(transcript, promptFormat)
 
     val startedAt = System.currentTimeMillis()
-    val rawOutput = LafinaLlamaBridge.generate(ptr, prompt, 128)
+    val inferenceStartedAt = SystemClock.elapsedRealtime()
+    if (!beginGeneration(ptr, requestId)) {
+      Log.i(TAG, "On-device SLM request cancelled before it started")
+      return null
+    }
+    val rawOutput = try {
+      LafinaLlamaBridge.generate(ptr, prompt, 128)
+    } finally {
+      endGeneration()
+    }
+    lastInferenceMs = SystemClock.elapsedRealtime() - inferenceStartedAt
     Log.i(TAG, "On-device SLM answered in ${System.currentTimeMillis() - startedAt}ms (${rawOutput.length} chars)")
     val jsonStart = rawOutput.indexOf('{')
     val jsonEnd = rawOutput.lastIndexOf('}')
@@ -473,11 +587,18 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
     }.toString()
   }
 
-  override fun onCatalystInstanceDestroy() {
-    super.onCatalystInstanceDestroy()
+  override fun invalidate() {
     mainHandler.removeCallbacks(autoUnloadRunnable)
-    executor.execute {
-      unloadNativeModelInternal()
+    synchronized(requestLock) {
+      setGenerationCancel(nativeContextPointer.get(), true)
+      cancelledRequestIds.clear()
     }
+    if (!executor.isShutdown) {
+      executor.execute {
+        unloadNativeModelInternal()
+      }
+      executor.shutdown()
+    }
+    super.invalidate()
   }
 }

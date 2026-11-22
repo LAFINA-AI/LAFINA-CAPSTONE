@@ -2,7 +2,7 @@ import {verifyReminderDelivery} from '../../../scheduler/verifyReminderDelivery'
 import {CallReadResults} from '../callLafina/CallReadResults';
 import type {LocalVoiceResult} from '../../../cloud/voiceConversation/localVoiceData';
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -1619,13 +1619,24 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     [saveOpenCard],
   );
 
+  const resolvedDeps = useMemo(
+    () => (deps ? deps(userId) : undefined),
+    [deps, userId],
+  );
+  const resolvedDepsRef = useRef(resolvedDeps);
+  resolvedDepsRef.current = resolvedDeps;
+  const resolvedDepsFactory = useMemo(
+    () => (resolvedDeps ? () => resolvedDeps : undefined),
+    [resolvedDeps],
+  );
+
   const onClientTool = useCallback(
     async (
       name: string,
       parameters: Record<string, unknown>,
       isCurrent: () => boolean,
     ): Promise<string> => {
-      const injected = deps ? deps(userId).onClientTool : undefined;
+      const injected = resolvedDepsRef.current?.onClientTool;
       if (injected) return injected(name, parameters, isCurrent);
       const owner = ownerRef.current;
       const perm = isToolExecutionPermitted(owner);
@@ -2004,9 +2015,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       return answer;
     },
     [
-      deps,
       handOffNow,
-      userId,
       callSettings.toolAudioCue,
       presentReview,
       resolveModelConfirm,
@@ -2213,7 +2222,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       turnTicket.current += 1;
     },
     onClientTool,
-    deps,
+    deps: resolvedDepsFactory,
   });
   /** The offline call's turn: the device reads it and LAFINA says the line. */
   const respondOffline = useCallback(
@@ -2310,20 +2319,36 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   // LAFINA's goodbye has been said and the line is down.
   useEffect(() => {
     if (!endingRef.current) return;
+    if (snapshot.phase === 'restart_required') {
+      endingRef.current = null;
+      setEnding(null);
+      pendingSkill.current = null;
+      speakOnArrival.current = false;
+      askedBeforeLeaving.current = false;
+      return;
+    }
     if (snapshot.phase !== 'ended' && snapshot.phase !== 'failed') return;
     endingRef.current = null;
     setEnding(null);
     askedBeforeLeaving.current = false;
-    void ttsService.stop();
     const skill = pendingSkill.current;
     const speak = speakOnArrival.current;
     pendingSkill.current = null;
     speakOnArrival.current = false;
     // ADR-041: the skill opens in place of the call screen.
     if (skill && openSkill(skill.launch)) {
-      if (speak) void ttsService.speak(skill.line).catch(() => undefined);
+      if (speak) {
+        void ttsService
+          .stop()
+          .catch(() => undefined)
+          .then(() => ttsService.speak(skill.line))
+          .catch(() => undefined);
+      } else {
+        void ttsService.stop().catch(() => undefined);
+      }
       return;
     }
+    void ttsService.stop().catch(() => undefined);
     onBackRef.current();
   }, [snapshot.phase, openSkill]);
   const live = LIVE.has(snapshot.phase);
@@ -2506,7 +2531,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   // Call does not start with a cold model. Nothing listens.
   const expectsOffline = callMode.mode === 'offline';
   useEffect(() => {
-    if (expectsOffline && !paused) warmupOfflineSpeech();
+    if (expectsOffline && !paused) void warmupOfflineSpeech();
   }, [expectsOffline, paused]);
   // The next call will be online: ask the server what it offers now, so
   // tapping Call skips that round trip (consented, signed-in students only).
@@ -2540,10 +2565,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       resetCallState();
       const calls = callsRef.current;
       // Speech recognition and the installed offline model load while LAFINA
-      // greets the student, so the first answer does not wait for them.
+      // greets the student, so the first answer does not wait for them. One
+      // after the other: loading both at once competes for memory and cores
+      // and makes the first listen slower.
       if (decision.mode === 'offline') {
-        warmupOfflineSpeech();
-        void warmUpOfflineModel(ownerRef.current);
+        const owner = ownerRef.current;
+        void warmupOfflineSpeech()
+          .then(() => warmUpOfflineModel(owner))
+          .catch(() => false);
       }
       (decision.mode === 'offline' ? calls.offline : calls.online).start();
     },
@@ -3218,7 +3247,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                       ? modernPalette.blueSoft
                       : `${colors.blue}16`,
                     title: 'Knows your upcoming plans',
-                    body: 'Uses a short summary of your next 7 days, recent notes and saved memories so answers fit your schedule.',
+                    body: 'Uses a short summary of your next 7 days, recent notes and saved memories so answers fit your schedule. Answered reminder calls use the same online voice and also share that reminder.',
                   },
                   {
                     key: 'control',

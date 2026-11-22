@@ -16,6 +16,7 @@ import android.media.audiofx.NoiseSuppressor
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
+import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.LifecycleEventListener
@@ -176,6 +177,11 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
     val created = Session(key, ticket)
     created.appOwnedAudio = options.hasKey("appOwnedAudio") && options.getBoolean("appOwnedAudio")
+    // A reminder call: the app already read the reminder aloud, so the agent's
+    // fixed opening line ("Hi, I'm listening…") is dropped. Its audio plays
+    // again from the student's first words (spoken or typed).
+    created.suppressAgentAudio =
+      options.hasKey("suppressOpeningAudio") && options.getBoolean("suppressOpeningAudio")
     created.startPromise = promise
     session = created
     try {
@@ -619,6 +625,9 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       promise.reject("BAD_MESSAGE", "That message type is not allowed.")
       return
     }
+    // A typed turn is a student turn: LAFINA's answer to it must be heard,
+    // like the answer to a spoken one (which `user_transcript` unmutes).
+    if (type == "user_message") owner.suppressAgentAudio = false
     promise.resolve(owner.socket?.send(json) == true)
   }
 
@@ -638,6 +647,28 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
   @ReactMethod
   fun isActive(promise: Promise) {
     promise.resolve(session?.ended?.get() == false)
+  }
+
+  /**
+   * Keeps the screen on while a call (online, offline or reminder) is live:
+   * a screen that times out pauses the app, and pausing ends the call.
+   */
+  @ReactMethod
+  fun setKeepScreenOn(enabled: Boolean, promise: Promise) {
+    val activity = reactContext.currentActivity
+    if (activity == null) {
+      promise.resolve(false)
+      return
+    }
+    activity.runOnUiThread {
+      try {
+        if (enabled) activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
   }
 
   /**

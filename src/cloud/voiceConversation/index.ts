@@ -23,6 +23,7 @@ import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {chatMemoryService} from '../chatMemoryService';
 import {explicitMemory} from '../../ai/explicitMemory';
 import {isForgetAllMemoriesRequest} from '../../ai/chatMemoryCommands';
+import {callGreetingFor} from '../../ai/callGreetings';
 
 export {
   VoiceConversationController,
@@ -53,8 +54,6 @@ export type * from './types';
  * who agreed to the older wording see and accept the new text once.
  */
 export const VOICE_CONSENT_KEY = 'voiceConversation.consent.v2';
-/** Reminder-call disclosure; raised with VOICE_CONSENT_KEY for the same reason. */
-export const REMINDER_CALL_CONSENT_KEY = 'voiceConversation.reminderConsent.v2';
 export const ONLINE_MODE_KEY = 'chat.onlineMode';
 
 /** Chat listens for this so its Online Mode switch stays in step. */
@@ -99,6 +98,19 @@ export const voiceConsent = {
   write: (userId: string): boolean =>
     localSettingsStore.set(userId, VOICE_CONSENT_KEY, 'true'),
 };
+
+/** The data-sharing consent the online call checks (same key as actionSecurity.DATA_CONSENT_KEY, which imports this module). */
+export const DIRECT_DATA_CONSENT_KEY = 'voiceConversation.directDataConsent.v1';
+
+/**
+ * The student agreed to the online Call Lafina disclosure (voice streamed,
+ * a short 7-day summary, notes and memories shared). A reminder call uses
+ * the same agreement: it never asks again mid-ring. Without it, the
+ * reminder call is simply offline.
+ */
+export const hasOnlineCallConsent = (userId: string): boolean =>
+  voiceConsent.read(userId) &&
+  localSettingsStore.get(userId, DIRECT_DATA_CONSENT_KEY, null) === 'true';
 
 const isSignedInOwner = (userId: string): boolean => {
   if (!userId || userId === GUEST_USER_ID) return false;
@@ -175,13 +187,7 @@ export const defaultVoiceConversationDeps = (
     isOnlineMode: () =>
       localSettingsStore.get(userId, ONLINE_MODE_KEY, null) !== 'false',
     isOnline: () => cloudClient.isOnline(),
-    hasConsent: () =>
-      voiceConsent.read(userId) &&
-      localSettingsStore.get(
-        userId,
-        'voiceConversation.directDataConsent.v1',
-        null,
-      ) === 'true',
+    hasConsent: () => hasOnlineCallConsent(userId),
     ensureMicPermission: () => ensureMicrophonePermission(),
   },
   getVoice: () => onlineVoiceSettingsStore.read(userId),
@@ -189,6 +195,7 @@ export const defaultVoiceConversationDeps = (
   useHandbook: () =>
     handbookPreference.read(userId) && isUstpSchoolEnabled(userId),
   getStudentContext: () => buildStudentVoiceContext(userId),
+  getOpeningLine: () => callGreetingFor(userId, 'online'),
   api: directProviderTestEnabled() ? directTestVoiceApi : voiceConversationApi,
   transport: nativeVoiceTransport,
   allowLocalTestServer: allowLocalTestServer(),

@@ -11,7 +11,6 @@ import {cloudClient} from '../../cloud/cloudClient';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Animated,
-  Alert,
   AppState,
   DeviceEventEmitter,
   Easing,
@@ -66,18 +65,19 @@ import type {
   CallAnswerMode,
   VibrationPattern,
 } from '../../storage/alertPreferencesStore';
-import {localSettingsStore} from '../../storage/localSettingsStore';
 import {isGuestAccount} from '../../cloud/entitlements';
 import {
-  REMINDER_CALL_CONSENT_KEY,
-  voiceConsent,
+  endActiveVoiceConversation,
+  hasOnlineCallConsent,
   waitForVoiceConversationRelease,
 } from '../../cloud/voiceConversation';
-import {DATA_CONSENT_KEY} from '../../ai/voiceActions/actionSecurity';
+import {choseOfflineMode} from '../../ai/offlineCall/callMode';
+import {setKeepScreenOn} from '../../utils/keepScreenOn';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {CommandReviewCard} from '../components/chat/CommandReviewCard';
 import type {ConversationSnapshot} from '../../cloud/voiceConversation';
+import type {CallMeter} from '../hooks/callMeter';
 import {isExplicitSaveCommand} from '../../cloud/voiceConversation/turnPolicy';
 
 const lafinaLogo = require('../../assets/new_lafina_app_logo/lafina_app_logo.png');
@@ -139,17 +139,28 @@ const callVibrationArray = (
 };
 
 /**
- * Online Mode is switched on for a signed-in account, so Answer is expected
- * to open the online conversation. Only a prediction: Answer still checks the
- * connection, consent and microphone before the conversation starts.
+ * Answer is expected to open the online conversation: the same rule as Call
+ * Lafina (a signed-in account that has not picked Offline Mode in Chat),
+ * and the student already agreed to the online call disclosure there. The
+ * reminder call never asks for consent while it rings; without it the call
+ * is simply offline. Only a prediction: Answer still checks the connection
+ * and the microphone before the conversation starts.
  */
 const expectsOnlineCall = (
   userId: string,
   answerMode: CallAnswerMode = 'auto_online',
 ): boolean =>
   answerMode === 'auto_online' &&
-  localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true' &&
-  !isGuestAccount(userId);
+  !choseOfflineMode(userId) &&
+  !isGuestAccount(userId) &&
+  hasOnlineCallConsent(userId);
+
+/**
+ * Shown in an offline reminder call when the only thing missing for the
+ * online one is the Call LAFINA agreement (never a pop-up mid-call).
+ */
+export const OFFLINE_CONSENT_HINT =
+  'Offline voice. To talk with online LAFINA in reminder calls, start Call LAFINA once and agree.';
 
 /** Renders and coordinates the complete offline reminder call experience. */
 export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
@@ -190,6 +201,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   }, []);
   const [onlineSnapshot, setOnlineSnapshot] =
     useState<ConversationSnapshot | null>(null);
+  const [onlineMeter, setOnlineMeter] = useState<CallMeter | null>(null);
   /** The student said or typed something during the online call. */
   const studentSpokeRef = useRef(false);
   /** Online Mode is on at ring time; Answer will try the online call. */
@@ -231,6 +243,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const answeredAtRef = useRef<number | null>(null);
   const attemptRef = useRef(0);
   const transitioningRef = useRef(false);
+  const snoozeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warnedRef = useRef(false);
 
   const clearResultTimeout = useCallback((): void => {
     if (resultTimeoutRef.current) {
@@ -238,6 +252,17 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       resultTimeoutRef.current = null;
     }
   }, []);
+
+  useEffect(
+    () => () => {
+      closingRef.current = true;
+      if (snoozeTimerRef.current) {
+        clearTimeout(snoozeTimerRef.current);
+        snoozeTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
   const resetPresentation = useCallback((): void => {
     attemptRef.current += 1;
@@ -247,6 +272,12 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     setOnlineCall(false);
     setOnlineView(false);
     setOnlineSnapshot(null);
+    setOnlineMeter(null);
+    warnedRef.current = false;
+    if (snoozeTimerRef.current) {
+      clearTimeout(snoozeTimerRef.current);
+      snoozeTimerRef.current = null;
+    }
     studentSpokeRef.current = false;
     pendingActionRef.current = null;
     setPendingAction(null);
@@ -293,28 +324,49 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         currentAlertPrefs.callAnswerMode,
       );
       setExpectOnline(online);
-      const speechProvider = createCallSpeechProvider(userId);
+      let ringing = true;
+      // The online voice reads the reminder only when this call goes online;
+      // an offline call never sends the reminder text anywhere.
+      const speechProvider = createCallSpeechProvider(userId, {
+        isOnlineMode: () =>
+          expectsOnlineCall(userId, alertPrefsRef.current.callAnswerMode),
+      });
       speechProviderRef.current = speechProvider;
-      if (currentAlertPrefs.callAnswerMode !== 'buttons_only') {
+      const prepare = (asOnline: boolean): void => {
+        if (currentAlertPrefs.callAnswerMode === 'buttons_only') return;
         // Prepare the opening line this call is expected to use.
         if (currentAlertPrefs.callGreetingStyle === 'friendly') {
           void prepareCallSpeech(
             speechProvider,
             task,
             defaultSnoozeMinutes,
-            online,
+            asOnline,
           );
         } else {
           void prepareCallSpeech(
             speechProvider,
             task,
             defaultSnoozeMinutes,
-            online,
+            asOnline,
             currentAlertPrefs.callGreetingStyle,
           );
         }
+      };
+      prepare(online);
+      if (online) {
+        // No connection while it rings: say so on the Answer button, and
+        // prepare the offline opening instead.
+        void cloudClient
+          .isOnline()
+          .catch(() => false)
+          .then(connected => {
+            if (!ringing || connected) return;
+            setExpectOnline(false);
+            prepare(false);
+          });
       }
       return () => {
+        ringing = false;
         if (speechProviderRef.current === speechProvider) {
           speechProviderRef.current = null;
         }
@@ -325,6 +377,17 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     resetPresentation();
     return undefined;
   }, [reminderId, resetPresentation, task, userId, visible]);
+
+  // An answered call keeps the screen on: a screen that times out pauses
+  // the app, and pausing ends the call (the online voice tears down).
+  const callLive =
+    visible && callState !== 'ringing' && callState !== 'disconnected';
+  useEffect(() => {
+    if (!callLive) return undefined;
+    const owner = `reminder-call:${reminderId}`;
+    setKeepScreenOn(owner, true);
+    return () => setKeepScreenOn(owner, false);
+  }, [callLive, reminderId]);
 
   useEffect(() => {
     let animLoop: Animated.CompositeAnimation | null = null;
@@ -472,6 +535,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       },
       'answered',
     );
+    // A Call Lafina still running (online or offline) ends here: the reminder
+    // call takes the microphone and the speaker.
+    endActiveVoiceConversation('A reminder call was answered.');
 
     if (currentAlertPrefs.callAnswerMode === 'buttons_only') {
       try {
@@ -511,49 +577,12 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     await waitForVoiceConversationRelease();
     if (attempt !== attemptRef.current || closingRef.current) return;
 
-    let useOnline =
-      currentAlertPrefs.callAnswerMode === 'auto_online' &&
-      localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true' &&
-      !isGuestAccount(userId) &&
+    // Online whenever Call Lafina would be (signed in, Offline Mode not
+    // picked, its disclosure already agreed to) and the phone is connected.
+    // No pop-up mid-call: without that agreement the call is just offline.
+    const useOnline =
+      expectsOnlineCall(userId, currentAlertPrefs.callAnswerMode) &&
       (await cloudClient.isOnline().catch(() => false));
-    // The online conversation also checks the data-sharing consent; this
-    // dialog discloses the same data, so accepting it records both.
-    if (
-      useOnline &&
-      (!voiceConsent.read(userId) ||
-        localSettingsStore.get(userId, REMINDER_CALL_CONSENT_KEY, null) !==
-          'true' ||
-        localSettingsStore.get(userId, DATA_CONSENT_KEY, null) !== 'true')
-    ) {
-      useOnline = await new Promise<boolean>(resolve => {
-        Alert.alert(
-          'Online Call Lafina conversation',
-          'When you answer, microphone audio streams to ElevenLabs. Your words, this reminder and a short summary of your next 7 days, notes and saved memories are sent to ElevenLabs and to LAFINA’s server and DeepSeek so the assistant can discuss it. End or mute the call to stop listening.',
-          [
-            {
-              text: 'Use offline voice',
-              style: 'cancel',
-              onPress: () => resolve(false),
-            },
-            {
-              text: 'Continue online',
-              onPress: () =>
-                resolve(
-                  attempt === attemptRef.current &&
-                    voiceConsent.write(userId) &&
-                    localSettingsStore.set(
-                      userId,
-                      REMINDER_CALL_CONSENT_KEY,
-                      'true',
-                    ) &&
-                    localSettingsStore.set(userId, DATA_CONSENT_KEY, 'true'),
-                ),
-            },
-          ],
-          {cancelable: true, onDismiss: () => resolve(false)},
-        );
-      });
-    }
     if (attempt !== attemptRef.current || closingRef.current) return;
 
     let microphoneGranted = false;
@@ -618,6 +647,16 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         setReply(
           'Microphone permission is unavailable. Use Acknowledge or Snooze below.',
         );
+      } else if (
+        !useOnline &&
+        currentAlertPrefs.callAnswerMode === 'auto_online' &&
+        !choseOfflineMode(userId) &&
+        !isGuestAccount(userId) &&
+        !hasOnlineCallConsent(userId)
+      ) {
+        // Offline only because Call LAFINA was never agreed to: say how to
+        // change that once, without interrupting the call.
+        setNotice(OFFLINE_CONSENT_HINT);
       }
     } catch (error) {
       console.error('[CallScreen] Could not answer reminder call:', error);
@@ -750,7 +789,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         return 'This call is already being handled. No additional snooze was saved.';
       if (committed.result.ok) {
         // Yield for the controller to send the actual tool result, then release audio.
-        setTimeout(() => {
+        if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current);
+        snoozeTimerRef.current = setTimeout(() => {
+          snoozeTimerRef.current = null;
           void stopOnline().then(committed.close);
         }, 0);
       }
@@ -1019,7 +1060,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   ]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || callState === 'ringing' || callState === 'disconnected')
+      return;
     const tick = setInterval(() => {
       const start = answeredAtRef.current;
       if (start === null || resolvedRef.current || pendingActionRef.current)
@@ -1037,7 +1079,11 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         void stopOnline().then(() =>
           autoSnoozeCall({reminderId, userId, generation: deliveryGeneration}),
         );
-      } else if (Date.now() - start >= ANSWERED_CALL_LIMIT_MS - 60_000) {
+      } else if (
+        !warnedRef.current &&
+        Date.now() - start >= ANSWERED_CALL_LIMIT_MS - 60_000
+      ) {
+        warnedRef.current = true;
         setNotice(
           onlineViewRef.current
             ? 'This reminder call ends in less than a minute. Say “call me back later” if you need more time.'
@@ -1048,6 +1094,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     return () => clearInterval(tick);
   }, [
     visible,
+    callState,
     stopOnline,
     handleEndAnswered,
     reminderId,
@@ -1266,6 +1313,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           <OnlineReminderCallView
             task={task}
             snapshot={onlineSnapshot}
+            meter={onlineMeter}
             callState={callState}
             resolution={resolution}
             transcript={transcript}
@@ -1306,6 +1354,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             task={task}
             snoozeMinutes={snoozeMinutes}
             onSnapshot={handleOnlineSnapshot}
+            onMeter={setOnlineMeter}
             onSpokenTurn={handleOnlineTurn}
             onSnooze={handleAgentSnooze}
           />

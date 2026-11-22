@@ -4,8 +4,10 @@
  * hang-up and the failures a phone can have.
  */
 import {
+  CAPTURE_STUCK_MESSAGE,
   OfflineCallController,
   OFFLINE_VOICE_NAME,
+  TRANSCRIBE_STUCK_MESSAGE,
 } from '../../src/ai/offlineCall/offlineCallController';
 import type {
   OfflineCallDeps,
@@ -147,6 +149,7 @@ const setup = (
     },
     limits: overrides.limits,
     now: overrides.now,
+    capture: overrides.capture,
   });
   return {controller, mic, voice, respond, history};
 };
@@ -607,5 +610,235 @@ describe('endAfterReply (CALLFIX-03)', () => {
     await flush();
     expect(controller.getSnapshot().phase).not.toBe('ended');
     controller.end();
+  });
+});
+
+describe('offline call audit fixes (2026-11-22)', () => {
+  /** Answers the open capture with full control of the native result. */
+  const answer = (
+    mic: ReturnType<typeof fakeMic>,
+    patch: Partial<OfflineSpeechResult>,
+  ) => {
+    const open = mic.captures[mic.captures.length - 1];
+    open.done.resolve({
+      captureId: open.id,
+      transcript: '',
+      speechDetected: false,
+      cancelled: false,
+      captureDurationMs: 100,
+      inferenceDurationMs: 10,
+      ...patch,
+    });
+  };
+
+  test('asks for the microphone before checking speech recognition', async () => {
+    const order: string[] = [];
+    const {controller} = setup({
+      speech: {
+        isAvailable: async () => {
+          order.push('available');
+          return true;
+        },
+        ensurePermission: async () => {
+          order.push('permission');
+          return true;
+        },
+      } as unknown as OfflineCallDeps['speech'],
+    });
+    await controller.start();
+    expect(order).toEqual(['permission', 'available']);
+    controller.end();
+  });
+
+  test('a refused microphone is reported as such, not as "not ready"', async () => {
+    const isAvailable = jest.fn(async () => false);
+    const {controller} = setup({
+      speech: {
+        isAvailable,
+        ensurePermission: async () => false,
+      } as unknown as OfflineCallDeps['speech'],
+    });
+    await controller.start();
+    expect(controller.getSnapshot().failure?.kind).toBe('mic_denied');
+    expect(isAvailable).not.toHaveBeenCalled();
+  });
+
+  test('reports the permission prompt so leaving the screen for it does not end the call', async () => {
+    let grant!: (ok: boolean) => void;
+    const {controller} = setup({
+      speech: {
+        isAvailable: async () => true,
+        ensurePermission: () =>
+          new Promise<boolean>(resolve => {
+            grant = resolve;
+          }),
+      } as unknown as OfflineCallDeps['speech'],
+    });
+    const starting = controller.start();
+    await flush();
+    expect(controller.isRequestingPermission()).toBe(true);
+    grant(true);
+    await starting;
+    expect(controller.isRequestingPermission()).toBe(false);
+    controller.end();
+  });
+
+  test('a made-up "Thank you." on noise is silence: no answer, no hang-up', async () => {
+    const {controller, mic, respond} = setup();
+    await controller.start();
+    await flush();
+    answer(mic, {
+      transcript: 'Thank you.',
+      speechDetected: true,
+      maxVadProbability: 0.2,
+    });
+    await flush();
+    expect(respond).not.toHaveBeenCalled();
+    expect(controller.isActive()).toBe(true);
+    expect(mic.start).toHaveBeenCalledTimes(2);
+    controller.end();
+  });
+
+  test('a real "thank you" (confident detector) still reaches LAFINA', async () => {
+    const {controller, mic, respond} = setup();
+    await controller.start();
+    await flush();
+    answer(mic, {
+      transcript: 'Thank you.',
+      speechDetected: true,
+      maxVadProbability: 0.95,
+    });
+    await flush();
+    expect(respond).toHaveBeenCalledWith(
+      'Thank you.',
+      'voice',
+      expect.anything(),
+    );
+    controller.end();
+  });
+
+  test('"you" from whisper is always dropped', async () => {
+    const {controller, mic, respond} = setup();
+    await controller.start();
+    await flush();
+    answer(mic, {transcript: 'You', speechDetected: true});
+    await flush();
+    expect(respond).not.toHaveBeenCalled();
+    controller.end();
+  });
+
+  test("LAFINA's own last words heard back are not the student", async () => {
+    const {controller, mic, respond} = setup();
+    await controller.start();
+    await flush();
+    // The greeting was "Hi, Lafina here."
+    answer(mic, {
+      transcript: 'Hi, Lafina here.',
+      speechDetected: true,
+      maxVadProbability: 0.9,
+    });
+    await flush();
+    expect(respond).not.toHaveBeenCalled();
+    controller.end();
+  });
+
+  test('the call listens with a shorter pause, skipping the moment after LAFINA spoke', async () => {
+    const {controller, mic} = setup({
+      capture: {endSilenceMs: 700, leadInIgnoreMs: 300},
+    });
+    await controller.start();
+    await flush();
+    expect(mic.captures[0].options).toEqual({
+      mode: 'automatic',
+      bargeIn: false,
+      context: 'main_mic',
+      endSilenceMs: 700,
+      leadInIgnoreMs: 300,
+    });
+    // A quiet listen is followed by another with nothing said in between.
+    mic.silence();
+    await flush();
+    expect(mic.captures[1].options).toEqual({
+      mode: 'automatic',
+      bargeIn: false,
+      context: 'main_mic',
+      endSilenceMs: 700,
+    });
+    controller.end();
+  });
+
+  test('Stop pressed while LAFINA is thinking: the answer is shown, not spoken', async () => {
+    let finish!: (reply: string) => void;
+    const {controller, mic, voice, history} = setup({
+      respond: () =>
+        new Promise<OfflineReply>(resolve => {
+          finish = resolve;
+        }),
+    });
+    await controller.start();
+    await flush();
+    mic.say('what is due today');
+    await flush();
+    expect(controller.getSnapshot().phase).toBe('thinking');
+    controller.stopResponse();
+    finish('Your lab report is due at 5 PM.');
+    await flush();
+    expect(voice.spoken).not.toContain('Your lab report is due at 5 PM.');
+    expect(history).toContain(
+      'lafina(interrupted): Your lab report is due at 5 PM.',
+    );
+    await until(() => mic.start.mock.calls.length === 2);
+    // The next answer is spoken again.
+    mic.say('what about tomorrow');
+    await flush();
+    finish('Nothing is due tomorrow.');
+    await flush();
+    expect(voice.spoken).toContain('Nothing is due tomorrow.');
+    controller.end();
+  });
+
+  test('whisper running out of time twice in a row ends the call with a clear reason', async () => {
+    const hook: {ended: CaptureEnded | null} = {ended: null};
+    const {controller, mic} = setup({
+      limits: {transcribeTimeoutMs: 30},
+      speech: {
+        isAvailable: async () => true,
+        ensurePermission: async () => true,
+        onCaptureEnded: (listener: CaptureEnded) => {
+          hook.ended = listener;
+          return () => undefined;
+        },
+      } as unknown as OfflineCallDeps['speech'],
+    });
+    await controller.start();
+    await flush();
+    hook.ended?.('cap-1', true);
+    await until(() => mic.start.mock.calls.length === 2);
+    hook.ended?.('cap-2', true);
+    await until(() => controller.getSnapshot().phase === 'failed');
+    expect(controller.getSnapshot().failure?.message).toBe(
+      TRANSCRIBE_STUCK_MESSAGE,
+    );
+  });
+
+  test('our own unfinished recognition is not blamed on "another recording"', async () => {
+    const {controller} = setup({
+      limits: {busyRetryMs: 0},
+      speech: {
+        isAvailable: async () => true,
+        ensurePermission: async () => true,
+        start: () => {
+          throw Object.assign(new Error('busy'), {code: 'CAPTURE_BUSY'});
+        },
+        cancel: async () => true,
+        isBusyError: () => true,
+      },
+    });
+    await controller.start();
+    await flush(40);
+    expect(controller.getSnapshot().failure?.kind).toBe('mic_busy');
+    expect(controller.getSnapshot().failure?.message).toBe(
+      CAPTURE_STUCK_MESSAGE,
+    );
   });
 });

@@ -9,6 +9,7 @@ interface NativeVoiceConversation {
     initiation: string;
     allowLocalTestServer?: boolean;
     appOwnedAudio?: boolean;
+    suppressOpeningAudio?: boolean;
   }): Promise<boolean>;
   setMuted(sessionKey: string, muted: boolean): Promise<boolean>;
   stopResponse(sessionKey: string): Promise<boolean>;

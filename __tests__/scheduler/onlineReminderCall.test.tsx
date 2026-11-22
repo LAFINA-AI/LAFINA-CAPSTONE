@@ -1,11 +1,14 @@
 import React from 'react';
 import {Alert, AppState, PermissionsAndroid} from 'react-native';
 import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
-import {IncomingCallScreen} from '../../src/ui/screens/IncomingCallScreen';
+import {IncomingCallScreen, OFFLINE_CONSENT_HINT} from '../../src/ui/screens/IncomingCallScreen';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {localSettingsStore} from '../../src/storage/localSettingsStore';
 import {initDatabase} from '../../src/storage';
 import {voiceConsent} from '../../src/cloud/voiceConversation';
+import * as voiceConversationModule from '../../src/cloud/voiceConversation';
+import {cloudClient} from '../../src/cloud/cloudClient';
+import {keepScreenOnHolders} from '../../src/utils/keepScreenOn';
 import * as scheduler from '../../src/scheduler';
 import * as callDispatcherModule from '../../src/scheduler/callDispatcher';
 import {ANSWERED_CALL_LIMIT_MS} from '../../src/scheduler/callLifecycle';
@@ -229,50 +232,100 @@ describe('offline reminder call keeps Acknowledge and Snooze', () => {
   });
 });
 
-it('persists explicit consent for sharing reminder details before starting online voice', async () => {
-  jest.spyOn(voiceConsent, 'read').mockReturnValue(false);
-  const write = jest.spyOn(voiceConsent, 'write').mockReturnValue(true);
-  const store = jest.spyOn(localSettingsStore, 'set').mockReturnValue(true);
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
-  const screen = renderCall();
-  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
-  expect(alert.mock.calls[0][1]).toContain('this reminder');
-  await act(async () => { alert.mock.calls[0][2]![1].onPress?.(); });
-  expect(write).toHaveBeenCalledWith('student-online-call');
-  expect(store).toHaveBeenCalledWith('student-online-call', 'voiceConversation.reminderConsent.v2', 'true');
-  // The online conversation also requires the data-sharing consent this dialog discloses.
-  expect(store).toHaveBeenCalledWith('student-online-call', 'voiceConversation.directDataConsent.v1', 'true');
-  expect(screen.getByTestId('online-reminder-conversation')).toBeTruthy();
+describe('reminder call consent: no pop-up while it rings', () => {
+  it('answers online with Call LAFINA consent and never shows a dialog', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const screen = renderCall();
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(alert).not.toHaveBeenCalled();
+    expect(screen.getByTestId('online-reminder-conversation')).toBeTruthy();
+  });
+
+  it('goes online when Online Mode was never set (only an explicit Offline Mode blocks it)', async () => {
+    jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
+      key === 'chat.onlineMode' ? null : 'true');
+    const screen = renderCall();
+    expect(screen.getByText('Talk with LAFINA')).toBeTruthy();
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(scheduler.answerCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', true,
+      expect.anything(), null, true);
+    expect(screen.getByTestId('online-reminder-conversation')).toBeTruthy();
+  });
+
+  it('no longer needs a separate reminder-only consent', async () => {
+    jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
+      key === 'voiceConversation.reminderConsent.v2' ? null : 'true');
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const screen = renderCall();
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(alert).not.toHaveBeenCalled();
+    expect(screen.getByTestId('online-reminder-conversation')).toBeTruthy();
+  });
+
+  it('without the data-sharing consent, answers offline silently with a hint', async () => {
+    jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
+      key === 'voiceConversation.directDataConsent.v1' ? null : 'true');
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const screen = renderCall();
+    expect(screen.getByText('Hear the reminder')).toBeTruthy();
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(alert).not.toHaveBeenCalled();
+    expect(scheduler.answerCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', true,
+      expect.anything(), null, false);
+    expect(screen.queryByTestId('online-reminder-conversation')).toBeNull();
+    expect(screen.getByLabelText('Acknowledge reminder')).toBeTruthy();
+    expect(screen.getByText(OFFLINE_CONSENT_HINT)).toBeTruthy();
+  });
+
+  it('does not accept voice consent given to the older v1 wording', async () => {
+    jest.spyOn(voiceConsent, 'read').mockRestore();
+    jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
+      key === 'voiceConversation.consent.v2' ? null : 'true');
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const screen = renderCall();
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(alert).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('online-reminder-conversation')).toBeNull();
+  });
+
+  it('without voice consent, still asks for the microphone for offline voice', async () => {
+    jest.spyOn(voiceConsent, 'read').mockReturnValue(false);
+    const write = jest.spyOn(voiceConsent, 'write');
+    const store = jest.spyOn(localSettingsStore, 'set');
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const screen = renderCall();
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(alert).not.toHaveBeenCalled();
+    // Nothing is agreed to on the student's behalf.
+    expect(write).not.toHaveBeenCalled();
+    expect(store).not.toHaveBeenCalledWith('student-online-call',
+      'voiceConversation.directDataConsent.v1', 'true');
+    expect(PermissionsAndroid.request).toHaveBeenCalled();
+    expect(scheduler.answerCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', true,
+      expect.anything(), null, false);
+    expect(screen.queryByTestId('online-reminder-conversation')).toBeNull();
+  });
+
+  it('a phone with no connection while it rings says so on Answer and answers offline', async () => {
+    jest.spyOn(cloudClient, 'isOnline').mockResolvedValue(false);
+    const screen = renderCall();
+    await waitFor(() => expect(screen.getByText('Hear the reminder')).toBeTruthy());
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(scheduler.answerCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', true,
+      expect.anything(), null, false);
+    expect(screen.queryByTestId('online-reminder-conversation')).toBeNull();
+  });
 });
 
-it('asks again when only the data-sharing consent is missing', async () => {
-  jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
-    key === 'voiceConversation.directDataConsent.v1' ? null : 'true');
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
-  const screen = renderCall();
-  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
-  expect(alert).toHaveBeenCalled();
-});
-
-it('does not accept consent given to the older v1 wording', async () => {
-  jest.spyOn(voiceConsent, 'read').mockRestore();
-  jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
-    key === 'voiceConversation.consent.v2' || key === 'voiceConversation.reminderConsent.v2' ? null : 'true');
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
-  const screen = renderCall();
-  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
-  expect(alert).toHaveBeenCalled();
-  expect(alert.mock.calls[0][1]).toContain('next 7 days');
-});
-
-it('asks separately before sharing reminders even if general voice consent exists', async () => {
-  jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
-    key === 'voiceConversation.reminderConsent.v2' ? null : 'true');
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
-  const screen = renderCall();
-  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
-  expect(alert).toHaveBeenCalled();
-  expect(PermissionsAndroid.request).not.toHaveBeenCalled();
+describe('reminder call keeps the screen on while answered', () => {
+  it('holds the screen from Answer until the call screen closes', async () => {
+    const screen = renderCall();
+    expect(keepScreenOnHolders()).toEqual([]);
+    await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+    expect(keepScreenOnHolders()).toContain('reminder-call:reminder-online');
+    screen.unmount();
+    expect(keepScreenOnHolders()).not.toContain('reminder-call:reminder-online');
+  });
 });
 
 it('never treats a discussion about snoozing as a reminder action', async () => {
@@ -284,18 +337,11 @@ it('never treats a discussion about snoozing as a reminder action', async () => 
   expect(scheduler.manualSnoozeCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', 10, null);
 });
 
-it('asks for streaming consent before requesting microphone access', async () => {
-  jest.spyOn(voiceConsent, 'read').mockReturnValue(false);
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+it('ends a running Call LAFINA when the reminder is answered', async () => {
+  const end = jest.spyOn(voiceConversationModule, 'endActiveVoiceConversation');
   const screen = renderCall();
   await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
-  expect(alert).toHaveBeenCalled();
-  expect(PermissionsAndroid.request).not.toHaveBeenCalled();
-  const buttons = alert.mock.calls[0][2]!;
-  await act(async () => { buttons[0].onPress?.(); });
-  expect(scheduler.answerCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', true,
-    expect.anything(), null, false);
-  expect(screen.queryByTestId('online-reminder-conversation')).toBeNull();
+  expect(end).toHaveBeenCalledWith('A reminder call was answered.');
 });
 
 it('falls back to offline voice after an online startup failure', async () => {

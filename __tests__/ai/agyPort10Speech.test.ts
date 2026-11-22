@@ -376,3 +376,26 @@ describe('AGY-PORT 10 Preview admission', () => {
     expect(tts.setDefaultPitch).toHaveBeenLastCalledWith(1);
   });
 });
+
+describe('owned playback time limit (offline audit 2026-11-22)', () => {
+  it('waits longer at a slow chosen speed, then silences a line the engine never finished', async () => {
+    jest.useFakeTimers({doNotFake: ['setImmediate', 'nextTick']});
+    await configureTts({voiceId: 'en-gb-x-gba-local', rate: 0.5, pitch: 1});
+    manualEngine(['u-slow']);
+    // 100 characters: 12 s at normal speed, 24 s at half speed.
+    const line = startOwnedSpeech('a'.repeat(100), 'offline-call');
+    expect(await line.token).not.toBeNull();
+    await flush();
+    tts.stop.mockClear();
+    let outcome: string | null = null;
+    void line.result.then(value => {
+      outcome = value;
+    });
+    await jest.advanceTimersByTimeAsync(13_000);
+    expect(outcome).toBeNull();
+    await jest.advanceTimersByTimeAsync(11_100);
+    expect(outcome).toBe('finished');
+    expect(tts.stop).toHaveBeenCalledTimes(1);
+    expect(isSpeechBusy()).toBe(false);
+  });
+});

@@ -13,6 +13,9 @@ import type {OfflineCallDeps} from '../../ai/offlineCall/offlineCallController';
 import {defaultOfflineCallDeps} from '../../ai/offlineCall/offlineCallDeps';
 import type {VoiceConversationHandle} from './useVoiceConversation';
 import {createCallMeter, levelsOf, routeSnapshot} from './callMeter';
+import {setKeepScreenOn} from '../../utils/keepScreenOn';
+
+let screenOwnerSeq = 0;
 
 export interface OfflineCallHandle extends VoiceConversationHandle {
   /** LAFINA says a line the app started (for example after a tap on Confirm). */
@@ -54,12 +57,26 @@ export const useOfflineCall = (
     const first = controller.getSnapshot();
     setSnapshot(first);
     meter.set(levelsOf(first));
-    const unsubscribe = controller.subscribe(next =>
-      routeSnapshot(meter, setSnapshot, next),
-    );
+    const screenOwner = `offline-call-${++screenOwnerSeq}`;
+    let screenHeld = false;
+    const holdScreen = (live: boolean): void => {
+      if (live === screenHeld) return;
+      screenHeld = live;
+      // A screen that sleeps would end the call; keep it on while it runs.
+      setKeepScreenOn(screenOwner, live);
+    };
+    const unsubscribe = controller.subscribe(next => {
+      routeSnapshot(meter, setSnapshot, next);
+      holdScreen(controller.isActive());
+    });
     const unregister = registerVoiceConversation(controller);
     const app = AppState.addEventListener('change', state => {
-      if (state !== 'active' && controller.isActive()) {
+      // The microphone prompt briefly takes the screen; that is not leaving.
+      if (
+        state !== 'active' &&
+        controller.isActive() &&
+        !controller.isRequestingPermission()
+      ) {
         controller.stopForSystem(
           'The call stopped when LAFINA left the screen. Nothing listens in the background.',
         );
@@ -70,6 +87,7 @@ export const useOfflineCall = (
       unsubscribe();
       unregister();
       controller.dispose();
+      holdScreen(false);
       if (controllerRef.current === controller) controllerRef.current = null;
     };
   }, [userId, meter]);

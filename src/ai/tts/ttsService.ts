@@ -557,8 +557,28 @@ const speakOwned = (
       else settle(kind);
     };
 
-    const timeoutMs = Math.min(30000, Math.max(4000, trimmed.length * 120));
-    const timeoutId = setTimeout(() => settle('finished'), timeoutMs);
+    // ~120 ms a character at normal speed; a slower chosen speed (down to
+    // 0.5x) needs proportionally longer, or a long line is cut off as "done"
+    // while it is still being spoken.
+    const rate = desiredConfiguration?.rate;
+    const speed = typeof rate === 'number' && rate > 0 ? rate : 1;
+    const timeoutMs = Math.min(
+      60000,
+      Math.max(4000, Math.round((trimmed.length * 120) / speed)),
+    );
+    const timeoutId = setTimeout(() => {
+      // The engine never reported an end. Silence it too, so a stuck line
+      // cannot keep playing over (or queue ahead of) the next one.
+      const ownsEngine = activeSpeech?.token === token;
+      settle('finished');
+      if (ownsEngine) {
+        try {
+          void Promise.resolve(Tts.stop()).catch(() => undefined);
+        } catch {
+          // Nothing more to stop.
+        }
+      }
+    }, timeoutMs);
     activeSpeech = {token, owner, stop: () => settle('stopped')};
     onToken?.(token);
 

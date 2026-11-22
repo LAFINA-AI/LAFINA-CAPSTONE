@@ -101,6 +101,17 @@ export interface VoiceConversationDeps {
   onAgentText?(text: string): void;
   suppressAgentResponse?(): boolean;
   appOwnedAudio?: boolean;
+  /**
+   * The app already spoke the opening (a reminder call reads the reminder
+   * aloud), so the agent's fixed first message is neither played nor shown.
+   * LAFINA answers normally from the student's first words.
+   */
+  quietOpening?: boolean;
+  /**
+   * LAFINA's opening line for this call (tone, name, time of day). Used only
+   * when the server reports `openingLine`; otherwise the agent's own line.
+   */
+  getOpeningLine?(): string | null;
   onClientTool?(
     name: string,
     parameters: Record<string, unknown>,
@@ -252,6 +263,7 @@ export class VoiceConversationController {
   private prepared: {
     at: number;
     state: 'pending' | 'ready' | 'failed';
+    abort: AbortController;
     result: Promise<ApiOutcome<VoiceCapabilities>>;
   } | null = null;
   private readonly clock: ConversationClock;
@@ -309,6 +321,8 @@ export class VoiceConversationController {
   private waitingForStudent = false;
   /** A student turn is waiting for its answer to finish playing. */
   private studentSpokeSinceAnswer = false;
+  /** quietOpening: the agent's first message is hidden until the student speaks or types. */
+  private openingQuiet = false;
   private limitReason: string | null = null;
   private transportEnding: Promise<boolean> = Promise.resolve(true);
   private transportEndingPending = false;
@@ -429,11 +443,14 @@ export class VoiceConversationController {
       return;
     }
     if (this.takePrepared()) return;
+    this.prepared?.abort.abort();
+    const abort = new AbortController();
     const entry = {
       at: this.clock.now(),
       state: 'pending' as 'pending' | 'ready' | 'failed',
+      abort,
       result: Promise.resolve()
-        .then(() => api.capabilities(new AbortController().signal))
+        .then(() => api.capabilities(abort.signal))
         .then(outcome => {
           entry.state =
             outcome?.ok && outcome.data.enabled ? 'ready' : 'failed';
@@ -457,11 +474,32 @@ export class VoiceConversationController {
     return null;
   }
 
+  /**
+   * The agent's first message for this call, or null to keep the agent's
+   * own line. Only when the server says the agent accepts it: an override
+   * the agent does not allow makes it refuse the conversation. A quiet
+   * opening (a reminder call) asks for no first message at all.
+   */
+  private openingLineFor(capabilities: VoiceCapabilities): string | null {
+    if (capabilities.openingLine !== true) return null;
+    if (this.deps.quietOpening) return '';
+    let line: string | null = null;
+    try {
+      line = this.deps.getOpeningLine?.() ?? null;
+    } catch {
+      line = null;
+    }
+    // "{{…}}" is the agent's variable syntax; a name never needs braces.
+    const clean = (line ?? '').replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
+    return clean && clean.length <= 240 ? clean : null;
+  }
+
   start = async (): Promise<void> => {
     if (this.disposed || ACTIVE.has(this.snapshot.phase)) return; // double tap
     const gen = ++this.generation;
     this.waitingForStudent = false;
     this.studentSpokeSinceAnswer = false;
+    this.openingQuiet = this.deps.quietOpening === true;
     this.limitReason = null;
     const stale = () => gen !== this.generation || this.disposed;
     this.seen = new Set();
@@ -667,9 +705,13 @@ export class VoiceConversationController {
     this.live = live;
     const studentContext =
       rawContext.length > 12000 ? rawContext.slice(0, 12000) : rawContext;
+    const openingLine = this.openingLineFor(capabilities.data);
     const initiation = JSON.stringify({
       type: 'conversation_initiation_client_data',
-      conversation_config_override: {tts: {voice_id: session.data.voiceId}},
+      conversation_config_override: {
+        tts: {voice_id: session.data.voiceId},
+        ...(openingLine !== null ? {agent: {first_message: openingLine}} : {}),
+      },
       dynamic_variables: {
         lafina_voice_grant: session.data.grant,
         ...(studentContext ? {student_context: studentContext} : {}),
@@ -693,6 +735,7 @@ export class VoiceConversationController {
             initiation,
             allowLocalTestServer: this.deps.allowLocalTestServer === true,
             appOwnedAudio: this.deps.appOwnedAudio === true,
+            ...(this.deps.quietOpening ? {suppressOpeningAudio: true} : {}),
           })
           .then(resolve, reject);
       });
@@ -852,6 +895,7 @@ export class VoiceConversationController {
   };
 
   dispose = (): void => {
+    this.prepared?.abort.abort();
     this.prepared = null;
     this.generation += 1;
     this.teardown();
@@ -1267,7 +1311,7 @@ export class VoiceConversationController {
             friendlyDetail ||
             'I could not answer that turn. Try saying it again.',
         });
-        void this.explainSilence(gen);
+        void this.explainSilence(gen, true);
         return;
       }
       default:
@@ -1302,6 +1346,8 @@ export class VoiceConversationController {
     const trimmed = words.trim();
     const key = eventId !== null ? `user:${eventId}` : null;
     if (key && this.seen.has(key)) return; // a duplicate final
+    // Native playback resumes on any transcript; the text must match it.
+    this.openingQuiet = false;
     if (key) this.seen.add(key);
     if (!MEANINGFUL.test(trimmed)) {
       // Silence or noise: drop the live line, answer nothing.
@@ -1346,6 +1392,8 @@ export class VoiceConversationController {
   }
 
   private acceptUserTurn(trimmed: string, turnId: string) {
+    // The student's first words end the quiet opening; answers count again.
+    this.openingQuiet = false;
     this.turnGeneration += 1;
     // New words from the student: they are not leaving after all.
     this.cancelEndAfterReply();
@@ -1406,7 +1454,7 @@ export class VoiceConversationController {
   }
 
   private appendAnswer(piece: string) {
-    if (this.deps.suppressAgentResponse?.()) return;
+    if (this.openingQuiet || this.deps.suppressAgentResponse?.()) return;
     const pending = this.ensurePending();
     pending.text += piece;
     this.noteFirstText();
@@ -1425,7 +1473,7 @@ export class VoiceConversationController {
     if (key) this.seen.add(key);
     const sanitized = sanitizeSpeechText(full);
     if (!sanitized.trim()) return;
-    if (this.deps.suppressAgentResponse?.()) {
+    if (this.openingQuiet || this.deps.suppressAgentResponse?.()) {
       this.timers.clear('thinking');
       if (this.snapshot.phase === 'thinking') this.update({phase: 'listening'});
       return;
@@ -1472,6 +1520,7 @@ export class VoiceConversationController {
   }
 
   private correctAnswer(corrected: string) {
+    if (this.openingQuiet) return;
     const sanitized = sanitizeSpeechText(corrected);
     if (!sanitized.trim()) return;
     const pending = this.pending;
@@ -1542,19 +1591,26 @@ export class VoiceConversationController {
   }
 
   /** Asks the server once why a turn went unanswered, and says so. */
-  private async explainSilence(gen: number) {
+  private async explainSilence(gen: number, preserveNotice = false) {
     const live = this.live;
     if (!live) return;
     const status = await this.deps.api.status(live.sessionId).catch(() => null);
     if (gen !== this.generation) return;
-    const message =
+    const serverDetail =
       status?.ok && status.data.lastErrorMessage
         ? humanizeProviderError(status.data.lastErrorMessage)
-        : 'LAFINA is taking longer than usual. Keep talking, or end the conversation and use text chat.';
+        : null;
+    const nextPhase =
+      this.snapshot.phase === 'thinking' ? 'listening' : this.snapshot.phase;
+    if (preserveNotice && !serverDetail) {
+      if (nextPhase !== this.snapshot.phase) this.update({phase: nextPhase});
+      return;
+    }
     this.update({
-      notice: message,
-      phase:
-        this.snapshot.phase === 'thinking' ? 'listening' : this.snapshot.phase,
+      notice:
+        serverDetail ??
+        'LAFINA is taking longer than usual. Keep talking, or end the conversation and use text chat.',
+      phase: nextPhase,
     });
   }
 

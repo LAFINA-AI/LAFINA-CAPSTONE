@@ -59,6 +59,8 @@ object LafinaWhisperBridge {
     threads: Int
   ): String
   external fun freeContext(contextPointer: Long)
+  /** Stops a running voice `transcribe` early (never meeting transcription). */
+  external fun setVoiceAbort(abort: Boolean)
 }
 
 internal class SileroVadProcessor(private val reactContext: ReactApplicationContext) : AutoCloseable {
@@ -196,7 +198,9 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
   // 60-second inactivity auto-unload mechanism to conserve system RAM and battery
   private val mainHandler = Handler(Looper.getMainLooper())
   private val inactivityUnloadRunnable = Runnable {
-    unloadModelsInternal()
+    if (!warmupExecutor.isShutdown) {
+      warmupExecutor.execute { unloadModelsInternal() }
+    }
   }
 
   // Separate from `executor` so a warmup never delays the start of audio capture.
@@ -284,13 +288,38 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     }
   }
 
+  /** The bundled Whisper model is in this build (checked once). */
+  @Volatile private var whisperModelBundled: Boolean? = null
+
+  private fun hasWhisperModel(): Boolean {
+    whisperModelBundled?.let { return it }
+    val bundled = try {
+      val name = WHISPER_MODEL_ASSET.substringAfterLast('/')
+      val folder = WHISPER_MODEL_ASSET.substringBeforeLast('/')
+      reactContext.assets.list(folder)?.contains(name) == true
+    } catch (_: Exception) {
+      false
+    }
+    whisperModelBundled = bundled
+    return bundled
+  }
+
+  /** Microphone allowed and the speech model shipped with this build. */
   @ReactMethod
   fun isAvailable(promise: Promise) {
     val hasAudioPermission = ContextCompat.checkSelfPermission(
       reactContext,
       Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
-    promise.resolve(hasAudioPermission)
+    promise.resolve(hasAudioPermission && hasWhisperModel())
+  }
+
+  /** Asks a running voice transcription to stop; a no-op when the native library is missing. */
+  private fun abortVoiceTranscription(abort: Boolean) {
+    try {
+      LafinaWhisperBridge.setVoiceAbort(abort)
+    } catch (_: UnsatisfiedLinkError) {
+    }
   }
 
   @ReactMethod
@@ -333,6 +362,18 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     } else {
       bargeIn
     }
+    // Offline call tuning: a shorter end-of-turn pause, and the first moments
+    // ignored so LAFINA's own voice still in the room is not heard as speech.
+    val endSilenceMs = if (options.hasKey("endSilenceMs")) {
+      options.getDouble("endSilenceMs").toInt().coerceIn(MIN_END_SILENCE_MS, MAX_END_SILENCE_MS)
+    } else {
+      null
+    }
+    val leadInIgnoreMs = if (options.hasKey("leadInIgnoreMs")) {
+      options.getDouble("leadInIgnoreMs").toInt().coerceIn(0, MAX_LEAD_IN_IGNORE_MS)
+    } else {
+      0
+    }
     // AGY-PORT 05: token-fenced lease. A contender (including a second Whisper capture)
     // gets no ticket, so it can never release the active owner's microphone.
     val ticket = LafinaMicrophoneLease.tryAcquire(MicrophoneLeaseRegistry.Holder.SPEECH_TO_TEXT)
@@ -354,7 +395,19 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     stopRequested.set(false)
     discardRequested.set(false)
     try {
-      executor.execute { runCapture(captureId, mode, bargeIn, captureContext, useHardwareAudioEffects, ticket, promise) }
+      executor.execute {
+        runCapture(
+          captureId,
+          mode,
+          bargeIn,
+          captureContext,
+          useHardwareAudioEffects,
+          ticket,
+          promise,
+          endSilenceMs,
+          leadInIgnoreMs
+        )
+      }
     } catch (error: Exception) {
       // The executor is shut down (module invalidated): nothing will run, so release now.
       activeCaptureId.compareAndSet(captureId, null)
@@ -370,7 +423,9 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     captureContext: String,
     useHardwareAudioEffects: Boolean,
     ticket: MicrophoneLeaseRegistry.Ticket,
-    rawPromise: Promise
+    rawPromise: Promise,
+    endSilenceMs: Int? = null,
+    leadInIgnoreMs: Int = 0
   ) {
       // Settled only after the finally block below has returned the microphone, so a
       // caller that starts again as soon as this result arrives never sees a false busy.
@@ -382,7 +437,9 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
           mode,
           bargeIn,
           captureContext,
-          useHardwareAudioEffects
+          useHardwareAudioEffects,
+          endSilenceMs,
+          leadInIgnoreMs
         )
         val captureDurationMs = System.currentTimeMillis() - captureStartedAt
         Log.i(
@@ -421,6 +478,13 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
             .coerceAtMost(captured.samples.size)
         val speechSamples = captured.samples.copyOfRange(speechWindowStart, speechWindowEnd)
         val commandMode = false
+        // A cancel from here on stops Whisper itself, so the microphone lease
+        // comes back in moments instead of after the whole decode.
+        abortVoiceTranscription(false)
+        if (discardRequested.get()) {
+          promise.resolve(resultMap(captureId, "", false, true, captureDurationMs, 0L))
+          return
+        }
         val transcript = LafinaWhisperBridge.transcribe(
           whisperContext,
           prepareForWhisper(speechSamples),
@@ -439,7 +503,15 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
           putDouble("inferenceDurationMs", inferenceDurationMs.toDouble())
         })
         promise.resolve(
-          resultMap(captureId, transcript, true, false, captureDurationMs, inferenceDurationMs)
+          resultMap(
+            captureId,
+            transcript,
+            true,
+            false,
+            captureDurationMs,
+            inferenceDurationMs,
+            captured.maxVadProbability
+          )
         )
       } catch (error: Exception) {
         if (discardRequested.get()) {
@@ -494,7 +566,9 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     mode: String,
     bargeIn: Boolean,
     captureContext: String,
-    useHardwareAudioEffects: Boolean = bargeIn
+    useHardwareAudioEffects: Boolean = bargeIn,
+    endSilenceMs: Int? = null,
+    leadInIgnoreMs: Int = 0
   ): CapturedAudio {
     val isReminderCall = captureContext == CONTEXT_REMINDER_CALL
     val minimumBuffer = AudioRecord.getMinBufferSize(
@@ -587,11 +661,14 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     var energyStartStreamSample = -1
     var energyEndStreamSample = -1
     val silenceAfterSpeechMs =
-      if (isReminderCall) {
-        CALL_COMMAND_SILENCE_AFTER_SPEECH_MS
-      } else {
-        MAIN_SILENCE_AFTER_SPEECH_MS
+      when {
+        endSilenceMs != null && mode == MODE_AUTOMATIC -> endSilenceMs
+        isReminderCall -> CALL_COMMAND_SILENCE_AFTER_SPEECH_MS
+        else -> MAIN_SILENCE_AFTER_SPEECH_MS
       }
+    val leadInIgnoreSamples = (leadInIgnoreMs * SAMPLE_RATE) / 1000
+    // One buffer for every frame (was a new array per 32 ms frame).
+    val normalized = FloatArray(FRAME_SIZE)
     val silenceFramesRequired =
       (silenceAfterSpeechMs * SAMPLE_RATE) / (1000 * FRAME_SIZE)
     val speechEvidenceFramesRequired =
@@ -640,7 +717,9 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
         val streamFrameStart = totalStreamSamples
         val streamFrameEnd = streamFrameStart + read
         totalStreamSamples = streamFrameEnd
-        val normalized = FloatArray(FRAME_SIZE)
+        // The tail of LAFINA's own line: neither speech nor part of the noise floor.
+        if (mode == MODE_AUTOMATIC && streamFrameEnd <= leadInIgnoreSamples) continue
+        if (read < FRAME_SIZE) normalized.fill(0f, read, FRAME_SIZE)
         var squaredSum = 0.0
         var framePeak = 0f
         for (index in 0 until read) {
@@ -791,7 +870,8 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     speechDetected: Boolean,
     cancelled: Boolean,
     captureDurationMs: Long,
-    inferenceDurationMs: Long
+    inferenceDurationMs: Long,
+    maxVadProbability: Float? = null
   ): WritableMap = Arguments.createMap().apply {
     putString("captureId", captureId)
     putString("transcript", transcript)
@@ -799,6 +879,8 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     putBoolean("cancelled", cancelled)
     putDouble("captureDurationMs", captureDurationMs.toDouble())
     putDouble("inferenceDurationMs", inferenceDurationMs.toDouble())
+    // The detector's peak, so the app can drop words Whisper invented from noise.
+    if (maxVadProbability != null) putDouble("maxVadProbability", maxVadProbability.toDouble())
   }
 
   @ReactMethod
@@ -823,6 +905,8 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     }
     discardRequested.set(true)
     stopRequested.set(true)
+    // After discardRequested, so the worker either skips Whisper or is stopped inside it.
+    abortVoiceTranscription(true)
     try {
       activeRecorder?.stop()
     } catch (_: Exception) {
@@ -835,6 +919,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     cancelInactivityUnload()
     discardRequested.set(true)
     stopRequested.set(true)
+    if (activeCaptureId.get() != null) abortVoiceTranscription(true)
     try {
       activeRecorder?.stop()
     } catch (_: Exception) {
@@ -847,6 +932,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     cancelInactivityUnload()
     discardRequested.set(true)
     stopRequested.set(true)
+    if (activeCaptureId.get() != null) abortVoiceTranscription(true)
     try {
       activeRecorder?.stop()
     } catch (_: Exception) {
@@ -871,6 +957,9 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     private const val MANUAL_CAPTURE_LIMIT_SECONDS = 30
     private const val MAIN_SILENCE_AFTER_SPEECH_MS = 1_000
     private const val CALL_COMMAND_SILENCE_AFTER_SPEECH_MS = 650
+    private const val MIN_END_SILENCE_MS = 400
+    private const val MAX_END_SILENCE_MS = 2_000
+    private const val MAX_LEAD_IN_IGNORE_MS = 1_000
     private const val PRE_ROLL_SAMPLES = 5_760
     private const val VAD_START_THRESHOLD = 0.35f
     private const val VAD_END_THRESHOLD = 0.20f

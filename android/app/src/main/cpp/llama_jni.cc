@@ -2,6 +2,7 @@
 #include <android/log.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -50,7 +51,14 @@ struct LafinaLlamaContext {
   // with the same instructions, so only the part after the shared prefix
   // (the student's words) is read again.
   std::vector<llama_token> cached;
+  // Set by the app when the answer is no longer wanted (the student moved on or
+  // the wait limit passed). Checked between tokens and inside llama_decode.
+  std::atomic<bool> cancel{false};
 };
+
+bool generationCancelled(void *data) {
+  return static_cast<LafinaLlamaContext *>(data)->cancel.load(std::memory_order_relaxed);
+}
 
 struct JsonTrackState {
   bool seenOpenBrace = false;
@@ -180,6 +188,7 @@ Java_com_lafina_capstone_LafinaLlamaBridge_initModel(
   handle->model = model;
   handle->ctx = ctx;
   handle->n_threads = clampedThreads;
+  llama_set_abort_callback(ctx, generationCancelled, handle);
 
   __android_log_print(
       ANDROID_LOG_INFO,
@@ -284,6 +293,10 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
 
   const uint32_t nBatch = std::max<uint32_t>(1, llama_n_batch(handle->ctx));
   for (size_t offset = reuse; offset < promptTokens.size(); offset += nBatch) {
+    if (handle->cancel.load(std::memory_order_relaxed)) {
+      __android_log_print(ANDROID_LOG_INFO, kTag, "Generation cancelled while reading the prompt");
+      return env->NewStringUTF("");
+    }
     const int32_t chunkSize = static_cast<int32_t>(
         std::min<size_t>(nBatch, promptTokens.size() - offset));
     llama_batch batch = llama_batch_get_one(promptTokens.data() + offset, chunkSize);
@@ -316,6 +329,11 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
   JsonTrackState jsonState;
 
   for (int32_t i = 0; i < tokenBudget; ++i) {
+    if (handle->cancel.load(std::memory_order_relaxed)) {
+      __android_log_print(ANDROID_LOG_INFO, kTag, "Generation cancelled after %d tokens", i);
+      output.clear();
+      break;
+    }
     llama_token tokenId = llama_sampler_sample(sampler, handle->ctx, -1);
     if (llama_vocab_is_eog(vocab, tokenId)) {
       break;
@@ -349,6 +367,15 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_lafina_capstone_LafinaLlamaBridge_setCancel(
+    JNIEnv *, jobject, jlong contextPointer, jboolean cancel) {
+  auto *handle = reinterpret_cast<LafinaLlamaContext *>(contextPointer);
+  if (handle == nullptr) return;
+  // Lock-free on purpose: it must reach a generate() that holds the mutex.
+  handle->cancel.store(cancel == JNI_TRUE, std::memory_order_relaxed);
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_lafina_capstone_LafinaLlamaBridge_freeModel(
     JNIEnv *, jobject, jlong contextPointer) {
   auto *handle = reinterpret_cast<LafinaLlamaContext *>(contextPointer);
@@ -377,6 +404,12 @@ Java_com_lafina_LafinaLlamaBridge_generate(
     JNIEnv *env, jobject thiz, jlong contextPointer, jstring prompt, jint maxTokens) {
   return Java_com_lafina_capstone_LafinaLlamaBridge_generate(
       env, thiz, contextPointer, prompt, maxTokens);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lafina_LafinaLlamaBridge_setCancel(
+    JNIEnv *env, jobject thiz, jlong contextPointer, jboolean cancel) {
+  Java_com_lafina_capstone_LafinaLlamaBridge_setCancel(env, thiz, contextPointer, cancel);
 }
 
 extern "C" JNIEXPORT void JNICALL

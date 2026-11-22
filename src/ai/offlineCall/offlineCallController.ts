@@ -26,6 +26,7 @@ import type {
   OfflineSpeechCaptureOptions,
 } from '../native/speechCapture';
 import type {OwnedSpeechOutcome} from '../tts/ttsService';
+import {isEchoOfLine, isHallucinatedSpeech} from '../stt/speechGhosts';
 import {cleanTranscript, OFFLINE_SILENCE_GOODBYE} from './spokenReplies';
 
 export type OfflineTurnSource = 'voice' | 'typed';
@@ -53,6 +54,8 @@ export interface OfflineCallLimits {
   respondTimeoutMs: number;
   /** A microphone still being released is retried for this long. */
   busyRetryMs: number;
+  /** Writing-down timeouts in a row before the call stops. */
+  maxTranscribeTimeouts: number;
 }
 
 export const DEFAULT_OFFLINE_LIMITS: OfflineCallLimits = {
@@ -62,7 +65,16 @@ export const DEFAULT_OFFLINE_LIMITS: OfflineCallLimits = {
   transcribeTimeoutMs: 25_000,
   respondTimeoutMs: 20_000,
   busyRetryMs: 4_000,
+  maxTranscribeTimeouts: 2,
 };
+
+/**
+ * The pause that ends a spoken turn in the call. Shorter than push-to-talk's
+ * 1 s so LAFINA answers sooner; still long enough for a breath mid-sentence.
+ */
+export const OFFLINE_CALL_END_SILENCE_MS = 700;
+/** Audio right after LAFINA stops talking is ignored (her voice in the room). */
+export const OFFLINE_CALL_LEAD_IN_IGNORE_MS = 300;
 
 /** Said when whisper heard speech but wrote no words. */
 export const NOT_CAUGHT_REPLY =
@@ -70,9 +82,19 @@ export const NOT_CAUGHT_REPLY =
 /** Said when writing the words down took too long. */
 export const TRANSCRIBE_TIMEOUT_REPLY =
   "Sorry, I couldn't make that out in time. Please say it again.";
-/** Said when reading the request took too long. */
+/**
+ * Said when reading the request took too long. It does not promise that
+ * nothing changed: a save the student already asked for may still finish,
+ * and its receipt is shown in Chat.
+ */
 export const RESPOND_TIMEOUT_REPLY =
-  'Sorry, that took too long, so I stopped. Nothing was changed. Please say it again.';
+  'Sorry, that took too long, so I stopped waiting. Check the screen before you say it again.';
+/** Said when whisper kept running out of time. */
+export const TRANSCRIBE_STUCK_MESSAGE =
+  'Offline speech recognition is too slow on this phone right now, so the call ended. Typing in Chat still works.';
+/** Our own last recognition still holds the microphone (not another app). */
+export const CAPTURE_STUCK_MESSAGE =
+  'Speech recognition was still finishing your last words, so the call ended. Call Lafina again to continue.';
 
 /** Lets `respond` know whether its turn is still the one being answered. */
 export interface OfflineTurnContext {
@@ -101,6 +123,8 @@ export interface OfflineCallDeps {
     ) => () => void;
     isBusyError?: (error: unknown) => boolean;
   };
+  /** Capture tuning for the call; tests leave it out. */
+  capture?: {endSilenceMs?: number; leadInIgnoreMs?: number};
   voice: {
     ready: () => Promise<boolean>;
     speak: (text: string) => {
@@ -124,6 +148,10 @@ const LIVE = new Set<ConversationPhase>([
 ]);
 
 const MAX_TURNS = 40;
+
+/** The microphone is held by this app's own unfinished recognition, not another app. */
+const isOwnCaptureBusy = (error: unknown): boolean =>
+  (error as {code?: unknown} | null)?.code === 'CAPTURE_BUSY';
 
 export const OFFLINE_VOICE_NAME = 'Phone voice (offline)';
 
@@ -156,6 +184,8 @@ export class OfflineCallController implements ConversationController {
   private typed: string[] = [];
   private announcements: {text: string; inChat: boolean}[] = [];
   private wake: (() => void) | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryResolve: (() => void) | null = null;
   private voiceReady = false;
   private turnCounter = 0;
   /** The turn `respond` is answering; a late answer to an older one is dropped. */
@@ -163,6 +193,14 @@ export class OfflineCallController implements ConversationController {
   private armTranscribeWatchdog: (() => void) | null = null;
   private startedAt = 0;
   private disposed = false;
+  /** The OS microphone prompt is open; the app is not really leaving. */
+  private permissionPending = false;
+  /** Stop was pressed while LAFINA was still thinking: her next line is shown, not spoken. */
+  private skipNextSpeech = false;
+  /** LAFINA's last spoken line, to recognise it coming back through the mic. */
+  private lastSpokenLine: string | null = null;
+  /** The next capture opens right after LAFINA finished speaking. */
+  private justSpoke = false;
   private readonly limits: OfflineCallLimits;
   private readonly now: () => number;
 
@@ -183,6 +221,9 @@ export class OfflineCallController implements ConversationController {
   };
 
   isActive = (): boolean => LIVE.has(this.snapshot.phase);
+
+  /** True while the microphone permission prompt is on screen. */
+  isRequestingPermission = (): boolean => this.permissionPending;
 
   private update(patch: Partial<ConversationSnapshot>): void {
     if (this.disposed) return;
@@ -217,6 +258,16 @@ export class OfflineCallController implements ConversationController {
     wake?.();
   }
 
+  private clearRetryWait(): void {
+    if (this.retryTimer !== null) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+    const resolve = this.retryResolve;
+    this.retryResolve = null;
+    resolve?.();
+  }
+
   /** Ends the capture in progress so the loop can act on something else. */
   private interruptCapture(): void {
     const capture = this.capture;
@@ -232,6 +283,9 @@ export class OfflineCallController implements ConversationController {
     this.typed = [];
     this.announcements = [];
     this.stopRequested = false;
+    this.skipNextSpeech = false;
+    this.lastSpokenLine = null;
+    this.justSpoke = false;
     const startedAt = this.now();
     this.update({
       ...OFFLINE_IDLE_SNAPSHOT,
@@ -246,6 +300,24 @@ export class OfflineCallController implements ConversationController {
     const voiceReady = Promise.resolve()
       .then(() => this.deps.voice.ready())
       .catch(() => false);
+    // Permission first: the student is asked for the microphone the first
+    // time, instead of being told speech recognition is "not ready".
+    this.permissionPending = true;
+    const micAllowed = await this.deps.speech
+      .ensurePermission()
+      .catch(() => false)
+      .finally(() => {
+        this.permissionPending = false;
+      });
+    if (gen !== this.generation) return;
+    if (!micAllowed) {
+      this.fail(
+        gen,
+        'mic_denied',
+        'Microphone permission is off. Allow it in Settings to talk to Lafina.',
+      );
+      return;
+    }
     const sttReady = await this.deps.speech.isAvailable().catch(() => false);
     if (gen !== this.generation) return;
     if (!sttReady) {
@@ -253,18 +325,6 @@ export class OfflineCallController implements ConversationController {
         gen,
         'voice_unavailable',
         'Offline speech recognition is not ready on this phone, so the offline call cannot listen. Push-to-talk setup and typing in Chat still work.',
-      );
-      return;
-    }
-    const micAllowed = await this.deps.speech
-      .ensurePermission()
-      .catch(() => false);
-    if (gen !== this.generation) return;
-    if (!micAllowed) {
-      this.fail(
-        gen,
-        'mic_denied',
-        'Microphone permission is off. Allow it in Settings to talk to Lafina.',
       );
       return;
     }
@@ -292,6 +352,7 @@ export class OfflineCallController implements ConversationController {
     let quiet = 0;
     let errors = 0;
     let notCaught = 0;
+    let unheard = 0;
     while (this.current(gen)) {
       if (this.now() - this.startedAt >= this.limits.maxDurationMs) {
         await this.say(
@@ -323,6 +384,11 @@ export class OfflineCallController implements ConversationController {
       if (heard.kind === 'interrupted') continue;
       if (heard.kind === 'unheard') {
         quiet = 0;
+        unheard += 1;
+        if (unheard >= this.limits.maxTranscribeTimeouts) {
+          this.fail(gen, 'audio', TRANSCRIBE_STUCK_MESSAGE);
+          return;
+        }
         await this.say(gen, TRANSCRIBE_TIMEOUT_REPLY);
         continue;
       }
@@ -332,7 +398,9 @@ export class OfflineCallController implements ConversationController {
           this.fail(
             gen,
             heard.busy ? 'mic_busy' : 'audio',
-            heard.busy
+            heard.ownCapture
+              ? CAPTURE_STUCK_MESSAGE
+              : heard.busy
               ? 'Another recording is using the microphone. Stop it, then call Lafina again.'
               : 'The microphone stopped working, so the call ended. Try calling again.',
           );
@@ -341,6 +409,7 @@ export class OfflineCallController implements ConversationController {
         continue;
       }
       errors = 0;
+      unheard = 0;
       if (!heard.text && heard.speech && notCaught < 2) {
         // Speech was heard but no words came out: say so, never go silent.
         notCaught += 1;
@@ -369,7 +438,7 @@ export class OfflineCallController implements ConversationController {
     | {kind: 'heard'; text: string; speech: boolean}
     | {kind: 'interrupted'}
     | {kind: 'unheard'}
-    | {kind: 'error'; busy: boolean}
+    | {kind: 'error'; busy: boolean; ownCapture?: boolean}
   > {
     this.update({
       phase: 'listening',
@@ -379,25 +448,42 @@ export class OfflineCallController implements ConversationController {
     });
     let handle: OfflineSpeechCaptureHandle | null = null;
     const retryUntil = this.now() + this.limits.busyRetryMs;
+    // Only the capture right after LAFINA spoke skips its first moments.
+    const leadIn = this.justSpoke
+      ? this.deps.capture?.leadInIgnoreMs
+      : undefined;
+    const echoLine = this.justSpoke ? this.lastSpokenLine : null;
+    this.justSpoke = false;
     while (!handle) {
       try {
         handle = this.deps.speech.start({
           mode: 'automatic',
           bargeIn: false,
           context: 'main_mic',
+          ...(this.deps.capture?.endSilenceMs
+            ? {endSilenceMs: this.deps.capture.endSilenceMs}
+            : {}),
+          ...(leadIn ? {leadInIgnoreMs: leadIn} : {}),
         });
       } catch (error) {
         const busy = this.deps.speech.isBusyError?.(error) ?? false;
         // The last capture may still be giving the microphone back.
         if (busy && this.now() < retryUntil && this.current(gen)) {
-          await new Promise<void>(resolve => setTimeout(resolve, 400));
+          await new Promise<void>(resolve => {
+            this.retryResolve = resolve;
+            this.retryTimer = setTimeout(() => {
+              this.retryTimer = null;
+              this.retryResolve = null;
+              resolve();
+            }, 400);
+          });
           if (!this.current(gen) || this.snapshot.muted)
             return {kind: 'interrupted'};
           continue;
         }
         this.update({micCapturing: false});
         this.log(`capture could not start: ${String(error)}`);
-        return {kind: 'error', busy};
+        return {kind: 'error', busy, ownCapture: isOwnCaptureBusy(error)};
       }
     }
     const capture = handle;
@@ -441,17 +527,30 @@ export class OfflineCallController implements ConversationController {
         this.log(
           `transcription timed out after ${this.limits.transcribeTimeoutMs}ms`,
         );
-        void this.deps.speech.cancel(capture.captureId).catch(() => false);
+        await this.deps.speech.cancel(capture.captureId).catch(() => false);
         return {kind: 'unheard'};
       }
       if (outcome.cancelled) return {kind: 'interrupted'};
-      const text = cleanTranscript(outcome.transcript ?? '');
+      let text = cleanTranscript(outcome.transcript ?? '');
+      // Whisper's inventions on noise ("Thank you.") and LAFINA's own last
+      // words coming back are not the student: count them as silence, so a
+      // cough can never hang up the call or answer a card.
+      const ghost =
+        !!text &&
+        (isHallucinatedSpeech(text, outcome.maxVadProbability) ||
+          isEchoOfLine(text, echoLine));
+      if (ghost) text = '';
       this.log(
         `heard: speech=${outcome.speechDetected} chars=${text.length} ` +
+          `ghost=${ghost} maxVad=${outcome.maxVadProbability ?? 'n/a'} ` +
           `recordMs=${(endedAt ?? this.now()) - openedAt} ` +
           `captureMs=${outcome.captureDurationMs} inferenceMs=${outcome.inferenceDurationMs}`,
       );
-      return {kind: 'heard', text, speech: outcome.speechDetected};
+      return {
+        kind: 'heard',
+        text,
+        speech: outcome.speechDetected && !ghost,
+      };
     } catch (error) {
       if (!this.current(gen)) return {kind: 'interrupted'};
       this.update({micCapturing: false, level: 0, toolPhrase: null});
@@ -459,6 +558,7 @@ export class OfflineCallController implements ConversationController {
       return {
         kind: 'error',
         busy: this.deps.speech.isBusyError?.(error) ?? false,
+        ownCapture: isOwnCaptureBusy(error),
       };
     } finally {
       if (watchdog) clearTimeout(watchdog);
@@ -486,6 +586,8 @@ export class OfflineCallController implements ConversationController {
       // History is best-effort; the call goes on.
     }
     this.update({phase: 'thinking', toolPhrase: null});
+    // A Stop from an earlier turn does not silence this one.
+    this.skipNextSpeech = false;
     const askedAt = this.now();
     const turnId = ++this.answering;
     const isCurrent = () => this.current(gen) && this.answering === turnId;
@@ -518,6 +620,7 @@ export class OfflineCallController implements ConversationController {
     const inChat = typeof reply === 'object' && reply?.inChat === true;
     if (line?.trim()) await this.say(gen, line.trim(), inChat);
     else this.update({phase: 'listening'});
+    this.skipNextSpeech = false;
     const hangUp =
       (typeof reply === 'object' && reply?.hangUp === true) ||
       this.endAfterLine;
@@ -533,20 +636,32 @@ export class OfflineCallController implements ConversationController {
     const id = `offline-assistant-${++this.turnCounter}`;
     this.pushTurn({id, role: 'assistant', text, status: 'final'});
     let heard: 'complete' | 'interrupted' = 'complete';
-    if (this.voiceReady) {
+    if (this.skipNextSpeech) {
+      // Stop was pressed while she was thinking: show the line, say nothing.
+      this.skipNextSpeech = false;
+      heard = 'interrupted';
+      this.setTurnStatus(id, 'interrupted');
+    } else if (this.voiceReady) {
       this.stopRequested = false;
       this.update({phase: 'speaking', outputLevel: 0.6, micCapturing: false});
       const speech = this.deps.voice.speak(text);
       const token = await speech.token.catch(() => null);
       if (token !== null) {
-        this.speechToken = token;
-        if (this.stopRequested || !this.current(gen))
+        if (this.stopRequested || !this.current(gen)) {
           void this.deps.voice.stop(token).catch(() => false);
+        } else {
+          this.speechToken = token;
+        }
       }
       const outcome = await speech.result.catch(
         () => 'failed' as OwnedSpeechOutcome,
       );
-      this.speechToken = null;
+      if (this.speechToken === token) this.speechToken = null;
+      if (outcome !== 'failed' && outcome !== 'refused') {
+        // Her voice may still be in the room when the microphone opens.
+        this.justSpoke = true;
+        this.lastSpokenLine = text;
+      }
       if (outcome === 'stopped') {
         heard = 'interrupted';
         this.setTurnStatus(id, 'interrupted');
@@ -590,6 +705,9 @@ export class OfflineCallController implements ConversationController {
   /** Stops LAFINA's line now; the call goes back to listening. */
   stopResponse = (): void => {
     this.stopRequested = true;
+    // Pressed while she is still working out the answer: that answer is
+    // shown when it comes, not spoken.
+    if (this.snapshot.phase === 'thinking') this.skipNextSpeech = true;
     const token = this.speechToken;
     if (token !== null) void this.deps.voice.stop(token).catch(() => false);
   };
@@ -628,6 +746,7 @@ export class OfflineCallController implements ConversationController {
     this.answering += 1;
     this.endAfterLine = false;
     this.log(`call ${phase}${failure ? ` (${failure.kind})` : ''}`);
+    this.clearRetryWait();
     this.interruptCapture();
     const token = this.speechToken;
     if (token !== null) void this.deps.voice.stop(token).catch(() => false);

@@ -22,6 +22,7 @@ import {
   sttService,
   type OfflineSpeechCaptureHandle,
 } from '../../../ai/stt/sttService';
+import {isHallucinatedSpeech as isSpeechGhost} from '../../../ai/stt/speechGhosts';
 
 export interface ChatInputProps {
   inputText: string;
@@ -53,31 +54,14 @@ export const USTP_SUGGESTED_PROMPTS = [
 
 /**
  * Detects common Whisper hallucination artifacts generated from silence,
- * background rustling, or brief audio glitches.
+ * background rustling, or brief audio glitches. Shared with the offline call
+ * (`src/ai/stt/speechGhosts.ts`); with the detector's peak known, a real
+ * "thank you" is no longer thrown away.
  */
-export const isHallucinatedSpeech = (rawText: string): boolean => {
-  const clean = rawText
-    .toLowerCase()
-    .replace(/[^\w\s]/g, '')
-    .trim();
-  if (!clean || clean.length < 2) return true;
-  const commonGhosts = new Set([
-    'you',
-    'thank you',
-    'thanks',
-    'thanks for watching',
-    'thank you for watching',
-    'subtitles by',
-    'translated by',
-    'bye',
-    'goodbye',
-    'silence',
-    'music',
-    'audio',
-    'the end',
-  ]);
-  return commonGhosts.has(clean);
-};
+export const isHallucinatedSpeech = (
+  rawText: string,
+  maxVadProbability?: number | null,
+): boolean => isSpeechGhost(rawText, maxVadProbability, 'push_to_talk');
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   inputText,
@@ -288,7 +272,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }
 
       const text = result.transcript ? result.transcript.trim() : '';
-      if (!text || isHallucinatedSpeech(text)) {
+      if (!text || isHallucinatedSpeech(text, result.maxVadProbability)) {
         console.log(
           '[ChatInput] Discarding empty or hallucinated speech artifact:',
           text,

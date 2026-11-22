@@ -3,6 +3,7 @@
 #include <android/asset_manager_jni.h>
 #include <android/log.h>
 #include <algorithm>
+#include <atomic>
 #include <string>
 #include <thread>
 #include "whisper.h"
@@ -39,6 +40,13 @@ constexpr int kCallCommandMaxTokens = 12;
 constexpr int kMinVoiceAudioContext = 512;
 constexpr int kMaxAudioContext = 1500;
 constexpr int kSamplesPerAudioContextFrame = 320;  // 16 kHz / 50 frames per second
+
+// Set when the student cancels a voice capture: whisper stops decoding at its next check
+// instead of finishing a transcript nobody will read (while holding the microphone lease).
+// Only the short voice `transcribe` reads it; meeting transcription is never aborted.
+std::atomic<bool> gVoiceAbort{false};
+
+bool voiceAbortRequested(void *) { return gVoiceAbort.load(std::memory_order_relaxed); }
 
 size_t assetRead(void *context, void *output, size_t size) {
   return static_cast<size_t>(AAsset_read(static_cast<AAsset *>(context), output, size));
@@ -150,6 +158,8 @@ Java_com_lafina_LafinaWhisperBridge_transcribe(
   params.initial_prompt = isCommandMode ? kCallCommandPrompt : kVoiceCommandPrompt;
   params.greedy.best_of = 1;
   params.n_threads = std::clamp(static_cast<int>(requestedThreads), 1, 4);
+  params.abort_callback = voiceAbortRequested;
+  params.abort_callback_user_data = nullptr;
   std::string transcript;
   __android_log_print(
       ANDROID_LOG_INFO,
@@ -251,6 +261,11 @@ Java_com_lafina_LafinaWhisperBridge_transcribeWithTimestamps(
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_lafina_LafinaWhisperBridge_setVoiceAbort(JNIEnv *, jobject, jboolean abort) {
+  gVoiceAbort.store(abort == JNI_TRUE, std::memory_order_relaxed);
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_lafina_LafinaWhisperBridge_freeContext(JNIEnv *, jobject, jlong contextPointer) {
   auto *context = reinterpret_cast<whisper_context *>(contextPointer);
   if (context != nullptr) whisper_free(context);
@@ -283,6 +298,12 @@ Java_com_lafina_capstone_LafinaWhisperBridge_transcribeWithTimestamps(
     jint requestedThreads) {
   return Java_com_lafina_LafinaWhisperBridge_transcribeWithTimestamps(
       env, thiz, contextPointer, samples, requestedThreads);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lafina_capstone_LafinaWhisperBridge_setVoiceAbort(
+    JNIEnv *env, jobject thiz, jboolean abort) {
+  Java_com_lafina_LafinaWhisperBridge_setVoiceAbort(env, thiz, abort);
 }
 
 extern "C" JNIEXPORT void JNICALL
