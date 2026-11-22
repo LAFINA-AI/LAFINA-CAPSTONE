@@ -27,10 +27,11 @@ import {
   migrateAttachmentCleanup,
   migrateAttachmentCleanupQueue,
 } from './attachmentCleanupSchema';
-import {migrateChatMemories} from './chatMemorySchema';
+import {migrateChatMemories, migrateChatMemoriesV2} from './chatMemorySchema';
 import {migrateReminderDeliveryStyles} from './reminderDeliveryStyleSchema';
 import {migrateAlarms} from './alarmSchema';
 import {migrateHandbookIndex} from './handbookSchema';
+import {migrateMaterialIndex} from './materialSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -134,6 +135,22 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'On-device USTP Student Handbook chunks and SQLite FTS5 BM25 index',
     up: tx => {
       migrateHandbookIndex(tx);
+    },
+  },
+  {
+    version: 29,
+    description:
+      'Owner-scoped user study materials, indexed chunks, FTS5 search and Q&A history',
+    up: tx => {
+      migrateMaterialIndex(tx);
+    },
+  },
+  {
+    version: 30,
+    description:
+      'Tiered, pinnable, slot-based chat memories and indexed behavior logs/snapshots',
+    up: tx => {
+      migrateChatMemoriesV2(tx);
     },
   },
 ];
