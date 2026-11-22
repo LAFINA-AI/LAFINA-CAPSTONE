@@ -1,5 +1,10 @@
 import {db, DatabaseTransaction} from './database';
 import {chatMemoryStore} from './chatMemoryStore';
+import type {
+  AddMemoryChangeInput,
+  MemoryCategory as StoredMemoryCategory,
+  MemoryTier,
+} from './chatMemoryStore';
 import {localSettingsStore} from './localSettingsStore';
 import type {StudyPeakHour} from './preferencesStore';
 import type {AcademicProfileRecord} from './academicProfileStore';
@@ -25,10 +30,66 @@ type Stored = {entries: Record<string, Entry>};
 type Executor = Pick<DatabaseTransaction, 'executeSync'>;
 
 /** Memory keys that hold USTP academic facts (only for confirmed COR setups). */
-const isAcademicKey = (key: string): boolean => key.startsWith('cor_');
-/** Older installs saved COR facts with these prefixes before the redesign. */
-const LEGACY_ACADEMIC_TEXT =
-  /^(?:USTP Student:|Academic Profile:|COR Subject:|Student No:)/;
+export const isAcademicKey = (key: string): boolean => key.startsWith('cor_');
+/** Academic fact text prefixes across legacy and current versions. */
+export const LEGACY_ACADEMIC_TEXT =
+  /^(?:ustp student:|academic profile\b|cor subject:|student no:|enrolled subjects\b)/i;
+
+const metadataForKey = (
+  key: string,
+): {
+  tier: MemoryTier;
+  category: StoredMemoryCategory;
+  isPinned: boolean;
+  slotKey: string;
+} => {
+  if (key === 'name') {
+    return {
+      tier: 'core',
+      category: 'identity',
+      isPinned: true,
+      slotKey: 'onboarding:name',
+    };
+  }
+  if (key === 'tone') {
+    return {
+      tier: 'preference',
+      category: 'identity',
+      isPinned: false,
+      slotKey: 'onboarding:tone',
+    };
+  }
+  if (key === 'study') {
+    return {
+      tier: 'preference',
+      category: 'study',
+      isPinned: false,
+      slotKey: 'onboarding:study',
+    };
+  }
+  if (key === 'goal') {
+    return {
+      tier: 'preference',
+      category: 'goal',
+      isPinned: false,
+      slotKey: 'onboarding:goal',
+    };
+  }
+  if (isAcademicKey(key)) {
+    return {
+      tier: 'core',
+      category: 'academic',
+      isPinned: true,
+      slotKey: `onboarding:${key}`,
+    };
+  }
+  return {
+    tier: 'preference',
+    category: 'general',
+    isPinned: false,
+    slotKey: `onboarding:${key}`,
+  };
+};
 
 const readStored = (
   userId: string,
@@ -197,8 +258,13 @@ export interface OnboardingMemoryInput {
   choices?: MemoryChoices;
   /** Scheduling-mode wording ("focus" instead of "study"). */
   schedulingOnly?: boolean;
-  /** 'academic': refresh only COR facts (after a COR import or undo). */
-  scope?: 'all' | 'academic';
+  /**
+   * - `'all'`: full sync from onboarding.
+   * - `'academic'`: refresh only COR facts (after a COR import, semester refresh, or undo).
+   * - `'study'`: update only the preferred study window slot from Preferences.
+   * - `'identity_goal'`: update only preferred name, tone, and main goal from Preferences.
+   */
+  scope?: 'all' | 'academic' | 'study' | 'identity_goal';
 }
 
 /** Re-applies academic facts from the confirmed COR (or removes them). */
@@ -252,10 +318,26 @@ const wantedFacts = (
   return wanted;
 };
 
+const keyInScope = (
+  scope: OnboardingMemoryInput['scope'],
+  key: string,
+): boolean => {
+  if (!scope || scope === 'all') return true;
+  if (scope === 'academic') return isAcademicKey(key);
+  if (scope === 'study') return key === 'study';
+  if (scope === 'identity_goal') {
+    return key === 'name' || key === 'tone' || key === 'goal';
+  }
+  return true;
+};
+
 /**
  * Replaces only onboarding-owned facts (never memories the student or a
  * chat created). Unselected categories and academic facts for a user
- * without a confirmed COR are removed. Memory off → nothing is written.
+ * without a confirmed COR are removed.
+ * When Memory is off, existing non-stale facts stay paused, EXCEPT undone
+ * or invalidated COR academic facts are still removed so stale classes
+ * cannot reappear when Memory is re-enabled.
  */
 export const syncOnboardingMemories = (
   userId: string,
@@ -265,6 +347,7 @@ export const syncOnboardingMemories = (
   const apply = (tx: DatabaseTransaction) => {
     const previous = readStored(userId, tx);
     const enabled = chatMemoryStore.isEnabled(userId, tx);
+    const activeAcademicProfile = getConfirmedAcademicProfile(userId);
     const wanted = enabled ? wantedFacts(userId, input) : {};
     const existing = chatMemoryStore.list(userId, tx);
     const entries: Record<string, Entry> = {};
@@ -276,23 +359,42 @@ export const syncOnboardingMemories = (
       const old = previous.entries?.[key];
       const owned = old && existing.find(m => m.id === old.id);
       const text = wanted[key];
-      if (input.scope === 'academic' && !isAcademicKey(key)) {
-        // Name, tone, study and goal facts are not part of a COR refresh.
+      if (!keyInScope(input.scope, key)) {
         if (owned) entries[key] = old;
         continue;
       }
       if (!enabled) {
-        // Memory is off: leave stored facts alone (the student can turn it back on).
+        // Undone/absent COR facts must still be removed even while Memory is off.
+        if (isAcademicKey(key) && !activeAcademicProfile) {
+          if (owned) {
+            chatMemoryStore.applyChanges(
+              userId,
+              {add: [], remove: [owned.id]},
+              null,
+              tx,
+            );
+          }
+          continue;
+        }
+        // Memory is off: leave valid facts alone (the student can turn it back on).
         if (owned) entries[key] = old;
         continue;
       }
-      if (owned && text === owned.text) {
+      const meta = metadataForKey(key);
+      if (
+        owned &&
+        text === owned.text &&
+        owned.slotKey === meta.slotKey &&
+        owned.tier === meta.tier &&
+        owned.isPinned === meta.isPinned
+      ) {
         entries[key] = old;
         continue;
       }
+      const addPayload: AddMemoryChangeInput[] = text ? [{text, ...meta}] : [];
       const changes = chatMemoryStore.applyChanges(
         userId,
-        {add: text ? [text] : [], remove: owned ? [owned.id] : []},
+        {add: addPayload, remove: owned ? [owned.id] : []},
         null,
         tx,
       );
@@ -340,7 +442,165 @@ export const previewMemoryFacts = (
 export const removeAcademicMemories = (
   userId: string,
   executor?: DatabaseTransaction,
-): void => removeOnboardingMemoryKeys(userId, isAcademicKey, executor);
+): void => {
+  const apply = (tx: DatabaseTransaction) => {
+    removeOnboardingMemoryKeys(userId, isAcademicKey, tx);
+    const orphaned = chatMemoryStore
+      .list(userId, tx)
+      .filter(
+        m =>
+          m.slotKey?.startsWith('onboarding:cor_') ||
+          LEGACY_ACADEMIC_TEXT.test(m.text),
+      )
+      .map(m => m.id);
+    if (orphaned.length > 0) {
+      chatMemoryStore.applyChanges(
+        userId,
+        {add: [], remove: orphaned},
+        null,
+        tx,
+      );
+    }
+  };
+  if (executor) apply(executor);
+  else db.transactionSync(apply);
+};
+
+/** Updates only the study-peak memory slot when Preferences saves study hours. */
+export const syncStudyPreferenceMemory = (
+  userId: string,
+  peaks: StudyPeakHour[],
+  executor?: DatabaseTransaction,
+): void => {
+  const setup = studentSetupStore.get(userId, executor);
+  syncOnboardingMemories(
+    userId,
+    {
+      identity: {
+        preferredName: setup.preferredName,
+        tone: setup.tone ?? '',
+      },
+      peaks,
+      flexibleStudy: peaks.length === 0,
+      goal: setup.goal,
+      choices: setup.memory,
+      schedulingOnly: setup.affiliation === 'not_ustp',
+      scope: 'study',
+    },
+    executor,
+  );
+};
+
+/**
+ * Updates identity (preferred name & tone) and main goal from Profile/Preferences
+ * cleanly in both `studentSetupStore` and `chat_memories` without clobbering COR or study slots.
+ */
+export const syncProfileIdentityAndGoal = (
+  userId: string,
+  params: {
+    preferredName: string;
+    tone: ConversationTone;
+    goal: MainGoal | null;
+    responseStyle?: 'short' | 'balanced' | 'detailed' | null;
+  },
+): void => {
+  const setup = studentSetupStore.get(userId);
+  const cleanedName = params.preferredName
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
+  const nextExplicit = [...setup.explicit];
+  const toggleExplicit = (
+    key: 'name' | 'tone' | 'goal' | 'response',
+    present: boolean,
+  ) => {
+    const idx = nextExplicit.indexOf(key);
+    if (present && idx === -1) nextExplicit.push(key);
+    if (!present && idx !== -1) nextExplicit.splice(idx, 1);
+  };
+  toggleExplicit('name', Boolean(cleanedName));
+  toggleExplicit('tone', Boolean(params.tone));
+  toggleExplicit('goal', Boolean(params.goal));
+  if (params.responseStyle !== undefined) {
+    toggleExplicit('response', Boolean(params.responseStyle));
+  }
+
+  studentSetupStore.update(userId, {
+    preferredName: cleanedName,
+    tone: params.tone || null,
+    goal: params.goal,
+    ...(params.responseStyle !== undefined
+      ? {responseStyle: params.responseStyle}
+      : {}),
+    explicit: nextExplicit,
+  });
+
+  const updatedSetup = studentSetupStore.get(userId);
+  syncOnboardingMemories(userId, {
+    identity: {
+      preferredName: updatedSetup.preferredName,
+      tone: updatedSetup.tone ?? '',
+    },
+    peaks: null,
+    goal: updatedSetup.goal,
+    choices: updatedSetup.memory,
+    schedulingOnly: updatedSetup.affiliation === 'not_ustp',
+    scope: 'identity_goal',
+  });
+};
+
+/** Keeps `studentSetupStore` consistent when the student removes a setup-owned memory. */
+export const reconcileDeletedMemory = (
+  userId: string,
+  deletedId: string,
+): void => {
+  const previous = readStored(userId);
+  const entries = {...(previous.entries ?? {})};
+  let matchedKey: string | null = null;
+  for (const [key, entry] of Object.entries(entries)) {
+    if (entry?.id === deletedId) {
+      matchedKey = key;
+      delete entries[key];
+      break;
+    }
+  }
+  if (!matchedKey) return;
+  localSettingsStore.set(userId, KEY, JSON.stringify({entries}));
+  const setup = studentSetupStore.get(userId);
+  if (matchedKey === 'name') {
+    studentSetupStore.update(userId, {
+      preferredName: '',
+      explicit: setup.explicit.filter(k => k !== 'name'),
+    });
+  } else if (matchedKey === 'tone') {
+    studentSetupStore.update(userId, {
+      tone: null,
+      explicit: setup.explicit.filter(k => k !== 'tone'),
+    });
+  } else if (matchedKey === 'goal') {
+    studentSetupStore.update(userId, {
+      goal: null,
+      explicit: setup.explicit.filter(k => k !== 'goal'),
+    });
+  } else if (matchedKey === 'study') {
+    studentSetupStore.update(userId, {
+      explicit: setup.explicit.filter(k => k !== 'study'),
+    });
+  }
+};
+
+/** Clears onboarding-derived identity/goal slots when all chat memories are erased. */
+export const reconcileClearedMemories = (userId: string): void => {
+  localSettingsStore.set(userId, KEY, JSON.stringify({entries: {}}));
+  const setup = studentSetupStore.get(userId);
+  studentSetupStore.update(userId, {
+    preferredName: '',
+    tone: null,
+    goal: null,
+    explicit: [],
+    memory: setup.memory,
+  });
+};
 
 /** Removes onboarding-owned facts whose key matches (e.g. a university goal). */
 export const removeOnboardingMemoryKeys = (

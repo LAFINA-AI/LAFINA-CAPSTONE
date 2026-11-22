@@ -17,6 +17,7 @@ import {
   featuresToVector,
   getEwmaLatency,
   getInteractionHistory,
+  getInteractionSummary,
 } from './featureExtractor';
 import {classifyKnn} from './knn';
 import {
@@ -272,15 +273,19 @@ export const isAdaptiveTimingEnabled = (userId: string): boolean => {
   return setting !== 'false';
 };
 
+export const MAX_KNN_RECENT_HISTORY = 50;
+
 /**
- * Converts user history into KNN reference points for channel selection.
+ * Converts recent user history into KNN reference points for channel selection
+ * so older behavioral habits gradually decay as new patterns emerge.
  */
 const buildKnnDatasetFromHistory = (
   history: ReturnType<typeof getInteractionHistory>,
 ): KnnPoint[] => {
   const points: KnnPoint[] = [];
+  const recent = history.slice(-MAX_KNN_RECENT_HISTORY);
 
-  for (const item of history) {
+  for (const item of recent) {
     if (!item.features || item.features.length !== 6) continue;
 
     // High salience required if student snoozed, missed, or had high latency
@@ -473,3 +478,123 @@ const createRuleFallback = (
   source: 'rule_fallback',
   reason,
 });
+
+export interface AdaptiveGrowthInsights {
+  enabled: boolean;
+  mlReady: boolean;
+  totalSamples: number;
+  samplesRequired: number;
+  ackRate: number;
+  recentAckRate: number;
+  snoozeRate: number;
+  ewmaLatencySeconds: number;
+  preferredChannel: 'call' | 'notification';
+  bestResponseWindow: string | null;
+  trend: 'improving' | 'steady' | 'needs_support';
+}
+
+const BUCKET_LABELS: ReadonlyArray<[string, number, number]> = [
+  ['morning (6–9 AM)', 6, 9],
+  ['late morning (10–11 AM)', 10, 11],
+  ['afternoon (12–4 PM)', 12, 16],
+  ['evening (5–8 PM)', 17, 20],
+  ['night (9 PM+)', 21, 23],
+];
+
+const bucketForHour = (hour: number): string => {
+  for (const [label, start, end] of BUCKET_LABELS) {
+    if (hour >= start && hour <= end) return label;
+  }
+  return 'night (9 PM+)';
+};
+
+/** Summarizes how adaptive timing has learned from the student's responses. */
+export const getAdaptiveGrowthInsights = (
+  userId: string,
+): AdaptiveGrowthInsights => {
+  const enabled = isAdaptiveTimingEnabled(userId);
+  const summary = getInteractionSummary(userId);
+  const history = getInteractionHistory(userId);
+  const mlReady = enabled && history.length >= MIN_HISTORY_SAMPLES_FOR_ML;
+
+  const recentSlice = history.slice(-20);
+  const recentAcks = recentSlice.filter(
+    item => item.outcome === 'acknowledged',
+  ).length;
+  const recentAckRate =
+    recentSlice.length > 0
+      ? Number((recentAcks / recentSlice.length).toFixed(3))
+      : 0;
+
+  let trend: AdaptiveGrowthInsights['trend'] = 'steady';
+  if (recentSlice.length >= MIN_HISTORY_SAMPLES_FOR_ML) {
+    if (recentAckRate >= summary.ackRate + 0.08 && recentAckRate >= 0.7) {
+      trend = 'improving';
+    } else if (recentAckRate < 0.5 || summary.missedRate > 0.25) {
+      trend = 'needs_support';
+    }
+  }
+
+  let preferredChannel: 'call' | 'notification' = 'call';
+  if (mlReady) {
+    const knnPoints = buildKnnDatasetFromHistory(history);
+    if (knnPoints.length >= 3) {
+      const now = new Date();
+      const targetDate = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+      ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const targetTime = `${String(now.getHours()).padStart(2, '0')}:${String(
+        now.getMinutes(),
+      ).padStart(2, '0')}`;
+      const vec = featuresToVector(
+        extractStudentFeatures(userId, {
+          targetDate,
+          targetTime,
+          priority: 'Medium',
+        }),
+      );
+      const knnResult = classifyKnn(
+        vec,
+        knnPoints,
+        Math.min(5, knnPoints.length),
+      );
+      preferredChannel =
+        knnResult.predictedLabel === 'notification' ? 'notification' : 'call';
+    }
+  }
+
+  const bucketStats = new Map<string, {acks: number; total: number}>();
+  for (const item of recentSlice) {
+    const rawHour = item.timestamp ? new Date(item.timestamp).getHours() : NaN;
+    if (!Number.isFinite(rawHour)) continue;
+    const label = bucketForHour(rawHour);
+    const cur = bucketStats.get(label) ?? {acks: 0, total: 0};
+    cur.total += 1;
+    if (item.outcome === 'acknowledged') cur.acks += 1;
+    bucketStats.set(label, cur);
+  }
+  let bestResponseWindow: string | null = null;
+  let bestScore = -1;
+  for (const [label, stat] of bucketStats.entries()) {
+    if (stat.total < 2 || stat.acks === 0) continue;
+    const score = stat.acks / stat.total;
+    if (score > bestScore) {
+      bestScore = score;
+      bestResponseWindow = label;
+    }
+  }
+
+  return {
+    enabled,
+    mlReady,
+    totalSamples: summary.total,
+    samplesRequired: MIN_HISTORY_SAMPLES_FOR_ML,
+    ackRate: summary.ackRate,
+    recentAckRate,
+    snoozeRate: summary.snoozeRate,
+    ewmaLatencySeconds: summary.ewmaLatencySeconds,
+    preferredChannel,
+    bestResponseWindow,
+    trend,
+  };
+};

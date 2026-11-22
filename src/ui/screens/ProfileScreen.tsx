@@ -2,6 +2,7 @@ import {ScreenOverlays} from '../navigation/RetainedTab';
 import React, {useCallback, useState, useEffect, useRef} from 'react';
 import {
   Alert,
+  DeviceEventEmitter,
   Image,
   Modal,
   ScrollView,
@@ -27,6 +28,7 @@ import {useThemedStyles} from '../theme/createThemedStyles';
 import type {ThemeColors} from '../contexts/ThemeContext';
 import {APP_VERSION} from '../../appVersion';
 import {GUEST_USER_ID} from '../../constants';
+import {cancelFocusTimer} from '../../scheduler/focusTimer';
 import {SvgXml} from 'react-native-svg';
 import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
 import {
@@ -69,9 +71,13 @@ import {PrivacyModal} from '../components/profile/PrivacyModal';
 import {AppUpdateItem} from '../components/profile/AppUpdateItem';
 import {PreferencesSettingsScreen} from './PreferencesSettingsScreen';
 import {ReminderHealth} from '../components/profile/ReminderHealth';
+import {AlertAndNotificationSettings} from '../components/profile/AlertAndNotificationSettings';
+import {ReminderCallSettings} from '../components/profile/ReminderCallSettings';
+import {alertPreferencesStore} from '../../storage/alertPreferencesStore';
 import {PersonalMemory} from '../components/profile/PersonalMemory';
 import {ChatMemorySettings} from '../components/profile/ChatMemorySettings';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {CHAT_MEMORY_CHANGED_EVENT} from '../../cloud/chatMemoryService';
 import {} from '../../storage/onboardingMemory';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
 import {OnlineVoice} from '../components/profile/OnlineVoice';
@@ -88,8 +94,10 @@ import type {DetailedProfileStatistics} from '../../storage/profileStatisticsSto
 import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {
   authorizeDataReset,
+  clearSkillsDocumentsForUser,
   finishAttachmentCleanup,
   hasAttachmentCleanup,
+  readSkillsDocumentPaths,
   resetPersonalData,
 } from '../../storage/accountDataReset';
 import type {DataResetAuthority} from '../../storage/accountDataReset';
@@ -196,9 +204,37 @@ const getSnoozePreferenceLabel = (preferences: UserPreferences): string => {
 };
 
 const formatReminderLeadLabel = (minutes: number): string =>
-  minutes >= 60 && minutes % 60 === 0
-    ? `${minutes / 60} hr`
-    : `${minutes} min`;
+  minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60} hr` : `${minutes} min`;
+
+const readAlertSettingsSummary = (userId: string): string => {
+  try {
+    const prefs = alertPreferencesStore.read(userId);
+    const delivery =
+      prefs.defaultReminderDeliveryStyle === 'notify'
+        ? 'Notify default'
+        : 'Call default';
+    return prefs.quietHoursDowngradeToNotify
+      ? `${delivery}, Quiet hrs`
+      : delivery;
+  } catch {
+    return 'Call default';
+  }
+};
+
+const readCallSettingsSummary = (userId: string): string => {
+  try {
+    const prefs = alertPreferencesStore.read(userId);
+    const mode =
+      prefs.callAnswerMode === 'buttons_only'
+        ? 'Buttons only'
+        : prefs.callAnswerMode === 'offline_voice'
+        ? 'Offline voice'
+        : 'Auto AI';
+    return `${mode}, ${prefs.callRingTimeoutSec}s`;
+  } catch {
+    return 'Auto AI, 45s';
+  }
+};
 
 interface ProfileScreenProps {
   userId: string;
@@ -301,6 +337,14 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   );
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [healthVisible, setHealthVisible] = useState(false);
+  const [alertSettingsVisible, setAlertSettingsVisible] = useState(false);
+  const [callSettingsVisible, setCallSettingsVisible] = useState(false);
+  const [alertSummary, setAlertSummary] = useState(() =>
+    readAlertSettingsSummary(userId),
+  );
+  const [callSettingsSummary, setCallSettingsSummary] = useState(() =>
+    readCallSettingsSummary(userId),
+  );
   const [memoryVisible, setMemoryVisible] = useState(false);
   const [chatMemoryVisible, setChatMemoryVisible] = useState(false);
   const readChatMemorySummary = () => {
@@ -512,6 +556,24 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   useEffect(() => {
     setSubjectsExpanded(false);
     setAvatarSeed(avatarSeedStore.getOrCreate(userId));
+    const memorySub = DeviceEventEmitter.addListener(
+      CHAT_MEMORY_CHANGED_EVENT,
+      (event: {userId?: string} | undefined) => {
+        if (!event?.userId || event.userId === userId) {
+          setChatMemorySummary(readChatMemorySummary());
+        }
+      },
+    );
+    const setupUnsub = studentSetupStore.subscribe(changedUserId => {
+      if (changedUserId === userId) {
+        setStudentSetup(studentSetupStore.get(userId));
+      }
+    });
+    return () => {
+      memorySub.remove();
+      setupUnsub();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const prevProfileKeyRef = useRef(`${userId}:${refreshTrigger}`);
@@ -543,6 +605,8 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     loadEventDefaultsSummary();
     loadVoiceSummary();
     loadOnlineVoiceSummary();
+    setAlertSummary(readAlertSettingsSummary(userId));
+    setCallSettingsSummary(readCallSettingsSummary(userId));
   };
 
   const loadVoiceSummary = () => {
@@ -819,6 +883,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
    * changes nothing. The result names only the steps it confirmed.
    */
   const confirmClearData = async (authority: DataResetAuthority | null) => {
+    const skillsDocPaths = authority
+      ? readSkillsDocumentPaths(authority.userId)
+      : [];
     const outcome = resetPersonalData(
       authority,
       () => alive.current && currentUserId.current === authority?.userId,
@@ -841,6 +908,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     const cleanup = hasAttachmentCleanup(authority)
       ? await finishAttachmentCleanup(authority)
       : {removed: 0, pending: 0, interrupted: false, unsaved: 0};
+    if (skillsDocPaths.length > 0) {
+      await clearSkillsDocumentsForUser(authority, skillsDocPaths);
+    }
     const plannerCleared = outcome.planner === 'cleared';
     const chatCleared = outcome.chat === 'cleared';
     const defaultsCleared = outcome.defaults === 'cleared';
@@ -963,6 +1033,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     try {
       await authService.logout();
     } finally {
+      void cancelFocusTimer();
       userStore.logout();
     }
   };
@@ -983,6 +1054,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
               await authService.logout();
             }
           } finally {
+            void cancelFocusTimer();
             userStore.logout();
             if (onLogout) {
               onLogout(isGuest);
@@ -1047,131 +1119,156 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
         }}
         showsVerticalScrollIndicator={false}
       >
-      {isModern ? (
-        <View style={styles.modernTopHeader}>
-          <Text
-            style={[styles.modernPageTitle, {color: modernPalette.text}]}
-            numberOfLines={1}
-          >
-            Profile
-          </Text>
-          <View style={styles.modernHeaderActions}>
-            <TouchableOpacity
-              onPress={() => toggleTheme()}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'
-              }
-              testID="profile-quick-theme-btn"
-              style={[
-                styles.modernHeaderCircleBtn,
-                modernShadows.subtle,
-                {
-                  backgroundColor: modernPalette.card,
-                  borderColor: modernPalette.border,
-                },
-              ]}
+        {isModern ? (
+          <View style={styles.modernTopHeader}>
+            <Text
+              style={[styles.modernPageTitle, {color: modernPalette.text}]}
+              numberOfLines={1}
             >
-              {isDarkMode ? (
-                <Sun size={18} color={modernPalette.text} />
-              ) : (
-                <Moon size={18} color={modernPalette.text} />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setPreferencesVisible(true)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Open preferences"
-              testID="profile-quick-prefs-btn"
-              style={[
-                styles.modernHeaderCircleBtn,
-                modernShadows.subtle,
-                {
-                  backgroundColor: modernPalette.card,
-                  borderColor: modernPalette.border,
-                },
-              ]}
-            >
-              <SlidersHorizontal size={17} color={modernPalette.text} />
-            </TouchableOpacity>
+              Profile
+            </Text>
+            <View style={styles.modernHeaderActions}>
+              <TouchableOpacity
+                onPress={() => toggleTheme()}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'
+                }
+                testID="profile-quick-theme-btn"
+                style={[
+                  styles.modernHeaderCircleBtn,
+                  modernShadows.subtle,
+                  {
+                    backgroundColor: modernPalette.card,
+                    borderColor: modernPalette.border,
+                  },
+                ]}
+              >
+                {isDarkMode ? (
+                  <Sun size={18} color={modernPalette.text} />
+                ) : (
+                  <Moon size={18} color={modernPalette.text} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setPreferencesVisible(true)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Open preferences"
+                testID="profile-quick-prefs-btn"
+                style={[
+                  styles.modernHeaderCircleBtn,
+                  modernShadows.subtle,
+                  {
+                    backgroundColor: modernPalette.card,
+                    borderColor: modernPalette.border,
+                  },
+                ]}
+              >
+                <SlidersHorizontal size={17} color={modernPalette.text} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      ) : (
-        <View style={styles.headerBackground}>
-          <SvgXml
-            xml={ARC_SCREEN_XML}
-            width="100%"
-            height={180}
-            preserveAspectRatio="none"
-          />
-        </View>
-      )}
+        ) : (
+          <View style={styles.headerBackground}>
+            <SvgXml
+              xml={ARC_SCREEN_XML}
+              width="100%"
+              height={180}
+              preserveAspectRatio="none"
+            />
+          </View>
+        )}
 
-      <View
-        style={[
-          styles.avatarSection,
-          isModern && [
-            styles.modernHeroCard,
-            modernShadows.card,
-            {
-              backgroundColor: modernPalette.card,
-              borderColor: modernPalette.border,
-            },
-          ],
-        ]}
-      >
-        {isModern && (
+        <View
+          style={[
+            styles.avatarSection,
+            isModern && [
+              styles.modernHeroCard,
+              modernShadows.card,
+              {
+                backgroundColor: modernPalette.card,
+                borderColor: modernPalette.border,
+              },
+            ],
+          ]}
+        >
+          {isModern && (
+            <View
+              style={[
+                styles.modernHeroAccentBand,
+                {backgroundColor: modernPalette.softViolet},
+              ]}
+            />
+          )}
           <View
             style={[
-              styles.modernHeroAccentBand,
-              {backgroundColor: modernPalette.softViolet},
-            ]}
-          />
-        )}
-        <View
-          style={[styles.avatarWrapper, isModern && styles.modernAvatarWrapper]}
-        >
-          <TouchableOpacity
-            onPress={handleEditProfile}
-            activeOpacity={0.85}
-            testID="profile-avatar-btn"
-            accessibilityRole="button"
-            accessibilityLabel={
-              photoSource ? 'Change profile photo' : 'Change profile avatar'
-            }
-            style={[
-              styles.avatarCircle,
-              isModern && styles.modernAvatarCircle,
-              themed.avatarCircle,
-              {
-                backgroundColor: isModern
-                  ? modernPalette.surface
-                  : colors.cardBg,
-                borderColor: isModern ? modernPalette.accent : colors.cardBg,
-              },
+              styles.avatarWrapper,
+              isModern && styles.modernAvatarWrapper,
             ]}
           >
-            {photoSource ? (
-              <Image
-                source={photoSource}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <CharacterAvatar
-                seed={avatarSeed}
-                size={isModern ? 88 : 112}
-                testID="profile-character-avatar"
-              />
-            )}
-          </TouchableOpacity>
-          {!photoSource && (
             <TouchableOpacity
-              onPress={randomizeCharacterAvatar}
+              onPress={handleEditProfile}
+              activeOpacity={0.85}
+              testID="profile-avatar-btn"
+              accessibilityRole="button"
+              accessibilityLabel={
+                photoSource ? 'Change profile photo' : 'Change profile avatar'
+              }
               style={[
-                styles.randomizeBadge,
+                styles.avatarCircle,
+                isModern && styles.modernAvatarCircle,
+                themed.avatarCircle,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.surface
+                    : colors.cardBg,
+                  borderColor: isModern ? modernPalette.accent : colors.cardBg,
+                },
+              ]}
+            >
+              {photoSource ? (
+                <Image
+                  source={photoSource}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <CharacterAvatar
+                  seed={avatarSeed}
+                  size={isModern ? 88 : 112}
+                  testID="profile-character-avatar"
+                />
+              )}
+            </TouchableOpacity>
+            {!photoSource && (
+              <TouchableOpacity
+                onPress={randomizeCharacterAvatar}
+                style={[
+                  styles.randomizeBadge,
+                  isModern && styles.modernAvatarBadge,
+                  themed.editBadge,
+                  isModern ? modernShadows.subtle : Shadows.card,
+                  isModern && {
+                    backgroundColor: modernPalette.card,
+                    borderColor: modernPalette.border,
+                  },
+                ]}
+                testID="profile-randomize-avatar-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Randomize character avatar"
+              >
+                <Dices
+                  size={isModern ? 15 : 16}
+                  color={isModern ? modernPalette.text : colors.textPrimary}
+                />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={handleEditProfile}
+              style={[
+                styles.editBadge,
                 isModern && styles.modernAvatarBadge,
                 themed.editBadge,
                 isModern ? modernShadows.subtle : Shadows.card,
@@ -1180,1639 +1277,1715 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                   borderColor: modernPalette.border,
                 },
               ]}
-              testID="profile-randomize-avatar-btn"
+              testID="profile-photo-badge-btn"
               accessibilityRole="button"
-              accessibilityLabel="Randomize character avatar"
+              accessibilityLabel={
+                photoSource ? 'Change profile photo' : 'Add a profile photo'
+              }
             >
-              <Dices
+              <Camera
                 size={isModern ? 15 : 16}
                 color={isModern ? modernPalette.text : colors.textPrimary}
               />
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={handleEditProfile}
-            style={[
-              styles.editBadge,
-              isModern && styles.modernAvatarBadge,
-              themed.editBadge,
-              isModern ? modernShadows.subtle : Shadows.card,
-              isModern && {
-                backgroundColor: modernPalette.card,
-                borderColor: modernPalette.border,
-              },
-            ]}
-            testID="profile-photo-badge-btn"
-            accessibilityRole="button"
-            accessibilityLabel={
-              photoSource ? 'Change profile photo' : 'Add a profile photo'
-            }
-          >
-            <Camera
-              size={isModern ? 15 : 16}
-              color={isModern ? modernPalette.text : colors.textPrimary}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.nameRow} testID="profile-identity-block">
+          </View>
+          <View style={styles.nameRow} testID="profile-identity-block">
+            <Text
+              style={[
+                styles.userName,
+                themed.userName,
+                isModern && ModernTypography.title,
+                styles.userNameAlign,
+              ]}
+              numberOfLines={2}
+              testID="profile-display-name"
+            >
+              {currentUser?.username?.trim() || 'Student'}
+            </Text>
+          </View>
           <Text
             style={[
-              styles.userName,
-              themed.userName,
-              isModern && ModernTypography.title,
-              styles.userNameAlign,
+              styles.userEmail,
+              themed.userEmail,
+              isModern && styles.modernUserEmail,
             ]}
-            numberOfLines={2}
-            testID="profile-display-name"
+            numberOfLines={1}
+            testID="profile-display-email"
           >
-            {currentUser?.username?.trim() || 'Student'}
+            {currentUser?.email ||
+              (isGuest ? 'Offline Guest Account' : 'No email set')}
           </Text>
-        </View>
-        <Text
-          style={[
-            styles.userEmail,
-            themed.userEmail,
-            isModern && styles.modernUserEmail,
-          ]}
-          numberOfLines={1}
-          testID="profile-display-email"
-        >
-          {currentUser?.email ||
-            (isGuest ? 'Offline Guest Account' : 'No email set')}
-        </Text>
-        {academicProfile &&
-          (academicProfile.collegeShort ||
-            academicProfile.yearLevelShort ||
-            academicProfile.yearLevel ||
-            academicSection) &&
-          (isModern ? (
-            <View
-              testID="profile-academic-subtitle"
-              style={styles.modernHeroAcademicBlock}
-            >
-              <View style={styles.modernHeroPillsRow}>
-                {academicProfile.collegeShort ? (
-                  <View
-                    style={[
-                      styles.modernHeroPill,
-                      {backgroundColor: modernPalette.blueSoft},
-                    ]}
-                  >
-                    <GraduationCap size={12} color={modernPalette.blueInk} />
-                    <Text
-                      style={[
-                        styles.modernHeroPillText,
-                        {color: modernPalette.blueInk},
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {academicProfile.collegeShort}
-                    </Text>
-                  </View>
-                ) : null}
-                {academicProfile.yearLevelShort || academicProfile.yearLevel ? (
-                  <View
-                    style={[
-                      styles.modernHeroPill,
-                      {backgroundColor: modernPalette.softViolet},
-                    ]}
-                  >
-                    {!academicProfile.collegeShort && (
-                      <GraduationCap size={12} color={modernPalette.accent} />
-                    )}
-                    <Text
-                      style={[
-                        styles.modernHeroPillText,
-                        {color: modernPalette.accent},
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {academicProfile.yearLevelShort ||
-                        academicProfile.yearLevel.split(' - ')[0]}
-                    </Text>
-                  </View>
-                ) : null}
-                {academicSection ? (
-                  <View
-                    style={[
-                      styles.modernHeroPill,
-                      {backgroundColor: modernPalette.mint},
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.modernHeroPillText,
-                        {color: modernPalette.mintInk},
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {academicSection}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          ) : (
-            <View
-              testID="profile-academic-subtitle"
-              style={[
-                styles.academicSubtitlePill,
-                {
-                  backgroundColor: colors.cardBg,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <GraduationCap
-                size={14}
-                color={colors.blue}
-                style={styles.academicSubtitleIcon}
-              />
-              <Text
-                style={[
-                  styles.academicSubtitleText,
-                  {
-                    color: colors.textPrimary,
-                  },
-                ]}
-                numberOfLines={2}
+          {academicProfile &&
+            (academicProfile.collegeShort ||
+              academicProfile.yearLevelShort ||
+              academicProfile.yearLevel ||
+              academicSection) &&
+            (isModern ? (
+              <View
+                testID="profile-academic-subtitle"
+                style={styles.modernHeroAcademicBlock}
               >
-                {[
-                  academicProfile.program,
-                  academicProfile.yearLevelShort || academicProfile.yearLevel,
-                  academicSection,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-            </View>
-          ))}
-      </View>
-
-      <View style={[styles.mainContent, isModern && styles.modernMainContent]}>
-        {academicProfile && (
-          <View
-            testID="profile-academic-card"
-            style={[
-              styles.academicCard,
-              ...cardSurfaceStyle,
-              isModern && styles.modernAcademicCard,
-            ]}
-          >
-            <View style={styles.academicCardHeader}>
-              <View style={styles.academicCardTitleRow}>
-                {isModern ? (
-                  <View
-                    style={[
-                      styles.modernCardIconCircle,
-                      {backgroundColor: modernPalette.blueSoft},
-                    ]}
-                  >
-                    <GraduationCap size={18} color={modernPalette.blueInk} />
-                  </View>
-                ) : (
-                  <GraduationCap
-                    size={18}
-                    color={colors.blue}
-                    style={styles.academicHeaderIcon}
-                  />
-                )}
-                <View style={styles.academicCardTitleGroup}>
-                  <Text
-                    style={[
-                      styles.academicCardTitle,
-                      isModern && styles.modernCardTitle,
-                      {
-                        color: isModern
-                          ? modernPalette.text
-                          : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    Academic Profile
-                  </Text>
-                  <Text
-                    style={[
-                      styles.academicCardSubtitle,
-                      isModern && styles.modernCardSubtitle,
-                      {
-                        color: isModern
-                          ? modernPalette.muted
-                          : colors.textSecondary,
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Reviewed USTP COR
-                  </Text>
+                <View style={styles.modernHeroPillsRow}>
+                  {academicProfile.collegeShort ? (
+                    <View
+                      style={[
+                        styles.modernHeroPill,
+                        {backgroundColor: modernPalette.blueSoft},
+                      ]}
+                    >
+                      <GraduationCap size={12} color={modernPalette.blueInk} />
+                      <Text
+                        style={[
+                          styles.modernHeroPillText,
+                          {color: modernPalette.blueInk},
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {academicProfile.collegeShort}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {academicProfile.yearLevelShort ||
+                  academicProfile.yearLevel ? (
+                    <View
+                      style={[
+                        styles.modernHeroPill,
+                        {backgroundColor: modernPalette.softViolet},
+                      ]}
+                    >
+                      {!academicProfile.collegeShort && (
+                        <GraduationCap size={12} color={modernPalette.accent} />
+                      )}
+                      <Text
+                        style={[
+                          styles.modernHeroPillText,
+                          {color: modernPalette.accent},
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {academicProfile.yearLevelShort ||
+                          academicProfile.yearLevel.split(' - ')[0]}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {academicSection ? (
+                    <View
+                      style={[
+                        styles.modernHeroPill,
+                        {backgroundColor: modernPalette.mint},
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.modernHeroPillText,
+                          {color: modernPalette.mintInk},
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {academicSection}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
-              <TouchableOpacity
-                testID="profile-attach-cor-btn"
-                accessibilityRole="button"
-                accessibilityLabel="Replace COR"
-                onPress={handleUploadCor}
-                activeOpacity={0.8}
+            ) : (
+              <View
+                testID="profile-academic-subtitle"
                 style={[
-                  styles.academicUpdateBtn,
-                  isModern && styles.modernCorPillBtn,
+                  styles.academicSubtitlePill,
                   {
-                    borderColor: isModern ? modernPalette.border : colors.blue,
-                    backgroundColor: isModern
-                      ? modernPalette.softViolet
-                      : 'transparent',
+                    backgroundColor: colors.cardBg,
+                    borderColor: colors.border,
                   },
                 ]}
               >
-                <FileText
-                  size={isModern ? 13 : 12}
-                  color={isModern ? modernPalette.accent : colors.blue}
+                <GraduationCap
+                  size={14}
+                  color={colors.blue}
+                  style={styles.academicSubtitleIcon}
                 />
                 <Text
                   style={[
-                    styles.academicUpdateBtnText,
-                    isModern && styles.modernCorPillBtnText,
-                    {color: isModern ? modernPalette.accent : colors.blue},
+                    styles.academicSubtitleText,
+                    {
+                      color: colors.textPrimary,
+                    },
                   ]}
+                  numberOfLines={2}
                 >
-                  Replace COR
+                  {[
+                    academicProfile.program,
+                    academicProfile.yearLevelShort || academicProfile.yearLevel,
+                    academicSection,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Text>
-              </TouchableOpacity>
-            </View>
-
-            {(academicRows.length > 0 ||
-              academicProfile.courses.length > 0) && (
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-            )}
-
-            {academicRows.map((row, index) => (
-              <React.Fragment key={row.label}>
-                {index > 0 && (
-                  <View
-                    style={[styles.settingDivider, themed.settingDivider]}
-                  />
-                )}
-                <View
-                  style={[
-                    styles.academicRow,
-                    isModern && styles.modernAcademicRow,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.academicLabel,
-                      isModern && styles.modernAcademicLabel,
-                      {
-                        color: isModern
-                          ? modernPalette.muted
-                          : colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    {row.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.academicValue,
-                      isModern && styles.modernAcademicValue,
-                      {
-                        color: isModern
-                          ? modernPalette.text
-                          : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {row.value}
-                  </Text>
-                </View>
-              </React.Fragment>
+              </View>
             ))}
+        </View>
 
-            {academicProfile.courses.length > 0 ? (
-              <>
-                {academicRows.length > 0 && !isModern && (
-                  <View
-                    style={[styles.settingDivider, themed.settingDivider]}
-                  />
-                )}
-                <TouchableOpacity
-                  testID="profile-toggle-subjects-btn"
-                  accessibilityRole="button"
-                  accessibilityState={{expanded: subjectsExpanded}}
-                  onPress={() => setSubjectsExpanded(prev => !prev)}
-                  activeOpacity={0.75}
-                  style={[
-                    styles.academicRow,
-                    isModern && [
-                      styles.modernSubjectsToggleRow,
-                      {
-                        backgroundColor: modernPalette.surface,
-                        borderColor: modernPalette.border,
-                      },
-                    ],
-                  ]}
-                >
-                  <View style={styles.modernSubjectsLabelGroup}>
-                    {isModern && (
-                      <BookOpen size={15} color={modernPalette.accent} />
-                    )}
-                    <Text
+        <View
+          style={[styles.mainContent, isModern && styles.modernMainContent]}
+        >
+          {academicProfile && (
+            <View
+              testID="profile-academic-card"
+              style={[
+                styles.academicCard,
+                ...cardSurfaceStyle,
+                isModern && styles.modernAcademicCard,
+              ]}
+            >
+              <View style={styles.academicCardHeader}>
+                <View style={styles.academicCardTitleRow}>
+                  {isModern ? (
+                    <View
                       style={[
-                        styles.academicLabel,
-                        isModern && [
-                          styles.modernAcademicLabel,
-                          styles.modernSubjectsToggleLabel,
-                          {color: modernPalette.text},
-                        ],
-                        !isModern && {color: colors.textSecondary},
+                        styles.modernCardIconCircle,
+                        {backgroundColor: modernPalette.blueSoft},
                       ]}
-                      numberOfLines={1}
                     >
-                      Enrolled Subjects
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.academicSubjectsValueWrap,
-                      isModern && styles.modernSubjectsValueWrap,
-                    ]}
-                  >
+                      <GraduationCap size={18} color={modernPalette.blueInk} />
+                    </View>
+                  ) : (
+                    <GraduationCap
+                      size={18}
+                      color={colors.blue}
+                      style={styles.academicHeaderIcon}
+                    />
+                  )}
+                  <View style={styles.academicCardTitleGroup}>
                     <Text
                       style={[
-                        styles.academicSubjectsValue,
-                        isModern && styles.modernSubjectsValueText,
+                        styles.academicCardTitle,
+                        isModern && styles.modernCardTitle,
                         {
                           color: isModern
-                            ? modernPalette.accent
+                            ? modernPalette.text
                             : colors.textPrimary,
+                        },
+                      ]}
+                    >
+                      Academic Profile
+                    </Text>
+                    <Text
+                      style={[
+                        styles.academicCardSubtitle,
+                        isModern && styles.modernCardSubtitle,
+                        {
+                          color: isModern
+                            ? modernPalette.muted
+                            : colors.textSecondary,
                         },
                       ]}
                       numberOfLines={1}
                     >
-                      {academicProfile.courses.length}{' '}
-                      {academicProfile.courses.length === 1
-                        ? 'subject'
-                        : 'subjects'}
-                      {academicProfile.totalCreditUnits
-                        ? ` (${academicProfile.totalCreditUnits} units)`
-                        : ''}
+                      Reviewed USTP COR
                     </Text>
-                    {subjectsExpanded ? (
-                      <ChevronUp
-                        size={15}
-                        color={isModern ? modernPalette.accent : colors.blue}
-                      />
-                    ) : (
-                      <ChevronDown
-                        size={15}
-                        color={isModern ? modernPalette.accent : colors.blue}
-                      />
-                    )}
                   </View>
-                </TouchableOpacity>
-
-                {subjectsExpanded && (
-                  <View
-                    testID="profile-academic-subjects-list"
+                </View>
+                <TouchableOpacity
+                  testID="profile-attach-cor-btn"
+                  accessibilityRole="button"
+                  accessibilityLabel="Replace COR"
+                  onPress={handleUploadCor}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.academicUpdateBtn,
+                    isModern && styles.modernCorPillBtn,
+                    {
+                      borderColor: isModern
+                        ? modernPalette.border
+                        : colors.blue,
+                      backgroundColor: isModern
+                        ? modernPalette.softViolet
+                        : 'transparent',
+                    },
+                  ]}
+                >
+                  <FileText
+                    size={isModern ? 13 : 12}
+                    color={isModern ? modernPalette.accent : colors.blue}
+                  />
+                  <Text
                     style={[
-                      styles.academicSubjectsList,
-                      isModern && styles.modernAcademicSubjectsList,
-                      {
-                        backgroundColor: isModern
-                          ? modernPalette.surface
-                          : colors.inputBg,
-                        borderColor: isModern
-                          ? modernPalette.border
-                          : colors.border,
-                      },
+                      styles.academicUpdateBtnText,
+                      isModern && styles.modernCorPillBtnText,
+                      {color: isModern ? modernPalette.accent : colors.blue},
                     ]}
                   >
-                    {academicProfile.courses.map((course, idx) =>
-                      isModern ? (
-                        <View
-                          key={`${course.code}-${course.section}-${idx}`}
-                          style={[
-                            styles.modernSubjectItem,
-                            idx > 0 && [
-                              styles.academicSubjectItemBorder,
-                              {borderTopColor: modernPalette.border},
-                            ],
-                          ]}
-                        >
-                          <View style={styles.modernSubjectTopRow}>
-                            <View style={styles.modernSubjectTitleWrap}>
+                    Replace COR
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {(academicRows.length > 0 ||
+                academicProfile.courses.length > 0) && (
+                <View style={[styles.settingDivider, themed.settingDivider]} />
+              )}
+
+              {academicRows.map((row, index) => (
+                <React.Fragment key={row.label}>
+                  {index > 0 && (
+                    <View
+                      style={[styles.settingDivider, themed.settingDivider]}
+                    />
+                  )}
+                  <View
+                    style={[
+                      styles.academicRow,
+                      isModern && styles.modernAcademicRow,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.academicLabel,
+                        isModern && styles.modernAcademicLabel,
+                        {
+                          color: isModern
+                            ? modernPalette.muted
+                            : colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      {row.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.academicValue,
+                        isModern && styles.modernAcademicValue,
+                        {
+                          color: isModern
+                            ? modernPalette.text
+                            : colors.textPrimary,
+                        },
+                      ]}
+                    >
+                      {row.value}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              ))}
+
+              {academicProfile.courses.length > 0 ? (
+                <>
+                  {academicRows.length > 0 && !isModern && (
+                    <View
+                      style={[styles.settingDivider, themed.settingDivider]}
+                    />
+                  )}
+                  <TouchableOpacity
+                    testID="profile-toggle-subjects-btn"
+                    accessibilityRole="button"
+                    accessibilityState={{expanded: subjectsExpanded}}
+                    onPress={() => setSubjectsExpanded(prev => !prev)}
+                    activeOpacity={0.75}
+                    style={[
+                      styles.academicRow,
+                      isModern && [
+                        styles.modernSubjectsToggleRow,
+                        {
+                          backgroundColor: modernPalette.surface,
+                          borderColor: modernPalette.border,
+                        },
+                      ],
+                    ]}
+                  >
+                    <View style={styles.modernSubjectsLabelGroup}>
+                      {isModern && (
+                        <BookOpen size={15} color={modernPalette.accent} />
+                      )}
+                      <Text
+                        style={[
+                          styles.academicLabel,
+                          isModern && [
+                            styles.modernAcademicLabel,
+                            styles.modernSubjectsToggleLabel,
+                            {color: modernPalette.text},
+                          ],
+                          !isModern && {color: colors.textSecondary},
+                        ]}
+                        numberOfLines={1}
+                      >
+                        Enrolled Subjects
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.academicSubjectsValueWrap,
+                        isModern && styles.modernSubjectsValueWrap,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.academicSubjectsValue,
+                          isModern && styles.modernSubjectsValueText,
+                          {
+                            color: isModern
+                              ? modernPalette.accent
+                              : colors.textPrimary,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {academicProfile.courses.length}{' '}
+                        {academicProfile.courses.length === 1
+                          ? 'subject'
+                          : 'subjects'}
+                        {academicProfile.totalCreditUnits
+                          ? ` (${academicProfile.totalCreditUnits} units)`
+                          : ''}
+                      </Text>
+                      {subjectsExpanded ? (
+                        <ChevronUp
+                          size={15}
+                          color={isModern ? modernPalette.accent : colors.blue}
+                        />
+                      ) : (
+                        <ChevronDown
+                          size={15}
+                          color={isModern ? modernPalette.accent : colors.blue}
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  {subjectsExpanded && (
+                    <View
+                      testID="profile-academic-subjects-list"
+                      style={[
+                        styles.academicSubjectsList,
+                        isModern && styles.modernAcademicSubjectsList,
+                        {
+                          backgroundColor: isModern
+                            ? modernPalette.surface
+                            : colors.inputBg,
+                          borderColor: isModern
+                            ? modernPalette.border
+                            : colors.border,
+                        },
+                      ]}
+                    >
+                      {academicProfile.courses.map((course, idx) =>
+                        isModern ? (
+                          <View
+                            key={`${course.code}-${course.section}-${idx}`}
+                            style={[
+                              styles.modernSubjectItem,
+                              idx > 0 && [
+                                styles.academicSubjectItemBorder,
+                                {borderTopColor: modernPalette.border},
+                              ],
+                            ]}
+                          >
+                            <View style={styles.modernSubjectTopRow}>
+                              <View style={styles.modernSubjectTitleWrap}>
+                                <View
+                                  style={[
+                                    styles.modernSubjectCodeBadge,
+                                    {backgroundColor: modernPalette.softViolet},
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.modernSubjectCodeText,
+                                      {color: modernPalette.accent},
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    {course.code}
+                                  </Text>
+                                </View>
+                                {course.subjectTitle ? (
+                                  <Text
+                                    style={[
+                                      styles.modernSubjectTitle,
+                                      {color: modernPalette.text},
+                                    ]}
+                                  >
+                                    {course.subjectTitle}
+                                  </Text>
+                                ) : null}
+                              </View>
                               <View
                                 style={[
-                                  styles.modernSubjectCodeBadge,
-                                  {backgroundColor: modernPalette.softViolet},
+                                  styles.modernSubjectUnitsPill,
+                                  {
+                                    backgroundColor: modernPalette.card,
+                                    borderColor: modernPalette.border,
+                                  },
                                 ]}
                               >
                                 <Text
                                   style={[
-                                    styles.modernSubjectCodeText,
-                                    {color: modernPalette.accent},
+                                    styles.modernSubjectUnitsText,
+                                    {color: modernPalette.muted},
                                   ]}
                                   numberOfLines={1}
                                 >
-                                  {course.code}
+                                  {course.creditUnits}{' '}
+                                  {course.creditUnits === 1 ? 'unit' : 'units'}
                                 </Text>
                               </View>
-                              {course.subjectTitle ? (
+                            </View>
+
+                            {course.scheduleSummary ? (
+                              <View style={styles.modernSubjectDetailRow}>
+                                <Clock
+                                  size={12}
+                                  color={modernPalette.accent}
+                                  style={styles.modernSubjectDetailIcon}
+                                />
                                 <Text
                                   style={[
-                                    styles.modernSubjectTitle,
+                                    styles.modernSubjectScheduleText,
                                     {color: modernPalette.text},
                                   ]}
                                 >
-                                  {course.subjectTitle}
+                                  {course.scheduleSummary}
                                 </Text>
-                              ) : null}
-                            </View>
-                            <View
-                              style={[
-                                styles.modernSubjectUnitsPill,
-                                {
-                                  backgroundColor: modernPalette.card,
-                                  borderColor: modernPalette.border,
-                                },
-                              ]}
-                            >
+                              </View>
+                            ) : null}
+
+                            {(course.section ||
+                              (course.faculty && course.faculty !== 'TBA')) && (
+                              <View style={styles.modernSubjectMetaRow}>
+                                {course.section ? (
+                                  <View
+                                    style={[
+                                      styles.modernSubjectSectionChip,
+                                      {backgroundColor: modernPalette.mint},
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.modernSubjectSectionText,
+                                        {color: modernPalette.mintInk},
+                                      ]}
+                                      numberOfLines={1}
+                                    >
+                                      {course.section}
+                                    </Text>
+                                  </View>
+                                ) : null}
+                                {course.faculty && course.faculty !== 'TBA' ? (
+                                  <View style={styles.modernSubjectFacultyRow}>
+                                    <UserIcon
+                                      size={11.5}
+                                      color={modernPalette.muted}
+                                    />
+                                    <Text
+                                      style={[
+                                        styles.modernSubjectFacultyText,
+                                        {color: modernPalette.muted},
+                                      ]}
+                                      numberOfLines={1}
+                                    >
+                                      {formatFacultyDisplay(course.faculty)}
+                                    </Text>
+                                  </View>
+                                ) : null}
+                              </View>
+                            )}
+                          </View>
+                        ) : (
+                          <View
+                            key={`${course.code}-${course.section}-${idx}`}
+                            style={[
+                              styles.academicSubjectItem,
+                              idx > 0 && [
+                                styles.academicSubjectItemBorder,
+                                {borderTopColor: colors.divider},
+                              ],
+                            ]}
+                          >
+                            <View style={styles.academicSubjectTopRow}>
                               <Text
                                 style={[
-                                  styles.modernSubjectUnitsText,
-                                  {color: modernPalette.muted},
+                                  styles.academicSubjectTitle,
+                                  {color: colors.textPrimary},
                                 ]}
-                                numberOfLines={1}
+                              >
+                                <Text style={{color: colors.blue}}>
+                                  {course.code}
+                                </Text>
+                                {course.subjectTitle
+                                  ? ` · ${course.subjectTitle}`
+                                  : ''}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.academicSubjectUnits,
+                                  {color: colors.textSecondary},
+                                ]}
                               >
                                 {course.creditUnits}{' '}
                                 {course.creditUnits === 1 ? 'unit' : 'units'}
                               </Text>
                             </View>
-                          </View>
-
-                          {course.scheduleSummary ? (
-                            <View style={styles.modernSubjectDetailRow}>
-                              <Clock
-                                size={12}
-                                color={modernPalette.accent}
-                                style={styles.modernSubjectDetailIcon}
-                              />
-                              <Text
-                                style={[
-                                  styles.modernSubjectScheduleText,
-                                  {color: modernPalette.text},
-                                ]}
-                              >
-                                {course.scheduleSummary}
-                              </Text>
-                            </View>
-                          ) : null}
-
-                          {(course.section ||
-                            (course.faculty && course.faculty !== 'TBA')) && (
-                            <View style={styles.modernSubjectMetaRow}>
-                              {course.section ? (
-                                <View
-                                  style={[
-                                    styles.modernSubjectSectionChip,
-                                    {backgroundColor: modernPalette.mint},
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.modernSubjectSectionText,
-                                      {color: modernPalette.mintInk},
-                                    ]}
-                                    numberOfLines={1}
-                                  >
-                                    {course.section}
-                                  </Text>
-                                </View>
-                              ) : null}
-                              {course.faculty && course.faculty !== 'TBA' ? (
-                                <View style={styles.modernSubjectFacultyRow}>
-                                  <UserIcon
-                                    size={11.5}
-                                    color={modernPalette.muted}
-                                  />
-                                  <Text
-                                    style={[
-                                      styles.modernSubjectFacultyText,
-                                      {color: modernPalette.muted},
-                                    ]}
-                                    numberOfLines={1}
-                                  >
-                                    {formatFacultyDisplay(course.faculty)}
-                                  </Text>
-                                </View>
-                              ) : null}
-                            </View>
-                          )}
-                        </View>
-                      ) : (
-                        <View
-                          key={`${course.code}-${course.section}-${idx}`}
-                          style={[
-                            styles.academicSubjectItem,
-                            idx > 0 && [
-                              styles.academicSubjectItemBorder,
-                              {borderTopColor: colors.divider},
-                            ],
-                          ]}
-                        >
-                          <View style={styles.academicSubjectTopRow}>
                             <Text
                               style={[
-                                styles.academicSubjectTitle,
-                                {color: colors.textPrimary},
-                              ]}
-                            >
-                              <Text style={{color: colors.blue}}>
-                                {course.code}
-                              </Text>
-                              {course.subjectTitle
-                                ? ` · ${course.subjectTitle}`
-                                : ''}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.academicSubjectUnits,
+                                styles.academicSubjectMeta,
                                 {color: colors.textSecondary},
                               ]}
                             >
-                              {course.creditUnits}{' '}
-                              {course.creditUnits === 1 ? 'unit' : 'units'}
+                              {[
+                                course.scheduleSummary,
+                                course.section,
+                                course.faculty && course.faculty !== 'TBA'
+                                  ? course.faculty
+                                  : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
                             </Text>
                           </View>
-                          <Text
-                            style={[
-                              styles.academicSubjectMeta,
-                              {color: colors.textSecondary},
-                            ]}
-                          >
-                            {[
-                              course.scheduleSummary,
-                              course.section,
-                              course.faculty && course.faculty !== 'TBA'
-                                ? course.faculty
-                                : '',
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </Text>
-                        </View>
-                      ),
-                    )}
+                        ),
+                      )}
+                    </View>
+                  )}
+                </>
+              ) : academicProfile.totalCreditUnits ? (
+                <>
+                  {academicRows.length > 0 && (
+                    <View
+                      style={[styles.settingDivider, themed.settingDivider]}
+                    />
+                  )}
+                  <View
+                    style={[
+                      styles.academicRow,
+                      isModern && styles.modernAcademicRow,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.academicLabel,
+                        isModern && styles.modernAcademicLabel,
+                        {
+                          color: isModern
+                            ? modernPalette.muted
+                            : colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      Total Units
+                    </Text>
+                    <Text
+                      style={[
+                        styles.academicValue,
+                        isModern && styles.modernAcademicValue,
+                        {
+                          color: isModern
+                            ? modernPalette.text
+                            : colors.textPrimary,
+                        },
+                      ]}
+                    >
+                      {academicProfile.totalCreditUnits} units
+                    </Text>
                   </View>
-                )}
-              </>
-            ) : academicProfile.totalCreditUnits ? (
-              <>
-                {academicRows.length > 0 && (
+                </>
+              ) : null}
+            </View>
+          )}
+
+          <ProfileStats
+            statistics={statistics}
+            onPressViewStats={() => setStatsModalVisible(true)}
+          />
+
+          <View
+            style={[
+              styles.settingsContainer,
+              isModern && styles.modernSettingsContainer,
+            ]}
+          >
+            <Text
+              style={[
+                styles.settingsGroupHeader,
+                themed.settingsGroupHeader,
+                isModern && [
+                  styles.modernSettingsGroupHeader,
+                  {color: modernPalette.muted, marginTop: 2},
+                ],
+              ]}
+            >
+              Preferences
+            </Text>
+            <View
+              style={[
+                styles.settingsGroupCard,
+                cardSurfaceStyle,
+                themed.settingsGroupCard,
+              ]}
+            >
+              <SettingItem
+                text="Scheduling & Reminder Preferences"
+                type="link"
+                valueText={preferenceSummary}
+                onPress={() => setPreferencesVisible(true)}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Week Starts on Monday"
+                type="toggle"
+                value={weekStartsMonday}
+                onValueChange={handleToggleWeekStart}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Event Defaults"
+                type="link"
+                valueText={eventDefaultsSummary}
+                onPress={() => setMemoryVisible(true)}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Memory"
+                type="link"
+                valueText={chatMemorySummary}
+                onPress={() => setChatMemoryVisible(true)}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Student Setup"
+                type="link"
+                valueText={
+                  studentSetup.affiliation === 'ustp'
+                    ? academicProfile
+                      ? 'USTP · COR confirmed'
+                      : studentSetup.corStatus === 'needs_review'
+                      ? 'USTP · COR needs review'
+                      : 'USTP · COR pending'
+                    : studentSetup.affiliation === 'not_ustp'
+                    ? 'Scheduling mode'
+                    : 'Not chosen'
+                }
+                onPress={handleStudentSetup}
+              />
+              {corImportStore.latestActiveImport(userId) ? (
+                <>
                   <View
                     style={[styles.settingDivider, themed.settingDivider]}
                   />
-                )}
+                  <SettingItem
+                    text="Undo Last COR Import"
+                    type="link"
+                    valueText="Only that import"
+                    onPress={undoLatestCorImport}
+                  />
+                </>
+              ) : null}
+            </View>
+
+            <Text
+              style={[
+                styles.settingsGroupHeader,
+                themed.settingsGroupHeader,
+                isModern && [
+                  styles.modernSettingsGroupHeader,
+                  {color: modernPalette.muted},
+                ],
+              ]}
+            >
+              AI & Voice
+            </Text>
+            <View
+              style={[
+                styles.settingsGroupCard,
+                cardSurfaceStyle,
+                themed.settingsGroupCard,
+              ]}
+            >
+              <SettingItem
+                text="Detailed AI Summaries"
+                type="toggle"
+                value={summaryStyleDetailed}
+                onValueChange={setSummaryStyleDetailed}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Markdown Chat Replies"
+                type="toggle"
+                value={replyFormat === 'markdown'}
+                onValueChange={handleMarkdownRepliesChange}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text={ttsTesting ? 'Testing TTS…' : 'Test TTS Voice'}
+                type="clickable"
+                onPress={handleTestTtsVoice}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Offline Voice"
+                type="link"
+                valueText={voiceSummary}
+                onPress={() => setVoiceVisible(true)}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Online Voice · ElevenLabs"
+                type="link"
+                valueText={onlineVoiceSummary}
+                onPress={() => setOnlineVoiceVisible(true)}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <View collapsable={false} ref={attachFloatingRowRef}>
+                <SettingItem
+                  text="Floating LAFINA"
+                  type="link"
+                  valueText={floatingSummary}
+                  onPress={() => setFloatingVisible(true)}
+                />
+              </View>
+            </View>
+
+            <Text
+              style={[
+                styles.settingsGroupHeader,
+                themed.settingsGroupHeader,
+                isModern && [
+                  styles.modernSettingsGroupHeader,
+                  {color: modernPalette.muted},
+                ],
+              ]}
+            >
+              Notifications
+            </Text>
+            <View
+              style={[
+                styles.settingsGroupCard,
+                cardSurfaceStyle,
+                themed.settingsGroupCard,
+              ]}
+            >
+              <SettingItem
+                text="Alert Tones & Notifications"
+                type="link"
+                valueText={alertSummary}
+                onPress={() => setAlertSettingsVisible(true)}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Reminder Call Settings"
+                type="link"
+                valueText={callSettingsSummary}
+                onPress={() => setCallSettingsVisible(true)}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <SettingItem
+                text="Alarm & Reminder Health"
+                type="link"
+                valueText="Permissions & battery"
+                onPress={() => setHealthVisible(true)}
+              />
+            </View>
+
+            <Text
+              style={[
+                styles.settingsGroupHeader,
+                themed.settingsGroupHeader,
+                isModern && [
+                  styles.modernSettingsGroupHeader,
+                  {color: modernPalette.muted},
+                ],
+              ]}
+            >
+              Appearance
+            </Text>
+            <View style={[styles.settingsGroupCard, ...cardSurfaceStyle]}>
+              <SettingItem
+                text="Dark Mode"
+                type="toggle"
+                value={isDarkMode}
+                onValueChange={(_enabled, origin) => toggleTheme(origin)}
+              />
+              {isModern && (
+                <>
+                  <View
+                    style={[
+                      styles.settingDivider,
+                      {backgroundColor: colors.divider},
+                    ]}
+                  />
+                  <View
+                    style={styles.themePickerBlock}
+                    testID="modern-theme-selector"
+                  >
+                    <View style={styles.themePickerHeader}>
+                      <View style={styles.themePickerHeaderCopy}>
+                        <Text
+                          style={[
+                            styles.interfaceTitle,
+                            {color: colors.textPrimary},
+                          ]}
+                        >
+                          Color Theme
+                        </Text>
+                        <Text
+                          style={[
+                            styles.themePickerSubtitle,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          Choose your palette across Modern mode
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.themeActiveBadge,
+                          {backgroundColor: modernPalette.softViolet},
+                        ]}
+                        testID="modern-theme-active-badge"
+                      >
+                        <Text
+                          style={[
+                            styles.themeActiveBadgeText,
+                            {color: modernPalette.accent},
+                          ]}
+                        >
+                          {modernThemeMeta.label}
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      style={styles.themeGrid}
+                      accessibilityRole="radiogroup"
+                      accessibilityLabel="Color theme"
+                    >
+                      {MODERN_THEMES.map(theme => {
+                        const active = modernTheme === theme.id;
+                        const preview = isDarkMode
+                          ? theme.previewDark
+                          : theme.previewLight;
+                        return (
+                          <TouchableOpacity
+                            key={theme.id}
+                            testID={`modern-theme-${theme.id}`}
+                            accessibilityRole="radio"
+                            accessibilityState={{
+                              checked: active,
+                              selected: active,
+                            }}
+                            accessibilityLabel={`${theme.label} theme — ${theme.subtitle}`}
+                            activeOpacity={0.8}
+                            onPress={() => setModernTheme(theme.id)}
+                            style={[
+                              styles.themeTile,
+                              {
+                                backgroundColor: active
+                                  ? modernPalette.softViolet
+                                  : modernPalette.surface,
+                                borderColor: active
+                                  ? modernPalette.accent
+                                  : modernPalette.border,
+                              },
+                            ]}
+                          >
+                            <View style={styles.themeSwatchCluster}>
+                              <View
+                                style={[
+                                  styles.themeSwatchPrimary,
+                                  {
+                                    backgroundColor: preview[0],
+                                    borderColor: modernPalette.card,
+                                  },
+                                ]}
+                              />
+                              <View
+                                style={[
+                                  styles.themeSwatchSecondary,
+                                  {
+                                    backgroundColor: preview[1],
+                                    borderColor: modernPalette.card,
+                                  },
+                                ]}
+                              />
+                            </View>
+                            <View style={styles.themeTileTextCol}>
+                              <Text
+                                style={[
+                                  styles.themeTileLabel,
+                                  {
+                                    color: active
+                                      ? modernPalette.accent
+                                      : colors.textPrimary,
+                                  },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {theme.label}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.themeTileSubtitle,
+                                  {color: colors.textSecondary},
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {theme.subtitle}
+                              </Text>
+                            </View>
+                            {active && (
+                              <View
+                                style={[
+                                  styles.themeTileCheck,
+                                  {backgroundColor: modernPalette.accent},
+                                ]}
+                              >
+                                <Check
+                                  size={10}
+                                  color="#FFFFFF"
+                                  strokeWidth={3}
+                                />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.settingDivider,
+                      {backgroundColor: colors.divider},
+                    ]}
+                  />
+                  <View
+                    style={styles.themePickerBlock}
+                    testID="modern-ai-button-selector"
+                  >
+                    <View style={styles.themePickerHeader}>
+                      <View style={styles.themePickerHeaderCopy}>
+                        <Text
+                          style={[
+                            styles.interfaceTitle,
+                            {color: colors.textPrimary},
+                          ]}
+                        >
+                          AI Button Design
+                        </Text>
+                        <Text
+                          style={[
+                            styles.themePickerSubtitle,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          Customize the center AI tab button
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.themeActiveBadge,
+                          {backgroundColor: modernPalette.softViolet},
+                        ]}
+                        testID="modern-ai-button-active-badge"
+                      >
+                        <Text
+                          style={[
+                            styles.themeActiveBadgeText,
+                            {color: modernPalette.accent},
+                          ]}
+                        >
+                          {modernAiButtonDesignMeta.label}
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      style={styles.themeGrid}
+                      accessibilityRole="radiogroup"
+                      accessibilityLabel="AI button design"
+                    >
+                      {MODERN_AI_BUTTON_DESIGNS.map(design => {
+                        const active = modernAiButtonDesign === design.id;
+                        return (
+                          <TouchableOpacity
+                            key={design.id}
+                            testID={`modern-ai-button-${design.id}`}
+                            accessibilityRole="radio"
+                            accessibilityState={{
+                              checked: active,
+                              selected: active,
+                            }}
+                            accessibilityLabel={`${design.label} AI button — ${design.subtitle}`}
+                            activeOpacity={0.8}
+                            onPress={() => setModernAiButtonDesign(design.id)}
+                            style={[
+                              styles.themeTile,
+                              {
+                                backgroundColor: active
+                                  ? modernPalette.softViolet
+                                  : modernPalette.surface,
+                                borderColor: active
+                                  ? modernPalette.accent
+                                  : modernPalette.border,
+                              },
+                            ]}
+                          >
+                            <LafinaSynthOrb
+                              design={design.id}
+                              size={28}
+                              isActive={active}
+                              isDarkMode={isDarkMode}
+                              modernTheme={modernTheme}
+                              modernPalette={modernPalette}
+                              modernThemeExtras={modernThemeExtras}
+                              testID={`modern-ai-button-preview-${design.id}`}
+                            />
+                            <View style={styles.themeTileTextCol}>
+                              <Text
+                                style={[
+                                  styles.themeTileLabel,
+                                  {
+                                    color: active
+                                      ? modernPalette.accent
+                                      : colors.textPrimary,
+                                  },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {design.label}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.themeTileSubtitle,
+                                  {color: colors.textSecondary},
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {design.subtitle}
+                              </Text>
+                            </View>
+                            {active && (
+                              <View
+                                style={[
+                                  styles.themeTileCheck,
+                                  {backgroundColor: modernPalette.accent},
+                                ]}
+                              >
+                                <Check
+                                  size={10}
+                                  color="#FFFFFF"
+                                  strokeWidth={3}
+                                />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </>
+              )}
+            </View>
+
+            <Text
+              style={[
+                styles.settingsGroupHeader,
+                themed.settingsGroupHeader,
+                isModern && [
+                  styles.modernSettingsGroupHeader,
+                  {color: modernPalette.muted},
+                ],
+              ]}
+            >
+              Data Settings
+            </Text>
+            <View
+              style={[
+                styles.settingsGroupCard,
+                cardSurfaceStyle,
+                themed.settingsGroupCard,
+                styles.clearDataGroupCard,
+              ]}
+            >
+              <TouchableOpacity
+                testID="profile-clear-all-data-btn"
+                onPress={handleClearData}
+                activeOpacity={0.78}
+                accessibilityRole="button"
+                accessibilityLabel="Clear All Data"
+                style={styles.clearDataActionRow}
+              >
                 <View
                   style={[
-                    styles.academicRow,
-                    isModern && styles.modernAcademicRow,
+                    styles.clearDataIconBadge,
+                    {
+                      backgroundColor: isModern
+                        ? modernPalette.dangerSoft
+                        : colors.bannerBg,
+                      borderColor: isModern
+                        ? `${modernPalette.danger}2E`
+                        : `${colors.error}2E`,
+                      borderRadius: isModern ? 12 : 10,
+                    },
                   ]}
                 >
+                  <Trash2
+                    size={17}
+                    color={isModern ? modernPalette.danger : colors.error}
+                  />
+                </View>
+                <View style={styles.clearDataTextCol}>
                   <Text
                     style={[
-                      styles.academicLabel,
-                      isModern && styles.modernAcademicLabel,
+                      styles.clearDataTitle,
+                      {color: isModern ? modernPalette.danger : colors.error},
+                    ]}
+                  >
+                    Clear All Data
+                  </Text>
+                  <Text
+                    style={[
+                      styles.clearDataSubtitle,
                       {
                         color: isModern
                           ? modernPalette.muted
                           : colors.textSecondary,
                       },
                     ]}
+                    numberOfLines={2}
                   >
-                    Total Units
-                  </Text>
-                  <Text
-                    style={[
-                      styles.academicValue,
-                      isModern && styles.modernAcademicValue,
-                      {
-                        color: isModern
-                          ? modernPalette.text
-                          : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {academicProfile.totalCreditUnits} units
+                    Delete notes, tasks, schedule, chats &amp; event defaults
                   </Text>
                 </View>
-              </>
-            ) : null}
-          </View>
-        )}
-
-        <ProfileStats
-          statistics={statistics}
-          onPressViewStats={() => setStatsModalVisible(true)}
-        />
-
-        <View
-          style={[
-            styles.settingsContainer,
-            isModern && styles.modernSettingsContainer,
-          ]}
-        >
-          <Text
-            style={[
-              styles.settingsGroupHeader,
-              themed.settingsGroupHeader,
-              isModern && [
-                styles.modernSettingsGroupHeader,
-                {color: modernPalette.muted, marginTop: 2},
-              ],
-            ]}
-          >
-            Preferences
-          </Text>
-          <View
-            style={[
-              styles.settingsGroupCard,
-              cardSurfaceStyle,
-              themed.settingsGroupCard,
-            ]}
-          >
-            <SettingItem
-              text="Scheduling & Reminder Preferences"
-              type="link"
-              valueText={preferenceSummary}
-              onPress={() => setPreferencesVisible(true)}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Week Starts on Monday"
-              type="toggle"
-              value={weekStartsMonday}
-              onValueChange={handleToggleWeekStart}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Event Defaults"
-              type="link"
-              valueText={eventDefaultsSummary}
-              onPress={() => setMemoryVisible(true)}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Memory"
-              type="link"
-              valueText={chatMemorySummary}
-              onPress={() => setChatMemoryVisible(true)}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Student Setup"
-              type="link"
-              valueText={
-                studentSetup.affiliation === 'ustp'
-                  ? academicProfile
-                    ? 'USTP · COR confirmed'
-                    : studentSetup.corStatus === 'needs_review'
-                    ? 'USTP · COR needs review'
-                    : 'USTP · COR pending'
-                  : studentSetup.affiliation === 'not_ustp'
-                  ? 'Scheduling mode'
-                  : 'Not chosen'
-              }
-              onPress={handleStudentSetup}
-            />
-            {corImportStore.latestActiveImport(userId) ? (
-              <>
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-                <SettingItem
-                  text="Undo Last COR Import"
-                  type="link"
-                  valueText="Only that import"
-                  onPress={undoLatestCorImport}
+                <ChevronRight
+                  size={17}
+                  color={isModern ? modernPalette.danger : colors.error}
                 />
-              </>
-            ) : null}
-          </View>
+              </TouchableOpacity>
+            </View>
 
-          <Text
-            style={[
-              styles.settingsGroupHeader,
-              themed.settingsGroupHeader,
-              isModern && [
-                styles.modernSettingsGroupHeader,
-                {color: modernPalette.muted},
-              ],
-            ]}
-          >
-            AI & Voice
-          </Text>
-          <View
-            style={[
-              styles.settingsGroupCard,
-              cardSurfaceStyle,
-              themed.settingsGroupCard,
-            ]}
-          >
-            <SettingItem
-              text="Detailed AI Summaries"
-              type="toggle"
-              value={summaryStyleDetailed}
-              onValueChange={setSummaryStyleDetailed}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Markdown Chat Replies"
-              type="toggle"
-              value={replyFormat === 'markdown'}
-              onValueChange={handleMarkdownRepliesChange}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text={ttsTesting ? 'Testing TTS…' : 'Test TTS Voice'}
-              type="clickable"
-              onPress={handleTestTtsVoice}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Offline Voice"
-              type="link"
-              valueText={voiceSummary}
-              onPress={() => setVoiceVisible(true)}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Online Voice · ElevenLabs"
-              type="link"
-              valueText={onlineVoiceSummary}
-              onPress={() => setOnlineVoiceVisible(true)}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <View collapsable={false} ref={attachFloatingRowRef}>
+            {isDevMode && (
+              <>
+                <Text
+                  style={[
+                    styles.settingsGroupHeader,
+                    themed.settingsGroupHeader,
+                    isModern && [
+                      styles.modernSettingsGroupHeader,
+                      {color: modernPalette.muted},
+                    ],
+                  ]}
+                >
+                  Developer
+                </Text>
+                <View
+                  style={[
+                    styles.settingsGroupCard,
+                    cardSurfaceStyle,
+                    themed.settingsGroupCard,
+                  ]}
+                >
+                  <View style={styles.interfaceSelectorBlock}>
+                    <Text
+                      style={[
+                        styles.interfaceTitle,
+                        {color: colors.textPrimary},
+                      ]}
+                    >
+                      App Interface
+                    </Text>
+                    <Text
+                      style={[
+                        styles.interfaceSubtitle,
+                        {color: colors.textSecondary},
+                      ]}
+                    >
+                      Choose how LAFINA looks
+                    </Text>
+                    <View style={styles.interfaceCardsRow}>
+                      <TouchableOpacity
+                        testID="ui-variant-modern"
+                        accessibilityRole="radio"
+                        accessibilityState={{
+                          checked: uiVariant === 'modern',
+                          selected: uiVariant === 'modern',
+                        }}
+                        accessibilityLabel="Modern — UniGuide-inspired interface"
+                        activeOpacity={0.8}
+                        onPress={() => setUIVariant('modern')}
+                        style={[
+                          styles.interfaceCard,
+                          {
+                            backgroundColor:
+                              uiVariant === 'modern'
+                                ? modernPalette.softViolet
+                                : colors.inputBg,
+                            borderColor:
+                              uiVariant === 'modern'
+                                ? modernPalette.accent
+                                : colors.border,
+                          },
+                        ]}
+                      >
+                        <View style={styles.interfaceCardTop}>
+                          <Sparkles
+                            size={16}
+                            color={
+                              uiVariant === 'modern'
+                                ? modernPalette.accent
+                                : colors.textSecondary
+                            }
+                          />
+                          {uiVariant === 'modern' && (
+                            <View
+                              style={[
+                                styles.interfaceCheckBadge,
+                                {backgroundColor: modernPalette.accent},
+                              ]}
+                            >
+                              <Check
+                                size={11}
+                                color="#FFFFFF"
+                                strokeWidth={3}
+                              />
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.interfaceCardTitle,
+                            {
+                              color:
+                                uiVariant === 'modern'
+                                  ? modernPalette.accent
+                                  : colors.textPrimary,
+                            },
+                          ]}
+                        >
+                          Modern
+                        </Text>
+                        <Text
+                          style={[
+                            styles.interfaceCardDesc,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          UniGuide-inspired interface
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        testID="ui-variant-classic"
+                        accessibilityRole="radio"
+                        accessibilityState={{
+                          checked: uiVariant === 'classic',
+                          selected: uiVariant === 'classic',
+                        }}
+                        accessibilityLabel="Classic — Original LAFINA interface"
+                        activeOpacity={0.8}
+                        onPress={() => setUIVariant('classic')}
+                        style={[
+                          styles.interfaceCard,
+                          {
+                            backgroundColor:
+                              uiVariant === 'classic'
+                                ? colors.primary + '14'
+                                : colors.inputBg,
+                            borderColor:
+                              uiVariant === 'classic'
+                                ? colors.primary
+                                : colors.border,
+                          },
+                        ]}
+                      >
+                        <View style={styles.interfaceCardTop}>
+                          <LayoutGrid
+                            size={16}
+                            color={
+                              uiVariant === 'classic'
+                                ? colors.primary
+                                : colors.textSecondary
+                            }
+                          />
+                          {uiVariant === 'classic' && (
+                            <View
+                              style={[
+                                styles.interfaceCheckBadge,
+                                {backgroundColor: colors.primary},
+                              ]}
+                            >
+                              <Check
+                                size={11}
+                                color="#FFFFFF"
+                                strokeWidth={3}
+                              />
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.interfaceCardTitle,
+                            {
+                              color:
+                                uiVariant === 'classic'
+                                  ? colors.primary
+                                  : colors.textPrimary,
+                            },
+                          ]}
+                        >
+                          Classic
+                        </Text>
+                        <Text
+                          style={[
+                            styles.interfaceCardDesc,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          Original LAFINA interface
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
+                  <SettingItem
+                    text="Developer Testing Hub"
+                    type="link"
+                    valueText="Triggers & Diagnostics"
+                    onPress={() => setDeveloperModalVisible(true)}
+                  />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
+                  <SettingItem
+                    text="Simulate Incoming Call (Now)"
+                    type="clickable"
+                    onPress={handleQuickIncomingCall}
+                  />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
+                  <SettingItem
+                    text="Schedule Native Alarm (in 5s)"
+                    type="clickable"
+                    onPress={handleQuickAlarm}
+                  />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
+                  <SettingItem
+                    text="Force Cloud Sync Now"
+                    type="clickable"
+                    onPress={handleQuickSync}
+                  />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
+                  <SettingItem
+                    text="Seed Sample Student Data"
+                    type="clickable"
+                    onPress={handleQuickSeedData}
+                  />
+                  {backendSelection.isAvailable() && (
+                    <>
+                      <View
+                        style={[styles.settingDivider, themed.settingDivider]}
+                      />
+                      <ServerSwitchItem
+                        isGuest={isGuest}
+                        endSession={endSessionForServerSwitch}
+                        onSessionEnded={() => onLogout?.(false)}
+                      />
+                    </>
+                  )}
+                  {onReplayOnboarding && (
+                    <>
+                      <View
+                        style={[styles.settingDivider, themed.settingDivider]}
+                      />
+                      <SettingItem
+                        text="Replay onboarding"
+                        type="link"
+                        onPress={onReplayOnboarding}
+                      />
+                    </>
+                  )}
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
+                  <SettingItem
+                    text="Clear all data & reset onboarding"
+                    type="clickable"
+                    isDestructive
+                    onPress={handleClearAllDataAndResetOnboarding}
+                  />
+                </View>
+              </>
+            )}
+
+            <Text
+              style={[
+                styles.settingsGroupHeader,
+                themed.settingsGroupHeader,
+                isModern && [
+                  styles.modernSettingsGroupHeader,
+                  {color: modernPalette.muted},
+                ],
+              ]}
+            >
+              About
+            </Text>
+            <View
+              style={[
+                styles.settingsGroupCard,
+                cardSurfaceStyle,
+                themed.settingsGroupCard,
+                isModern && styles.modernLastGroupCard,
+              ]}
+            >
               <SettingItem
-                text="Floating LAFINA"
+                text="App Version"
+                type="value"
+                valueText={`${APP_VERSION} (Mobile)`}
+                onPress={handleVersionTap}
+              />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              <AppUpdateItem />
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+              {onReplayTour && (
+                <>
+                  <SettingItem
+                    text="Show the walkthrough again"
+                    type="link"
+                    valueText="All features"
+                    onPress={onReplayTour}
+                  />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
+                </>
+              )}
+              <SettingItem
+                text="Privacy Policy"
                 type="link"
-                valueText={floatingSummary}
-                onPress={() => setFloatingVisible(true)}
+                onPress={() => setPrivacyModalVisible(true)}
               />
             </View>
           </View>
 
-          <Text
-            style={[
-              styles.settingsGroupHeader,
-              themed.settingsGroupHeader,
-              isModern && [
-                styles.modernSettingsGroupHeader,
-                {color: modernPalette.muted},
-              ],
-            ]}
-          >
-            Notifications
-          </Text>
-          <View
-            style={[
-              styles.settingsGroupCard,
-              cardSurfaceStyle,
-              themed.settingsGroupCard,
-            ]}
-          >
-            <SettingItem
-              text="Alarm & Reminder Health"
-              type="link"
-              valueText="Permissions & battery"
-              onPress={() => setHealthVisible(true)}
-            />
-          </View>
-
-          <Text
-            style={[
-              styles.settingsGroupHeader,
-              themed.settingsGroupHeader,
-              isModern && [
-                styles.modernSettingsGroupHeader,
-                {color: modernPalette.muted},
-              ],
-            ]}
-          >
-            Appearance
-          </Text>
-          <View style={[styles.settingsGroupCard, ...cardSurfaceStyle]}>
-            <SettingItem
-              text="Dark Mode"
-              type="toggle"
-              value={isDarkMode}
-              onValueChange={(_enabled, origin) => toggleTheme(origin)}
-            />
-            {isModern && (
-              <>
-                <View
-                  style={[
-                    styles.settingDivider,
-                    {backgroundColor: colors.divider},
-                  ]}
-                />
-                <View
-                  style={styles.themePickerBlock}
-                  testID="modern-theme-selector"
-                >
-                  <View style={styles.themePickerHeader}>
-                    <View style={styles.themePickerHeaderCopy}>
-                      <Text
-                        style={[
-                          styles.interfaceTitle,
-                          {color: colors.textPrimary},
-                        ]}
-                      >
-                        Color Theme
-                      </Text>
-                      <Text
-                        style={[
-                          styles.themePickerSubtitle,
-                          {color: colors.textSecondary},
-                        ]}
-                      >
-                        Choose your palette across Modern mode
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.themeActiveBadge,
-                        {backgroundColor: modernPalette.softViolet},
-                      ]}
-                      testID="modern-theme-active-badge"
-                    >
-                      <Text
-                        style={[
-                          styles.themeActiveBadgeText,
-                          {color: modernPalette.accent},
-                        ]}
-                      >
-                        {modernThemeMeta.label}
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    style={styles.themeGrid}
-                    accessibilityRole="radiogroup"
-                    accessibilityLabel="Color theme"
-                  >
-                    {MODERN_THEMES.map(theme => {
-                      const active = modernTheme === theme.id;
-                      const preview = isDarkMode
-                        ? theme.previewDark
-                        : theme.previewLight;
-                      return (
-                        <TouchableOpacity
-                          key={theme.id}
-                          testID={`modern-theme-${theme.id}`}
-                          accessibilityRole="radio"
-                          accessibilityState={{
-                            checked: active,
-                            selected: active,
-                          }}
-                          accessibilityLabel={`${theme.label} theme — ${theme.subtitle}`}
-                          activeOpacity={0.8}
-                          onPress={() => setModernTheme(theme.id)}
-                          style={[
-                            styles.themeTile,
-                            {
-                              backgroundColor: active
-                                ? modernPalette.softViolet
-                                : modernPalette.surface,
-                              borderColor: active
-                                ? modernPalette.accent
-                                : modernPalette.border,
-                            },
-                          ]}
-                        >
-                          <View style={styles.themeSwatchCluster}>
-                            <View
-                              style={[
-                                styles.themeSwatchPrimary,
-                                {
-                                  backgroundColor: preview[0],
-                                  borderColor: modernPalette.card,
-                                },
-                              ]}
-                            />
-                            <View
-                              style={[
-                                styles.themeSwatchSecondary,
-                                {
-                                  backgroundColor: preview[1],
-                                  borderColor: modernPalette.card,
-                                },
-                              ]}
-                            />
-                          </View>
-                          <View style={styles.themeTileTextCol}>
-                            <Text
-                              style={[
-                                styles.themeTileLabel,
-                                {
-                                  color: active
-                                    ? modernPalette.accent
-                                    : colors.textPrimary,
-                                },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {theme.label}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.themeTileSubtitle,
-                                {color: colors.textSecondary},
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {theme.subtitle}
-                            </Text>
-                          </View>
-                          {active && (
-                            <View
-                              style={[
-                                styles.themeTileCheck,
-                                {backgroundColor: modernPalette.accent},
-                              ]}
-                            >
-                              <Check
-                                size={10}
-                                color="#FFFFFF"
-                                strokeWidth={3}
-                              />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-                <View
-                  style={[
-                    styles.settingDivider,
-                    {backgroundColor: colors.divider},
-                  ]}
-                />
-                <View
-                  style={styles.themePickerBlock}
-                  testID="modern-ai-button-selector"
-                >
-                  <View style={styles.themePickerHeader}>
-                    <View style={styles.themePickerHeaderCopy}>
-                      <Text
-                        style={[
-                          styles.interfaceTitle,
-                          {color: colors.textPrimary},
-                        ]}
-                      >
-                        AI Button Design
-                      </Text>
-                      <Text
-                        style={[
-                          styles.themePickerSubtitle,
-                          {color: colors.textSecondary},
-                        ]}
-                      >
-                        Customize the center AI tab button
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.themeActiveBadge,
-                        {backgroundColor: modernPalette.softViolet},
-                      ]}
-                      testID="modern-ai-button-active-badge"
-                    >
-                      <Text
-                        style={[
-                          styles.themeActiveBadgeText,
-                          {color: modernPalette.accent},
-                        ]}
-                      >
-                        {modernAiButtonDesignMeta.label}
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    style={styles.themeGrid}
-                    accessibilityRole="radiogroup"
-                    accessibilityLabel="AI button design"
-                  >
-                    {MODERN_AI_BUTTON_DESIGNS.map(design => {
-                      const active = modernAiButtonDesign === design.id;
-                      return (
-                        <TouchableOpacity
-                          key={design.id}
-                          testID={`modern-ai-button-${design.id}`}
-                          accessibilityRole="radio"
-                          accessibilityState={{
-                            checked: active,
-                            selected: active,
-                          }}
-                          accessibilityLabel={`${design.label} AI button — ${design.subtitle}`}
-                          activeOpacity={0.8}
-                          onPress={() => setModernAiButtonDesign(design.id)}
-                          style={[
-                            styles.themeTile,
-                            {
-                              backgroundColor: active
-                                ? modernPalette.softViolet
-                                : modernPalette.surface,
-                              borderColor: active
-                                ? modernPalette.accent
-                                : modernPalette.border,
-                            },
-                          ]}
-                        >
-                          <LafinaSynthOrb
-                            design={design.id}
-                            size={28}
-                            isActive={active}
-                            isDarkMode={isDarkMode}
-                            modernTheme={modernTheme}
-                            modernPalette={modernPalette}
-                            modernThemeExtras={modernThemeExtras}
-                            testID={`modern-ai-button-preview-${design.id}`}
-                          />
-                          <View style={styles.themeTileTextCol}>
-                            <Text
-                              style={[
-                                styles.themeTileLabel,
-                                {
-                                  color: active
-                                    ? modernPalette.accent
-                                    : colors.textPrimary,
-                                },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {design.label}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.themeTileSubtitle,
-                                {color: colors.textSecondary},
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {design.subtitle}
-                            </Text>
-                          </View>
-                          {active && (
-                            <View
-                              style={[
-                                styles.themeTileCheck,
-                                {backgroundColor: modernPalette.accent},
-                              ]}
-                            >
-                              <Check
-                                size={10}
-                                color="#FFFFFF"
-                                strokeWidth={3}
-                              />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              </>
-            )}
-          </View>
-
-          <Text
-            style={[
-              styles.settingsGroupHeader,
-              themed.settingsGroupHeader,
-              isModern && [
-                styles.modernSettingsGroupHeader,
-                {color: modernPalette.muted},
-              ],
-            ]}
-          >
-            Data Settings
-          </Text>
-          <View
-            style={[
-              styles.settingsGroupCard,
-              cardSurfaceStyle,
-              themed.settingsGroupCard,
-              styles.clearDataGroupCard,
-            ]}
-          >
-            <TouchableOpacity
-              testID="profile-clear-all-data-btn"
-              onPress={handleClearData}
-              activeOpacity={0.78}
-              accessibilityRole="button"
-              accessibilityLabel="Clear All Data"
-              style={styles.clearDataActionRow}
+          {isGuest ? (
+            <View
+              style={[
+                styles.guestPromptCard,
+                ...cardSurfaceStyle,
+                isModern && styles.modernGuestPromptCard,
+              ]}
             >
-              <View
+              <Text style={[styles.guestPromptTitle, themed.settingText]}>
+                Save & Sync Your Data
+              </Text>
+              <Text style={[styles.guestPromptBody, themed.settingValue]}>
+                Create an account or sign in to back up your schedule across
+                devices and use Online AI mode.
+              </Text>
+              <TouchableOpacity
+                onPress={handleCreateAccount}
                 style={[
-                  styles.clearDataIconBadge,
-                  {
-                    backgroundColor: isModern
-                      ? modernPalette.dangerSoft
-                      : colors.bannerBg,
-                    borderColor: isModern
-                      ? `${modernPalette.danger}2E`
-                      : `${colors.error}2E`,
-                    borderRadius: isModern ? 12 : 10,
+                  styles.createAccountBtn,
+                  themed.createAccountBtn,
+                  isModern && {
+                    backgroundColor: modernPalette.accent,
+                    borderRadius: ModernLayout.borderRadiusPill,
                   },
                 ]}
               >
-                <Trash2
-                  size={17}
-                  color={isModern ? modernPalette.danger : colors.error}
-                />
-              </View>
-              <View style={styles.clearDataTextCol}>
                 <Text
                   style={[
-                    styles.clearDataTitle,
-                    {color: isModern ? modernPalette.danger : colors.error},
+                    styles.createAccountBtnText,
+                    themed.createAccountBtnText,
                   ]}
                 >
-                  Clear All Data
+                  Create Account
                 </Text>
-                <Text
-                  style={[
-                    styles.clearDataSubtitle,
-                    {
-                      color: isModern
-                        ? modernPalette.muted
-                        : colors.textSecondary,
-                    },
-                  ]}
-                  numberOfLines={2}
-                >
-                  Delete notes, tasks, schedule, chats &amp; event defaults
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSignOut}
+                style={styles.signOutLink}
+              >
+                <Text style={[styles.signOutLinkText, themed.signOutLinkText]}>
+                  Dismiss Guest & Sign Out
                 </Text>
-              </View>
-              <ChevronRight
-                size={17}
-                color={isModern ? modernPalette.danger : colors.error}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {isDevMode && (
-            <>
-              <Text
-                style={[
-                  styles.settingsGroupHeader,
-                  themed.settingsGroupHeader,
-                  isModern && [
-                    styles.modernSettingsGroupHeader,
-                    {color: modernPalette.muted},
-                  ],
-                ]}
-              >
-                Developer
-              </Text>
-              <View
-                style={[
-                  styles.settingsGroupCard,
-                  cardSurfaceStyle,
-                  themed.settingsGroupCard,
-                ]}
-              >
-                <View style={styles.interfaceSelectorBlock}>
-                  <Text
-                    style={[styles.interfaceTitle, {color: colors.textPrimary}]}
-                  >
-                    App Interface
-                  </Text>
-                  <Text
-                    style={[
-                      styles.interfaceSubtitle,
-                      {color: colors.textSecondary},
-                    ]}
-                  >
-                    Choose how LAFINA looks
-                  </Text>
-                  <View style={styles.interfaceCardsRow}>
-                    <TouchableOpacity
-                      testID="ui-variant-modern"
-                      accessibilityRole="radio"
-                      accessibilityState={{
-                        checked: uiVariant === 'modern',
-                        selected: uiVariant === 'modern',
-                      }}
-                      accessibilityLabel="Modern — UniGuide-inspired interface"
-                      activeOpacity={0.8}
-                      onPress={() => setUIVariant('modern')}
-                      style={[
-                        styles.interfaceCard,
-                        {
-                          backgroundColor:
-                            uiVariant === 'modern'
-                              ? modernPalette.softViolet
-                              : colors.inputBg,
-                          borderColor:
-                            uiVariant === 'modern'
-                              ? modernPalette.accent
-                              : colors.border,
-                        },
-                      ]}
-                    >
-                      <View style={styles.interfaceCardTop}>
-                        <Sparkles
-                          size={16}
-                          color={
-                            uiVariant === 'modern'
-                              ? modernPalette.accent
-                              : colors.textSecondary
-                          }
-                        />
-                        {uiVariant === 'modern' && (
-                          <View
-                            style={[
-                              styles.interfaceCheckBadge,
-                              {backgroundColor: modernPalette.accent},
-                            ]}
-                          >
-                            <Check size={11} color="#FFFFFF" strokeWidth={3} />
-                          </View>
-                        )}
-                      </View>
-                      <Text
-                        style={[
-                          styles.interfaceCardTitle,
-                          {
-                            color:
-                              uiVariant === 'modern'
-                                ? modernPalette.accent
-                                : colors.textPrimary,
-                          },
-                        ]}
-                      >
-                        Modern
-                      </Text>
-                      <Text
-                        style={[
-                          styles.interfaceCardDesc,
-                          {color: colors.textSecondary},
-                        ]}
-                      >
-                        UniGuide-inspired interface
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      testID="ui-variant-classic"
-                      accessibilityRole="radio"
-                      accessibilityState={{
-                        checked: uiVariant === 'classic',
-                        selected: uiVariant === 'classic',
-                      }}
-                      accessibilityLabel="Classic — Original LAFINA interface"
-                      activeOpacity={0.8}
-                      onPress={() => setUIVariant('classic')}
-                      style={[
-                        styles.interfaceCard,
-                        {
-                          backgroundColor:
-                            uiVariant === 'classic'
-                              ? colors.primary + '14'
-                              : colors.inputBg,
-                          borderColor:
-                            uiVariant === 'classic'
-                              ? colors.primary
-                              : colors.border,
-                        },
-                      ]}
-                    >
-                      <View style={styles.interfaceCardTop}>
-                        <LayoutGrid
-                          size={16}
-                          color={
-                            uiVariant === 'classic'
-                              ? colors.primary
-                              : colors.textSecondary
-                          }
-                        />
-                        {uiVariant === 'classic' && (
-                          <View
-                            style={[
-                              styles.interfaceCheckBadge,
-                              {backgroundColor: colors.primary},
-                            ]}
-                          >
-                            <Check size={11} color="#FFFFFF" strokeWidth={3} />
-                          </View>
-                        )}
-                      </View>
-                      <Text
-                        style={[
-                          styles.interfaceCardTitle,
-                          {
-                            color:
-                              uiVariant === 'classic'
-                                ? colors.primary
-                                : colors.textPrimary,
-                          },
-                        ]}
-                      >
-                        Classic
-                      </Text>
-                      <Text
-                        style={[
-                          styles.interfaceCardDesc,
-                          {color: colors.textSecondary},
-                        ]}
-                      >
-                        Original LAFINA interface
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-                <SettingItem
-                  text="Developer Testing Hub"
-                  type="link"
-                  valueText="Triggers & Diagnostics"
-                  onPress={() => setDeveloperModalVisible(true)}
-                />
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-                <SettingItem
-                  text="Simulate Incoming Call (Now)"
-                  type="clickable"
-                  onPress={handleQuickIncomingCall}
-                />
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-                <SettingItem
-                  text="Schedule Native Alarm (in 5s)"
-                  type="clickable"
-                  onPress={handleQuickAlarm}
-                />
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-                <SettingItem
-                  text="Force Cloud Sync Now"
-                  type="clickable"
-                  onPress={handleQuickSync}
-                />
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-                <SettingItem
-                  text="Seed Sample Student Data"
-                  type="clickable"
-                  onPress={handleQuickSeedData}
-                />
-                {backendSelection.isAvailable() && (
-                  <>
-                    <View
-                      style={[styles.settingDivider, themed.settingDivider]}
-                    />
-                    <ServerSwitchItem
-                      isGuest={isGuest}
-                      endSession={endSessionForServerSwitch}
-                      onSessionEnded={() => onLogout?.(false)}
-                    />
-                  </>
-                )}
-                {onReplayOnboarding && (
-                  <>
-                    <View
-                      style={[styles.settingDivider, themed.settingDivider]}
-                    />
-                    <SettingItem
-                      text="Replay onboarding"
-                      type="link"
-                      onPress={onReplayOnboarding}
-                    />
-                  </>
-                )}
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-                <SettingItem
-                  text="Clear all data & reset onboarding"
-                  type="clickable"
-                  isDestructive
-                  onPress={handleClearAllDataAndResetOnboarding}
-                />
-              </View>
-            </>
-          )}
-
-          <Text
-            style={[
-              styles.settingsGroupHeader,
-              themed.settingsGroupHeader,
-              isModern && [
-                styles.modernSettingsGroupHeader,
-                {color: modernPalette.muted},
-              ],
-            ]}
-          >
-            About
-          </Text>
-          <View
-            style={[
-              styles.settingsGroupCard,
-              cardSurfaceStyle,
-              themed.settingsGroupCard,
-              isModern && styles.modernLastGroupCard,
-            ]}
-          >
-            <SettingItem
-              text="App Version"
-              type="value"
-              valueText={`${APP_VERSION} (Mobile)`}
-              onPress={handleVersionTap}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <AppUpdateItem />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            {onReplayTour && (
-              <>
-                <SettingItem
-                  text="Show the walkthrough again"
-                  type="link"
-                  valueText="All features"
-                  onPress={onReplayTour}
-                />
-                <View style={[styles.settingDivider, themed.settingDivider]} />
-              </>
-            )}
-            <SettingItem
-              text="Privacy Policy"
-              type="link"
-              onPress={() => setPrivacyModalVisible(true)}
-            />
-          </View>
-        </View>
-
-        {isGuest ? (
-          <View
-            style={[
-              styles.guestPromptCard,
-              ...cardSurfaceStyle,
-              isModern && styles.modernGuestPromptCard,
-            ]}
-          >
-            <Text style={[styles.guestPromptTitle, themed.settingText]}>
-              Save & Sync Your Data
-            </Text>
-            <Text style={[styles.guestPromptBody, themed.settingValue]}>
-              Create an account or sign in to back up your schedule across
-              devices and use Online AI mode.
-            </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
             <TouchableOpacity
-              onPress={handleCreateAccount}
+              onPress={handleSignOut}
+              activeOpacity={0.82}
               style={[
-                styles.createAccountBtn,
-                themed.createAccountBtn,
+                styles.signOutBtn,
+                themed.signOutBtn,
                 isModern && {
-                  backgroundColor: modernPalette.accent,
+                  borderColor: modernPalette.danger + '38',
+                  backgroundColor: modernPalette.dangerSoft,
                   borderRadius: ModernLayout.borderRadiusPill,
+                  borderWidth: 1,
+                  flexDirection: 'row',
+                  gap: 8,
                 },
               ]}
             >
+              {isModern && <LogOut size={16} color={modernPalette.danger} />}
               <Text
                 style={[
-                  styles.createAccountBtnText,
-                  themed.createAccountBtnText,
+                  styles.signOutText,
+                  themed.signOutText,
+                  isModern && {color: modernPalette.danger},
                 ]}
               >
-                Create Account
+                Sign Out
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleSignOut}
-              style={styles.signOutLink}
-            >
-              <Text style={[styles.signOutLinkText, themed.signOutLinkText]}>
-                Dismiss Guest & Sign Out
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            onPress={handleSignOut}
-            activeOpacity={0.82}
-            style={[
-              styles.signOutBtn,
-              themed.signOutBtn,
-              isModern && {
-                borderColor: modernPalette.danger + '38',
-                backgroundColor: modernPalette.dangerSoft,
-                borderRadius: ModernLayout.borderRadiusPill,
-                borderWidth: 1,
-                flexDirection: 'row',
-                gap: 8,
-              },
-            ]}
-          >
-            {isModern && <LogOut size={16} color={modernPalette.danger} />}
-            <Text
-              style={[
-                styles.signOutText,
-                themed.signOutText,
-                isModern && {color: modernPalette.danger},
-              ]}
-            >
-              Sign Out
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+          )}
+        </View>
 
-      <ScreenOverlays>
-        {corReviewOpen && (
-          <Modal
-            visible
-            animationType="slide"
-            onRequestClose={closeCorReview}
-            testID="profile-cor-review-modal"
-          >
-            <CorReviewFlow userId={userId} onClose={closeCorReview} />
-          </Modal>
-        )}
-        {privacyModalVisible && (
-          <PrivacyModal
-            visible={privacyModalVisible}
-            onClose={() => setPrivacyModalVisible(false)}
+        <ScreenOverlays>
+          {corReviewOpen && (
+            <Modal
+              visible
+              animationType="slide"
+              onRequestClose={closeCorReview}
+              testID="profile-cor-review-modal"
+            >
+              <CorReviewFlow userId={userId} onClose={closeCorReview} />
+            </Modal>
+          )}
+          {privacyModalVisible && (
+            <PrivacyModal
+              visible={privacyModalVisible}
+              onClose={() => setPrivacyModalVisible(false)}
+            />
+          )}
+          <ClearAllDataModal
+            visible={clearDataModalVisible}
+            onCancel={handleCancelClearData}
+            onConfirm={handleConfirmClearData}
           />
-        )}
-        <ClearAllDataModal
-          visible={clearDataModalVisible}
-          onCancel={handleCancelClearData}
-          onConfirm={handleConfirmClearData}
-        />
-        <ClearDataResultModal
-          visible={Boolean(clearDataResult)}
-          result={clearDataResult}
-          onClose={() => setClearDataResult(null)}
-        />
-        <ProfileStatsModal
-          visible={statsModalVisible}
-          statistics={statistics}
-          onClose={() => setStatsModalVisible(false)}
-        />
-        <ReminderHealth
-          userId={userId}
-          visible={healthVisible}
-          onClose={() => setHealthVisible(false)}
-        />
-        <ChatMemorySettings
-          userId={userId}
-          isGuest={isGuest}
-          visible={chatMemoryVisible}
-          onClose={() => {
-            setChatMemoryVisible(false);
-            setChatMemorySummary(readChatMemorySummary());
-          }}
-          onChanged={() => setChatMemorySummary(readChatMemorySummary())}
-        />
-        <PersonalMemory
-          userId={userId}
-          visible={memoryVisible}
-          onClose={() => setMemoryVisible(false)}
-          onChanged={loadEventDefaultsSummary}
-        />
-        <OnlineVoice
-          key={`online-${userId}`}
-          userId={userId}
-          visible={onlineVoiceVisible}
-          onClose={() => setOnlineVoiceVisible(false)}
-          onChanged={loadOnlineVoiceSummary}
-        />
-        <OfflineVoice
-          userId={userId}
-          visible={voiceVisible}
-          onClose={() => setVoiceVisible(false)}
-          onChanged={loadVoiceSummary}
-        />
-        <FloatingAssistantSettings
-          key={`floating-${userId}`}
-          userId={userId}
-          visible={floatingVisible}
-          onClose={() => {
-            setFloatingVisible(false);
-            refreshFloatingSummary();
-          }}
-          onChanged={refreshFloatingSummary}
-        />
-        {isDevMode && developerModalVisible && (
-          <DeveloperModal
-            visible={developerModalVisible}
+          <ClearDataResultModal
+            visible={Boolean(clearDataResult)}
+            result={clearDataResult}
+            onClose={() => setClearDataResult(null)}
+          />
+          <ProfileStatsModal
+            visible={statsModalVisible}
+            statistics={statistics}
+            onClose={() => setStatsModalVisible(false)}
+          />
+          <ReminderHealth
+            userId={userId}
+            visible={healthVisible}
+            onClose={() => setHealthVisible(false)}
+          />
+          <AlertAndNotificationSettings
+            userId={userId}
+            visible={alertSettingsVisible}
+            onClose={() => {
+              setAlertSettingsVisible(false);
+              setAlertSummary(readAlertSettingsSummary(userId));
+            }}
+            onChanged={() => {
+              setAlertSummary(readAlertSettingsSummary(userId));
+              setCallSettingsSummary(readCallSettingsSummary(userId));
+            }}
+          />
+          <ReminderCallSettings
+            userId={userId}
+            visible={callSettingsVisible}
+            onClose={() => {
+              setCallSettingsVisible(false);
+              setCallSettingsSummary(readCallSettingsSummary(userId));
+            }}
+            onChanged={() => {
+              setCallSettingsSummary(readCallSettingsSummary(userId));
+              setAlertSummary(readAlertSettingsSummary(userId));
+            }}
+            onOpenOfflineVoice={() => {
+              setCallSettingsVisible(false);
+              setVoiceVisible(true);
+            }}
+            onOpenOnlineVoice={() => {
+              setCallSettingsVisible(false);
+              setOnlineVoiceVisible(true);
+            }}
+            onPreviewCall={() => {
+              setCallSettingsVisible(false);
+              void developerTestService
+                .triggerImmediateCall(
+                  userId,
+                  'Sample Reminder: Review Capstone Notes',
+                )
+                .then(res => {
+                  if (!res.success) {
+                    Alert.alert('Call Preview Unavailable', res.message);
+                  }
+                });
+            }}
+          />
+          <ChatMemorySettings
             userId={userId}
             isGuest={isGuest}
-            onClose={() => setDeveloperModalVisible(false)}
-            onRefreshProfile={onRefresh}
-            onReplayTour={onReplayTour}
-            onReplayOnboarding={onReplayOnboarding}
-            onResetFromOnboarding={onResetFromOnboarding}
-            endSessionForServerSwitch={endSessionForServerSwitch}
-            onLogout={onLogout}
+            visible={chatMemoryVisible}
+            onClose={() => {
+              setChatMemoryVisible(false);
+              setChatMemorySummary(readChatMemorySummary());
+            }}
+            onChanged={() => {
+              setChatMemorySummary(readChatMemorySummary());
+              setStudentSetup(studentSetupStore.get(userId));
+            }}
+            onUpdateCor={() => {
+              setChatMemoryVisible(false);
+              handleUploadCor();
+            }}
           />
-        )}
+          <PersonalMemory
+            userId={userId}
+            visible={memoryVisible}
+            onClose={() => setMemoryVisible(false)}
+            onChanged={loadEventDefaultsSummary}
+          />
+          <OnlineVoice
+            key={`online-${userId}`}
+            userId={userId}
+            visible={onlineVoiceVisible}
+            onClose={() => setOnlineVoiceVisible(false)}
+            onChanged={loadOnlineVoiceSummary}
+          />
+          <OfflineVoice
+            userId={userId}
+            visible={voiceVisible}
+            onClose={() => setVoiceVisible(false)}
+            onChanged={loadVoiceSummary}
+          />
+          <FloatingAssistantSettings
+            key={`floating-${userId}`}
+            userId={userId}
+            visible={floatingVisible}
+            onClose={() => {
+              setFloatingVisible(false);
+              refreshFloatingSummary();
+            }}
+            onChanged={refreshFloatingSummary}
+          />
+          {isDevMode && developerModalVisible && (
+            <DeveloperModal
+              visible={developerModalVisible}
+              userId={userId}
+              isGuest={isGuest}
+              onClose={() => setDeveloperModalVisible(false)}
+              onRefreshProfile={onRefresh}
+              onReplayTour={onReplayTour}
+              onReplayOnboarding={onReplayOnboarding}
+              onResetFromOnboarding={onResetFromOnboarding}
+              endSessionForServerSwitch={endSessionForServerSwitch}
+              onLogout={onLogout}
+            />
+          )}
         </ScreenOverlays>
       </ScrollView>
     </View>

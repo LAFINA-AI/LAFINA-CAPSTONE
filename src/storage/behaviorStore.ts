@@ -1,5 +1,5 @@
-import { generateId } from '../utils';
-import { db } from './database';
+import {generateId} from '../utils';
+import {db} from './database';
 
 export interface BehaviorLog {
   id: string;
@@ -21,6 +21,9 @@ export interface FeatureSnapshot {
   updatedAt: string;
 }
 
+export const MAX_BEHAVIOR_LOGS_PER_TYPE = 500;
+export const MAX_FEATURE_SNAPSHOTS_PER_TYPE = 20;
+
 export const behaviorStore = {
   logBehaviorEvent: (
     userId: string,
@@ -36,25 +39,54 @@ export const behaviorStore = {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [id, userId, eventType, eventKey, eventValue, now, now],
       );
+      db.executeSync(
+        `DELETE FROM user_behavior_logs
+         WHERE user_id = ? AND event_type = ?
+           AND id NOT IN (
+             SELECT id FROM user_behavior_logs
+             WHERE user_id = ? AND event_type = ?
+             ORDER BY created_at DESC, rowid DESC
+             LIMIT ?
+           )`,
+        [userId, eventType, userId, eventType, MAX_BEHAVIOR_LOGS_PER_TYPE],
+      );
     } catch (error) {
       console.error('Error inserting user behavior log:', error);
       throw error;
     }
   },
 
-  getBehaviorLogs: (userId: string, eventType?: string): BehaviorLog[] => {
+  getBehaviorLogs: (
+    userId: string,
+    eventType?: string,
+    limit: number = 250,
+  ): BehaviorLog[] => {
     try {
-      const result = db.executeSync('SELECT * FROM user_behavior_logs');
-      let rows = result.rows.filter(
-        (row: Record<string, unknown>) => row.user_id === userId,
+      const safeLimit = Math.max(
+        1,
+        Math.min(MAX_BEHAVIOR_LOGS_PER_TYPE, limit),
       );
-      if (eventType) {
-        rows = rows.filter(
-          (row: Record<string, unknown>) => row.event_type === eventType,
-        );
-      }
+      const result = eventType
+        ? db.executeSync(
+            `SELECT * FROM (
+               SELECT *, rowid AS beh_rowid FROM user_behavior_logs
+               WHERE user_id = ? AND event_type = ?
+               ORDER BY created_at DESC, rowid DESC
+               LIMIT ?
+             ) ORDER BY created_at ASC, beh_rowid ASC`,
+            [userId, eventType, safeLimit],
+          )
+        : db.executeSync(
+            `SELECT * FROM (
+               SELECT *, rowid AS beh_rowid FROM user_behavior_logs
+               WHERE user_id = ?
+               ORDER BY created_at DESC, rowid DESC
+               LIMIT ?
+             ) ORDER BY created_at ASC, beh_rowid ASC`,
+            [userId, safeLimit],
+          );
 
-      return rows.map((row: Record<string, unknown>) => ({
+      return result.rows.map((row: Record<string, unknown>) => ({
         id: String(row.id),
         userId: String(row.user_id),
         eventType: String(row.event_type),
@@ -81,6 +113,23 @@ export const behaviorStore = {
         `INSERT INTO ml_feature_snapshots (id, user_id, feature_type, feature_vector, computed_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [id, userId, featureType, featureVector, now, now, now],
+      );
+      db.executeSync(
+        `DELETE FROM ml_feature_snapshots
+         WHERE user_id = ? AND feature_type = ?
+           AND id NOT IN (
+             SELECT id FROM ml_feature_snapshots
+             WHERE user_id = ? AND feature_type = ?
+             ORDER BY computed_at DESC, created_at DESC, rowid DESC
+             LIMIT ?
+           )`,
+        [
+          userId,
+          featureType,
+          userId,
+          featureType,
+          MAX_FEATURE_SNAPSHOTS_PER_TYPE,
+        ],
       );
     } catch (error) {
       console.error('Error inserting ML feature snapshot:', error);

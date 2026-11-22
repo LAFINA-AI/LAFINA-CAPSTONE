@@ -248,6 +248,25 @@ describe('developerTestService', () => {
       expect(
         localSettingsStore.get(DEVICE_SETTINGS_OWNER, BACKEND_CHOICE_KEY),
       ).toBe('local');
+      expect(onboardingProgressStore.isResetPending()).toBe(true);
+      expect(onboardingProgressStore.consumeResetPending()).toBe(true);
+      expect(onboardingProgressStore.isResetPending()).toBe(false);
+    });
+
+    it('userStore.markOnboardingPending restores isNewUser=true for existing/restored accounts', async () => {
+      const uid = await userStore.createFromCloud({
+        email: 'restored@ustp.edu.ph',
+        password: 'Password123!',
+        cloudAccountId: 'cloud-123',
+        role: 'student',
+      });
+      expect(userStore.getUserById(uid)?.isNewUser).toBe(false);
+
+      userStore.markOnboardingPending(uid);
+      expect(userStore.getUserById(uid)?.isNewUser).toBe(true);
+
+      userStore.markOnboardingComplete(uid);
+      expect(userStore.getUserById(uid)?.isNewUser).toBe(false);
     });
   });
 });

@@ -431,6 +431,19 @@ export const userStore = {
     }
   },
 
+  markOnboardingPending: (userId: string): void => {
+    const now = new Date().toISOString();
+    try {
+      db.executeSync(
+        `UPDATE users SET is_new_user = 1, updated_at = ? WHERE id = ?`,
+        [now, userId],
+      );
+    } catch (error) {
+      console.error('Error marking onboarding pending:', error);
+      throw error;
+    }
+  },
+
   isOnboardingComplete: (userId: string): boolean => {
     try {
       const user = userStore.getUserById(userId);

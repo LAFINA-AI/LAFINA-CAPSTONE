@@ -4,20 +4,49 @@ import {generateId} from '../utils';
 import {isValidChatOwner} from './chatOwnership';
 
 /**
- * Chat memory: short facts LAFINA keeps about a student between chats, such
- * as their program, routine or how they like answers. They live only in this
- * phone's database (never synced). Online chat sends them with each message,
- * and after a reply the server suggests what to add or forget; the student
- * sees every change in Chat (with Undo) and can edit the list in Profile.
+ * Chat memory: facts LAFINA keeps about a student between sessions in a
+ * tiered local SQLite store (`core` identity/academic, `preference` slot-based
+ * habits, and `episodic` chat-learned context). Stored only on this device
+ * (never synced). Online chat/voice sends prioritized active memories, suggests
+ * additions/removals after exchanges, supports per-turn Undo, and exposes
+ * editing/pinning/categorization in Profile.
  */
+
+export type MemoryTier = 'core' | 'preference' | 'episodic';
+
+export type MemoryCategory =
+  | 'identity'
+  | 'academic'
+  | 'study'
+  | 'goal'
+  | 'routine'
+  | 'general';
 
 export interface ChatMemory {
   id: string;
   text: string;
-  /** `chat`: learned from a conversation. `manual`: typed in Profile. */
+  /** `chat`: learned from a conversation. `manual`: typed or setup in Profile/Onboarding. */
   source: 'chat' | 'manual';
   sessionId: string | null;
   createdAt: string;
+  tier: MemoryTier;
+  category: MemoryCategory;
+  isPinned: boolean;
+  slotKey: string | null;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+}
+
+export interface AddMemoryOptions {
+  tier?: MemoryTier;
+  category?: MemoryCategory;
+  isPinned?: boolean;
+  slotKey?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface AddMemoryChangeInput extends AddMemoryOptions {
+  text: string;
 }
 
 /** What one exchange changed, kept on the reply so Chat can show and undo it. */
@@ -29,6 +58,12 @@ export interface RemovedChatMemory {
   createdAt?: string;
   updatedAt?: string;
   rowId?: number;
+  tier?: MemoryTier;
+  category?: MemoryCategory;
+  isPinned?: boolean;
+  slotKey?: string | null;
+  lastUsedAt?: string | null;
+  expiresAt?: string | null;
 }
 
 export interface ChatMemoryChanges {
@@ -40,13 +75,44 @@ export interface ChatMemoryChanges {
   undone?: boolean;
 }
 
+export interface MemoryGrowthStats {
+  total: number;
+  pinned: number;
+  byTier: Record<MemoryTier, number>;
+  byCategory: Record<MemoryCategory, number>;
+}
+
 export const MEMORY_ENABLED_KEY = 'memory.enabled';
 const MEMORY_REVISION_KEY = 'memory.revision';
-/** Oldest memories are dropped past this many. */
+/** Oldest unpinned non-core memories are dropped past this many. */
 export const MAX_STORED_MEMORIES = 100;
-/** How many (newest first) go with a chat message. */
+/** How many prioritized active memories go with an AI exchange. */
 export const MAX_PROMPT_MEMORIES = 40;
 export const MAX_MEMORY_TEXT = 200;
+
+const VALID_TIERS: ReadonlySet<string> = new Set([
+  'core',
+  'preference',
+  'episodic',
+]);
+const VALID_CATEGORIES: ReadonlySet<string> = new Set([
+  'identity',
+  'academic',
+  'study',
+  'goal',
+  'routine',
+  'general',
+]);
+
+const normalizeTier = (raw: unknown): MemoryTier =>
+  typeof raw === 'string' && VALID_TIERS.has(raw)
+    ? (raw as MemoryTier)
+    : 'episodic';
+
+const normalizeCategory = (raw: unknown): MemoryCategory =>
+  typeof raw === 'string' && VALID_CATEGORIES.has(raw)
+    ? (raw as MemoryCategory)
+    : 'general';
 
 const requireOwner = (userId: string): void => {
   if (!isValidChatOwner(userId))
@@ -56,15 +122,122 @@ const requireOwner = (userId: string): void => {
 const cleanText = (text: string): string =>
   text.replace(/\s+/g, ' ').trim().slice(0, MAX_MEMORY_TEXT).trim();
 
+/** Case-insensitive duplicate comparison ignoring trailing sentence punctuation. */
+export const normalizeMemoryTextKey = (text: string): string =>
+  cleanText(text)
+    .replace(/[.!?…]+$/, '')
+    .trim()
+    .toLowerCase();
+
+export const inferMemoryCategory = (text: string): MemoryCategory => {
+  const lower = text.toLowerCase();
+  if (
+    /^(?:prefers to be called\b|student'?s preferred name\b|prefers a (?:casual|professional) conversational tone\b|wants replies\b|my name is\b)/.test(
+      lower,
+    ) ||
+    /\b(?:tone|concise|brief|detailed replies|preferred name)\b/.test(lower)
+  ) {
+    return 'identity';
+  }
+  if (
+    /^(?:ustp student|academic profile|cor subject|enrolled\b|student no)/.test(
+      lower,
+    ) ||
+    /\b(?:semester|curriculum|enrolled|enrolled in|program|major|year level|credit units?|cor\b|bsit|bsce|bsee|bsme|bscs)\b/.test(
+      lower,
+    )
+  ) {
+    return 'academic';
+  }
+  if (
+    /\b(?:goal|aiming|main focus|focus is|target|dean'?s list)\b/.test(lower)
+  ) {
+    return 'goal';
+  }
+  if (
+    /\b(?:study|studying|review|exam|quiz|pomodoro|flashcard|quiet library|notes?)\b/.test(
+      lower,
+    )
+  ) {
+    return 'study';
+  }
+  if (
+    /\b(?:wake|sleep|morning|evening|night|routine|busiest day|commute|coffee)\b/.test(
+      lower,
+    )
+  ) {
+    return 'routine';
+  }
+  return 'general';
+};
+
+export const inferMemoryTier = (
+  text: string,
+  options?: AddMemoryOptions,
+): MemoryTier => {
+  if (options?.tier) return options.tier;
+  if (options?.isPinned) return 'core';
+  const lower = text.toLowerCase();
+  if (
+    /^(?:prefers studying\b|prefers to be called\b|prefers a \w+ conversational tone\b|wants replies\b|student'?s main focus\b|prefers )/.test(
+      lower,
+    )
+  ) {
+    return 'preference';
+  }
+  return 'episodic';
+};
+
+const isNotExpired = (
+  expiresAt: string | null | undefined,
+  nowIso: string,
+): boolean => !expiresAt || expiresAt > nowIso;
+
 const mapMemory = (row: Record<string, unknown>): ChatMemory => ({
   id: String(row.id),
   text: String(row.text ?? ''),
   source: row.source === 'manual' ? 'manual' : 'chat',
   sessionId: typeof row.session_id === 'string' ? row.session_id : null,
   createdAt: String(row.created_at),
+  tier: normalizeTier(row.tier),
+  category: normalizeCategory(row.category),
+  isPinned: Number(row.is_pinned ?? 0) === 1,
+  slotKey:
+    typeof row.slot_key === 'string' && row.slot_key ? row.slot_key : null,
+  lastUsedAt:
+    typeof row.last_used_at === 'string' && row.last_used_at
+      ? row.last_used_at
+      : null,
+  expiresAt:
+    typeof row.expires_at === 'string' && row.expires_at
+      ? row.expires_at
+      : null,
 });
 
 type Executor = Pick<DatabaseTransaction, 'executeSync'>;
+
+const evictOverflow = (tx: Executor, userId: string): void => {
+  // Evict oldest unpinned, non-core memories first so identity/COR/pinned facts survive chatter.
+  tx.executeSync(
+    `DELETE FROM chat_memories
+     WHERE user_id = ?
+       AND id NOT IN (
+         SELECT id FROM chat_memories
+         WHERE user_id = ?
+         ORDER BY
+           CASE
+             WHEN is_pinned = 1 THEN 3
+             WHEN tier = 'core' THEN 2
+             WHEN tier = 'preference' THEN 1
+             ELSE 0
+           END DESC,
+           created_at DESC,
+           rowid DESC
+         LIMIT ?
+       )`,
+    [userId, userId, MAX_STORED_MEMORIES],
+  );
+};
 
 const insert = (
   tx: Executor,
@@ -74,34 +247,109 @@ const insert = (
     text: string;
     source: ChatMemory['source'];
     sessionId?: string | null;
+    tier?: MemoryTier;
+    category?: MemoryCategory;
+    isPinned?: boolean;
+    slotKey?: string | null;
+    expiresAt?: string | null;
   },
 ): ChatMemory | null => {
   const text = cleanText(memory.text);
   if (text.length < 2) return null;
-  const duplicate = tx.executeSync(
-    'SELECT id FROM chat_memories WHERE user_id = ? AND lower(text) = lower(?)',
-    [userId, text],
-  ).rows[0];
-  if (duplicate) return null;
   const now = new Date().toISOString();
+  // Clean up expired memories on write so slots and cap stay accurate.
+  tx.executeSync(
+    'DELETE FROM chat_memories WHERE user_id = ? AND expires_at IS NOT NULL AND expires_at <= ?',
+    [userId, now],
+  );
+
+  const isPinned = Boolean(memory.isPinned);
+  const tier = inferMemoryTier(text, memory);
+  const category = memory.category ?? inferMemoryCategory(text);
+  const slotKey =
+    typeof memory.slotKey === 'string' && memory.slotKey.trim()
+      ? memory.slotKey.trim().slice(0, 80)
+      : null;
+  const expiresAt =
+    typeof memory.expiresAt === 'string' && memory.expiresAt.trim()
+      ? memory.expiresAt.trim()
+      : null;
+  const normalizedTarget = normalizeMemoryTextKey(text);
+
+  if (slotKey) {
+    const existingSlot = tx.executeSync(
+      'SELECT * FROM chat_memories WHERE user_id = ? AND slot_key = ?',
+      [userId, slotKey],
+    ).rows[0];
+    if (existingSlot) {
+      const mapped = mapMemory(existingSlot);
+      if (
+        normalizeMemoryTextKey(mapped.text) === normalizedTarget &&
+        mapped.tier === tier &&
+        mapped.category === category &&
+        mapped.isPinned === isPinned &&
+        mapped.expiresAt === expiresAt
+      ) {
+        return null;
+      }
+      tx.executeSync(
+        'DELETE FROM chat_memories WHERE user_id = ? AND slot_key = ?',
+        [userId, slotKey],
+      );
+    }
+  }
+
+  const existingRows = tx.executeSync(
+    'SELECT id, text FROM chat_memories WHERE user_id = ?',
+    [userId],
+  ).rows;
+  const duplicate = existingRows.find(
+    row => normalizeMemoryTextKey(String(row.text ?? '')) === normalizedTarget,
+  );
+  if (duplicate) {
+    if (!slotKey) return null;
+    // Claim the un-slotted duplicate so slot replacement never creates a twin row.
+    tx.executeSync('DELETE FROM chat_memories WHERE user_id = ? AND id = ?', [
+      userId,
+      String(duplicate.id),
+    ]);
+  }
+
   const id = memory.id ?? generateId('mem');
   tx.executeSync(
-    `INSERT INTO chat_memories (id, user_id, text, source, session_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, userId, text, memory.source, memory.sessionId ?? null, now, now],
+    `INSERT INTO chat_memories (
+       id, user_id, text, source, session_id, created_at, updated_at,
+       tier, category, is_pinned, slot_key, last_used_at, expires_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      userId,
+      text,
+      memory.source,
+      memory.sessionId ?? null,
+      now,
+      now,
+      tier,
+      category,
+      isPinned ? 1 : 0,
+      slotKey,
+      null,
+      expiresAt,
+    ],
   );
-  // Keep the newest MAX_STORED_MEMORIES.
-  tx.executeSync(
-    `DELETE FROM chat_memories WHERE user_id = ? AND id NOT IN (
-       SELECT id FROM chat_memories WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?)`,
-    [userId, userId, MAX_STORED_MEMORIES],
-  );
+  evictOverflow(tx, userId);
   return {
     id,
     text,
     source: memory.source,
     sessionId: memory.sessionId ?? null,
     createdAt: now,
+    tier,
+    category,
+    isPinned,
+    slotKey,
+    lastUsedAt: null,
+    expiresAt,
   };
 };
 
@@ -121,15 +369,14 @@ const snapshots = (userId: string, tx: Executor): RemovedChatMemory[] =>
       'SELECT rowid AS memory_rowid, * FROM chat_memories WHERE user_id = ? ORDER BY created_at, rowid',
       [userId],
     )
-    .rows.map(row => ({
-      id: String(row.id),
-      text: String(row.text),
-      source: row.source === 'manual' ? 'manual' : 'chat',
-      sessionId: typeof row.session_id === 'string' ? row.session_id : null,
-      createdAt: String(row.created_at),
-      updatedAt: String(row.updated_at),
-      rowId: Number(row.memory_rowid),
-    }));
+    .rows.map(row => {
+      const base = mapMemory(row);
+      return {
+        ...base,
+        updatedAt: String(row.updated_at),
+        rowId: Number(row.memory_rowid),
+      };
+    });
 
 export const chatMemoryStore = {
   /** Persisted guard for async extraction and Undo, including clears of an empty list. */
@@ -178,23 +425,43 @@ export const chatMemoryStore = {
     }
   },
 
-  /** Newest first. Read failures throw. */
+  /** Newest first, excluding expired episodic entries. Read failures throw. */
   list: (userId: string, executor: Executor = db): ChatMemory[] => {
     requireOwner(userId);
+    const nowIso = new Date().toISOString();
     return executor
       .executeSync(
-        'SELECT * FROM chat_memories WHERE user_id = ? ORDER BY created_at DESC, rowid DESC',
-        [userId],
+        `SELECT * FROM chat_memories
+         WHERE user_id = ?
+           AND (expires_at IS NULL OR expires_at > ?)
+         ORDER BY created_at DESC, rowid DESC`,
+        [userId, nowIso],
       )
       .rows.map(mapMemory);
   },
 
-  /** What goes with an online chat message: none when memory is off. */
+  /**
+   * What goes with an online AI exchange: none when memory is off.
+   * Prioritizes pinned & core facts, then active preferences, then newest episodic items.
+   */
   forPrompt: (userId: string): {id: string; text: string}[] => {
     if (!chatMemoryStore.isEnabled(userId)) return [];
     try {
-      return chatMemoryStore
+      const nowIso = new Date().toISOString();
+      const active = chatMemoryStore
         .list(userId)
+        .filter(m => isNotExpired(m.expiresAt, nowIso));
+      const pinned: ChatMemory[] = [];
+      const core: ChatMemory[] = [];
+      const preference: ChatMemory[] = [];
+      const episodic: ChatMemory[] = [];
+      for (const m of active) {
+        if (m.isPinned === true) pinned.push(m);
+        else if (m.tier === 'core') core.push(m);
+        else if (m.tier === 'preference') preference.push(m);
+        else episodic.push(m);
+      }
+      return [...pinned, ...core, ...preference, ...episodic]
         .slice(0, MAX_PROMPT_MEMORIES)
         .map(({id, text}) => ({id, text}));
     } catch {
@@ -202,14 +469,134 @@ export const chatMemoryStore = {
     }
   },
 
-  /** A memory the student typed. Returns null for an empty or duplicate one. */
-  add: (userId: string, text: string): ChatMemory | null => {
+  add: (
+    userId: string,
+    text: string,
+    options?: AddMemoryOptions,
+  ): ChatMemory | null => {
     requireOwner(userId);
     return db.transactionSync(tx => {
-      const saved = insert(tx, userId, {text, source: 'manual'});
+      const saved = insert(tx, userId, {
+        text,
+        source: 'manual',
+        ...options,
+      });
       if (saved) bumpRevision(userId, tx);
       return saved;
     });
+  },
+
+  update: (
+    userId: string,
+    memoryId: string,
+    patch: {
+      text?: string;
+      isPinned?: boolean;
+      category?: MemoryCategory;
+      tier?: MemoryTier;
+      expiresAt?: string | null;
+    },
+  ): ChatMemory | null => {
+    requireOwner(userId);
+    return db.transactionSync(tx => {
+      const currentRow = tx.executeSync(
+        'SELECT * FROM chat_memories WHERE user_id = ? AND id = ?',
+        [userId, memoryId],
+      ).rows[0];
+      if (!currentRow) return null;
+      const current = mapMemory(currentRow);
+      const nextText =
+        patch.text !== undefined ? cleanText(patch.text) : current.text;
+      if (nextText.length < 2) return null;
+      if (patch.text !== undefined) {
+        const key = normalizeMemoryTextKey(nextText);
+        const others = tx.executeSync(
+          'SELECT id, text FROM chat_memories WHERE user_id = ? AND id != ?',
+          [userId, memoryId],
+        ).rows;
+        if (
+          others.some(r => normalizeMemoryTextKey(String(r.text ?? '')) === key)
+        ) {
+          throw new Error('A matching memory is already saved.');
+        }
+      }
+      const nextPinned = patch.isPinned ?? current.isPinned;
+      const nextTier = patch.tier ?? current.tier;
+      const nextCategory = patch.category ?? current.category;
+      const nextExpiresAt =
+        patch.expiresAt !== undefined ? patch.expiresAt : current.expiresAt;
+      const now = new Date().toISOString();
+      tx.executeSync(
+        `UPDATE chat_memories
+         SET text = ?, tier = ?, category = ?, is_pinned = ?, expires_at = ?, updated_at = ?
+         WHERE user_id = ? AND id = ?`,
+        [
+          nextText,
+          nextTier,
+          nextCategory,
+          nextPinned ? 1 : 0,
+          nextExpiresAt,
+          now,
+          userId,
+          memoryId,
+        ],
+      );
+      bumpRevision(userId, tx);
+      return {
+        ...current,
+        text: nextText,
+        tier: nextTier,
+        category: nextCategory,
+        isPinned: nextPinned,
+        expiresAt: nextExpiresAt,
+      };
+    });
+  },
+
+  markUsed: (userId: string, memoryIds: readonly string[]): void => {
+    if (!memoryIds.length || !isValidChatOwner(userId)) return;
+    try {
+      const now = new Date().toISOString();
+      db.transactionSync(tx => {
+        for (const id of memoryIds.slice(0, MAX_PROMPT_MEMORIES)) {
+          tx.executeSync(
+            'UPDATE chat_memories SET last_used_at = ? WHERE user_id = ? AND id = ?',
+            [now, userId, id],
+          );
+        }
+      });
+    } catch {
+      // Usage timestamp is purely informational.
+    }
+  },
+
+  stats: (userId: string, executor: Executor = db): MemoryGrowthStats => {
+    const items = chatMemoryStore.list(userId, executor);
+    const byTier: Record<MemoryTier, number> = {
+      core: 0,
+      preference: 0,
+      episodic: 0,
+    };
+    const byCategory: Record<MemoryCategory, number> = {
+      identity: 0,
+      academic: 0,
+      study: 0,
+      goal: 0,
+      routine: 0,
+      general: 0,
+    };
+    let pinned = 0;
+    for (const item of items) {
+      if (item.isPinned) pinned += 1;
+      byTier[item.tier] += 1;
+      byCategory[item.category] += 1;
+    }
+    return {
+      total: items.length,
+      pinned,
+      byTier,
+      byCategory,
+    };
   },
 
   remove: (userId: string, memoryId: string): boolean => {
@@ -240,7 +627,11 @@ export const chatMemoryStore = {
    */
   applyChanges: (
     userId: string,
-    change: {add: string[]; remove: string[]; clearAll?: boolean},
+    change: {
+      add: Array<string | AddMemoryChangeInput>;
+      remove: string[];
+      clearAll?: boolean;
+    },
     sessionId: string | null,
     executor?: Executor,
   ): ChatMemoryChanges => {
@@ -257,12 +648,21 @@ export const chatMemoryStore = {
           );
         }
       }
-      for (const text of change.add)
-        insert(tx, userId, {text, source: 'chat', sessionId});
+      for (const entry of change.add) {
+        if (typeof entry === 'string') {
+          insert(tx, userId, {text: entry, source: 'chat', sessionId});
+        } else {
+          insert(tx, userId, {
+            ...entry,
+            source: 'chat',
+            sessionId,
+          });
+        }
+      }
       const after = snapshots(userId, tx);
       const beforeIds = new Set(before.map(m => m.id));
       const afterIds = new Set(after.map(m => m.id));
-      // Comparing the actual rows also records storage-limit evictions.
+      // Comparing the actual rows also records storage-limit evictions and slot replacements.
       const removed = before.filter(m => !afterIds.has(m.id));
       const added = after
         .filter(m => !beforeIds.has(m.id))
@@ -308,8 +708,10 @@ export const chatMemoryStore = {
             ? memory.rowId
             : null;
         tx.executeSync(
-          `INSERT INTO chat_memories (rowid, id, user_id, text, source, session_id, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chat_memories (
+             rowid, id, user_id, text, source, session_id, created_at, updated_at,
+             tier, category, is_pinned, slot_key, last_used_at, expires_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             rowId,
             memory.id,
@@ -319,6 +721,12 @@ export const chatMemoryStore = {
             memory.sessionId ?? null,
             memory.createdAt ?? now,
             memory.updatedAt ?? now,
+            normalizeTier(memory.tier),
+            normalizeCategory(memory.category),
+            memory.isPinned ? 1 : 0,
+            memory.slotKey ?? null,
+            memory.lastUsedAt ?? null,
+            memory.expiresAt ?? null,
           ],
         );
       }
@@ -328,18 +736,71 @@ export const chatMemoryStore = {
     else db.transactionSync(undo);
   },
 
-  /** Guest linking: the new account keeps the guest's memories (inside the caller's transaction). */
+  /**
+   * Guest linking: move unique memories and inherit an explicit opt-out when the
+   * cloud account does not have a setting yet, deduplicating by text and slot_key.
+   */
   transferFromGuest: (
     tx: Executor,
     fromUserId: string,
     toUserId: string,
   ): void => {
     if (fromUserId === toUserId) return;
+    const guestEnabledRow = tx.executeSync(
+      'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+      [fromUserId, MEMORY_ENABLED_KEY],
+    ).rows[0];
+    const destEnabledRow = tx.executeSync(
+      'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+      [toUserId, MEMORY_ENABLED_KEY],
+    ).rows[0];
+    if (guestEnabledRow && !destEnabledRow) {
+      tx.executeSync(
+        'UPDATE OR IGNORE local_settings SET user_id = ? WHERE user_id = ? AND key = ?',
+        [toUserId, fromUserId, MEMORY_ENABLED_KEY],
+      );
+    }
+    tx.executeSync('DELETE FROM local_settings WHERE user_id = ? AND key = ?', [
+      fromUserId,
+      MEMORY_ENABLED_KEY,
+    ]);
+
+    const destRows = tx.executeSync(
+      'SELECT text, slot_key FROM chat_memories WHERE user_id = ?',
+      [toUserId],
+    ).rows;
+    const destTexts = new Set(
+      destRows.map(r => normalizeMemoryTextKey(String(r.text ?? ''))),
+    );
+    const destSlots = new Set(
+      destRows
+        .map(r => (typeof r.slot_key === 'string' ? r.slot_key : null))
+        .filter((s): s is string => Boolean(s)),
+    );
+    const guestRows = tx.executeSync(
+      'SELECT id, text, slot_key FROM chat_memories WHERE user_id = ? ORDER BY created_at DESC, rowid DESC',
+      [fromUserId],
+    ).rows;
+    for (const row of guestRows) {
+      const id = String(row.id);
+      const key = normalizeMemoryTextKey(String(row.text ?? ''));
+      const slot = typeof row.slot_key === 'string' ? row.slot_key : null;
+      if (destTexts.has(key) || (slot && destSlots.has(slot))) {
+        tx.executeSync(
+          'DELETE FROM chat_memories WHERE id = ? AND user_id = ?',
+          [id, fromUserId],
+        );
+      } else {
+        destTexts.add(key);
+        if (slot) destSlots.add(slot);
+        tx.executeSync(
+          'UPDATE chat_memories SET user_id = ? WHERE id = ? AND user_id = ?',
+          [toUserId, id, fromUserId],
+        );
+      }
+    }
+    evictOverflow(tx, toUserId);
     bumpRevision(fromUserId, tx);
     bumpRevision(toUserId, tx);
-    tx.executeSync('UPDATE chat_memories SET user_id = ? WHERE user_id = ?', [
-      toUserId,
-      fromUserId,
-    ]);
   },
 };
