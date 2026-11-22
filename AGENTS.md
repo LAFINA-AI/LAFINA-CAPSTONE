@@ -69,3 +69,23 @@ The owner explicitly authorized the scoped `LAFINA-backend` speech-provider chan
 ## Task-scoped notice: Floating LAFINA (2026-11-17)
 
 For the Floating LAFINA task only (phases `FLOAT-00` to `FLOAT-08`), `docs/plans/lafina-floating-assistant/OWNER-AUTHORIZATION.md` records the owner's decision: an optional, off-by-default floating orb and Quick Chat panel are in scope, and the manifest permissions `SYSTEM_ALERT_WINDOW` and `FOREGROUND_SERVICE_SPECIAL_USE` are approved for it. `FLOAT-00` may start; every later phase still needs explicit approval. Everything else in this file still applies, including confirm-before-write, no wake word, no always-on mic, no reading of other apps, and no writes outside this checkout.
+
+## Task-scoped notice: Chat history sync (2026-11-21)
+
+For the chat history sync task (ADR-040), `docs/plans/chat-history-sync/OWNER-AUTHORIZATION.md` records the owner's approved decisions:
+- sync on by default for signed-in accounts, with a notice;
+- turning sync off keeps the cloud copy;
+- attachments sync as a description only;
+- clearing chats deletes the cloud copy;
+- at most 20 chats per account, enforced on the phone and the server; nothing is deleted to make room.
+
+It also records a scoped `LAFINA-backend` change: the chat sync tables, migration 014, the chat entity types, `/v1/sync/chat/purge` and the 20-chat limit. That change is delivered as `backend_integration/LAFINA-backend-chat-history-sync.patch`; nothing was pushed or deployed. Everything else in this file still applies.
+
+## Task-scoped notice: Skill handoff and call fixes (2026-11-22)
+
+For the skill handoff task (ADR-041, SKILL-00..07 and CALLFIX-01..03), `docs/plans/lafina-skill-agent/OWNER-AUTHORIZATION.md` records the owner's approval ("proceed and fix everything") and the defaults taken:
+- LAFINA may open a Skills-tab page from a call or Chat;
+- a call ends and opens the skill only on the student's own words; a model-only suggestion is a button;
+- Pomodoro "start" starts the timer; no other skill generates, records or saves by itself.
+
+This notice covers only the Skills that are already built in this checkout. It does not widen the forbidden-scope list for other work. The backend part is a handoff only (`backend_integration/skill-agent/OWNER-HANDOFF.md`). Everything else in this file still applies.
