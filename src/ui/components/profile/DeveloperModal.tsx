@@ -25,6 +25,7 @@ import {
   Play,
   CheckCircle,
   RotateCcw,
+  Gauge,
 } from 'lucide-react-native';
 import { Fonts, Shadows, Layout, Colors } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -38,6 +39,7 @@ import {
   type AlarmDiagnostics,
 } from './developerTestService';
 import { ServerSwitchItem } from './ServerSwitchItem';
+import { DeveloperPerformanceTab } from './DeveloperPerformanceTab';
 import type { ValidatedIntent } from '../../../ai/nlu/types';
 
 interface DeveloperModalProps {
@@ -53,7 +55,7 @@ interface DeveloperModalProps {
   onLogout?: (isGuest?: boolean) => void;
 }
 
-type TabType = 'alarms' | 'sync' | 'nlu' | 'data';
+type TabType = 'alarms' | 'sync' | 'nlu' | 'perf' | 'data';
 
 export const DeveloperModal: React.FC<DeveloperModalProps> = ({
   visible,
@@ -346,6 +348,19 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
             <Cpu size={16} color={activeTab === 'nlu' ? colors.white : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'nlu' ? styles.tabTextActive : themed.tabTextInactive]}>
               NLU & Voice
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'perf' && styles.tabItemActive]}
+            onPress={() => setActiveTab('perf')}
+            accessibilityRole="tab"
+            accessibilityLabel="Performance and benchmarks"
+            accessibilityState={{ selected: activeTab === 'perf' }}
+          >
+            <Gauge size={16} color={activeTab === 'perf' ? colors.white : colors.textSecondary} />
+            <Text style={[styles.tabText, activeTab === 'perf' ? styles.tabTextActive : themed.tabTextInactive]}>
+              Perf
             </Text>
           </TouchableOpacity>
 
@@ -741,6 +756,9 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
               </View>
             </View>
           )}
+
+          {/* PERFORMANCE: per-message timing and one-click benchmarks */}
+          {activeTab === 'perf' && <DeveloperPerformanceTab userId={userId} />}
 
           {/* TAB 4: DATA & DB */}
           {activeTab === 'data' && (

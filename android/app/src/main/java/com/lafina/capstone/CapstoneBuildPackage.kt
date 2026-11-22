@@ -43,6 +43,10 @@ class CapstoneBuildModule(context: ReactApplicationContext) : ReactContextBaseJa
     mapOf(
       "plannerHarnessEnabled" to BuildConfig.ENABLE_PLANNER_HARNESS,
       "performanceHarnessEnabled" to BuildConfig.PERFORMANCE_HARNESS_ENABLED,
+      // Developer benchmark exports label which build produced the numbers.
+      "buildType" to BuildConfig.BUILD_TYPE,
+      "versionCode" to BuildConfig.VERSION_CODE,
+      "versionName" to BuildConfig.VERSION_NAME,
       // Empty except in a test build made with -PlafinaApiBaseUrl.
       "apiBaseUrlOverride" to BuildConfig.API_BASE_URL_OVERRIDE,
       // Debug and test builds only: Profile's Vercel/local server switch.

@@ -4718,15 +4718,23 @@ export type ExecuteLowRiskResult =
   | {status: 'requires_review'};
 
 /**
- * Validates and immediately executes low-risk actions inside one SQLite
- * transaction (with operation receipt + sync outbox), returning
- * `requires_review` when a request is higher-risk and must show a review card.
+ * What `executeLowRiskCommand` would do, worked out without writing anything
+ * (Developer benchmarks). `would_apply` names the operation it would apply.
  */
-export const executeLowRiskCommand = (
+export type LowRiskDryRun =
+  | Exclude<ExecuteLowRiskResult, {status: 'applied'}>
+  | {status: 'would_apply'; operation: PlannedOperation['op']};
+
+type LowRiskPlan =
+  | Exclude<ExecuteLowRiskResult, {status: 'applied'}>
+  | {status: 'ready'; clean: CleanIntent; draft: Draft};
+
+/** Validation and lookup shared by the real and the dry run. Reads only. */
+const planLowRisk = (
   userId: string,
   intent: ValidatedIntent,
-  options: PrepareOptions = {},
-): ExecuteLowRiskResult => {
+  options: PrepareOptions,
+): LowRiskPlan => {
   if (!userId || typeof userId !== 'string') {
     return {
       status: 'invalid',
@@ -4787,6 +4795,51 @@ export const executeLowRiskCommand = (
     if (!isLowRiskOperation(built.draft.operation)) {
       return {status: 'requires_review'};
     }
+    return {status: 'ready', clean, draft: built.draft};
+  } catch (error) {
+    if (error instanceof ReviewRefusedError && error.userMessage) {
+      return {status: 'invalid', reply: error.userMessage};
+    }
+    console.warn('[CommandReview] Low-risk execution failed:', error);
+    return {
+      status: 'invalid',
+      reply:
+        'I could not complete that request right now. Nothing was changed.',
+    };
+  }
+};
+
+/**
+ * The same checks as `executeLowRiskCommand`, stopping before the write: no
+ * transaction, receipt, outbox entry, undo entry or alarm. Developer
+ * benchmarks use it so a timed request never changes the planner.
+ */
+export const planLowRiskCommand = (
+  userId: string,
+  intent: ValidatedIntent,
+  options: PrepareOptions = {},
+): LowRiskDryRun => {
+  const plan = planLowRisk(userId, intent, options);
+  return plan.status === 'ready'
+    ? {status: 'would_apply', operation: plan.draft.operation.op}
+    : plan;
+};
+
+/**
+ * Validates and immediately executes low-risk actions inside one SQLite
+ * transaction (with operation receipt + sync outbox), returning
+ * `requires_review` when a request is higher-risk and must show a review card.
+ */
+export const executeLowRiskCommand = (
+  userId: string,
+  intent: ValidatedIntent,
+  options: PrepareOptions = {},
+): ExecuteLowRiskResult => {
+  const plan = planLowRisk(userId, intent, options);
+  if (plan.status !== 'ready') return plan;
+  const {clean} = plan;
+  const built = {draft: plan.draft};
+  try {
     const operationId = generateId('op');
     let savedReceipt: OperationReceipt | null = null;
     let appliedEntityType: RevisionEntityType = 'task';

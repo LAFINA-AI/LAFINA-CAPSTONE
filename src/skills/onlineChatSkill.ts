@@ -1,7 +1,15 @@
 import { cloudClient, CloudResult } from '../cloud';
+
+/** A whole (non-streamed) reply gets as long as a streamed one. */
+const CHAT_REQUEST_TIMEOUT_MS = 65_000;
 import { localSettingsStore, userStore } from '../storage';
 import { isUstpSchoolEnabled } from '../storage/ustpEligibility';
 import {directProviderTestEnabled, directTestChat} from '../cloud/directProviderTest';
+import type {RequestTrace} from '../ai/benchmark/requestTrace';
+
+/** A model id the server chose to report, if any; never guessed. */
+const reportedModel = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.trim() ? value.trim().slice(0, 80) : undefined;
 
 export interface OnlineChatMessage {
   role: 'user' | 'assistant';
@@ -34,6 +42,8 @@ export interface SendChatMessageOptions {
   /** What LAFINA remembers about the student, newest first (sent only when non-empty). */
   memories?: { id: string; text: string }[];
   signal?: AbortSignal;
+  /** Developer timing for this request (only when tracking is on). */
+  trace?: RequestTrace | null;
 }
 
 export interface StreamChatMessageOptions extends SendChatMessageOptions {
@@ -112,6 +122,7 @@ interface BackendChatSource {
 
 interface BackendChatResponse {
   reply: string;
+  model?: unknown;
   sources?: BackendChatSource[];
   used_handbook?: boolean;
   usedHandbook?: boolean;
@@ -187,6 +198,7 @@ interface StreamEvent {
   text?: unknown;
   sources?: BackendChatSource[];
   usedHandbook?: unknown;
+  model?: unknown;
 }
 
 /** Splits Server-Sent Events text into complete events, keeping any partial tail. */
@@ -278,13 +290,22 @@ export const onlineChatSkill = {
     const bounded = boundMessages(messages);
     if (!bounded) return EMPTY_MESSAGE;
 
-    if (directProviderTestEnabled()) return directTestChat(bounded, options.memories);
+    const trace = options.trace ?? null;
+    trace?.note({onlineAttempted: true});
+    trace?.mark('onlineDispatched');
+    if (directProviderTestEnabled()) {
+      trace?.note({transportNote: 'direct provider test build (no LAFINA server)'});
+      const direct = await directTestChat(bounded, options.memories);
+      if (direct.status === 'success') trace?.mark('firstContentReceived');
+      return direct;
+    }
 
     const result = await cloudClient.request<BackendChatResponse>(
       '/v1/ai/chat',
       {
         method: 'POST',
         signal: options.signal,
+        timeoutMs: CHAT_REQUEST_TIMEOUT_MS,
         body: JSON.stringify({
           messages: bounded,
           useHandbook: handbookAllowed(options.useHandbook),
@@ -311,6 +332,10 @@ export const onlineChatSkill = {
     }
 
     const reply = normalizeName(rawReply);
+    // Not streamed: the whole reply arrives with the response.
+    trace?.mark('firstNetworkChunk');
+    trace?.mark('firstContentReceived');
+    trace?.note({onlineModelId: reportedModel(result.data.model)});
 
     return {
       status: 'success',
@@ -335,23 +360,38 @@ export const onlineChatSkill = {
   ): Promise<CloudResult<OnlineChatReply>> => {
     const bounded = boundMessages(messages);
     if (!bounded) return EMPTY_MESSAGE;
+    const trace = options.trace ?? null;
     if (directProviderTestEnabled()) {
+      trace?.note({
+        onlineAttempted: true,
+        streamed: false,
+        transportNote: 'direct provider test build (no LAFINA server)',
+      });
+      trace?.mark('onlineDispatched');
       const result = await directTestChat(bounded, options.memories);
-      if (result.status === 'success' && result.data) options.onReplyText(result.data.reply);
+      if (result.status === 'success' && result.data) {
+        trace?.mark('firstContentReceived');
+        options.onReplyText(result.data.reply);
+      }
       return result;
     }
     const useHandbook = handbookAllowed(options.useHandbook);
     const memoryField = options.memories?.length ? { memories: options.memories } : {};
-    const fallback = () =>
-      onlineChatSkill.sendChatMessage(bounded, {
+    const fallback = (why: string) => {
+      trace?.note({streamed: false, transportNote: `stream → regular endpoint (${why})`});
+      return onlineChatSkill.sendChatMessage(bounded, {
         useHandbook,
         ...memoryField,
         signal: options.signal,
+        trace,
       });
+    };
     if (options.signal?.aborted) {
       return { status: 'server_unavailable', error: 'cancelled' };
     }
-    if (streamRouteMissing) return fallback();
+    if (streamRouteMissing) return fallback('stream route missing on this server');
+    trace?.note({onlineAttempted: true, streamed: true});
+    trace?.mark('onlineDispatched');
 
     let buffer = '';
     let reply = '';
@@ -374,11 +414,15 @@ export const onlineChatSkill = {
       {
         signal: options.signal,
         onText: (chunk) => {
+          // Network bytes, which may be only a keep-alive or a header-like
+          // comment; reply text is marked separately below.
+          if (chunk) trace?.mark('firstNetworkChunk');
           const before = reply;
           const parsed = takeEvents(buffer + chunk);
           buffer = parsed.rest;
           consume(parsed.events);
           if (reply !== before && reply.trim()) {
+            trace?.mark('firstContentReceived');
             options.onReplyText(normalizeName(reply.trimStart()));
           }
         },
@@ -397,12 +441,16 @@ export const onlineChatSkill = {
       }
       if (result.httpStatus === 404 || result.httpStatus === 405) {
         streamRouteMissing = true;
-        return fallback();
+        return fallback('stream route missing on this server');
       }
       // A connection failure, or a 200 that was not a usable stream (a proxy
       // that rewrote it, say): the regular request gives the real answer.
       if (result.status === 'success' || result.status === 'server_unavailable') {
-        return fallback();
+        return fallback(
+          result.status === 'success'
+            ? 'stream carried no reply text'
+            : 'stream connection failed before any text',
+        );
       }
       return {
         status: result.status,
@@ -411,6 +459,7 @@ export const onlineChatSkill = {
       };
     }
     const finished = done as StreamEvent | null;
+    trace?.note({onlineModelId: reportedModel(finished?.model)});
     return {
       status: 'success',
       data: {
@@ -440,6 +489,7 @@ export const onlineChatSkill = {
       '/v1/ai/chat/agent',
       {
         method: 'POST',
+        timeoutMs: CHAT_REQUEST_TIMEOUT_MS,
         body: JSON.stringify({
           messages: bounded,
           useHandbook: handbookAllowed(options.useHandbook),

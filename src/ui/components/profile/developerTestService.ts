@@ -52,8 +52,12 @@ import {buildLocalConversationReply} from '../../../ai/localConversation';
 import {plannerQueries} from '../../../storage/plannerQueries';
 import {notesQueryStore} from '../../../storage/notesQueryStore';
 import type {ValidatedIntent, NluActionResult} from '../../../ai/nlu/types';
+import {
+  DEVELOPER_MODE_KEY,
+  refreshPerfTrackingCache,
+} from '../../../ai/benchmark/perfSettings';
 
-export const DEVELOPER_MODE_KEY = 'debug.developer_mode';
+export {DEVELOPER_MODE_KEY};
 export const DEV_FIXTURE_TAG = '[DevFixture]';
 export const RESET_APP_FROM_ONBOARDING_TITLE =
   'Clear All Data & Reset from Onboarding';
@@ -164,11 +168,14 @@ export const developerTestService = {
    * Saves the developer mode state.
    */
   setDeveloperModeEnabled: (enabled: boolean): boolean => {
-    return localSettingsStore.set(
+    const saved = localSettingsStore.set(
       DEVICE_SETTINGS_OWNER,
       DEVELOPER_MODE_KEY,
       enabled ? 'true' : 'false',
     );
+    // Chat timing follows Developer Mode at once.
+    refreshPerfTrackingCache();
+    return saved;
   },
 
   /**
@@ -972,6 +979,8 @@ export const developerTestService = {
 
       calendarVisibilityStore.resetCache();
       importedBatchesStore.resetCache();
+      // The timing switch was cleared with the other settings.
+      refreshPerfTrackingCache();
 
       const docDir = String(RNFS.DocumentDirectoryPath ?? '').replace(
         /\/+$/,

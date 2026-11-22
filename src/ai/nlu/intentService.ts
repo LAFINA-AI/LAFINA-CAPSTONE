@@ -6,7 +6,11 @@ import {
   toTitleCase,
   detectCategory,
 } from './fastPathParser';
-import {getActiveOfflineModelReadyConfig} from './modelManager';
+import {
+  getActiveOfflineModelReadyConfig,
+  getSelectedOfflineModelId,
+  isOfflineModelEngineAvailable,
+} from './modelManager';
 import {executeNluAction, type ActionExecutorOptions} from './actionExecutor';
 import {
   validateIntent,
@@ -15,6 +19,7 @@ import {
   type NluActionResult,
   type ParsedIntentType,
 } from './types';
+import {monotonicNow, type RequestTrace} from '../benchmark/requestTrace';
 
 export interface IntentExtractionOptions {
   referenceDate?: Date;
@@ -25,24 +30,119 @@ export interface IntentExtractionOptions {
    * used instead (a live call cannot wait). No limit when left out.
    */
   slmTimeoutMs?: number;
+  /**
+   * A live call: a confident, clean parser reading is used at once even when
+   * the on-device model is preferred, so the student is not kept waiting.
+   */
+  trustConfidentFastPath?: boolean;
+  /** Developer timing for this one request (only when tracking is on). */
+  trace?: RequestTrace | null;
+  /** Stops waiting for the on-device model (and asks it to stop). */
+  signal?: AbortSignal;
+  /**
+   * Developer benchmark only, labelled SIMULATED in results: behave as if no
+   * offline model were installed. Never set by product code.
+   */
+  simulateMissingModel?: boolean;
 }
 
-/** The model's answer, or null once `ms` has passed. */
+/**
+ * The model's answer, or null once `ms` has passed. `onTimeout` tells the
+ * native side to stop: otherwise the model keeps the single worker busy and
+ * the student's next request queues behind an answer nobody will read.
+ */
 const withinLimit = <T>(
   work: Promise<T>,
   ms: number | undefined,
+  onTimeout?: () => void,
 ): Promise<T | null> => {
   if (!ms || ms <= 0) return work;
   let timer: ReturnType<typeof setTimeout> | null = null;
   return Promise.race([
     work,
     new Promise<null>(resolve => {
-      timer = setTimeout(() => resolve(null), ms);
+      timer = setTimeout(() => {
+        timer = null;
+        try {
+          onTimeout?.();
+        } catch {
+          // An older build without cancel: the late answer is just ignored.
+        }
+        resolve(null);
+      }, ms);
     }),
   ]).finally(() => {
     if (timer) clearTimeout(timer);
   });
 };
+
+/** Resolves null as soon as `signal` aborts; `onAbort` asks the work to stop. */
+const untilAborted = <T>(
+  work: Promise<T>,
+  signal: AbortSignal | undefined,
+  onAbort?: () => void,
+): Promise<T | null> => {
+  if (!signal) return work;
+  const stop = () => {
+    try {
+      onAbort?.();
+    } catch {
+      // The late answer is just ignored.
+    }
+  };
+  if (signal.aborted) {
+    stop();
+    return Promise.resolve(null);
+  }
+  let listener: (() => void) | null = null;
+  return Promise.race([
+    work,
+    new Promise<null>(resolve => {
+      listener = () => {
+        stop();
+        resolve(null);
+      };
+      signal.addEventListener('abort', listener);
+    }),
+  ]).finally(() => {
+    if (listener) signal.removeEventListener('abort', listener);
+  });
+};
+
+/** Load and inference timings the native engine reports with an answer. */
+const readNativeTiming = (
+  parsed: unknown,
+): {loadMs: number; inferenceMs: number; cold: boolean} | null => {
+  const timing = (parsed as {timing?: unknown} | null)?.timing as
+    | {load_ms?: unknown; inference_ms?: unknown; cold?: unknown}
+    | undefined;
+  if (
+    !timing ||
+    typeof timing.load_ms !== 'number' ||
+    typeof timing.inference_ms !== 'number'
+  ) {
+    return null;
+  }
+  return {
+    loadMs: timing.load_ms,
+    inferenceMs: timing.inference_ms,
+    cold: timing.cold === true,
+  };
+};
+
+/** Why no offline model was asked; only worked out while timing is on. */
+const describeMissingModel = async (userId?: string): Promise<string> => {
+  try {
+    if (getSelectedOfflineModelId(userId) === 'fast_path_only')
+      return 'fast_path_only_selected';
+    if (!(await isOfflineModelEngineAvailable())) return 'engine_unavailable';
+    return 'not_installed';
+  } catch {
+    return 'not_checked';
+  }
+};
+
+let slmRequestSeq = 0;
 
 const SCHEDULE_INTENTS: ReadonlySet<ParsedIntentType> = new Set([
   'create_task',
@@ -118,11 +218,32 @@ export class IntentService {
    *    (and not set to `fast_path_only`), invokes the on-device SLM with the preset's promptFormat (`chatml` or `gemma`)
    *    and fuses its distilled semantic fields with Fast Path's deterministic local date/time arithmetic.
    * 5. Enforces strict schema validation before returning.
+   *
+   * With `options.trace` (Developer timing only) it also records how long
+   * parsing took, whether the model was asked, its load and inference times
+   * when the engine reports them, and why its answer was not used.
    */
   async extractIntent(
     transcript: string,
     options: IntentExtractionOptions = {},
   ): Promise<ValidatedIntent> {
+    const trace = options.trace ?? null;
+    if (!trace) return this.extract(transcript, options);
+    const startedAt = monotonicNow();
+    try {
+      const result = await this.extract(transcript, options);
+      trace.note({intentSource: result.source, intent: result.intent});
+      return result;
+    } finally {
+      trace.addDuration('intentParse', monotonicNow() - startedAt);
+    }
+  }
+
+  private async extract(
+    transcript: string,
+    options: IntentExtractionOptions,
+  ): Promise<ValidatedIntent> {
+    const trace = options.trace ?? null;
     const trimmed = (transcript || '').trim();
     if (!trimmed) {
       return validateIntent({
@@ -142,11 +263,13 @@ export class IntentService {
     }
 
     // Step 1: Run Deterministic Fast Path
+    const fastStartedAt = trace ? monotonicNow() : 0;
     const fastPathResult = parseIntentFastPath(trimmed, options.referenceDate);
     const unstructuredCandidate = isUnstructuredOfflineScheduleCandidate(
       trimmed,
       fastPathResult,
     );
+    trace?.addDuration('fastPath', monotonicNow() - fastStartedAt);
 
     // Non-creation intents (query_schedule, CRUD update/delete, create_note, call responses, chat)
     // must NEVER be sent to the SLM title distiller (except explicit unstructured scheduling phrases in `chat`).
@@ -154,6 +277,7 @@ export class IntentService {
       !SCHEDULE_INTENTS.has(fastPathResult.intent) &&
       !unstructuredCandidate
     ) {
+      trace?.note({modelState: 'not_used'});
       return validateIntent(fastPathResult);
     }
 
@@ -164,32 +288,64 @@ export class IntentService {
     if (
       SCHEDULE_INTENTS.has(fastPathResult.intent) &&
       fastPathResult.confidence >= 0.85 &&
-      !options.preferOnDeviceSlm &&
+      (!options.preferOnDeviceSlm || options.trustConfidentFastPath) &&
       !noisy &&
       !taglishOrColloquial
     ) {
+      trace?.note({modelState: 'not_used'});
       return validateIntent(fastPathResult);
     }
 
     // Step 2: Check if the user's selected offline AI preset is downloaded and active
     const extractor = NativeModules.LafinaIntentExtractor;
-    if (Platform.OS === 'android' && extractor) {
+    if (options.simulateMissingModel) {
+      trace?.note({modelAvailability: 'simulated_missing', modelState: 'not_used'});
+    } else if (Platform.OS === 'android' && extractor) {
       try {
         const activeModel = await getActiveOfflineModelReadyConfig(
           options.userId,
         );
+        if (!activeModel && trace) {
+          trace.note({
+            modelAvailability: await describeMissingModel(options.userId),
+            modelState: 'not_used',
+          });
+        }
         if (activeModel) {
+          trace?.note({
+            modelAvailability: 'installed',
+            modelAttempted: true,
+            offlineModelId: activeModel.modelId,
+          });
           const askedAt = Date.now();
+          const callStartedAt = trace ? monotonicNow() : 0;
+          const requestId = `slm-${Date.now()}-${++slmRequestSeq}`;
+          const cancelNative = () => {
+            void Promise.resolve(
+              extractor.cancelExtraction?.(requestId),
+            ).catch(() => undefined);
+          };
+          let timedOut = false;
           const rawNativeJson = await withinLimit<string | null>(
-            extractor.extractIntent({
-              transcript: trimmed,
-              modelPath: activeModel.modelPath,
-              promptFormat: activeModel.promptFormat,
-              minValidBytes: activeModel.minValidSizeBytes,
-            }),
+            untilAborted<string>(
+              extractor.extractIntent({
+                transcript: trimmed,
+                modelPath: activeModel.modelPath,
+                promptFormat: activeModel.promptFormat,
+                minValidBytes: activeModel.minValidSizeBytes,
+                requestId,
+              }),
+              options.signal,
+              cancelNative,
+            ),
             options.slmTimeoutMs,
+            () => {
+              timedOut = true;
+              cancelNative();
+            },
           );
-          if (rawNativeJson === null && options.slmTimeoutMs)
+          trace?.addDuration('modelCall', monotonicNow() - callStartedAt);
+          if (rawNativeJson === null && options.slmTimeoutMs && timedOut)
             console.log(
               `[IntentService] On-device model took over ${options.slmTimeoutMs}ms; using the parser`,
             );
@@ -200,11 +356,43 @@ export class IntentService {
               parsed?.engine === 'slm' ? 'model answered' : 'no model answer'
             } in ${Date.now() - askedAt}ms`,
           );
+          if (trace) {
+            const nativeTiming = readNativeTiming(parsed);
+            if (nativeTiming) {
+              trace.addDuration('modelLoad', nativeTiming.loadMs);
+              trace.addDuration('modelInference', nativeTiming.inferenceMs);
+            }
+            trace.note({
+              modelState: nativeTiming
+                ? nativeTiming.cold
+                  ? 'cold'
+                  : 'warm'
+                : 'unknown',
+            });
+            if (rawNativeJson === null) {
+              trace.note({
+                fallbackReason: options.signal?.aborted
+                  ? 'cancelled while the offline model was reading'
+                  : timedOut
+                  ? `offline model took over ${options.slmTimeoutMs}ms; parser answered`
+                  : 'offline model gave no answer; parser answered',
+              });
+            } else if (parsed?.engine !== 'slm') {
+              trace.note({
+                fallbackReason:
+                  'offline model could not run; native regex fallback, parser answered',
+              });
+            }
+          }
           // Only a real model answer may override the fast path (audit H4):
           // the native Kotlin regex fallback is weaker than the TypeScript
           // parser and must never be labelled on_device_slm.
           if (parsed && parsed.engine === 'slm') {
             if (unstructuredCandidate && !SCHEDULE_INTENTS.has(parsed.intent)) {
+              trace?.note({
+                fallbackReason:
+                  'offline model answer was not a scheduling intent; parser answered',
+              });
               return validateIntent(fastPathResult);
             }
 
@@ -253,17 +441,28 @@ export class IntentService {
             const slmValidated = validateIntent(slmIntent);
             // A malformed model field (bad time, empty title) falls back to
             // the deterministic parse instead of surfacing an error.
-            return slmValidated.isValid
-              ? slmValidated
-              : validateIntent(fastPathResult);
+            if (slmValidated.isValid) {
+              trace?.note({modelUsed: true});
+              return slmValidated;
+            }
+            trace?.note({
+              fallbackReason:
+                'offline model answer failed validation; parser answered',
+            });
+            return validateIntent(fastPathResult);
           }
         }
       } catch (err) {
+        trace?.note({
+          fallbackReason: 'offline model error; parser answered',
+        });
         console.warn(
           '[IntentService] Native SLM extraction error, falling back to fast-path:',
           err,
         );
       }
+    } else {
+      trace?.note({modelAvailability: 'engine_unavailable', modelState: 'not_used'});
     }
 
     // Step 3: Fallback to validated fast path (already sanitized via distillScheduleTitle)

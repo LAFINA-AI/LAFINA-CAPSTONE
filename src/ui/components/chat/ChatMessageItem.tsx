@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {
   BookOpen,
@@ -34,6 +34,8 @@ interface ChatMessageItemProps {
   replyFormat?: ChatReplyFormat;
   /** Undo for the memory change shown under a reply. */
   onUndoMemory?: (item: ChatMessage) => void;
+  /** Developer timing for this reply (Developer Mode + performance tracking only). */
+  timingLabel?: string;
 }
 
 const AttachmentIcon: React.FC<{format: string; color: string}> = ({
@@ -57,11 +59,16 @@ export const ChatMessageItem = React.memo(function MessageRow({
   streaming = false,
   replyFormat = 'markdown',
   onUndoMemory,
+  timingLabel,
 }: ChatMessageItemProps) {
   const isUser = item.sender === 'user';
   const {colors, isDarkMode, isModern, modernPalette, modernShadows} =
     useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  const assistantTextStyle = useMemo(
+    () => [styles.messageText, themed.assistantText],
+    [themed],
+  );
   const reviewResolution = !isUser ? item.reviewResolution ?? null : null;
   const isConfirmedReview = reviewResolution?.status === 'confirmed';
   const isCancelledReview = reviewResolution?.status === 'cancelled';
@@ -180,7 +187,7 @@ export const ChatMessageItem = React.memo(function MessageRow({
           <ChatReplyText
             content={item.content}
             format={replyFormat}
-            textStyle={[styles.messageText, themed.assistantText]}
+            textStyle={assistantTextStyle}
             streaming={streaming}
             testID={
               streaming ? 'chat-streaming-content' : 'chat-message-content'
@@ -315,6 +322,15 @@ export const ChatMessageItem = React.memo(function MessageRow({
             </Text>
           </View>
         )}
+        {!isUser && !streaming && timingLabel ? (
+          <Text
+            style={[styles.timingText, themed.assistantTime]}
+            accessibilityLabel={`Developer timing: ${timingLabel}`}
+            testID={`chat-timing-${item.id}`}
+          >
+            {timingLabel}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -459,6 +475,11 @@ const styles = StyleSheet.create({
   timeText: {
     fontFamily: Fonts.body,
     fontSize: 10.5,
+  },
+  timingText: {
+    fontFamily: Fonts.body,
+    fontSize: 10.5,
+    marginTop: 2,
   },
   userTime: {
     color: 'rgba(255, 255, 255, 0.75)',

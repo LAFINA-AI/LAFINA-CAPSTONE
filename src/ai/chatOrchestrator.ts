@@ -46,11 +46,18 @@ import {
   executeLowRiskCommand,
   formatResolvedReviewContent,
   latestPendingReview,
+  planLowRiskCommand,
   prepareReviewedCommand,
   reviseReviewedCommand,
   undoLowRiskCommand,
 } from './nlu/commandReview';
-import type {UndoOffer, UndoResult} from './nlu/commandReview';
+import type {
+  ExecuteLowRiskResult,
+  LowRiskDryRun,
+  UndoOffer,
+  UndoResult,
+} from './nlu/commandReview';
+import {monotonicNow, type RequestTrace} from './benchmark/requestTrace';
 import {
   createMultiActionBatch,
   parseGroupedRequest,
@@ -149,7 +156,53 @@ export interface ProcessMessageOptions {
    * multi-step agent turn then abandons any card it prepared (audit M1).
    */
   isCurrent?: () => boolean;
+  /**
+   * Longest wait for the offline model in Chat; the parser answers after it.
+   * See IntentExtractionOptions.slmTimeoutMs.
+   */
+  slmTimeoutMs?: number;
+  /**
+   * Called once the student's message is saved, before any thinking, so
+   * Chat can show it at once instead of after the reply.
+   */
+  onUserMessage?: (message: ChatMessage) => void;
+  /**
+   * Developer timing for this one request. Only Chat (with Developer Mode
+   * and performance tracking on) and the Developer benchmark pass one.
+   */
+  trace?: RequestTrace | null;
+  /** Stops waiting for the online reply or the offline model. */
+  signal?: AbortSignal;
+  /**
+   * Developer benchmark isolation (see BenchmarkIsolation). Never set by
+   * product screens.
+   */
+  benchmark?: BenchmarkIsolation | null;
 }
+
+/**
+ * A Developer benchmark request. It runs the normal parsing and routing but
+ * cannot change the student's data: it never saves chat messages (it runs as
+ * a temporary chat), never applies a planner change (low-risk changes are
+ * worked out and reported, not applied; proposals stay unconfirmed for the
+ * runner to cancel), never saves, forgets or marks memories, never pauses or
+ * resumes a skill, never decides an open review card and never speaks.
+ * Every skipped stage is listed in the trace's `bypassed`.
+ */
+export interface BenchmarkIsolation {
+  readonly runId: string;
+  /** SIMULATED: behave as if no offline model were installed. */
+  readonly simulateMissingModel?: boolean;
+  /** SIMULATED: the online reply fails with this status; no request is sent. */
+  readonly simulateOnlineFailure?: 'offline' | 'server_unavailable';
+}
+
+/** Reply text for a stage a benchmark skipped on purpose. */
+export const benchmarkSkippedReply = (what: string): string =>
+  `Benchmark: ${what} was skipped. Nothing was changed.`;
+
+/** Offline Chat waits this long for the on-device model; the parser answers after. */
+export const CHAT_OFFLINE_SLM_TIMEOUT_MS = 10_000;
 
 /** Added when DeepSeek stops part-way, so a cut-off reply is never mistaken for a full one. */
 export const INTERRUPTED_REPLY_NOTE =
@@ -194,6 +247,11 @@ export interface ChatOrchestratorResult {
    * it; nothing is opened, generated or saved until they tap.
    */
   skillLaunch?: SkillLaunch;
+  /**
+   * Benchmark only: what an immediate low-risk change would have done. It was
+   * not applied.
+   */
+  dryRun?: LowRiskDryRun;
 }
 
 /** What the device made of a spoken conversation turn (see `reviewSpokenTurn`). */
@@ -564,6 +622,8 @@ export class ChatOrchestrator {
       // Offline, the student's installed model reads every request.
       preferOnDeviceSlm: !options.onlineMode,
       slmTimeoutMs: options.slmTimeoutMs,
+      // A call answers a clear request from the parser right away.
+      trustConfidentFastPath: true,
     });
     // Extraction may finish after the conversation or owning screen closes.
     if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
@@ -647,8 +707,42 @@ export class ChatOrchestrator {
   async processMessage(
     userId: string,
     text: string,
-    options: ProcessMessageOptions = {},
+    rawOptions: ProcessMessageOptions = {},
   ): Promise<ChatOrchestratorResult> {
+    // A benchmark always runs as an unsaved, silent Chat turn.
+    const options: ProcessMessageOptions = rawOptions.benchmark
+      ? {
+          ...rawOptions,
+          // Without its own history a temporary chat sends just this message.
+          temporaryChat: true,
+          speakReply: false,
+          reviewSurface: 'chat',
+          ringingCall: null,
+        }
+      : rawOptions;
+    const trace = options.trace ?? null;
+    const result = await this.processMessageInner(userId, text, options);
+    if (trace) {
+      trace.note({
+        route:
+          result.route ??
+          (result.skillLaunch ? 'skill' : result.multiBatch ? 'multi' : 'local'),
+        intent: result.intent.intent,
+        intentSource: result.intent.source,
+        ...(result.usedOnline ? {onlineUsed: true} : {}),
+      });
+      trace.mark('replyReady');
+    }
+    return result;
+  }
+
+  private async processMessageInner(
+    userId: string,
+    text: string,
+    options: ProcessMessageOptions,
+  ): Promise<ChatOrchestratorResult> {
+    const trace = options.trace ?? null;
+    const bench = options.benchmark ?? null;
     const trimmed = (text || '').trim();
     const refDate = options.referenceDate || new Date();
     const isTemp = options.temporaryChat === true;
@@ -663,6 +757,7 @@ export class ChatOrchestrator {
 
     // Step 1: Persist user message. The reply goes to the same chat even if
     // the student opens another one while waiting.
+    const persistStartedAt = trace && !isTemp ? monotonicNow() : 0;
     const userMessage: ChatMessage = isTemp
       ? {
           id: `temp_user_${Date.now()}_${Math.random()
@@ -675,8 +770,20 @@ export class ChatOrchestrator {
           updatedAt: new Date().toISOString(),
         }
       : chatStore.addMessage(userId, 'user', trimmed);
+    if (trace) {
+      if (!isTemp) {
+        trace.addDuration('persistUser', monotonicNow() - persistStartedAt);
+      }
+      trace.mark('userSaved');
+    }
     const sessionId = userMessage.sessionId;
     const memoryRevision = chatMemoryStore.revision(userId);
+    try {
+      options.onUserMessage?.(userMessage);
+    } catch {
+      // Showing it early is a courtesy; the reply still arrives.
+    }
+    trace?.mark('processingStarted');
 
     // A USTP handbook chat (an old link, a restored screen, a stale button)
     // never reaches retrieval without a confirmed COR setup.
@@ -714,8 +821,16 @@ export class ChatOrchestrator {
     // ADR-041: "make flashcards", "start a pomodoro", "how many cards are
     // due?" are answered on the device; a launch is a button to tap.
     const skillIntent = ustpRagOnly ? null : detectSkillIntent(trimmed);
+    // A benchmark never pauses or resumes the student's focus session.
+    const benchSkipsSkill = bench !== null && skillIntent?.kind === 'control';
+    if (benchSkipsSkill) trace?.bypass('skill control (pause/resume)');
     const skillAnswer = skillIntent
-      ? await chatSkillReply(userId, skillIntent, options.onlineMode === true)
+      ? benchSkipsSkill
+        ? {
+            reply: benchmarkSkippedReply('pausing or resuming a skill'),
+            launch: undefined,
+          }
+        : await chatSkillReply(userId, skillIntent, options.onlineMode === true)
       : null;
     if (skillAnswer) {
       const {reply, launch} = skillAnswer;
@@ -753,6 +868,7 @@ export class ChatOrchestrator {
     if (preference) {
       const enabled = chatMemoryStore.isEnabled(userId);
       const isStudy = !!studyPreference(trimmed);
+      if (bench) trace?.bypass('memory save');
       if (isTemp && options.reviewSurface !== 'quick') {
         const reply =
           "Temporary chats don't save new memories. Turn off Temporary Chat or add this in Profile -> Chat Memory.";
@@ -884,6 +1000,29 @@ export class ChatOrchestrator {
       };
     }
 
+    if (!ustpRagOnly && bench && isForgetAllMemoriesRequest(trimmed)) {
+      // Never run by a benchmark, not even in its temporary chat.
+      trace?.bypass('forget all memories');
+      const reply = benchmarkSkippedReply('"forget everything"');
+      return {
+        userMessage,
+        assistantMessage: {
+          id: `temp_asst_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
+          sessionId: 'temp_chat',
+          sender: 'assistant',
+          content: reply,
+          localReply: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        reply,
+        usedOnline: false,
+        intent: plainChatIntent(trimmed),
+      };
+    }
+
     if (!ustpRagOnly && isForgetAllMemoriesRequest(trimmed)) {
       const reply =
         "I've forgotten all saved memories on this phone. Your chats are kept.";
@@ -977,6 +1116,7 @@ export class ChatOrchestrator {
     let route: ResolvedIntentRoute | undefined;
     let review: PrepareResult | undefined;
     let multiBatch: MultiActionBatchData | undefined;
+    let dryRun: LowRiskDryRun | undefined;
     // A complete DeepSeek conversation reply is checked for memories afterwards.
     let learnFromReply = false;
 
@@ -1003,10 +1143,15 @@ export class ChatOrchestrator {
             sessionId,
           );
     const activeSurface: ReviewSurface = options.reviewSurface ?? 'chat';
-    const openProposal =
+    const realOpenProposal =
       !ustpRagOnly && !options.ringingCall
         ? latestPendingReview(userId, activeSurface)
         : null;
+    // A benchmark never confirms, cancels or revises the student's own card.
+    if (bench && realOpenProposal) {
+      trace?.bypass('decisions on an open review card');
+    }
+    const openProposal = bench ? null : realOpenProposal;
     // A card answers only to the chat that offered it (audit M1).
     const openTurn = openProposal
       ? reviewTurns.get(openProposal.operationId)
@@ -1366,15 +1511,26 @@ export class ChatOrchestrator {
         // Offline (or offline model chosen in Chat), the installed model
         // reads every scheduling request, not only unclear ones.
         preferOnDeviceSlm: !options.onlineMode,
+        slmTimeoutMs: options.slmTimeoutMs,
+        trace,
+        signal: options.signal,
+        simulateMissingModel: bench?.simulateMissingModel === true,
       });
       validated = localValidated;
-      if (
+      const onlineExtraction =
         options.onlineMode &&
-        shouldUseOnlineIntentExtraction(trimmed, localValidated)
-      ) {
+        shouldUseOnlineIntentExtraction(trimmed, localValidated);
+      if (onlineExtraction && bench?.simulateOnlineFailure) {
+        trace?.bypass('online intent extraction (SIMULATED online failure)');
+      } else if (onlineExtraction) {
+        const extractionStartedAt = trace ? monotonicNow() : 0;
         const onlineValidated = await extractIntentWithDeepSeek(
           trimmed,
           refDate,
+        );
+        trace?.addDuration(
+          'onlineIntentExtraction',
+          monotonicNow() - extractionStartedAt,
         );
         if (onlineValidated) {
           validated = onlineValidated;
@@ -1444,12 +1600,23 @@ export class ChatOrchestrator {
         ? 'conversation'
         : routeIntent(validated.intent, {ringingCall: options.ringingCall});
       if (route === 'reviewed_mutation') {
-        const lowRisk = executeLowRiskCommand(userId, validated, {
+        const lowRiskOptions = {
           referenceDate: refDate,
           surface: options.reviewSurface,
           ringingCall: options.ringingCall,
-        });
-        if (lowRisk.status === 'applied') {
+        };
+        // A benchmark works out the immediate change without applying it.
+        const lowRisk: ExecuteLowRiskResult | LowRiskDryRun = bench
+          ? planLowRiskCommand(userId, validated, lowRiskOptions)
+          : executeLowRiskCommand(userId, validated, lowRiskOptions);
+        if (lowRisk.status === 'would_apply') {
+          trace?.bypass('immediate low-risk change');
+          dryRun = lowRisk;
+          finalReply = benchmarkSkippedReply(
+            `the immediate change (${lowRisk.operation})`,
+          );
+          localReply = true;
+        } else if (lowRisk.status === 'applied') {
           actionResult = {
             success: true,
             intent: validated.intent,
@@ -1753,19 +1920,63 @@ export class ChatOrchestrator {
           // When local USTP handbook chunks are present, send useHandbook=false
           // so LAFINA-backend skips Pinecone completely while still streaming DeepSeek.
           const remoteUseHandbook = localPopulated ? false : useHandbook;
+          if (agent) {
+            trace?.note({
+              onlineUsed: true,
+              transportNote: 'chat agent (tool steps, not streamed)',
+            });
+          }
+          const simulatedFailure =
+            !agent && !followUpAgent && !localUstpUnsupported
+              ? bench?.simulateOnlineFailure
+              : undefined;
+          if (simulatedFailure) {
+            trace?.note({
+              onlineAttempted: true,
+              transportNote: `SIMULATED ${simulatedFailure} failure: no request was sent`,
+            });
+          }
           const onlineResult =
             agent || followUpAgent || localUstpUnsupported
               ? null
+              : simulatedFailure
+              ? ({status: simulatedFailure, error: 'simulated'} as Awaited<
+                  ReturnType<typeof onlineChatSkill.sendChatMessage>
+                >)
               : onReplyText
               ? await onlineChatSkill.streamChatMessage(history, {
                   useHandbook: remoteUseHandbook,
                   onReplyText,
                   ...memoryOption,
+                  ...(trace ? {trace} : {}),
+                  ...(options.signal ? {signal: options.signal} : {}),
                 })
               : await onlineChatSkill.sendChatMessage(history, {
                   useHandbook: remoteUseHandbook,
                   ...memoryOption,
+                  ...(trace ? {trace} : {}),
+                  ...(options.signal ? {signal: options.signal} : {}),
                 });
+          if (onlineResult && trace) {
+            const interrupted =
+              onlineResult.status === 'success' &&
+              onlineResult.data?.interrupted === true;
+            trace.note({
+              onlineStatus: interrupted ? 'interrupted' : onlineResult.status,
+            });
+            if (interrupted) trace.setOutcome('interrupted_stream');
+            if (onlineResult.status === 'success' && onlineResult.data) {
+              trace.note({onlineUsed: true});
+            } else {
+              trace.note({
+                fallbackReason: options.signal?.aborted
+                  ? 'cancelled'
+                  : `online ${onlineResult.status}${
+                      simulatedFailure ? ' (SIMULATED)' : ''
+                    }; local reply used`,
+              });
+            }
+          }
           if (!onlineResult) {
             // Answered by the Chat agent or local fail-closed refusal above.
           } else if (onlineResult.status === 'success' && onlineResult.data) {
@@ -1879,6 +2090,7 @@ export class ChatOrchestrator {
       .replace(/\bLAFINA\b/g, 'lafina');
 
     // Step 6: Persist assistant message (or return in-memory in Temporary Chat)
+    const assistantPersistStartedAt = trace && !isTemp ? monotonicNow() : 0;
     const assistantMessage: ChatMessage = isTemp
       ? {
           id: `temp_asst_${Date.now()}_${Math.random()
@@ -1901,6 +2113,12 @@ export class ChatOrchestrator {
           {handbookNote, localReply},
           sessionId,
         );
+    if (trace && !isTemp) {
+      trace.addDuration(
+        'persistAssistant',
+        monotonicNow() - assistantPersistStartedAt,
+      );
+    }
 
     if (review?.status === 'proposal') {
       rememberReviewTurn(
@@ -1912,7 +2130,9 @@ export class ChatOrchestrator {
 
     // Background: never delays or changes the reply. Chat hears about any
     // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
-    if (usedOnline && chatMemoryStore.isEnabled(userId)) {
+    if (usedOnline && bench) {
+      trace?.bypass('memory "last used" update');
+    } else if (usedOnline && chatMemoryStore.isEnabled(userId)) {
       const promptIds = memoriesForPrompt(userId).map(m => m.id);
       if (promptIds.length > 0) chatMemoryStore.markUsed(userId, promptIds);
     }
@@ -1959,6 +2179,7 @@ export class ChatOrchestrator {
       route,
       review,
       ...(multiBatch ? {multiBatch} : {}),
+      ...(dryRun ? {dryRun} : {}),
       reply: finalReply,
       ...(spokenReply ? {spokenReply} : {}),
     };
