@@ -79,3 +79,12 @@ Other open items:
   - Reminders/tasks: "lafina TEST reminder", "Check experiment one/three/A/B", "Call test two", "Verify call fix" (×2).
   - LAFINA alarms at 7:58 PM and 8:13 PM.
   - Test chat messages.
+
+## Release v1.0.3 (2026-11-23)
+
+- Commit `17ca8c1` pushed to `main`, tag `v1.0.3`, versionCode 101.
+- Full `npm run preflight`: 216/217 suites passed. The one failure was the contract test pinning `versionCode 100`; it now checks `>= 100` and passes (37/37). Log: `docs/reports/logs/release-v1.0.3-preflight.log`.
+- `npm run release` built and signed the APK, bundle and manifest. Log: `docs/reports/logs/release-v1.0.3-build.log`. APK signer SHA-256 `c87209e9…bdfe` (the permanent key).
+- Published through the GitHub API: https://github.com/LAFINA-AI/LAFINA-CAPSTONE/releases/tag/v1.0.3. `releases/latest/download/lafina-update-android.json` served 1.0.3 at 23:06.
+- Backend: no change needed. All fixes are in the app.
+- NOT RUN: installing v1.0.3 through the in-app updater on a phone.
