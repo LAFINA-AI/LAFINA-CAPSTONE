@@ -1,0 +1,81 @@
+name: Release
+# Pushing a version tag (v1.2.3, matching package.json) publishes a GitHub
+# release that installed copies of LAFINA update to from inside the app.
+# See docs/RELEASING.md. Needs these repository secrets (made by
+# `npm run release:keygen`): LAFINA_RELEASE_KEYSTORE_BASE64,
+# LAFINA_RELEASE_KEYSTORE_PASSWORD, LAFINA_UPDATE_KEY_PEM.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run preflight
+  release:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The last release's tag, to check what changed since.
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
+      - run: npm ci --ignore-scripts
+      # --ignore-scripts skips postinstall, so apply the react-native-tts patch explicitly.
+      - run: node scripts/patch-android-libs.mjs
+      - name: Release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.LAFINA_RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.LAFINA_RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Add the LAFINA_RELEASE_KEYSTORE_BASE64 and LAFINA_RELEASE_KEYSTORE_PASSWORD secrets (see docs/RELEASING.md)."
+            exit 1
+          fi
+          dir="$RUNNER_TEMP/lafina-signing"
+          mkdir -p "$dir"
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$dir/release.p12"
+          {
+            echo "storeFile=$dir/release.p12"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=lafina"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+          } > "$dir/signing.properties"
+          echo "LAFINA_RELEASE_SIGNING=$dir/signing.properties" >> "$GITHUB_ENV"
+      - name: Build, check, sign and publish
+        env:
+          LAFINA_UPDATE_KEY_PEM: ${{ secrets.LAFINA_UPDATE_KEY_PEM }}
+          LAFINA_GRADLE_ARGS: --no-daemon --max-workers=2
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-update.mjs --publish
+      - name: Remove signing material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/lafina-signing"

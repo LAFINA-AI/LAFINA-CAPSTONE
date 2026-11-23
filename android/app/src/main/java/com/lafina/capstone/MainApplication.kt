@@ -16,12 +16,17 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(CapstoneBuildPackage())
         },
+      // A downloaded update, when there is one that fits this APK; otherwise
+      // the bundle inside the APK. See OtaBundles.
+      jsBundleFilePath = OtaBundles.resolveBundlePath(applicationContext),
       useDevSupport = BuildConfig.BUILD_TYPE == "debug",
     )
   }
 
   override fun onCreate() {
     super.onCreate()
+    // The update restart helper's process only relaunches the app; it never runs React Native.
+    if (getProcessName().endsWith(LafinaRestartActivity.PROCESS_SUFFIX)) return
     loadReactNative(this)
   }
 }

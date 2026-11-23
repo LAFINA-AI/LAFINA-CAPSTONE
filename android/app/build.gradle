@@ -7,6 +7,24 @@ react {
     extraPackagerArgs = ['--max-workers', '2']
 }
 
+// One version for the app: package.json's. The release tag (v<version>), the
+// in-app update check and Android's versionName all read it from there.
+def appVersion = new groovy.json.JsonSlurper().parse(rootProject.file('../package.json')).version as String
+
+// Release signing (in-app updates need every release signed with the same key).
+// Read from a private properties file outside the repo, made by
+// `npm run release:keygen`: LAFINA_RELEASE_SIGNING, else ~/.lafina/.
+// Without it, release builds fall back to the debug key and are marked
+// -preview; `npm run release` refuses to publish those.
+def releaseSigningFile = file(System.getenv('LAFINA_RELEASE_SIGNING') ?:
+    "${System.getProperty('user.home')}/.lafina/lafina-capstone-signing.properties")
+def releaseSigning = new Properties()
+if (releaseSigningFile.isFile()) {
+    releaseSigningFile.withInputStream { releaseSigning.load(it) }
+}
+def hasReleaseSigning = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every { releaseSigning.getProperty(it) } &&
+    file(releaseSigning.getProperty('storeFile')).isFile()
+
 def targetAbis = (project.findProperty('reactNativeArchitectures') ?: 'arm64-v8a,x86_64').split(',')
 def providerTesting = project.findProperty('lafinaProviderTesting') == 'true'
 // ARMv7 has not been compiled or validated on a 32-bit phone. Opt in explicitly.
@@ -23,8 +41,14 @@ android {
         applicationId 'com.lafina.capstone'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 6
-        versionName '0.6.0'
+        // Raise versionCode only when native code changes (Kotlin, C++, the manifest,
+        // a native package). `npm run release` checks this against the last release:
+        // phones on the same versionCode take a small JavaScript update, phones on
+        // an older one install the new APK from inside the app.
+        // 100: above every build number used before in-app updates (up to 11), so no
+        // earlier test APK can look newer than a release.
+        versionCode 100
+        versionName appVersion
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'false'
         buildConfigField 'boolean', 'PERFORMANCE_HARNESS_ENABLED', 'false'
@@ -52,6 +76,17 @@ android {
             universalApk false
         }
     }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseSigning.getProperty('storeFile'))
+                storePassword releaseSigning.getProperty('storePassword')
+                keyAlias releaseSigning.getProperty('keyAlias')
+                keyPassword releaseSigning.getProperty('keyPassword')
+                storeType 'PKCS12'
+            }
+        }
+    }
     testBuildType 'dataQa'
     buildTypes {
         debug {
@@ -60,9 +95,10 @@ android {
             buildConfigField 'boolean', 'ENABLE_BACKEND_SWITCH', 'true'
         }
         release {
-            // Development preview only. Never publish with the standard debug key.
-            signingConfig signingConfigs.debug
-            versionNameSuffix '-preview'
+            // Signed with the LAFINA release key when it is on this computer (or in CI);
+            // otherwise a development preview on the debug key, never published.
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            versionNameSuffix hasReleaseSigning ? '' : '-preview'
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

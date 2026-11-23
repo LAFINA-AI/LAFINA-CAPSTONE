@@ -8,6 +8,7 @@ import {floatingAssistantNative} from '../../utils/floatingAssistantNative';
 import {QuickChatPanel} from './QuickChatPanel';
 import type {QuickChatPanelState} from './QuickChatPanel';
 import {quickChatPresence} from './quickChatPresence';
+import {confirmLaunch} from '../../updates';
 
 /** Native `QuickChatActivity.EVENT_VISIBILITY`, sent before the host resumes. */
 export const QUICK_CHAT_VISIBILITY_EVENT = 'LAFINA_QUICK_CHAT_VISIBILITY';
@@ -103,6 +104,8 @@ export const QuickChatRoot: React.FC = () => {
 
   useEffect(() => {
     mountedRef.current = true;
+    // This start worked: a downloaded app update is kept (see OtaBundles).
+    confirmLaunch();
     // Mounting means the activity was just created and is coming to the front.
     quickChatPresence.setOpen(true);
     void resolve();

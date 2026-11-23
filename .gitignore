@@ -48,6 +48,8 @@ local.properties
 *.tar
 *.tar.gz
 .preflight-*
+# `npm run release` output (signed update files and the APK).
+/release/
 
 # OS and log artifacts
 .DS_Store

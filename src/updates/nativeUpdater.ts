@@ -4,10 +4,16 @@ export interface UpdaterInfo {
   nativeVersionCode: number;
   nativeVersionName: string;
   isDebug: boolean;
+  /** Only release builds take in-app updates (debug/test builds have another app ID). */
+  updatesEnabled?: boolean;
   runningVersion: string | null;
   pendingVersion: string | null;
   rejectedVersions: string[];
+  /** SHA-256 of the certificates this installed app is signed with. */
+  signerSha256?: string[];
+  supportedAbis?: string[];
   readyApkVersionCode?: number;
+  readyApkSha256?: string;
 }
 
 export interface ApkDownloadRequest {
@@ -15,6 +21,12 @@ export interface ApkDownloadRequest {
   versionCode: number;
   size: number;
   sha256: string;
+}
+
+export interface ApkInstallRequest {
+  versionCode: number;
+  sha256: string;
+  versionName: string;
 }
 
 export interface InstallStatus {
@@ -36,6 +48,9 @@ export interface DownloadProgress {
 }
 
 export interface NativeUpdater {
+  /** False in debug and test builds, which cannot take an in-app update. */
+  updatesEnabled: boolean;
+  buildType: string;
   getInfo: () => Promise<UpdaterInfo>;
   verifyManifest: (payload: string, signature: string, publicKey: string) => Promise<string>;
   downloadBundle: (request: DownloadRequest) => Promise<boolean>;
@@ -44,13 +59,19 @@ export interface NativeUpdater {
   restart: () => Promise<boolean>;
   onProgress: (listener: (progress: DownloadProgress) => void) => { remove: () => void };
   downloadApk?: (request: ApkDownloadRequest) => Promise<boolean>;
-  installApk?: (request: { versionCode: number; sha256: string }) => Promise<boolean>;
+  installApk?: (request: ApkInstallRequest) => Promise<boolean>;
   canInstallApks?: () => Promise<boolean>;
   openInstallPermissionSettings?: () => Promise<boolean>;
   onInstallStatus?: (listener: (status: InstallStatus) => void) => { remove: () => void };
 }
 
-type LafinaUpdaterNativeModule = Omit<NativeUpdater, 'onProgress' | 'onInstallStatus'>;
+type LafinaUpdaterNativeModule = Omit<
+  NativeUpdater,
+  'onProgress' | 'onInstallStatus' | 'updatesEnabled' | 'buildType'
+> & {
+  updatesEnabled?: unknown;
+  buildType?: unknown;
+};
 
 const PROGRESS_EVENT = 'LafinaUpdaterProgress';
 const INSTALL_STATUS_EVENT = 'LafinaUpdaterInstallStatus';
@@ -59,6 +80,8 @@ export const getNativeUpdater = (): NativeUpdater | null => {
   const module = NativeModules.LafinaUpdater as LafinaUpdaterNativeModule | undefined;
   if (!module?.verifyManifest || !module.downloadBundle) return null;
   return {
+    updatesEnabled: module.updatesEnabled === true,
+    buildType: typeof module.buildType === 'string' ? module.buildType : 'unknown',
     getInfo: () => module.getInfo(),
     verifyManifest: (payload, signature, publicKey) =>
       module.verifyManifest(payload, signature, publicKey),
@@ -70,8 +93,7 @@ export const getNativeUpdater = (): NativeUpdater | null => {
     ...(module.downloadApk && module.installApk
       ? {
           downloadApk: (request: ApkDownloadRequest) => module.downloadApk!(request),
-          installApk: (request: { versionCode: number; sha256: string }) =>
-            module.installApk!(request),
+          installApk: (request: ApkInstallRequest) => module.installApk!(request),
           canInstallApks: () => module.canInstallApks?.() ?? Promise.resolve(true),
           openInstallPermissionSettings: () =>
             module.openInstallPermissionSettings?.() ?? Promise.resolve(false),

@@ -1,6 +1,6 @@
 {
   "name": "lafina-capstone",
-  "version": "1.3.4",
+  "version": "1.0.2",
   "private": true,
   "scripts": {
     "start": "react-native start",
@@ -15,7 +15,9 @@
     "check:architecture": "node scripts/check-architecture.mjs",
     "doctor": "node scripts/doctor.mjs",
     "postinstall": "node scripts/patch-android-libs.mjs",
-    "preflight": "npm run typecheck && npm run lint && npm test && npm run check:architecture"
+    "preflight": "npm run typecheck && npm run lint && npm test && npm run check:architecture",
+    "release:keygen": "node scripts/release-keygen.mjs",
+    "release": "node scripts/release-update.mjs"
   },
   "op-sqlite": {
     "fts5": true

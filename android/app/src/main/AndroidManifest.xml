@@ -19,6 +19,9 @@
          optional, off-by-default floating button over other apps and its service. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- In-app updates from the GitHub release (owner approved 2026-11-23): LAFINA hands a
+         verified APK to Android's installer, which asks the person to confirm. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <queries>
         <intent>
@@ -125,6 +128,29 @@
           android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
           android:value="User-enabled floating button that opens LAFINA Quick Chat" />
       </service>
+
+      <!-- In-app updates: restarts the app into a downloaded update. -->
+      <activity
+        android:name=".LafinaRestartActivity"
+        android:process=":restart"
+        android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        android:excludeFromRecents="true"
+        android:noHistory="true"
+        android:exported="false" />
+
+      <!-- In-app updates: Android's package installer reports here. -->
+      <receiver
+        android:name=".LafinaApkInstallReceiver"
+        android:exported="false" />
+
+      <!-- In-app updates: "LAFINA X is installed - tap to open" after the app was replaced. -->
+      <receiver
+        android:name=".LafinaUpdateCompletedReceiver"
+        android:exported="false">
+        <intent-filter>
+            <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+        </intent-filter>
+      </receiver>
 
       <provider
         android:name="androidx.core.content.FileProvider"

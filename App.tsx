@@ -117,6 +117,8 @@ import {QUICK_CHAT_DATA_CHANGED_EVENT} from './src/ai/quickChat/quickChatControl
 import type {QuickChatDataChangedEvent} from './src/ai/quickChat/quickChatController';
 import {quickChatPresence} from './src/ui/quickChat/quickChatPresence';
 import {applyFloatingAssistantForUser} from './src/ui/quickChat/floatingAssistantAccount';
+import {confirmLaunch} from './src/updates';
+import {AppUpdatePrompt} from './src/ui/components/updates/AppUpdatePrompt';
 
 const TAB_DATA_TABLES = {
   calendar: [
@@ -1317,6 +1319,16 @@ function AppContent({
 
       {incomingCallLayer}
 
+      {/* In-app updates from the GitHub release; never over a call or the walkthrough. */}
+      <AppUpdatePrompt
+        suppressed={
+          callVisible ||
+          callLafinaVisible ||
+          tourOpen ||
+          permissionModalVisible
+        }
+      />
+
       {/* Reminder Permissions Educational / Onboarding Modal */}
       <ReminderPermissionModal
         visible={permissionModalVisible}
@@ -1356,6 +1368,11 @@ const getThemedStyles = (colors: ThemeColors) => ({
 
 export function App() {
   const [userId, setUserId] = useState<string | null>(null);
+
+  // The JavaScript started and rendered: keep a downloaded update (see OtaBundles).
+  useEffect(() => {
+    confirmLaunch();
+  }, []);
 
   return (
     <SafeAreaProvider>

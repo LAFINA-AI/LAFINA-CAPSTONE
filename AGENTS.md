@@ -89,3 +89,12 @@ For the skill handoff task (ADR-041, SKILL-00..07 and CALLFIX-01..03), `docs/pla
 - Pomodoro "start" starts the timer; no other skill generates, records or saves by itself.
 
 This notice covers only the Skills that are already built in this checkout. It does not widen the forbidden-scope list for other work. The backend part is a handoff only (`backend_integration/skill-agent/OWNER-HANDOFF.md`). Everything else in this file still applies.
+
+## Task-scoped notice: In-app updates (2026-11-23)
+
+For the in-app update task (ADR-043, AUTOUPDATE-01), the owner approved ("approve auto-update ... proceed"):
+- installed copies update themselves from the latest `LAFINA-AI/LAFINA-CAPSTONE` GitHub release;
+- the `REQUEST_INSTALL_PACKAGES` permission (Android still asks the student to confirm every APK update);
+- the launcher name is just "LAFINA".
+
+`UPDATE_PACKAGES_WITHOUT_USER_ACTION` (silent APK updates) is **not** approved. Release keys are created by the owner with `npm run release:keygen` and never committed. See `docs/RELEASING.md`. Everything else in this file still applies.

@@ -1,8 +1,12 @@
 export const UPDATE_MANIFEST_SCHEMA = 1;
 export const MAX_BUNDLE_BYTES = 200 * 1024 * 1024;
 export const MAX_APK_BYTES = 2 * 1024 * 1024 * 1024;
-export const MAX_NOTES_CHARS = 4_000;
-const MAX_MANIFEST_CHARS = 16 * 1024;
+/** Release notes travel inside the signed manifest; longer ones are cut here. */
+export const MAX_NOTES_CHARS = 12_000;
+export const MAX_TITLE_CHARS = 160;
+const MAX_MANIFEST_CHARS = 64 * 1024;
+const ABI = /^[a-z0-9_-]{1,32}$/;
+const SHA256_HEX = /^[a-f0-9]{64}$/;
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 const SAFE_FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,150}\.zip$/;
 const SAFE_APK_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,150}\.apk$/;
@@ -32,6 +36,10 @@ export interface ApkAsset {
   size: number;
   sha256: string;
   versionCode: number;
+  /** CPU types the APK runs on; absent means any. */
+  abis?: string[];
+  /** SHA-256 of the certificate the APK is signed with. */
+  signerSha256?: string;
 }
 
 export interface UpdateManifest {
@@ -44,6 +52,9 @@ export interface UpdateManifest {
   size: number;
   sha256: string;
   signedAt: string;
+  /** The release's title and notes (Markdown), signed with the rest. */
+  title?: string;
+  notes?: string;
   apk?: ApkAsset;
 }
 
@@ -161,7 +172,7 @@ export const readVerifiedManifest = (
   ) {
     refuse('invalid size');
   }
-  if (typeof data.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(data.sha256)) {
+  if (typeof data.sha256 !== 'string' || !SHA256_HEX.test(data.sha256)) {
     refuse('invalid checksum');
   }
 
@@ -177,8 +188,22 @@ export const readVerifiedManifest = (
       entry.size <= 0 ||
       entry.size > MAX_APK_BYTES ||
       typeof entry.sha256 !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(entry.sha256) ||
+      !SHA256_HEX.test(entry.sha256) ||
       entry.versionCode !== data.nativeVersionCode
+    ) {
+      return refuse('invalid app package');
+    }
+    if (
+      entry.abis !== undefined &&
+      (!Array.isArray(entry.abis) ||
+        entry.abis.length === 0 ||
+        !entry.abis.every((abi) => typeof abi === 'string' && ABI.test(abi)))
+    ) {
+      return refuse('invalid app package');
+    }
+    if (
+      entry.signerSha256 !== undefined &&
+      (typeof entry.signerSha256 !== 'string' || !SHA256_HEX.test(entry.signerSha256))
     ) {
       return refuse('invalid app package');
     }
@@ -187,8 +212,18 @@ export const readVerifiedManifest = (
       size: entry.size,
       sha256: entry.sha256,
       versionCode: entry.versionCode as number,
+      ...(entry.abis ? { abis: [...(entry.abis as string[])] } : {}),
+      ...(entry.signerSha256 ? { signerSha256: entry.signerSha256 as string } : {}),
     };
   }
+
+  const text = (value: unknown, max: number): string | undefined => {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    return trimmed ? trimmed.slice(0, max) : undefined;
+  };
+  const title = text(data.title, MAX_TITLE_CHARS);
+  const notes = text(data.notes, MAX_NOTES_CHARS);
 
   return {
     schema: UPDATE_MANIFEST_SCHEMA,
@@ -200,6 +235,8 @@ export const readVerifiedManifest = (
     size: data.size as number,
     sha256: data.sha256 as string,
     signedAt: typeof data.signedAt === 'string' ? data.signedAt : '',
+    ...(title ? { title } : {}),
+    ...(notes ? { notes } : {}),
     ...(apk ? { apk } : {}),
   };
 };
