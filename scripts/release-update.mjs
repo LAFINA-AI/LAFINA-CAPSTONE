@@ -274,9 +274,19 @@ const apkSignerSha256 = (apkPath) => {
     { encoding: 'utf8', shell: windows },
   );
   if (result.status !== 0) fail(`apksigner could not verify the APK:\n${result.stderr || result.stdout}`);
-  const match = /Signer #1 certificate SHA-256 digest:\s*([0-9a-f]{64})/i.exec(result.stdout);
-  if (!match) fail('apksigner did not report the APK signer.');
-  return match[1].toLowerCase();
+  const signer = parseApkSignerSha256(result.stdout);
+  if (!signer) fail(`apksigner did not report the APK signer:\n${result.stdout}`);
+  return signer;
+};
+
+/**
+ * The first signer's certificate SHA-256 from `apksigner verify --print-certs`.
+ * Older build-tools print "Signer #1 certificate SHA-256 digest: …", build-tools
+ * 37 prints "V2 Signer: certificate SHA-256 digest: …". Lineage entries are skipped.
+ */
+export const parseApkSignerSha256 = (stdout) => {
+  const match = /^(?:Signer #1|V\d+ Signer):? certificate SHA-256 digest:\s*([0-9a-f]{64})\s*$/im.exec(stdout ?? '');
+  return match ? match[1].toLowerCase() : null;
 };
 
 const readManifestKey = () => {
@@ -388,7 +398,9 @@ const main = async () => {
   // Build.
   if (!skipBuild) {
     console.log(`Building LAFINA ${version} (APK build ${versionCode}, ${RELEASE_ABI})…\n`);
-    const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
+    // A full, quoted path: cmd.exe may not search the current folder
+    // (NoDefaultCurrentDirectoryInExePath), and the path can contain spaces.
+    const gradlew = process.platform === 'win32' ? `"${join(androidDir, 'gradlew.bat')}"` : './gradlew';
     const extra = (process.env.LAFINA_GRADLE_ARGS ?? '').split(' ').filter(Boolean);
     const result = spawnSync(
       gradlew,

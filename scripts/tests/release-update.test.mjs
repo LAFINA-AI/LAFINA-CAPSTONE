@@ -10,6 +10,7 @@ import {
   notesForManifest,
   onlyVersionCodeChanged,
   splitNotes,
+  parseApkSignerSha256,
 } from '../release-update.mjs';
 
 test('splits the title from the notes', () => {
@@ -89,4 +90,14 @@ test('zips entries the app can unpack', () => {
   assert.deepEqual(method === 8 ? inflateRawSync(body) : body, data);
   assert.equal(zip.readUInt32LE(zip.length - 22), 0x06054b50);
   assert.deepEqual(createZip([{ name: 'index.android.bundle', data }]), zip, 'same input, same bytes');
+});
+
+test('reads the APK signer from old and new apksigner output', () => {
+  const sha = 'c87209e987f87abc27a535c0be835ae4ff469052ea054018ff6654174902bdfe';
+  const v37 = `V2 Signer: certificate DN: CN=LAFINA, O=LAFINA-AI, C=PH\nV2 Signer: certificate SHA-256 digest: ${sha}\nV2 Signer: certificate SHA-1 digest: acee0a32\n`;
+  const old = `Signer #1 certificate DN: CN=LAFINA\nSigner #1 certificate SHA-256 digest: ${sha.toUpperCase()}\n`;
+  assert.equal(parseApkSignerSha256(v37), sha);
+  assert.equal(parseApkSignerSha256(old), sha);
+  assert.equal(parseApkSignerSha256('Verifies\n'), null);
+  assert.equal(parseApkSignerSha256(undefined), null);
 });

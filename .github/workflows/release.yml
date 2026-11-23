@@ -31,26 +31,45 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      # A release already published for this tag (for example with
+      # `npm run release -- --publish` from the owner's computer) is left alone.
+      - name: Already published?
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::notice::Release $GITHUB_REF_NAME already exists; nothing to publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.existing.outputs.skip != 'true'
+        uses: actions/checkout@v5
         with:
           # The last release's tag, to check what changed since.
           fetch-depth: 0
-      - uses: actions/setup-node@v5
+      - if: steps.existing.outputs.skip != 'true'
+        uses: actions/setup-node@v5
         with:
           node-version: 24.19.0
           cache: npm
-      - uses: actions/setup-java@v5
+      - if: steps.existing.outputs.skip != 'true'
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v4
+      - if: steps.existing.outputs.skip != 'true'
+        uses: android-actions/setup-android@v4
         with:
           packages: ''
-      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
-      - run: npm ci --ignore-scripts
+      - if: steps.existing.outputs.skip != 'true'
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
+      - if: steps.existing.outputs.skip != 'true'
+        run: npm ci --ignore-scripts
       # --ignore-scripts skips postinstall, so apply the react-native-tts patch explicitly.
-      - run: node scripts/patch-android-libs.mjs
+      - if: steps.existing.outputs.skip != 'true'
+        run: node scripts/patch-android-libs.mjs
       - name: Release signing key
+        if: steps.existing.outputs.skip != 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.LAFINA_RELEASE_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.LAFINA_RELEASE_KEYSTORE_PASSWORD }}
@@ -71,6 +90,7 @@ jobs:
           } > "$dir/signing.properties"
           echo "LAFINA_RELEASE_SIGNING=$dir/signing.properties" >> "$GITHUB_ENV"
       - name: Build, check, sign and publish
+        if: steps.existing.outputs.skip != 'true'
         env:
           LAFINA_UPDATE_KEY_PEM: ${{ secrets.LAFINA_UPDATE_KEY_PEM }}
           LAFINA_GRADLE_ARGS: --no-daemon --max-workers=2
