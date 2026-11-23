@@ -94,12 +94,16 @@
 | Launcher label | `aapt dump badging` | PASS: `application-label:'LAFINA'` | console |
 | Real GitHub check | Emulator: guest setup → Profile › Check for updates | PASS: the sheet said "You're up to date" (the latest release v1.0.1 has no manifest → 404); the row said "Up to date · 1.1.0" | screenshot (scratchpad) |
 | Package replaced, no in-app install | reinstall → `MY_PACKAGE_REPLACED` | PASS: no crash, no notification | logcat |
-| Full update from a published release (bundle and APK), rollback, restart, install permission, completion notification, on a phone | — | NOT RUN: needs the release keys and a first published release | — |
-| Release workflow | push `v1.0.2` | NOT RUN: needs repository secrets | — |
+| Release keys | `npm run release:keygen -- --rotate` (run by the agent on the owner's instruction) | PASS: keys in `~/.lafina/`; signer `c87209e9…bdfe` written to `releaseKey.ts` | console |
+| Signed release build | `npm run release` (arm64-v8a, release key) | PASS after two script fixes: `gradlew.bat` is now run by its full path on Windows, and `apksigner` 37's `V2 Signer:` output is parsed (new test, 8/8 script tests) | console |
+| Release artifacts checked independently | Node: verify the manifest signature with `UPDATE_PUBLIC_KEY`; hash the APK and zip; `aapt dump badging` | PASS: signature valid; APK sha/size/signer match, `versionCode` 100, `versionName` 1.0.2, label LAFINA; bundle zip sha/size match | console |
+| v1.0.2 published | Tag `v1.0.2` at `9f6f62f`; release created through the GitHub REST API (`gh` is not installed): draft, then 3 assets, then published as latest | PASS: https://github.com/LAFINA-AI/LAFINA-CAPSTONE/releases/tag/v1.0.2. `releases/latest/download/lafina-update-android.json` serves the same bytes after GitHub's ~90 s redirect cache | console |
+| Full update from a published release (bundle and APK), rollback, restart, install permission, completion notification, on a phone | — | NOT RUN: needs v1.0.2 installed on a phone and a later release (v1.0.3) | — |
+| Release workflow publishing on GitHub | push `v1.0.2` | Workflow PASS (preflight green on Ubuntu; "Offline core and native reminders" green on `1967c40` and `9f6f62f`). Publishing NOT RUN: the repository secrets aren't added yet, and the release job skips a release that already exists (v1.0.2 was published from the owner's PC) | Actions run for `v1.0.2` |
 
 ## 4. Performance and device matrix
 
-N/A for latency. Sizes from the existing release: APK about 142 MB (arm64-v8a). The bundle zip size will be measured on the first `npm run release` (NOT YET MEASURED). Each check downloads a manifest of about 10 KB.
+N/A for latency. Measured on v1.0.2: APK 142,139,565 bytes (135.6 MB, arm64-v8a), JS bundle zip 3,918,140 bytes (3.7 MB), signed manifest 7,951 bytes.
 
 ## 5. Reliability, privacy, permissions, licenses
 
@@ -123,12 +127,14 @@ See the chat handoff checklist. The agent cannot certify the full update path, t
 
 ## 8. Open blockers and recommended next steps
 
-1. **Owner: create the release keys.** Run `npm run release:keygen -- --rotate`, back up `~/.lafina/`, add the three GitHub secrets, and commit `src/updates/releaseKey.ts`. **This blocks any release.**
-2. **Commit, then tag `v1.0.2`, to publish the first in-app-updating release.** Testers uninstall the old LAFINA once and install it.
-3. **Validate a real update on a phone:**
-   - Publish `v1.1.1` with a JS-only change to test the bundle path.
+1. **Done 2026-11-23:** the keys were created, committed (`1967c40`, `9f6f62f`) and pushed, and v1.0.2 was published as the first in-app-updating release.
+2. **Owner: back up `~/.lafina/`** (all three files) in a password manager. Losing them means every tester reinstalls by hand.
+3. **Owner: add the three GitHub secrets** (`docs/RELEASING.md`), so later tags publish from GitHub Actions. Until then, publish from your PC.
+4. **Testers:** uninstall the old LAFINA once and install v1.0.2 from the release page.
+5. **Validate a real update on a phone:**
+   - Publish `v1.0.3` with a JS-only change to test the bundle path.
    - Then publish a release with `versionCode` 101 to test the APK path.
-4. **Optional:** approve `UPDATE_PACKAGES_WITHOUT_USER_ACTION` for fewer prompts on Android 12+.
+6. **Optional:** approve `UPDATE_PACKAGES_WITHOUT_USER_ACTION` for fewer prompts on Android 12+.
 
 ## 9. Review decision
 
