@@ -48,6 +48,7 @@ const EVENT_LABELS: Record<string, string> = {
   fired: 'Alarm went off on Android',
   posted: 'Notification shown',
   post_denied: 'Notification blocked by Android',
+  handed_to_app: 'Call opened in the app on screen',
   js_dispatched: 'Due time reached while the app was open',
   call_admitted: 'Reminder call shown',
   call_rejected: 'Reminder call refused (no longer current)',

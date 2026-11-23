@@ -5,6 +5,8 @@ import {
   alarmRepeatRule,
   detectCategory,
   formatLocalDate,
+  parseDateAndTime,
+  NUM_WORDS_PATTERN,
 } from './nlu/fastPathParser';
 import {routeIntent} from './nlu/intentRoutes';
 import {
@@ -399,7 +401,7 @@ export async function extractIntentWithDeepSeek(
           content: buildIntentExtractionPrompt(trimmed, referenceDate),
         },
       ],
-      {useHandbook: false},
+      {useHandbook: false, keepNameCase: true},
     );
   } catch (error) {
     console.warn('[OnlineIntentExtractor] Failed calling DeepSeek:', error);
@@ -414,7 +416,31 @@ export async function extractIntentWithDeepSeek(
   if (!obj) {
     return null;
   }
-  return parseExtractedIntentObject(obj, trimmed);
+  const parsed = parseExtractedIntentObject(obj, trimmed);
+  return parsed ? withLocalRelativeTime(parsed, trimmed, referenceDate) : null;
+}
+
+/** "in 5 minutes", "an hour from now", "10 mins later", "in a couple minutes". */
+const RELATIVE_CLOCK_RE = new RegExp(
+  `\\b(?:in|after)\\s+(?:about\\s+)?(?:an?\\s+|half\\s+(?:an?\\s+)?|(?:a\\s+)?(?:couple|few)(?:\\s+of)?\\s*|(?:${NUM_WORDS_PATTERN})\\s*)(?:minutes?|mins?|hours?|hrs?)\\b|\\b(?:minutes?|mins?|hours?|hrs?)\\s+(?:from\\s+now|later)\\b`,
+  'i',
+);
+
+/**
+ * The model only sees the reference time to the minute, so "in 1 minute" at
+ * 9:36:26 came back as 9:37, already 26 seconds closer than asked and often
+ * past before Confirm (device test 2026-11-23). For a relative time the
+ * phone's own clock math (rounded up to a whole minute) wins.
+ */
+export function withLocalRelativeTime(
+  intent: ValidatedIntent,
+  text: string,
+  referenceDate: Date,
+): ValidatedIntent {
+  if (!intent.time || !RELATIVE_CLOCK_RE.test(text)) return intent;
+  const local = parseDateAndTime(text, referenceDate);
+  if (!local.time || !local.date) return intent;
+  return {...intent, date: local.date, time: local.time};
 }
 
 /** Turns a model-written planner object into a validated intent, or null. */
@@ -567,7 +593,7 @@ export async function extractMultiIntentsWithDeepSeek(
   try {
     const result = await onlineChatSkill.sendChatMessage(
       [{role: 'user', content: prompt}],
-      {useHandbook: false},
+      {useHandbook: false, keepNameCase: true},
     );
     if (result.status !== 'success' || !result.data?.reply) return null;
     const obj = extractJsonObject(result.data.reply);

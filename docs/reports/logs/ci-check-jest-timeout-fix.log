@@ -1,0 +1,714 @@
+PASS __tests__/cloud/requestTimeout.test.ts
+  ● Console
+
+    console.warn
+      [cloud] GET /v1/x got no response: LAFINA's server at example.test didn't answer (timed out).
+
+    [0m [90m 711 |[39m         lastConnectionError[33m,[39m
+     [90m 712 |[39m       )[33m;[39m
+    [31m[1m>[22m[39m[90m 713 |[39m       console[33m.[39mwarn(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 714 |[39m         [32m`[cloud] ${[39m
+     [90m 715 |[39m [32m          options.method || 'GET'[39m
+     [90m 716 |[39m [32m        } ${endpoint} got no response: ${reason}`[39m[33m,[39m[0m
+
+      at Object.warn (src/cloud/cloudClient.ts:713:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] POST /v1/ai/documents got no response: LAFINA's server at example.test didn't answer (timed out).
+
+    [0m [90m 711 |[39m         lastConnectionError[33m,[39m
+     [90m 712 |[39m       )[33m;[39m
+    [31m[1m>[22m[39m[90m 713 |[39m       console[33m.[39mwarn(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 714 |[39m         [32m`[cloud] ${[39m
+     [90m 715 |[39m [32m          options.method || 'GET'[39m
+     [90m 716 |[39m [32m        } ${endpoint} got no response: ${reason}`[39m[33m,[39m[0m
+
+      at Object.warn (src/cloud/cloudClient.ts:713:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/skills/docGenSkill.test.tsx (7.914 s)
+PASS __tests__/ai/phase10HandbookRAG.test.tsx
+  ● Console
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: server_error
+
+    [0m [90m 1996 |[39m             learnFromReply [33m=[39m [33m![39monlineResult[33m.[39mdata[33m.[39minterrupted[33m;[39m
+     [90m 1997 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 1998 |[39m             console[33m.[39mwarn(
+     [90m      |[39m                     [31m[1m^[22m[39m
+     [90m 1999 |[39m               [32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m
+     [90m 2000 |[39m               onlineResult[33m.[39mstatus[33m,[39m
+     [90m 2001 |[39m             )[33m;[39m[0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:1998:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ai/phase09OnlineDocsAndMeetings.test.tsx
+  ● Console
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: offline
+
+    [0m [90m 1996 |[39m             learnFromReply [33m=[39m [33m![39monlineResult[33m.[39mdata[33m.[39minterrupted[33m;[39m
+     [90m 1997 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 1998 |[39m             console[33m.[39mwarn(
+     [90m      |[39m                     [31m[1m^[22m[39m
+     [90m 1999 |[39m               [32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m
+     [90m 2000 |[39m               onlineResult[33m.[39mstatus[33m,[39m
+     [90m 2001 |[39m             )[33m;[39m[0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:1998:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VirtualizedList inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+PASS __tests__/cloud/backendSelection.test.tsx
+PASS __tests__/features/ponytailFeatures.test.tsx
+PASS __tests__/ai/chatStreaming.test.tsx
+  ● Console
+
+    console.warn
+      [cloud] Sign-in renewal failed: no active account
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:351:38)
+      at renewAccessToken (src/cloud/cloudClient.ts:439:10)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/cloud/cloudClient.ts:429:19)
+      at renewedSince (src/cloud/cloudClient.ts:457:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/cloud/chatMemoryReliability.test.ts
+PASS __tests__/cloud/todoCallLafina.test.tsx
+PASS __tests__/cloud/voiceConversationExtraContext.test.ts
+PASS __tests__/cloud/chatMemoryService.test.ts
+PASS __tests__/cloud/voiceConversationController.test.ts
+PASS __tests__/ai/chatConversation.test.ts
+  ● Console
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: server_unavailable
+
+    [0m [90m 1996 |[39m             learnFromReply [33m=[39m [33m![39monlineResult[33m.[39mdata[33m.[39minterrupted[33m;[39m
+     [90m 1997 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 1998 |[39m             console[33m.[39mwarn(
+     [90m      |[39m                     [31m[1m^[22m[39m
+     [90m 1999 |[39m               [32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m
+     [90m 2000 |[39m               onlineResult[33m.[39mstatus[33m,[39m
+     [90m 2001 |[39m             )[33m;[39m[0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:1998:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: server_unavailable
+
+    [0m [90m 1996 |[39m             learnFromReply [33m=[39m [33m![39monlineResult[33m.[39mdata[33m.[39minterrupted[33m;[39m
+     [90m 1997 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 1998 |[39m             console[33m.[39mwarn(
+     [90m      |[39m                     [31m[1m^[22m[39m
+     [90m 1999 |[39m               [32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m
+     [90m 2000 |[39m               onlineResult[33m.[39mstatus[33m,[39m
+     [90m 2001 |[39m             )[33m;[39m[0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:1998:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: auth_required
+
+    [0m [90m 1996 |[39m             learnFromReply [33m=[39m [33m![39monlineResult[33m.[39mdata[33m.[39minterrupted[33m;[39m
+     [90m 1997 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 1998 |[39m             console[33m.[39mwarn(
+     [90m      |[39m                     [31m[1m^[22m[39m
+     [90m 1999 |[39m               [32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m
+     [90m 2000 |[39m               onlineResult[33m.[39mstatus[33m,[39m
+     [90m 2001 |[39m             )[33m;[39m[0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:1998:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/cloud/providerTestDefaults.test.ts
+PASS __tests__/cloud/apiBaseUrl.test.ts
+PASS __tests__/cloud/callLafinaStudentContext.test.ts
+  ● Console
+
+    console.error
+      [Database] SQL Error executing query: SELECT * FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date < ? AND due_date <> '' AND deleted_at IS NULL OR Error: no such table: tasks
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\plannerQueries.ts:94:14)
+          at Object.rows [as overdueTasks] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\plannerQueries.ts:198:21)
+          at overdueTasks (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:335:68)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:84:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 269 |[39m     } [36mcatch[39m (error) {
+     [90m 270 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 271 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 272 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 273 |[39m         error[33m,[39m
+     [90m 274 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:271:15)
+      at executeSync (src/storage/plannerQueries.ts:94:14)
+      at Object.rows [as overdueTasks] (src/storage/plannerQueries.ts:198:21)
+      at overdueTasks (src/cloud/voiceConversation/localVoiceData.ts:335:68)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:84:45)
+
+    console.error
+      [Database] SQL Error executing query: SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL ORDER BY is_completed ASC, due_date ASC, due_time ASC Error: no such table: tasks
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\tasksStore.ts:157:25)
+          at getAllTasks (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:375:33)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:84:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 269 |[39m     } [36mcatch[39m (error) {
+     [90m 270 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 271 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 272 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 273 |[39m         error[33m,[39m
+     [90m 274 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:271:15)
+      at Object.executeSync (src/storage/tasksStore.ts:157:25)
+      at getAllTasks (src/cloud/voiceConversation/localVoiceData.ts:375:33)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:84:45)
+
+    console.error
+      Error fetching tasks: Error: no such table: tasks
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\tasksStore.ts:157:25)
+          at getAllTasks (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:375:33)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:84:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 158 |[39m       [36mreturn[39m result[33m.[39mrows[33m.[39mmap(mapRowToTask)[33m;[39m
+     [90m 159 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 160 |[39m       console[33m.[39merror([32m'Error fetching tasks:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 161 |[39m       [36mreturn[39m [][33m;[39m
+     [90m 162 |[39m     }
+     [90m 163 |[39m   }[33m,[39m[0m
+
+      at Object.error [as getAllTasks] (src/storage/tasksStore.ts:160:15)
+      at getAllTasks (src/cloud/voiceConversation/localVoiceData.ts:375:33)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:84:45)
+
+    console.error
+      [Database] SQL Error executing query: SELECT value FROM local_settings WHERE user_id = ? AND key = ? Error: no such table: local_settings
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\studentSetupStore.ts:161:24)
+          at Object.readRaw [as get] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\studentSetupStore.ts:209:19)
+          at get (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\ustpEligibility.ts:57:35)
+          at getUstpEligibility (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\ustpEligibility.ts:86:15)
+          at memoriesForPrompt (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\onboardingMemory.ts:154:26)
+          at buildStudentVoiceContext (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:450:41)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:84:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 269 |[39m     } [36mcatch[39m (error) {
+     [90m 270 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 271 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 272 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 273 |[39m         error[33m,[39m
+     [90m 274 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:271:15)
+      at executeSync (src/storage/studentSetupStore.ts:161:24)
+      at Object.readRaw [as get] (src/storage/studentSetupStore.ts:209:19)
+      at get (src/storage/ustpEligibility.ts:57:35)
+      at getUstpEligibility (src/storage/ustpEligibility.ts:86:15)
+      at memoriesForPrompt (src/storage/onboardingMemory.ts:154:26)
+      at buildStudentVoiceContext (src/cloud/voiceConversation/localVoiceData.ts:450:41)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:84:45)
+
+    console.warn
+      [studentSetupStore] Could not read setup state: Error: no such table: local_settings
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\studentSetupStore.ts:161:24)
+          at Object.readRaw [as get] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\studentSetupStore.ts:209:19)
+          at get (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\ustpEligibility.ts:57:35)
+          at getUstpEligibility (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\ustpEligibility.ts:86:15)
+          at memoriesForPrompt (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\onboardingMemory.ts:154:26)
+          at buildStudentVoiceContext (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:450:41)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:84:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 211 |[39m       [36mreturn[39m normalize([33mJSON[39m[33m.[39mparse(raw))[33m;[39m
+     [90m 212 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 213 |[39m       console[33m.[39mwarn([32m'[studentSetupStore] Could not read setup state:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 214 |[39m       [36mreturn[39m defaultStudentSetup()[33m;[39m
+     [90m 215 |[39m     }
+     [90m 216 |[39m   }[33m,[39m[0m
+
+      at Object.warn [as get] (src/storage/studentSetupStore.ts:213:15)
+      at get (src/storage/ustpEligibility.ts:57:35)
+      at getUstpEligibility (src/storage/ustpEligibility.ts:86:15)
+      at memoriesForPrompt (src/storage/onboardingMemory.ts:154:26)
+      at buildStudentVoiceContext (src/cloud/voiceConversation/localVoiceData.ts:450:41)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:84:45)
+
+    console.error
+      [Database] SQL Error executing query: SELECT value FROM local_settings WHERE user_id = ? AND key = ? Error: no such table: local_settings
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\onboardingMemory.ts:99:26)
+          at readStored (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\onboardingMemory.ts:138:18)
+          at academicMemoryIds (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\onboardingMemory.ts:155:20)
+          at buildStudentVoiceContext (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:450:41)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:84:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 269 |[39m     } [36mcatch[39m (error) {
+     [90m 270 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 271 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 272 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 273 |[39m         error[33m,[39m
+     [90m 274 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:271:15)
+      at executeSync (src/storage/onboardingMemory.ts:99:26)
+      at readStored (src/storage/onboardingMemory.ts:138:18)
+      at academicMemoryIds (src/storage/onboardingMemory.ts:155:20)
+      at buildStudentVoiceContext (src/cloud/voiceConversation/localVoiceData.ts:450:41)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:84:45)
+
+    console.error
+      [Database] SQL Error executing query: SELECT * FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date < ? AND due_date <> '' AND deleted_at IS NULL OR Error: no such table: tasks
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\plannerQueries.ts:94:14)
+          at Object.rows [as overdueTasks] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\plannerQueries.ts:198:21)
+          at overdueTasks (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:335:68)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:126:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 269 |[39m     } [36mcatch[39m (error) {
+     [90m 270 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 271 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 272 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 273 |[39m         error[33m,[39m
+     [90m 274 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:271:15)
+      at executeSync (src/storage/plannerQueries.ts:94:14)
+      at Object.rows [as overdueTasks] (src/storage/plannerQueries.ts:198:21)
+      at overdueTasks (src/cloud/voiceConversation/localVoiceData.ts:335:68)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:126:45)
+
+    console.error
+      [Database] SQL Error executing query: SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL ORDER BY is_completed ASC, due_date ASC, due_time ASC Error: no such table: tasks
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\tasksStore.ts:157:25)
+          at getAllTasks (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:375:33)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:126:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 269 |[39m     } [36mcatch[39m (error) {
+     [90m 270 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 271 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 272 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 273 |[39m         error[33m,[39m
+     [90m 274 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:271:15)
+      at Object.executeSync (src/storage/tasksStore.ts:157:25)
+      at getAllTasks (src/cloud/voiceConversation/localVoiceData.ts:375:33)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:126:45)
+
+    console.error
+      Error fetching tasks: Error: no such table: tasks
+          at prepare (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:40:30)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:249:36)
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\tasksStore.ts:157:25)
+          at getAllTasks (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\voiceConversation\localVoiceData.ts:375:33)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\cloud\callLafinaStudentContext.test.ts:126:45)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+    [0m [90m 158 |[39m       [36mreturn[39m result[33m.[39mrows[33m.[39mmap(mapRowToTask)[33m;[39m
+     [90m 159 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 160 |[39m       console[33m.[39merror([32m'Error fetching tasks:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 161 |[39m       [36mreturn[39m [][33m;[39m
+     [90m 162 |[39m     }
+     [90m 163 |[39m   }[33m,[39m[0m
+
+      at Object.error [as getAllTasks] (src/storage/tasksStore.ts:160:15)
+      at getAllTasks (src/cloud/voiceConversation/localVoiceData.ts:375:33)
+      at Object.<anonymous> (__tests__/cloud/callLafinaStudentContext.test.ts:126:45)
+
+PASS __tests__/cloud/localVoiceData.test.ts
+PASS __tests__/cloud/spokenApprovalEval.test.ts
+PASS __tests__/cloud/onlineModeGate.test.ts
+PASS __tests__/cloud/tokenRenewal.test.ts
+  ● Console
+
+    console.warn
+      [cloud] Sign-in renewal failed: server answered 401
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:391:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] Sign-in renewal failed: account changed during renewal
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:408:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] Sign-in renewal failed: no refresh token stored; sign in again
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:376:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] Sign-in renewal failed: server answered 401
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:391:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      [cloud] POST /v1/auth/refresh -> 503: busy
+
+    [0m [90m 186 |[39m   }
+     [90m 187 |[39m   [36mif[39m (httpStatus [33m>=[39m [35m500[39m) {
+    [31m[1m>[22m[39m[90m 188 |[39m     console[33m.[39merror([32m`[cloud] ${method} ${endpoint} -> ${httpStatus}: ${detail}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 189 |[39m     [36mreturn[39m {
+     [90m 190 |[39m       status[33m:[39m [32m'server_error'[39m[33m,[39m
+     [90m 191 |[39m       error[33m:[39m [32m`LAFINA's server had a problem (${httpStatus} on ${endpoint}${[39m[0m
+
+      at error (src/cloud/cloudClient.ts:188:13)
+      at Object.errorResult (src/cloud/cloudClient.ts:723:14)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] Sign-in renewal failed: server answered 503
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:401:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] Sign-in renewal failed: no refresh token stored; sign in again
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:376:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] POST /v1/auth/refresh got no response: LAFINA's server at api.example.invalid didn't answer (Network request failed).
+
+    [0m [90m 711 |[39m         lastConnectionError[33m,[39m
+     [90m 712 |[39m       )[33m;[39m
+    [31m[1m>[22m[39m[90m 713 |[39m       console[33m.[39mwarn(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 714 |[39m         [32m`[cloud] ${[39m
+     [90m 715 |[39m [32m          options.method || 'GET'[39m
+     [90m 716 |[39m [32m        } ${endpoint} got no response: ${reason}`[39m[33m,[39m[0m
+
+      at Object.warn (src/cloud/cloudClient.ts:713:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] Sign-in renewal failed: server answered server_unavailable
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:401:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] Sign-in renewal failed: server answered 401
+
+    [0m [90m 345 |[39m )[33m:[39m [33mPromise[39m[33m<[39m[33mRenewalOutcome[39m[33m>[39m [33m=>[39m {
+     [90m 346 |[39m   [36mconst[39m fail [33m=[39m (outcome[33m:[39m [33mRenewalOutcome[39m[33m,[39m reason[33m:[39m string)[33m:[39m [33mRenewalOutcome[39m [33m=>[39m {
+    [31m[1m>[22m[39m[90m 347 |[39m     console[33m.[39mwarn([32m`[cloud] Sign-in renewal failed: ${reason}`[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 348 |[39m     [36mreturn[39m outcome[33m;[39m
+     [90m 349 |[39m   }[33m;[39m
+     [90m 350 |[39m   [36mconst[39m owner [33m=[39m expectedOwner [33m?[39m[33m?[39m userStore[33m.[39mgetActiveSessionToken()[33m.[39muserId[33m;[39m[0m
+
+      at warn (src/cloud/cloudClient.ts:347:13)
+      at fail (src/cloud/cloudClient.ts:391:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/cloud/voiceNativeAudioGate.test.ts
+PASS __tests__/cloud/directProviderTest.test.ts
+
+Test Suites: 22 passed, 22 total
+Tests:       345 passed, 345 total
+Snapshots:   0 total
+Time:        27.739 s
+Ran all test suites matching /__tests__\\cloud|__tests__\\skills\\docGenSkill.test.tsx|__tests__\\ai\\chatConversation.test.ts|__tests__\\ai\\chatStreaming.test.tsx|__tests__\\ai\\phase09OnlineDocsAndMeetings.test.tsx|__tests__\\ai\\phase10HandbookRAG.test.tsx|__tests__\\features\\ponytailFeatures.test.tsx/i.

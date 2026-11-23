@@ -229,6 +229,28 @@ N/A for latency. Each pass queues at most 500 older messages; batches keep the 1
 3. Owner decision: give the `phase10HandbookRAG` banner `waitFor` a longer timeout (§3a), then rerun `npm run preflight` for one clean run.
 4. Optional, not started: UI tests for the Chat-screen limit alert, the VoiceModal limit reply and the "On another phone" subtitle.
 
+## 8a. Device validation, 2026-11-23
+
+**Setup:**
+- Phone A: Infinix X6880, Android 15, release v1.0.2 (`com.lafina.capstone`).
+- Phone B: `Medium_Phone` emulator (`emulator-5554`), build `1.1.0-data-qa` (x86_64, bundled JS, production backend).
+- Both signed in to the same account. Production backend main `813a0e0`.
+
+**Blocker found and fixed.** Both backend commits were merged and deployed, but migration 014 had never been run. On Vercel, `app/main.py` skips `create_all` and nothing runs Alembic on deploy, so the chat tables did not exist. Every `/v1/sync/batch` that declared chat returned 500; planner sync was unaffected.
+- With the owner's permission, `alembic upgrade 014_chat_history_sync` was run against production from a scratch clone. Before: `013_voice_sessions`. After: `014_chat_history_sync (head)`.
+- `backend_integration/README.md` step 4 corrected: the migration is required.
+
+| §6 step | Result |
+| --- | --- |
+| 1 Notice | PASS: shown on both devices |
+| 2 Online sync, both directions | PASS: B→A and A→B within one 30 s cycle; the open chat screen updated by itself |
+| 3 Offline then reconnect | PASS: B in airplane mode queued 2 messages (status Offline); after reconnect the outbox emptied and A showed them |
+| 4 Delete | PASS: 20 chats deleted on B; A went to 0 of 20; outbox empty, 0 conflicts |
+| 8 Limit | PASS: B at "20 of 20 chats. Delete a chat to start a new one."; New chat → "Chat Limit Reached"; deleting re-enabled it. A also showed 20 of 20 and refused New chat |
+| 5 Attachment, 6 Reinstall, 7 Sync off, 9 Limit across phones (server rejection), 10 Delete from cloud, 11 Guest | NOT RUN |
+
+All 20 chats reached the server (20 `chat_session` rows in sync metadata), none held, none rejected. Every test chat was deleted afterwards.
+
 ## 9. Review decision
 
 - [ ] All automated required checks passing (see §3a)

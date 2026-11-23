@@ -618,8 +618,10 @@ describe('AGY preserved contracts', () => {
       expect(gradle).toMatch(/applicationId 'com\.lafina\.capstone'/);
       expect(gradle).toMatch(/namespace 'com\.lafina\.capstone'/);
       // ADR-043 (owner-approved 2026-11-23): one version from package.json, and
-      // versionCode 100 so no earlier test build (up to 11) looks newer.
-      expect(gradle).toMatch(/versionCode 100\b/);
+      // versionCode at least 100 so no earlier test build (up to 11) looks
+      // newer. Releases with native changes raise it (v1.0.3 is 101).
+      const versionCode = Number(/^\s*versionCode\s+(\d+)/m.exec(gradle)?.[1]);
+      expect(versionCode).toBeGreaterThanOrEqual(100);
       expect(gradle).toMatch(/versionName appVersion\b/);
       expect(gradle).toMatch(/rootProject\.file\('\.\.\/package\.json'\)\)\.version/);
       expect(gradle).toMatch(/applicationIdSuffix '\.debug'/);

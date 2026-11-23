@@ -33,6 +33,7 @@ import type {
   NativeDeliveryRegistration,
 } from '../../../scheduler';
 import {syncWorker} from '../../../sync/syncWorker';
+import {syncState} from '../../../sync/syncState';
 import {cloudClient} from '../../../cloud/cloudClient';
 import {
   backendSelection,
@@ -311,6 +312,18 @@ export const developerTestService = {
     try {
       await syncWorker.performSync();
       const durationMs = Date.now() - start;
+      // A skipped pass (signed out, offline, sign-in expired) also resolves;
+      // report what the sync state says instead of always "success".
+      const {status, errorMessage} = syncState.getState();
+      if (status !== 'Synced') {
+        return {
+          success: false,
+          message: `Sync did not run to completion (${status}${
+            errorMessage ? `: ${errorMessage}` : ''
+          }) after ${durationMs}ms.`,
+          durationMs,
+        };
+      }
       return {
         success: true,
         message: `Sync completed successfully in ${durationMs}ms.`,

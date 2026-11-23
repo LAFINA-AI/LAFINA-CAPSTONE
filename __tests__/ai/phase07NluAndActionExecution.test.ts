@@ -177,6 +177,21 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(twoDays.date).toBe('2026-10-29');
     });
 
+    test('rounds "in N minutes" up to a whole minute, never earlier than asked (device test 2026-11-23)', () => {
+      const withSeconds = new Date(2026, 10, 23, 21, 30, 51);
+      expect(parseDateAndTime('in 1 minute', withSeconds).time).toBe('21:32');
+      expect(parseDateAndTime('in a couple minutes', withSeconds).time).toBe(
+        '21:33',
+      );
+      const lastMinute = new Date(2026, 10, 23, 23, 59, 30);
+      const crossDay = parseDateAndTime('in 1 minute', lastMinute);
+      expect(crossDay.date).toBe('2026-11-24');
+      expect(crossDay.time).toBe('00:01');
+      // Exactly on the minute nothing changes.
+      const onMinute = new Date(2026, 10, 23, 21, 30, 0);
+      expect(parseDateAndTime('in 5 minutes', onMinute).time).toBe('21:35');
+    });
+
     test('extracts time ranges including 12 Noon, exact 12, and 12 Midnight endpoints', () => {
       const range = parseDateAndTime('study block from 9 to 11 am', fixedDate);
       expect(range.time).toBe('09:00');

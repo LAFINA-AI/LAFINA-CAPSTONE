@@ -997,6 +997,21 @@ interface ParsedDateTime {
   shiftedToEvening?: boolean;
 }
 
+/**
+ * "in N minutes" from now, rounded up to a whole minute: times are kept as
+ * HH:MM, and dropping the seconds made "in 1 minute" at 9:30:51 ring at
+ * 9:31:00, already past before the student could confirm (device test
+ * 2026-11-23). Never earlier than asked.
+ */
+function relativeTarget(referenceDate: Date, offsetMs: number): Date {
+  const target = new Date(referenceDate.getTime() + offsetMs);
+  if (target.getSeconds() > 0 || target.getMilliseconds() > 0) {
+    target.setSeconds(0, 0);
+    target.setMinutes(target.getMinutes() + 1);
+  }
+  return target;
+}
+
 /** Parses dates and times deterministically using local calendar arithmetic. */
 export function parseDateAndTime(
   text: string,
@@ -1216,7 +1231,7 @@ export function parseDateAndTime(
       lower,
     );
   if (halfHourMatch && !time) {
-    const target = new Date(referenceDate.getTime() + 30 * 60000);
+    const target = relativeTarget(referenceDate, 30 * 60000);
     date = formatLocalDate(target);
     time = formatLocalTime(target.getHours(), target.getMinutes());
     matchedText.push(halfHourMatch[0]);
@@ -1228,7 +1243,7 @@ export function parseDateAndTime(
       lower,
     );
   if (anHourMatch && !time) {
-    const target = new Date(referenceDate.getTime() + 60 * 60000);
+    const target = relativeTarget(referenceDate, 60 * 60000);
     date = formatLocalDate(target);
     time = formatLocalTime(target.getHours(), target.getMinutes());
     matchedText.push(anHourMatch[0]);
@@ -1240,7 +1255,7 @@ export function parseDateAndTime(
       lower,
     );
   if (coupleMatch && !time) {
-    const target = new Date(referenceDate.getTime() + 2 * 60000);
+    const target = relativeTarget(referenceDate, 2 * 60000);
     date = formatLocalDate(target);
     time = formatLocalTime(target.getHours(), target.getMinutes());
     matchedText.push(coupleMatch[0]);
@@ -1252,7 +1267,7 @@ export function parseDateAndTime(
       lower,
     );
   if (fewMatch && !time) {
-    const target = new Date(referenceDate.getTime() + 5 * 60000);
+    const target = relativeTarget(referenceDate, 5 * 60000);
     date = formatLocalDate(target);
     time = formatLocalTime(target.getHours(), target.getMinutes());
     matchedText.push(fewMatch[0]);
@@ -1274,7 +1289,7 @@ export function parseDateAndTime(
         const unit = unitToken.toLowerCase();
         const isHour = unit.startsWith('hour') || unit.startsWith('hr');
         const offsetMs = amount * (isHour ? 3600000 : 60000);
-        const target = new Date(referenceDate.getTime() + offsetMs);
+        const target = relativeTarget(referenceDate, offsetMs);
         date = formatLocalDate(target);
         time = formatLocalTime(target.getHours(), target.getMinutes());
         matchedText.push(relMatch[0]);

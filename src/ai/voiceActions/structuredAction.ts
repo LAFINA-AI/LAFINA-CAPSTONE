@@ -155,9 +155,17 @@ export const isReferenceRequest = (
   return false;
 };
 
+/**
+ * "one" that counts something ("in one sentence", "one more example") is not
+ * a pointer; "the first one", "that one at 4pm" and "yung one na lang" still are.
+ */
+const COUNTED_ONE_RE =
+  /\bone\s+(?!(?:na|lang|po|please|instead|too|then|for|at|on|to|in|by|from|is|was|pm|am)\b)[a-z]{3,}/gi;
+
 /** A short reply that points at something said before ("yung una na lang"). */
 export const isShortReferenceFollowUp = (text: string): boolean =>
-  text.trim().split(/\s+/).length <= 8 && POINTER_RE.test(text);
+  text.trim().split(/\s+/).length <= 8 &&
+  POINTER_RE.test(text.replace(COUNTED_ONE_RE, ' '));
 
 /** True when the model filled in an action, not only free text. */
 export const hasStructuredAction = (args: StructuredActionArgs): boolean =>

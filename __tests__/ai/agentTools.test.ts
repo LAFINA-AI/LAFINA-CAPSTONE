@@ -388,6 +388,13 @@ describe('reference requests (audit 2, B2/B3)', () => {
     expect(isShortReferenceFollowUp('yung una na lang')).toBe(true);
     expect(isShortReferenceFollowUp('that one please')).toBe(true);
     expect(isShortReferenceFollowUp('what is the dean list policy')).toBe(false);
+    // Device test 2026-11-23: "one" counting something is not a pointer.
+    expect(
+      isShortReferenceFollowUp('Explain photosynthesis in one sentence'),
+    ).toBe(false);
+    expect(isShortReferenceFollowUp('give me one more example')).toBe(false);
+    expect(isShortReferenceFollowUp('the second one at 4pm')).toBe(true);
+    expect(isShortReferenceFollowUp('book the first one')).toBe(true);
   });
 
   it('a spoken "book the first one" makes no card on its own (B3)', async () => {

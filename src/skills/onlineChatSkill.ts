@@ -44,6 +44,12 @@ export interface SendChatMessageOptions {
   signal?: AbortSignal;
   /** Developer timing for this request (only when tracking is on). */
   trace?: RequestTrace | null;
+  /**
+   * Return the reply exactly as the model wrote it. Intent extraction needs
+   * this: its reply carries the student's own words ("LAFINA test reminder"),
+   * which must not be rewritten for speech.
+   */
+  keepNameCase?: boolean;
 }
 
 export interface StreamChatMessageOptions extends SendChatMessageOptions {
@@ -331,7 +337,7 @@ export const onlineChatSkill = {
       };
     }
 
-    const reply = normalizeName(rawReply);
+    const reply = options.keepNameCase ? rawReply : normalizeName(rawReply);
     // Not streamed: the whole reply arrives with the response.
     trace?.mark('firstNetworkChunk');
     trace?.mark('firstContentReceived');

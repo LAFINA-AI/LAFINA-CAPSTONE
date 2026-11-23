@@ -141,6 +141,12 @@ import type {
 
 /** How often a reply that is still arriving repaints (about 20 times a second). */
 const STREAM_REPAINT_MS = 50;
+
+/** Same 80 px as `isNearBottomRef`: within it, the list follows new messages. */
+const MAINTAIN_POSITION = {
+  minIndexForVisible: 0,
+  autoscrollToTopThreshold: 80,
+} as const;
 /** Developer timing waits this long for the reply to be drawn before recording it. */
 const TIMING_RENDER_WAIT_MS = 5_000;
 
@@ -2959,7 +2965,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
           ref={flatListRef}
           data={displayedMessages}
           inverted={displayedMessages.length > 0}
-          maintainVisibleContentPosition={{minIndexForVisible: 0}}
+          // A new message is index 0. Without the threshold Android pinned the
+          // previous message and pushed each new one below the composer
+          // (device test 2026-11-23); a reader scrolled up still stays put.
+          maintainVisibleContentPosition={MAINTAIN_POSITION}
           initialNumToRender={12}
           maxToRenderPerBatch={6}
           windowSize={7}

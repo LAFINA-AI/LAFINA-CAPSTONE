@@ -163,7 +163,7 @@ describe('Online Mode DeepSeek intent extraction', () => {
     );
 
     expect(sendSpy).toHaveBeenCalledTimes(1);
-    expect(sendSpy.mock.calls[0][1]).toEqual({useHandbook: false});
+    expect(sendSpy.mock.calls[0][1]).toEqual({useHandbook: false, keepNameCase: true});
     expect(result.usedOnline).toBe(true);
     expect(result.route).toBe('reviewed_mutation');
     expect(result.intent.source).toBe('cloud');
@@ -180,6 +180,61 @@ describe('Online Mode DeepSeek intent extraction', () => {
       details: 'Bring architecture slides',
     });
     expect(tasksStore.getAllTasks(userId)).toHaveLength(0);
+  });
+
+  test('a relative time uses the phone clock math, not the model minute estimate (device test 2026-11-23)', async () => {
+    const {extractIntentWithDeepSeek} = require('../../src/ai/onlineIntentExtractor');
+    jest.spyOn(onlineChatSkill, 'sendChatMessage').mockResolvedValue({
+      status: 'success',
+      data: {
+        reply: JSON.stringify({
+          intent: 'create_reminder',
+          title: 'Verify call fix',
+          date: '2026-11-23',
+          time: '21:37',
+        }),
+        usedHandbook: false,
+        sources: [],
+      },
+    });
+    const at = new Date(2026, 10, 23, 21, 36, 26);
+    const relative = await extractIntentWithDeepSeek(
+      'Remind me to verify call fix in 1 minute',
+      at,
+    );
+    expect(relative?.time).toBe('21:38');
+    expect(relative?.title).toBe('Verify call fix');
+    // An absolute time is the model's to read.
+    const absolute = await extractIntentWithDeepSeek(
+      'Remind me to verify call fix at 9:37 pm',
+      at,
+    );
+    expect(absolute?.time).toBe('21:37');
+    // "in class hours" is not a relative time.
+    const notRelative = await extractIntentWithDeepSeek(
+      'Remind me to study in class hours at 9:37 pm',
+      at,
+    );
+    expect(notRelative?.time).toBe('21:37');
+  });
+
+  test('keepNameCase returns the extraction reply with the student words untouched (device test 2026-11-23)', async () => {
+    const {cloudClient} = require('../../src/cloud/cloudClient');
+    const json = '{"intent":"create_reminder","title":"LAFINA TEST reminder"}';
+    jest
+      .spyOn(cloudClient, 'request')
+      .mockResolvedValue({status: 'success', data: {reply: json}});
+    const kept = await onlineChatSkill.sendChatMessage(
+      [{role: 'user', content: 'x'}],
+      {useHandbook: false, keepNameCase: true},
+    );
+    expect(kept.data?.reply).toBe(json);
+    // Ordinary chat replies are still written for natural speech.
+    const spoken = await onlineChatSkill.sendChatMessage(
+      [{role: 'user', content: 'x'}],
+      {useHandbook: false},
+    );
+    expect(spoken.data?.reply).toContain('"lafina TEST reminder"');
   });
 
   test('catches natural phrasing in Online Mode that offline fast-path leaves as chat', async () => {

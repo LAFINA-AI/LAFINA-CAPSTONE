@@ -10,7 +10,7 @@
 > 1. In a backend checkout on main: `git apply --check LAFINA-backend-chat-history-sync.patch`, then `git am LAFINA-backend-chat-history-sync.patch`. Verified with `git am` on main `94f0fa0`. If main has moved and it does not apply cleanly, tell the agent; do not force it.
 > 2. `python -m pytest`. 310 tests passed on the scratch clone; the 11 new ones are in `tests/test_chat_history_sync.py`.
 > 3. Merge into `main` and let Vercel redeploy.
-> 4. Apply migration 014 to production once, with the unpooled URL: `python -m alembic upgrade head`. Startup `create_all` also creates the tables, but the migration adds the RLS policy.
+> 4. Apply migration 014 to production once, with the unpooled URL: `python -m alembic upgrade head`. **This step is required.** On Vercel, `app/main.py` skips startup `create_all` (`is_vercel_runtime()`), and nothing runs Alembic on deploy, so without it the chat tables do not exist and every `/v1/sync/batch` that declares chat returns 500. (Found 2026-11-23: the code was merged and deployed, the server listed the chat types, and the chat pass returned 500 on an emulator signed in to a real account.)
 > 5. Verify:
 >    - `/openapi.json` lists `/v1/sync/chat/purge`;
 >    - an unauthenticated POST to it returns 401;

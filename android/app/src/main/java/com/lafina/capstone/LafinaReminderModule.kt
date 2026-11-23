@@ -1,6 +1,7 @@
 package com.lafina.capstone
 
 import android.app.AlarmManager
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -26,7 +27,9 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
+import com.facebook.react.common.LifecycleState
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import java.lang.ref.WeakReference
 import org.json.JSONObject
 
 class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
@@ -37,6 +40,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
   init {
     reactContext.addActivityEventListener(this)
     reactContext.addLifecycleEventListener(this)
+    liveContext = WeakReference(reactContext)
   }
 
   override fun onHostResume() = Unit
@@ -758,6 +762,37 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       } catch (_: SecurityException) {
         // The JS permission preflight provides recovery UI.
         registry(context).receipt("post_denied", identity)
+      }
+      handCallToVisibleApp(context, identity)
+    }
+
+    /** The module's React context, so a broadcast can reach an app already on screen. */
+    @Volatile private var liveContext: WeakReference<ReactApplicationContext>? = null
+
+    /**
+     * Android shows a full-screen intent only as a heads-up while the phone is
+     * unlocked and in use, so the call activity is never launched and JS never
+     * hears about the call. When LAFINA itself is that app (main screen resumed,
+     * keyguard gone, so no private data is exposed), hand the call to JS the same
+     * way [onNewIntent] does; the notification stays as the fallback.
+     */
+    private fun handCallToVisibleApp(context: Context, identity: DeliveryIdentity) {
+      try {
+        val react = liveContext?.get() ?: return
+        if (!react.hasActiveReactInstance()) return
+        if (react.lifecycleState != LifecycleState.RESUMED) return
+        if (react.currentActivity !is MainActivity) return
+        val keyguard = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        if (keyguard?.isKeyguardLocked != false) return
+        val row = synchronized(DELIVERY_LOCK) {
+          PendingReminderCalls(context).get(identity.ownerId, identity.reminderId, identity.generation)
+        } ?: return
+        if (row.optString("action") != ACTION_CALL) return
+        react.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit(EVENT_CALL_TRIGGER, pendingPayload(row))
+        registry(context).receipt("handed_to_app", identity)
+      } catch (_: Exception) {
+        // The posted notification still rings and opens the call.
       }
     }
 
