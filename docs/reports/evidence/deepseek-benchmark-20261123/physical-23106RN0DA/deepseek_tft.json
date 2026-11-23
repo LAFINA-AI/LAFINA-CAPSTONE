@@ -1,0 +1,153 @@
+{
+  "modelName": "Deepseek-V4",
+  "mode": "direct",
+  "endpointHost": "api.deepseek.com",
+  "apiModel": "deepseek-v4-flash",
+  "utterances": 20,
+  "l_tft_mean_ms": 293.52028830000006,
+  "l_tft_sd_ms": 131.7932734297088,
+  "l_full_mean_ms": 1608.2773192500003,
+  "l_full_sd_ms": 315.8383341545946,
+  "samples": [
+    {
+      "i": 0,
+      "utterance": "Remind me to submit my lab report tomorrow at 9 AM.",
+      "httpStatus": 200,
+      "tftMs": 194.285,
+      "fullMs": 1282.804077
+    },
+    {
+      "i": 1,
+      "utterance": "Add a task to study operating systems tonight at 8 PM.",
+      "httpStatus": 200,
+      "tftMs": 195.648,
+      "fullMs": 1336.492616
+    },
+    {
+      "i": 2,
+      "utterance": "Create a reminder for software engineering exam this Friday at 2 PM.",
+      "httpStatus": 200,
+      "tftMs": 220.335154,
+      "fullMs": 1610.243154
+    },
+    {
+      "i": 3,
+      "utterance": "Remind me every Monday at 8 AM for my morning class.",
+      "httpStatus": 200,
+      "tftMs": 193.423076,
+      "fullMs": 1421.154384
+    },
+    {
+      "i": 4,
+      "utterance": "Schedule a study block from 2 PM to 4 PM today for thesis writing.",
+      "httpStatus": 200,
+      "tftMs": 443.14123,
+      "fullMs": 1426.658077
+    },
+    {
+      "i": 5,
+      "utterance": "Take a note review chapters 4 and 5 for the quiz.",
+      "httpStatus": 200,
+      "tftMs": 348.782769,
+      "fullMs": 1364.719923
+    },
+    {
+      "i": 6,
+      "utterance": "What is on my schedule for today?",
+      "httpStatus": 200,
+      "tftMs": 233.92,
+      "fullMs": 1830.640923
+    },
+    {
+      "i": 7,
+      "utterance": "Remind me in ten minutes to take a short break.",
+      "httpStatus": 200,
+      "tftMs": 243.321615,
+      "fullMs": 1759.231692
+    },
+    {
+      "i": 8,
+      "utterance": "Snooze for five minutes.",
+      "httpStatus": 200,
+      "tftMs": 425.996308,
+      "fullMs": 2265.852846
+    },
+    {
+      "i": 9,
+      "utterance": "OK got it thanks.",
+      "httpStatus": 200,
+      "tftMs": 724.702692,
+      "fullMs": 2074.511
+    },
+    {
+      "i": 10,
+      "utterance": "Add a task to finish the database project by Friday.",
+      "httpStatus": 200,
+      "tftMs": 364.855923,
+      "fullMs": 1974.540308
+    },
+    {
+      "i": 11,
+      "utterance": "Remind me tomorrow morning at 7 AM to pack my lab coat.",
+      "httpStatus": 200,
+      "tftMs": 282.621846,
+      "fullMs": 2007.245307
+    },
+    {
+      "i": 12,
+      "utterance": "Create a time block for math homework from 6 PM to 7 PM.",
+      "httpStatus": 200,
+      "tftMs": 182.973538,
+      "fullMs": 1256.62
+    },
+    {
+      "i": 13,
+      "utterance": "Show my schedule for tomorrow.",
+      "httpStatus": 200,
+      "tftMs": 450.368308,
+      "fullMs": 1220.582693
+    },
+    {
+      "i": 14,
+      "utterance": "Save a note-bring calculator for Physics exam.",
+      "httpStatus": 200,
+      "tftMs": 198.307154,
+      "fullMs": 1830.320615
+    },
+    {
+      "i": 15,
+      "utterance": "Remind me to email the professor at 3pm.",
+      "httpStatus": 200,
+      "tftMs": 296.184077,
+      "fullMs": 1875.034769
+    },
+    {
+      "i": 16,
+      "utterance": "Add a task prepare presentation slides for capstone defense.",
+      "httpStatus": 200,
+      "tftMs": 249.316076,
+      "fullMs": 1549.773
+    },
+    {
+      "i": 17,
+      "utterance": "Remind me every weekday at 7.30 AM to check announcements.",
+      "httpStatus": 200,
+      "tftMs": 236.261846,
+      "fullMs": 1344.865923
+    },
+    {
+      "i": 18,
+      "utterance": "Take a note check the USTP Handbook Grading Policy.",
+      "httpStatus": 200,
+      "tftMs": 215.953231,
+      "fullMs": 1578.159462
+    },
+    {
+      "i": 19,
+      "utterance": "Snooze for ten minutes.",
+      "httpStatus": 200,
+      "tftMs": 170.007923,
+      "fullMs": 1156.095616
+    }
+  ]
+}

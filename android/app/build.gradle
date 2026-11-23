@@ -87,7 +87,8 @@ android {
             }
         }
     }
-    testBuildType 'dataQa'
+    // ponytail: allow -PlafinaTestBuildType=debug when a phone holds a release-signed com.lafina.capstone
+    testBuildType(project.findProperty('lafinaTestBuildType')?.toString() ?: 'dataQa')
     buildTypes {
         debug {
             applicationIdSuffix '.debug'

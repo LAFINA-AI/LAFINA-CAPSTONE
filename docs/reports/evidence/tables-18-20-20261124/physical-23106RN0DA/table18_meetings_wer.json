@@ -1,0 +1,58 @@
+{
+  "modelAsset": "models\/ggml-base.en-q5_1.bin",
+  "threads": 3,
+  "clipsCount": 5,
+  "quietWerMeanPct": 5.965742748712389,
+  "quietWerSdPct": 4.04735512433079,
+  "noisyWerMeanPct": 5.965742748712389,
+  "noisyWerSdPct": 4.04735512433079,
+  "metQuiet": true,
+  "metNoisy": true,
+  "clips": [
+    {
+      "clip": 1,
+      "durationSec": 13.715625,
+      "reference": "Good morning team. Today we agreed to freeze the mobile interface by Friday at five PM. Maria will update the SQLite migration script before Thursday noon, and Carlos will verify notification permissions on Android fourteen.",
+      "quietHypothesis": "Good morning team, today we agreed to freeze the mobile interface by Friday at 5 PM. Maria will update the SQ light migration script before Thursday noon, and Carlos will verify notification permissions on Android 14.",
+      "quietWerPct": 11.428571428571429,
+      "noisyHypothesis": "Good morning team, today we agreed to freeze the mobile interface by Friday at 5 PM. Maria will update the SQ light migration script before Thursday noon, and Carlos will verify notification permissions on Android 14.",
+      "noisyWerPct": 11.428571428571429
+    },
+    {
+      "clip": 2,
+      "durationSec": 13.3141875,
+      "reference": "Let us review the midterm project milestones. Our first action item is completing the API rate limit tests by Tuesday morning. Elena will prepare the presentation slides while Marco verifies the student handbook citations.",
+      "quietHypothesis": "Let us review the midterm project milestones. Our first action item is completing the API rate limit tests by Tuesday morning. Elena will prepare the presentation slides while Marco verifies the student handbook citations.",
+      "quietWerPct": 0,
+      "noisyHypothesis": "Let us review the midterm project milestones. Our first action item is completing the API rate limit tests by Tuesday morning. Elena will prepare the presentation slides while Marco verifies the student handbook citations.",
+      "noisyWerPct": 0
+    },
+    {
+      "clip": 3,
+      "durationSec": 12.0773125,
+      "reference": "Welcome to the study group planning session. We decided to split chapters four and five for the operating systems quiz review. Kevin will draft ten practice flashcards tonight and share the study schedule tomorrow.",
+      "quietHypothesis": "Welcome to the study group planning session. We decided to split chapters 4 and 5 for the operating systems quiz review. Kevin will draft 10 practice flashcards tonight and share the study schedule tomorrow.",
+      "quietWerPct": 8.823529411764707,
+      "noisyHypothesis": "Welcome to the study group planning session. We decided to split chapters 4 and 5 for the operating systems quiz review. Kevin will draft 10 practice flashcards tonight and share the study schedule tomorrow.",
+      "noisyWerPct": 8.823529411764707
+    },
+    {
+      "clip": 4,
+      "durationSec": 11.2268125,
+      "reference": "Quick engineering sync for the capstone build. Please avoid changing the database schema after Wednesday. Ana will run the automated regression suite and upload the APK checksum before the evening review.",
+      "quietHypothesis": "Quick engineering sink for the capstone build. Please avoid changing the database schema after Wednesday. Anna will run the automated regression suite and upload the APK checksum before the evening review.",
+      "quietWerPct": 6.451612903225806,
+      "noisyHypothesis": "Quick engineering sync for the capstone bill. Please avoid changing the database schema after Wednesday. Anna will run the automated regression suite and upload the APK checksum before the evening review.",
+      "noisyWerPct": 6.451612903225806
+    },
+    {
+      "clip": 5,
+      "durationSec": 11.754375,
+      "reference": "Thanks for joining the research progress meeting. We confirmed the final evaluation metrics for the latency benchmark. David will document the physical device measurements and email the summary report to our adviser.",
+      "quietHypothesis": "Thanks for joining the research progress meeting. We confirmed the final evaluation metrics for the latency benchmark. David will document the physical device measurements and email the summary report to our advisor.",
+      "quietWerPct": 3.125,
+      "noisyHypothesis": "Thanks for joining the research progress meeting. We confirmed the final evaluation metrics for the latency benchmark. David will document the physical device measurements and email the summary report to our advisor.",
+      "noisyWerPct": 3.125
+    }
+  ]
+}

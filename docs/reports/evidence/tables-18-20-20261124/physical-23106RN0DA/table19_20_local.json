@@ -1,0 +1,380 @@
+{
+  "timestampMs": 1795457231352,
+  "deviceModel": "23106RN0DA",
+  "androidRelease": "14",
+  "table19": {
+    "pomodoro": {
+      "passed": 5,
+      "total": 5,
+      "ratePct": 100,
+      "threshold": "100%",
+      "met": true,
+      "cases": [
+        {
+          "cycle": 1,
+          "op": "start_25min",
+          "pass": true,
+          "storedDeadlineMs": 1795458724820
+        },
+        {
+          "cycle": 2,
+          "op": "pause",
+          "pass": true,
+          "remainingSec": 1200
+        },
+        {
+          "cycle": 3,
+          "op": "resume",
+          "pass": true,
+          "storedDeadlineMs": 1795458424848
+        },
+        {
+          "cycle": 4,
+          "op": "reset",
+          "pass": true
+        },
+        {
+          "cycle": 5,
+          "op": "live_background_alarm_trigger_and_transition",
+          "canScheduleExactAlarms": true,
+          "bookedExact": true,
+          "driftMs": 60,
+          "pass": true
+        }
+      ]
+    },
+    "flashcards": {
+      "passed": 10,
+      "total": 10,
+      "ratePct": 100,
+      "threshold": "100%",
+      "met": true,
+      "cases": [
+        {
+          "case": 1,
+          "op": "create_deck",
+          "pass": true
+        },
+        {
+          "case": 2,
+          "op": "add_5_cards",
+          "pass": true
+        },
+        {
+          "case": 3,
+          "op": "read_persisted_deck",
+          "pass": true
+        },
+        {
+          "case": 4,
+          "op": "edit_card",
+          "pass": true
+        },
+        {
+          "case": 5,
+          "op": "review_again",
+          "pass": true
+        },
+        {
+          "case": 6,
+          "op": "review_hard_learning",
+          "pass": true
+        },
+        {
+          "case": 7,
+          "op": "review_good",
+          "pass": true
+        },
+        {
+          "case": 8,
+          "op": "review_hard_learned_1_2x",
+          "pass": true
+        },
+        {
+          "case": 9,
+          "op": "review_easy",
+          "pass": true
+        },
+        {
+          "case": 10,
+          "op": "delete_and_persist_after_reload",
+          "pass": true
+        }
+      ]
+    },
+    "gwaCalculator": {
+      "passed": 10,
+      "total": 10,
+      "ratePct": 100,
+      "threshold": "100%",
+      "met": true,
+      "cases": [
+        {
+          "case": 1,
+          "name": "deans_list_uniform",
+          "expected": 1.25,
+          "actual": 1.25,
+          "pass": true
+        },
+        {
+          "case": 2,
+          "name": "mixed_units_lab_lec",
+          "expected": 1.5535714285714286,
+          "actual": 1.5535714285714286,
+          "pass": true
+        },
+        {
+          "case": 3,
+          "name": "with_0unit_nstp_pe",
+          "expected": 1.625,
+          "actual": 1.625,
+          "pass": true
+        },
+        {
+          "case": 4,
+          "name": "with_inc_null_skipped",
+          "expected": 1.9285714285714286,
+          "actual": 1.9285714285714286,
+          "pass": true
+        },
+        {
+          "case": 5,
+          "name": "passing_boundary_3_00",
+          "expected": 3,
+          "actual": 3,
+          "pass": true
+        },
+        {
+          "case": 6,
+          "name": "failing_5_00_mixed",
+          "expected": 3.1666666666666665,
+          "actual": 3.1666666666666665,
+          "pass": true
+        },
+        {
+          "case": 7,
+          "name": "perfect_1_00",
+          "expected": 1,
+          "actual": 1,
+          "pass": true
+        },
+        {
+          "case": 8,
+          "name": "precision_quarters",
+          "expected": 2,
+          "actual": 2,
+          "pass": true
+        },
+        {
+          "case": 9,
+          "name": "all_incomplete_null",
+          "expected": null,
+          "actual": null,
+          "pass": true
+        },
+        {
+          "case": 10,
+          "name": "invalid_out_of_range",
+          "expected": null,
+          "actual": null,
+          "error": "Invalid grade\/units",
+          "pass": true
+        }
+      ]
+    }
+  },
+  "table20": {
+    "alarms": {
+      "passed": 10,
+      "total": 10,
+      "ratePct": 100,
+      "threshold": "≥ 95%",
+      "met": true,
+      "cases": [
+        {
+          "case": 1,
+          "op": "schedule_alarm",
+          "diffMs": 0,
+          "pendingIntentExists": true,
+          "pass": true
+        },
+        {
+          "case": 2,
+          "op": "schedule_alarm",
+          "diffMs": 0,
+          "pendingIntentExists": true,
+          "pass": true
+        },
+        {
+          "case": 3,
+          "op": "schedule_alarm",
+          "diffMs": 0,
+          "pendingIntentExists": true,
+          "pass": true
+        },
+        {
+          "case": 4,
+          "op": "schedule_alarm",
+          "diffMs": 0,
+          "pendingIntentExists": true,
+          "pass": true
+        },
+        {
+          "case": 5,
+          "op": "schedule_alarm",
+          "diffMs": 0,
+          "pendingIntentExists": true,
+          "pass": true
+        },
+        {
+          "case": 6,
+          "op": "schedule_alarm",
+          "diffMs": 0,
+          "pendingIntentExists": true,
+          "pass": true
+        },
+        {
+          "case": 7,
+          "op": "schedule_alarm",
+          "diffMs": 0,
+          "pendingIntentExists": true,
+          "pass": true
+        },
+        {
+          "case": 8,
+          "op": "snooze_and_dismiss",
+          "pass": true
+        },
+        {
+          "case": 9,
+          "op": "duplicate_fence",
+          "pass": true
+        },
+        {
+          "case": 10,
+          "op": "alarm_clock_next_slot",
+          "diffMs": 0,
+          "pass": true
+        }
+      ]
+    },
+    "todo": {
+      "passed": 10,
+      "total": 10,
+      "ratePct": 100,
+      "threshold": "100%",
+      "met": true,
+      "cases": [
+        {
+          "case": 1,
+          "op": "insert",
+          "pass": true
+        },
+        {
+          "case": 2,
+          "op": "read",
+          "pass": true
+        },
+        {
+          "case": 3,
+          "op": "edit",
+          "pass": true
+        },
+        {
+          "case": 4,
+          "op": "priority",
+          "pass": true
+        },
+        {
+          "case": 5,
+          "op": "complete",
+          "pass": true
+        },
+        {
+          "case": 6,
+          "op": "filter_incomplete",
+          "pass": true
+        },
+        {
+          "case": 7,
+          "op": "priority_order",
+          "pass": true
+        },
+        {
+          "case": 8,
+          "op": "persist_after_reopen",
+          "pass": true
+        },
+        {
+          "case": 9,
+          "op": "delete_one",
+          "pass": true
+        },
+        {
+          "case": 10,
+          "op": "delete_persist_reopen",
+          "pass": true
+        }
+      ]
+    },
+    "notes": {
+      "passed": 10,
+      "total": 10,
+      "ratePct": 100,
+      "threshold": "100%",
+      "met": true,
+      "cases": [
+        {
+          "case": 1,
+          "op": "create",
+          "pass": true
+        },
+        {
+          "case": 2,
+          "op": "read",
+          "pass": true
+        },
+        {
+          "case": 3,
+          "op": "edit",
+          "pass": true
+        },
+        {
+          "case": 4,
+          "op": "categorize",
+          "pass": true
+        },
+        {
+          "case": 5,
+          "op": "tags",
+          "pass": true
+        },
+        {
+          "case": 6,
+          "op": "pin",
+          "pass": true
+        },
+        {
+          "case": 7,
+          "op": "search",
+          "pass": true
+        },
+        {
+          "case": 8,
+          "op": "persist_after_reopen",
+          "pass": true
+        },
+        {
+          "case": 9,
+          "op": "delete",
+          "pass": true
+        },
+        {
+          "case": 10,
+          "op": "delete_persist_reopen",
+          "pass": true
+        }
+      ]
+    }
+  }
+}

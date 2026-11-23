@@ -16,7 +16,11 @@ import org.json.JSONObject
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -421,5 +425,295 @@ class SlmTftBenchmarkTest {
     }
     File(context.filesDir, outFileName).writeText(out.toString(2))
     Log.i(TAG, "STT_SUMMARY: stt=${"%.1f".format(sttMean)}±${"%.1f".format(sttSd)}ms (vad=${"%.1f".format(vadMean)}ms + whisper=${"%.1f".format(whisperMean)}ms, n=$utteranceCount)")
+  }
+
+  /**
+   * Benchmarks online DeepSeek streaming TTFT (L_tft) and total response time over HTTPS
+   * using LAFINA-backend (/v1/ai/chat/stream) or direct DeepSeek Chat Completions SSE.
+   */
+  @Test
+  fun benchmarkDeepseekOnline() {
+    val args = InstrumentationRegistry.getArguments()
+    val endpointUrl = args.getString("endpointUrl") ?: "https://api.deepseek.com/chat/completions"
+    val modelName = args.getString("modelName") ?: "Deepseek-V4"
+    val apiModel = args.getString("apiModel") ?: "deepseek-chat"
+    val authToken = args.getString("authToken")?.trim().orEmpty()
+    val mode = args.getString("mode") ?: if (endpointUrl.contains("/v1/ai/chat")) "backend" else "direct"
+    val utteranceCount = (args.getString("utteranceCount")?.toIntOrNull() ?: 20).coerceAtLeast(1)
+    val outFileName = args.getString("outFile") ?: "deepseek_tft.json"
+    assertTrue("authToken instrumentation arg is required", authToken.isNotEmpty())
+
+    fun sendStreaming(utterance: String): Triple<Double, Double, Int> {
+      val payload = if (mode == "backend") {
+        JSONObject().apply {
+          put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", utterance)))
+          put("useHandbook", false)
+        }
+      } else {
+        JSONObject().apply {
+          put("model", apiModel)
+          put("stream", true)
+          put("max_tokens", 128)
+          put("messages", JSONArray().apply {
+            put(JSONObject().put("role", "system").put("content", "You are LAFINA's academic NLU extractor. Return valid JSON only."))
+            put(JSONObject().put("role", "user").put("content", utterance))
+          })
+        }
+      }
+      val t0 = System.nanoTime()
+      var firstContentNs = 0L
+      val conn = (URL(endpointUrl).openConnection() as HttpURLConnection).apply {
+        requestMethod = "POST"
+        connectTimeout = 15_000
+        readTimeout = 65_000
+        doOutput = true
+        setRequestProperty("Content-Type", "application/json")
+        setRequestProperty("Accept", "text/event-stream")
+        setRequestProperty("Authorization", "Bearer $authToken")
+      }
+      try {
+        conn.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+        val status = conn.responseCode
+        val stream = if (status in 200..299) conn.inputStream else conn.errorStream
+        if (status !in 200..299) {
+          val err = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "HTTP $status"
+          throw IllegalStateException("HTTP $status: ${err.take(200)}")
+        }
+        BufferedReader(InputStreamReader(stream, Charsets.UTF_8)).use { reader ->
+          while (true) {
+            val line = reader.readLine() ?: break
+            if (!line.startsWith("data:")) continue
+            val data = line.removePrefix("data:").trim()
+            if (data.isEmpty() || data == "[DONE]") continue
+            try {
+              val obj = JSONObject(data)
+              val hasText = if (mode == "backend") {
+                obj.optString("type") == "delta" && obj.optString("text").isNotEmpty()
+              } else {
+                val delta = obj.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("delta")
+                !delta?.optString("content").isNullOrEmpty()
+              }
+              if (hasText && firstContentNs == 0L) firstContentNs = System.nanoTime()
+              if (mode == "backend" && obj.optString("type") == "done") break
+            } catch (_: Exception) {
+            }
+          }
+        }
+        val endNs = System.nanoTime()
+        if (firstContentNs == 0L) firstContentNs = endNs
+        return Triple((firstContentNs - t0) / 1_000_000.0, (endNs - t0) / 1_000_000.0, status)
+      } finally {
+        conn.disconnect()
+      }
+    }
+
+    // Warmup 1 pass (excluded from stats)
+    sendStreaming(goldenUtterances[0])
+
+    val tftSamples = mutableListOf<Double>()
+    val fullSamples = mutableListOf<Double>()
+    val rows = JSONArray()
+    for (i in 0 until utteranceCount) {
+      val text = goldenUtterances[i % goldenUtterances.size]
+      val (tftMs, fullMs, httpStatus) = sendStreaming(text)
+      tftSamples.add(tftMs)
+      fullSamples.add(fullMs)
+      rows.put(JSONObject().apply {
+        put("i", i)
+        put("utterance", text)
+        put("httpStatus", httpStatus)
+        put("tftMs", tftMs)
+        put("fullMs", fullMs)
+      })
+    }
+
+    val (tftMean, tftSd) = meanSd(tftSamples)
+    val (fullMean, fullSd) = meanSd(fullSamples)
+    val out = JSONObject().apply {
+      put("modelName", modelName)
+      put("mode", mode)
+      put("endpointHost", URL(endpointUrl).host)
+      put("apiModel", if (mode == "backend") "lafina-backend" else apiModel)
+      put("utterances", utteranceCount)
+      put("l_tft_mean_ms", tftMean)
+      put("l_tft_sd_ms", tftSd)
+      put("l_full_mean_ms", fullMean)
+      put("l_full_sd_ms", fullSd)
+      put("samples", rows)
+    }
+    File(context.filesDir, outFileName).writeText(out.toString(2))
+    Log.i(TAG, "DEEPSEEK_ONLINE_SUMMARY [$modelName/$mode]: tft=${"%.1f".format(tftMean)}±${"%.1f".format(tftSd)}ms full=${"%.1f".format(fullMean)}ms (n=$utteranceCount)")
+  }
+
+  /**
+   * Benchmarks online ElevenLabs Speech-to-Text (Scribe) latency over HTTPS multipart/form-data
+   * using real Android TTS-synthesized WAV clips for LAFINA's golden utterances.
+   */
+  @Test
+  fun benchmarkElevenlabsSttOnline() {
+    val args = InstrumentationRegistry.getArguments()
+    val endpointUrl = args.getString("endpointUrl") ?: "https://api.elevenlabs.io/v1/speech-to-text"
+    val modelId = args.getString("modelId") ?: "scribe_v1"
+    val authToken = args.getString("authToken")?.trim().orEmpty()
+    val utteranceCount = (args.getString("utteranceCount")?.toIntOrNull() ?: 20).coerceAtLeast(1)
+    val outFileName = args.getString("outFile") ?: "elevenlabs_stt.json"
+    assertTrue("authToken instrumentation arg is required", authToken.isNotEmpty())
+
+    val initLatch = CountDownLatch(1)
+    var ttsStatus = TextToSpeech.ERROR
+    val doneLatchMap = ConcurrentHashMap<String, CountDownLatch>()
+    val tts = TextToSpeech(context) { status ->
+      ttsStatus = status
+      initLatch.countDown()
+    }
+    val ttsReady = initLatch.await(12, TimeUnit.SECONDS) && ttsStatus == TextToSpeech.SUCCESS
+    if (ttsReady) {
+      tts.setLanguage(Locale.US)
+      tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+        override fun onStart(utteranceId: String?) {}
+        override fun onDone(utteranceId: String?) {
+          if (utteranceId != null) doneLatchMap[utteranceId]?.countDown()
+        }
+        @Deprecated("Deprecated in Java")
+        override fun onError(utteranceId: String?) {
+          if (utteranceId != null) doneLatchMap[utteranceId]?.countDown()
+        }
+      })
+    }
+
+    var realWavClips = 0
+    val clipFiles = goldenUtterances.mapIndexed { idx, phrase ->
+      val wav = File(context.cacheDir, "el_stt_utt_$idx.wav")
+      if (wav.exists()) wav.delete()
+      var ok = false
+      if (ttsReady) {
+        val id = "el_stt_synth_$idx"
+        val latch = CountDownLatch(1)
+        doneLatchMap[id] = latch
+        if (tts.synthesizeToFile(phrase, Bundle(), wav, id) == TextToSpeech.SUCCESS) {
+          latch.await(10, TimeUnit.SECONDS)
+          ok = wav.exists() && wav.length() > 1000
+        }
+        doneLatchMap.remove(id)
+      }
+      if (ok) {
+        realWavClips++
+      } else {
+        writeFallbackPcmWav(wav, fallbackSpeechSignal(1.8), 16000)
+      }
+      wav
+    }
+
+    fun transcribeWav(wavFile: File): Triple<Double, Int, String> {
+      val boundary = "----LafinaBoundary${System.nanoTime()}"
+      val audioBytes = wavFile.readBytes()
+      val header1 = (
+        "--$boundary\r\n" +
+          "Content-Disposition: form-data; name=\"model_id\"\r\n\r\n" +
+          "$modelId\r\n" +
+          "--$boundary\r\n" +
+          "Content-Disposition: form-data; name=\"file\"; filename=\"${wavFile.name}\"\r\n" +
+          "Content-Type: audio/wav\r\n\r\n"
+        ).toByteArray(Charsets.UTF_8)
+      val footer = "\r\n--$boundary--\r\n".toByteArray(Charsets.UTF_8)
+
+      val t0 = System.nanoTime()
+      val conn = (URL(endpointUrl).openConnection() as HttpURLConnection).apply {
+        requestMethod = "POST"
+        connectTimeout = 15_000
+        readTimeout = 65_000
+        doOutput = true
+        setRequestProperty("xi-api-key", authToken)
+        setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+        setFixedLengthStreamingMode(header1.size + audioBytes.size + footer.size)
+      }
+      try {
+        conn.outputStream.use { out ->
+          out.write(header1)
+          out.write(audioBytes)
+          out.write(footer)
+          out.flush()
+        }
+        val status = conn.responseCode
+        val stream = if (status in 200..299) conn.inputStream else conn.errorStream
+        val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+        if (status !in 200..299) {
+          throw IllegalStateException("HTTP $status: ${body.take(200)}")
+        }
+        val parsedText = JSONObject(body).optString("text", "").trim()
+        val endNs = System.nanoTime()
+        return Triple((endNs - t0) / 1_000_000.0, status, parsedText)
+      } finally {
+        conn.disconnect()
+      }
+    }
+
+    val sttSamples = mutableListOf<Double>()
+    val rows = JSONArray()
+    var transcriptsNonEmpty = 0
+    try {
+      // Warmup 1 pass (excluded from stats)
+      transcribeWav(clipFiles[0])
+
+      for (i in 0 until utteranceCount) {
+        val uIdx = i % goldenUtterances.size
+        val clip = clipFiles[uIdx]
+        val (sttMs, httpStatus, transcript) = transcribeWav(clip)
+        if (transcript.isNotEmpty()) transcriptsNonEmpty++
+        sttSamples.add(sttMs)
+        rows.put(JSONObject().apply {
+          put("i", i)
+          put("utterance", goldenUtterances[uIdx])
+          put("wavBytes", clip.length())
+          put("httpStatus", httpStatus)
+          put("transcript", transcript)
+          put("sttMs", sttMs)
+        })
+      }
+    } finally {
+      if (ttsReady) {
+        tts.stop()
+        tts.shutdown()
+      }
+      clipFiles.forEach { it.delete() }
+    }
+
+    val (sttMean, sttSd) = meanSd(sttSamples)
+    val out = JSONObject().apply {
+      put("provider", "elevenlabs")
+      put("endpointHost", URL(endpointUrl).host)
+      put("modelId", modelId)
+      put("ttsReady", ttsReady)
+      put("realWavClips", realWavClips)
+      put("utterances", utteranceCount)
+      put("transcriptsNonEmpty", transcriptsNonEmpty)
+      put("l_stt_mean_ms", sttMean)
+      put("l_stt_sd_ms", sttSd)
+      put("samples", rows)
+    }
+    File(context.filesDir, outFileName).writeText(out.toString(2))
+    Log.i(TAG, "ELEVENLABS_STT_SUMMARY [$modelId]: stt=${"%.1f".format(sttMean)}±${"%.1f".format(sttSd)}ms nonEmpty=$transcriptsNonEmpty/$utteranceCount")
+  }
+
+  private fun writeFallbackPcmWav(file: File, samples: FloatArray, sampleRate: Int) {
+    val dataBytes = samples.size * 2
+    val buf = ByteBuffer.allocate(44 + dataBytes).order(ByteOrder.LITTLE_ENDIAN)
+    buf.put("RIFF".toByteArray(Charsets.US_ASCII))
+    buf.putInt(36 + dataBytes)
+    buf.put("WAVEfmt ".toByteArray(Charsets.US_ASCII))
+    buf.putInt(16)
+    buf.putShort(1.toShort())
+    buf.putShort(1.toShort())
+    buf.putInt(sampleRate)
+    buf.putInt(sampleRate * 2)
+    buf.putShort(2.toShort())
+    buf.putShort(16.toShort())
+    buf.put("data".toByteArray(Charsets.US_ASCII))
+    buf.putInt(dataBytes)
+    for (s in samples) {
+      val clamped = s.coerceIn(-1f, 1f)
+      buf.putShort((clamped * 32767f).toInt().toShort())
+    }
+    file.writeBytes(buf.array())
   }
 }

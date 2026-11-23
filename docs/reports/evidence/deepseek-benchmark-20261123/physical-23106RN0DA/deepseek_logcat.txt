@@ -1,0 +1,7 @@
+--------- beginning of main
+11-24 00:18:07.359 24044 24044 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-24 00:18:07.373 24044 24044 I AndroidRuntime: Using default boot image
+11-24 00:18:07.373 24044 24044 I AndroidRuntime: Leaving lock profiling enabled
+11-24 00:18:07.739 24044 24044 D AndroidRuntime: Calling main entry com.android.commands.am.Am
+11-24 00:18:43.639 24066 24086 I SlmTftBenchmark: DEEPSEEK_ONLINE_SUMMARY [Deepseek-V4/direct]: tft=293.5±131.8ms full=1608.3ms (n=20)
+11-24 00:18:43.658 24044 24044 I AndroidRuntime: VM exiting with result code 0.

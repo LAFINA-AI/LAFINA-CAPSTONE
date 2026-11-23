@@ -1,0 +1,433 @@
+{
+  "timestampMs": 1795456856784,
+  "deviceModel": "23106RN0DA",
+  "apiModel": "deepseek-chat",
+  "lessonQa": {
+    "queriesTotal": 15,
+    "inDocCount": 10,
+    "outOfScopeCount": 5,
+    "groundedPass": 14,
+    "sgrPct": 93.33333333333333,
+    "metSgr": true,
+    "lQaMeanMs": 949.030431,
+    "lQaSdMs": 332.5577987448228,
+    "metLQa": true,
+    "samples": [
+      {
+        "i": 1,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 1078.427154,
+        "grounded": true
+      },
+      {
+        "i": 2,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 769.001462,
+        "grounded": true
+      },
+      {
+        "i": 3,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 1036.219308,
+        "grounded": true
+      },
+      {
+        "i": 4,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 1123.002539,
+        "grounded": false
+      },
+      {
+        "i": 5,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 1028.623077,
+        "grounded": true
+      },
+      {
+        "i": 6,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 726.897923,
+        "grounded": true
+      },
+      {
+        "i": 7,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 965.166769,
+        "grounded": true
+      },
+      {
+        "i": 8,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 664.773616,
+        "grounded": true
+      },
+      {
+        "i": 9,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 808.926231,
+        "grounded": true
+      },
+      {
+        "i": 10,
+        "inDoc": true,
+        "httpStatus": 200,
+        "latencyMs": 685.992308,
+        "grounded": true
+      },
+      {
+        "i": 11,
+        "inDoc": false,
+        "httpStatus": 200,
+        "latencyMs": 1118.857846,
+        "grounded": true
+      },
+      {
+        "i": 12,
+        "inDoc": false,
+        "httpStatus": 200,
+        "latencyMs": 2028.562154,
+        "grounded": true
+      },
+      {
+        "i": 13,
+        "inDoc": false,
+        "httpStatus": 200,
+        "latencyMs": 682.503692,
+        "grounded": true
+      },
+      {
+        "i": 14,
+        "inDoc": false,
+        "httpStatus": 200,
+        "latencyMs": 826.485462,
+        "grounded": true
+      },
+      {
+        "i": 15,
+        "inDoc": false,
+        "httpStatus": 200,
+        "latencyMs": 692.016924,
+        "grounded": true
+      }
+    ]
+  },
+  "quizMaker": {
+    "quizzesCount": 3,
+    "totalItems": 15,
+    "validItems": 15,
+    "qvrPct": 100,
+    "metQvr": true,
+    "lQuizMeanMs": 2241.703308,
+    "lQuizSdMs": 740.6784768367341,
+    "metLQuiz": true,
+    "quizzes": [
+      {
+        "quiz": 1,
+        "title": "OS Lecture 3",
+        "httpStatus": 200,
+        "latencyMs": 3288.906231,
+        "questionsGenerated": 5,
+        "questionsValid": 5
+      },
+      {
+        "quiz": 2,
+        "title": "DBMS Unit 2",
+        "httpStatus": 200,
+        "latencyMs": 1738.872923,
+        "questionsGenerated": 5,
+        "questionsValid": 5
+      },
+      {
+        "quiz": 3,
+        "title": "Software Engineering ISO",
+        "httpStatus": 200,
+        "latencyMs": 1697.33077,
+        "questionsGenerated": 5,
+        "questionsValid": 5
+      }
+    ]
+  },
+  "summarizer": {
+    "readingsCount": 10,
+    "retainedCorePoints": 38,
+    "totalCorePoints": 40,
+    "kprPct": 95,
+    "metKpr": true,
+    "lSumMeanMs": 1039.4549001999999,
+    "lSumSdMs": 183.8830650354272,
+    "metLSum": true,
+    "samples": [
+      {
+        "i": 1,
+        "topic": "Operating System Virtual Memory",
+        "wordCount": 527,
+        "httpStatus": 200,
+        "latencyMs": 1081.511923,
+        "retained": 4,
+        "totalCore": 4
+      },
+      {
+        "i": 2,
+        "topic": "TCP Congestion Control",
+        "wordCount": 451,
+        "httpStatus": 200,
+        "latencyMs": 988.857539,
+        "retained": 4,
+        "totalCore": 4
+      },
+      {
+        "i": 3,
+        "topic": "Relational Indexing and B+ Trees",
+        "wordCount": 473,
+        "httpStatus": 200,
+        "latencyMs": 982.848077,
+        "retained": 4,
+        "totalCore": 4
+      },
+      {
+        "i": 4,
+        "topic": "Symmetric and Asymmetric Cryptography",
+        "wordCount": 432,
+        "httpStatus": 200,
+        "latencyMs": 863.510461,
+        "retained": 4,
+        "totalCore": 4
+      },
+      {
+        "i": 5,
+        "topic": "Mobile Software Architecture and Offline-First Sync",
+        "wordCount": 444,
+        "httpStatus": 200,
+        "latencyMs": 1306.640539,
+        "retained": 4,
+        "totalCore": 4
+      },
+      {
+        "i": 6,
+        "topic": "Deep Neural Network Quantization",
+        "wordCount": 412,
+        "httpStatus": 200,
+        "latencyMs": 1154.767308,
+        "retained": 3,
+        "totalCore": 4
+      },
+      {
+        "i": 7,
+        "topic": "IEEE 802.11 Wireless Medium Access",
+        "wordCount": 413,
+        "httpStatus": 200,
+        "latencyMs": 848.529539,
+        "retained": 4,
+        "totalCore": 4
+      },
+      {
+        "i": 8,
+        "topic": "Compiler Optimization Passes",
+        "wordCount": 391,
+        "httpStatus": 200,
+        "latencyMs": 808.284616,
+        "retained": 4,
+        "totalCore": 4
+      },
+      {
+        "i": 9,
+        "topic": "Human-Computer Interaction Latency Limits",
+        "wordCount": 397,
+        "httpStatus": 200,
+        "latencyMs": 972.833769,
+        "retained": 3,
+        "totalCore": 4
+      },
+      {
+        "i": 10,
+        "topic": "Android Background Execution and AlarmManager",
+        "wordCount": 383,
+        "httpStatus": 200,
+        "latencyMs": 1386.765231,
+        "retained": 4,
+        "totalCore": 4
+      }
+    ]
+  },
+  "meetingsKpar": {
+    "clipsCount": 5,
+    "recalledItems": 20,
+    "totalItems": 20,
+    "kparPct": 100,
+    "metKpar": true,
+    "meanLatencyMs": 1214.1612923999999,
+    "samples": [
+      {
+        "clip": 1,
+        "httpStatus": 200,
+        "latencyMs": 1090.841615,
+        "recalled": 4,
+        "expected": 4,
+        "validJson": true
+      },
+      {
+        "clip": 2,
+        "httpStatus": 200,
+        "latencyMs": 985.879,
+        "recalled": 4,
+        "expected": 4,
+        "validJson": true
+      },
+      {
+        "clip": 3,
+        "httpStatus": 200,
+        "latencyMs": 1484.045539,
+        "recalled": 4,
+        "expected": 4,
+        "validJson": true
+      },
+      {
+        "clip": 4,
+        "httpStatus": 200,
+        "latencyMs": 1198.964308,
+        "recalled": 4,
+        "expected": 4,
+        "validJson": true
+      },
+      {
+        "clip": 5,
+        "httpStatus": 200,
+        "latencyMs": 1311.076,
+        "recalled": 4,
+        "expected": 4,
+        "validJson": true
+      }
+    ]
+  },
+  "documentGeneration": {
+    "promptsCount": 12,
+    "integrityPass": 12,
+    "fgirPct": 100,
+    "metFgir": true,
+    "contentPass": 12,
+    "csarPct": 100,
+    "metCsar": true,
+    "lDocMeanMs": 7735.884167083333,
+    "lDocSdMs": 4203.407992252739,
+    "metLDoc": true,
+    "samples": [
+      {
+        "i": 1,
+        "format": "pdf",
+        "httpStatus": 200,
+        "latencyMs": 6543.758078,
+        "sizeBytes": 25455,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 2,
+        "format": "pdf",
+        "httpStatus": 200,
+        "latencyMs": 10630.118154,
+        "sizeBytes": 31483,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 3,
+        "format": "pdf",
+        "httpStatus": 200,
+        "latencyMs": 11482.172847,
+        "sizeBytes": 392834,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 4,
+        "format": "docx",
+        "httpStatus": 200,
+        "latencyMs": 7833.772001,
+        "sizeBytes": 533,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 5,
+        "format": "docx",
+        "httpStatus": 200,
+        "latencyMs": 7987.954692,
+        "sizeBytes": 568,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 6,
+        "format": "docx",
+        "httpStatus": 200,
+        "latencyMs": 17120.069847,
+        "sizeBytes": 566,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 7,
+        "format": "xlsx",
+        "httpStatus": 200,
+        "latencyMs": 1745.868538,
+        "sizeBytes": 558,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 8,
+        "format": "xlsx",
+        "httpStatus": 200,
+        "latencyMs": 2858.633538,
+        "sizeBytes": 562,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 9,
+        "format": "xlsx",
+        "httpStatus": 200,
+        "latencyMs": 2020.794693,
+        "sizeBytes": 587,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 10,
+        "format": "pptx",
+        "httpStatus": 200,
+        "latencyMs": 6078.389154,
+        "sizeBytes": 491,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 11,
+        "format": "pptx",
+        "httpStatus": 200,
+        "latencyMs": 8874.540693,
+        "sizeBytes": 491,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      },
+      {
+        "i": 12,
+        "format": "pptx",
+        "httpStatus": 200,
+        "latencyMs": 9654.53777,
+        "sizeBytes": 491,
+        "fileIntegrityOk": true,
+        "contentAdherenceOk": true
+      }
+    ]
+  }
+}

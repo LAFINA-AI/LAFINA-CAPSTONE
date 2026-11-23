@@ -1,0 +1,3 @@
+--------- beginning of main
+11-24 02:00:56.806 21126 21152 I SkillsEvalBenchmark: TABLE18_ONLINE_SUMMARY saved to table18_online_skills.json
+11-24 02:00:56.825 21112 21112 I AndroidRuntime: VM exiting with result code 0.

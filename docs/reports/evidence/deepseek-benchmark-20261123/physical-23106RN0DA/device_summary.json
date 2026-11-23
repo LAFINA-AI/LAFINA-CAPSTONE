@@ -1,0 +1,52 @@
+{
+    "timestamp":  "2026-11-23T16:18:46.3849895Z",
+    "device":  {
+                   "serial":  "ZTFMR479NF5PZHVW",
+                   "model":  "23106RN0DA",
+                   "abi":  "arm64-v8a,armeabi-v7a,armeabi",
+                   "android":  "14",
+                   "isEmulator":  false,
+                   "avd":  null
+               },
+    "baseline":  {
+                     "source":  "reused physical-23106RN0DA stt_summary.json + device_summary.json",
+                     "L_stt_mean_ms":  4044.8,
+                     "L_stt_sd_ms":  298.6,
+                     "L_tts_mean_ms":  211.1306,
+                     "L_tts_sd_ms":  40.9389
+                 },
+    "onlineModels":  [
+                         {
+                             "model":  "Deepseek-V4",
+                             "mode":  "direct",
+                             "endpointHost":  "api.deepseek.com",
+                             "apiModel":  "deepseek-v4-flash",
+                             "status":  "ok",
+                             "utterances":  20,
+                             "L_tft":  {
+                                           "mean":  293.5,
+                                           "std":  131.8,
+                                           "unit":  "ms",
+                                           "met":  true
+                                       },
+                             "L_full":  {
+                                            "mean":  1608.3,
+                                            "std":  315.8,
+                                            "unit":  "ms"
+                                        },
+                             "L_e2e":  {
+                                           "mean":  4549.5,
+                                           "std":  328.9,
+                                           "unit":  "ms",
+                                           "met":  false
+                                       },
+                             "R_peak":  {
+                                            "value":  81.8,
+                                            "peakKb":  83786,
+                                            "samples":  7,
+                                            "unit":  "MB",
+                                            "met":  true
+                                        }
+                         }
+                     ]
+}
