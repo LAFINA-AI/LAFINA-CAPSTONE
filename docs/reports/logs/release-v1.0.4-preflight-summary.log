@@ -1,0 +1,4 @@
+Test Suites: 230 passed, 230 total
+Tests:       1 skipped, 3097 passed, 3098 total
+PASS: 520 TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/Kokoro or unapproved legacy study-tool dependencies; 123 offline leaves reach no network API or online module (transitive, dynamic imports included).
+EXIT 0

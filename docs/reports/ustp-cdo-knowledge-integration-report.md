@@ -149,3 +149,13 @@ Owner approval: "proceed and just do what you think is best".
 
 `STATUS: AWAITING DEVICE VALIDATION`
 `STOPPED — awaiting explicit human approval`
+
+## Release v1.0.4 (2026-11-24)
+
+- Commits `690035b` (the work) and `afc2fd9` (version and release notes) pushed to `main`, rebased onto `bc53bc9`. Tag `v1.0.4`, versionCode 102.
+- Ships this task (ADR-044, ADR-045), AUDIT-01, AUDIT-02, UI-POLISH, and the COR suggested-date fix: the 1st semester ends Dec 19, 2026 (official term summary), not Dec 17.
+- Full `npm run preflight` on the final tree: 230/230 suites, 3,097 tests passed, 1 skipped; typecheck, lint and architecture passed. Summary: `docs/reports/logs/release-v1.0.4-preflight-summary.log`.
+- `npm run release` (JDK 17) built and signed the APK (142,330,913 bytes), bundle and manifest. Log: `docs/reports/logs/release-v1.0.4-build.log`.
+- Published through the GitHub API: https://github.com/LAFINA-AI/LAFINA-CAPSTONE/releases/tag/v1.0.4. `releases/latest/download/lafina-update-android.json` served 1.0.4 (native 102) right after publishing. The downloaded APK's SHA-256 matches the local build.
+- Release notes: `docs/releases/v1.0.4.md` (student-facing).
+- NOT RUN: installing v1.0.4 through the in-app updater on a phone; any device check from the four reports.
