@@ -102,7 +102,7 @@ import {
   shouldUseOnlineIntentExtraction,
 } from './onlineIntentExtractor';
 import {
-  buildPromptHandbookContext,
+  buildPromptHandbookContextWithMeta,
   formatOfflineHandbookReply,
   LOCAL_NO_EVIDENCE_REPLY,
   localHandbookService,
@@ -1704,6 +1704,9 @@ export class ChatOrchestrator {
           };
           finalReply = lowRisk.reply;
           undo = lowRisk.undo;
+          if (undo && !isTemp) {
+            rememberUndoTurn(undo.token, userId, sessionId);
+          }
         } else if (lowRisk.status === 'clarify') {
           review = {
             status: 'clarify',
@@ -1947,13 +1950,20 @@ export class ChatOrchestrator {
           );
           const localPopulated = localHandbookStatus.populated;
           let localHandbookContext: OnlineHandbookContext | null = null;
+          let academicYearRefusal: string | null = null;
           if (!agent && !followUpAgent && useHandbook && localPopulated) {
-            localHandbookContext = await waitForCurrent(
+            const rawHandbookContext = await waitForCurrent(
               localHandbookService.buildOnlineContext(trimmed, {
                 previousUserQuery,
                 referenceDate: refDate,
               }),
             );
+            if (rawHandbookContext?.academicYearRefusal) {
+              academicYearRefusal = rawHandbookContext.academicYearRefusal;
+              localHandbookContext = null;
+            } else {
+              localHandbookContext = rawHandbookContext;
+            }
             if (
               localHandbookContext &&
               history.length > 0 &&
@@ -1962,32 +1972,45 @@ export class ChatOrchestrator {
               const existing = history[history.length - 1].content;
               const allowedExtra = Math.max(0, 3900 - existing.length);
               if (allowedExtra >= 250) {
-                const trimmedContext =
-                  localHandbookContext.contextBlock.length <= allowedExtra
-                    ? localHandbookContext.contextBlock
-                    : buildPromptHandbookContext(
-                        localHandbookContext.matches,
-                        allowedExtra,
-                        {referenceDate: refDate},
-                      );
+                let trimmedContext = localHandbookContext.contextBlock;
+                if (trimmedContext.length > allowedExtra) {
+                  const built = buildPromptHandbookContextWithMeta(
+                    localHandbookContext.matches,
+                    allowedExtra,
+                    {referenceDate: refDate},
+                  );
+                  trimmedContext = built.contextBlock;
+                  localHandbookContext = built.contextBlock
+                    ? {
+                        contextBlock: built.contextBlock,
+                        matches: built.includedMatches,
+                        sources: built.includedSources,
+                      }
+                    : null;
+                }
                 if (trimmedContext) {
                   history[history.length - 1] = {
                     ...history[history.length - 1],
                     content: existing + trimmedContext,
                   };
+                } else {
+                  localHandbookContext = null;
                 }
+              } else {
+                localHandbookContext = null;
               }
             }
           }
           const localUstpUnsupported =
             !agent &&
             !followUpAgent &&
-            ustpRagOnly &&
-            !smallTalk &&
-            localPopulated &&
-            !localHandbookContext;
+            (Boolean(academicYearRefusal) ||
+              (ustpRagOnly &&
+                !smallTalk &&
+                localPopulated &&
+                !localHandbookContext));
           if (localUstpUnsupported) {
-            finalReply = LOCAL_NO_EVIDENCE_REPLY;
+            finalReply = academicYearRefusal ?? LOCAL_NO_EVIDENCE_REPLY;
             localReply = true;
           }
           // Steer DeepSeek toward scannable Markdown on non-greeting queries when
@@ -2246,7 +2269,7 @@ export class ChatOrchestrator {
     // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
     if (usedOnline && bench) {
       trace?.bypass('memory "last used" update');
-    } else if (usedOnline && chatMemoryStore.isEnabled(userId)) {
+    } else if (usedOnline && !isTemp && chatMemoryStore.isEnabled(userId)) {
       const promptIds = memoriesForPrompt(userId).map(m => m.id);
       if (promptIds.length > 0) chatMemoryStore.markUsed(userId, promptIds);
     }
@@ -2354,12 +2377,25 @@ export class ChatOrchestrator {
     token: string,
     options: {recordInChat?: boolean} = {},
   ): UndoResult {
+    const turn = undoTurns.get(token);
+    undoTurns.delete(token);
     const result = undoLowRiskCommand(userId, token);
     if (result.status === 'undone' && options.recordInChat !== false) {
       try {
-        chatStore.addMessage(userId, 'assistant', result.reply, null, {
-          localReply: true,
-        });
+        const targetSessionId =
+          turn &&
+          turn.userId === userId &&
+          chatStore.listSessions(userId).some(s => s.id === turn.sessionId)
+            ? turn.sessionId
+            : undefined;
+        chatStore.addMessage(
+          userId,
+          'assistant',
+          result.reply,
+          null,
+          {localReply: true},
+          targetSessionId,
+        );
       } catch (error) {
         console.warn(
           '[ChatOrchestrator] Could not save the undo to chat:',
@@ -2447,6 +2483,21 @@ const reviewTurns = new Map<
   {sessionId: string; assistantMessageId: string}
 >();
 const MAX_REMEMBERED_REVIEW_TURNS = 50;
+const undoTurns = new Map<string, {userId: string; sessionId: string}>();
+
+function rememberUndoTurn(
+  token: string,
+  userId: string,
+  sessionId: string,
+): void {
+  undoTurns.delete(token);
+  undoTurns.set(token, {userId, sessionId});
+  while (undoTurns.size > MAX_REMEMBERED_REVIEW_TURNS) {
+    const oldest = undoTurns.keys().next().value;
+    if (oldest === undefined) break;
+    undoTurns.delete(oldest);
+  }
+}
 
 function rememberReviewTurn(
   operationId: string,

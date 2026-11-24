@@ -60,6 +60,7 @@ export const createSyncScheduler = (
 
   const stopInterval = (): void => {
     started = false;
+    clearDebounce();
     clearIntervalTimer();
   };
 

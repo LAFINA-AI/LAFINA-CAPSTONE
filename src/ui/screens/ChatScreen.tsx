@@ -1275,6 +1275,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       cancelOpenReviewRef.current({silent: true});
       reviewSourceRef.current = null;
       setChatMultiBatch(null);
+      setUndoOffer(null);
     }
     shownChatIdRef.current = nextChatId;
     isTemporaryChatRef.current = false;
@@ -2080,7 +2081,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
   };
 
   const handleCancelChatMultiItem = (itemId: string) => {
-    if (!chatMultiBatch) return;
+    if (!chatMultiBatch || chatMultiBusy) return;
     const remaining = chatMultiBatch.items.filter(i => i.id !== itemId);
     if (remaining.length === 0) {
       setChatMultiBatch(null);
@@ -2257,7 +2258,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
       <View>
         {chatSyncNoticeVisible && !isTemporaryChat ? (
           <ChatSyncNotice
-            onChoice={keepSyncing => acknowledgeChatSyncRef.current(keepSyncing)}
+            onChoice={keepSyncing =>
+              acknowledgeChatSyncRef.current(keepSyncing)
+            }
           />
         ) : null}
         {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (

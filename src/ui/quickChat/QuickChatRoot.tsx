@@ -104,8 +104,6 @@ export const QuickChatRoot: React.FC = () => {
 
   useEffect(() => {
     mountedRef.current = true;
-    // This start worked: a downloaded app update is kept (see OtaBundles).
-    confirmLaunch();
     // Mounting means the activity was just created and is coming to the front.
     quickChatPresence.setOpen(true);
     void resolve();
@@ -120,6 +118,13 @@ export const QuickChatRoot: React.FC = () => {
       quickChatPresence.setOpen(false);
     };
   }, [resolve]);
+
+  // Keep a downloaded app update only after storage initialized and the panel is ready.
+  useEffect(() => {
+    if (phase.kind === 'panel' && phase.state !== 'storage') {
+      confirmLaunch();
+    }
+  }, [phase]);
 
   if (phase.kind === 'loading') {
     return <View style={styles.fill} testID="quick-chat-loading" />;

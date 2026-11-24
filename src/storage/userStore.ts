@@ -64,6 +64,7 @@ const enqueueProfileMutation = (
   operation: 'create' | 'update',
   tx: DatabaseTransaction,
 ): void => {
+  if (userId === GUEST_USER_ID) return;
   syncOutboxStore.enqueueMutation(
     userId,
     'profile',
@@ -277,6 +278,21 @@ export const userStore = {
     }
   },
 
+  getCurrentUserOrThrow: (): User | null => {
+    const sessionResult = db.executeSync('SELECT * FROM active_session');
+    if (sessionResult.rows && sessionResult.rows.length > 0) {
+      const userId = String(sessionResult.rows[0].user_id);
+      const userResult = db.executeSync('SELECT * FROM users WHERE id = ?', [
+        userId,
+      ]);
+      if (userResult.rows && userResult.rows.length > 0) {
+        return mapStoredUser(userResult.rows[0]);
+      }
+      return null;
+    }
+    return null;
+  },
+
   getCurrentUser: (): User | null => {
     try {
       const sessionResult = db.executeSync('SELECT * FROM active_session');
@@ -485,11 +501,13 @@ export const userStore = {
     const now = new Date().toISOString();
     try {
       db.transactionSync(tx => {
-        tx.executeSync(
+        const res = tx.executeSync(
           `UPDATE users SET time_format_24h = 0, updated_at = ? WHERE id = ?`,
           [now, userId],
         );
-        enqueueProfileMutation(userId, 'update', tx);
+        if ((res.rowsAffected ?? 0) > 0) {
+          enqueueProfileMutation(userId, 'update', tx);
+        }
       });
     } catch (error) {
       console.error('Error saving time format setting:', error);
@@ -566,11 +584,13 @@ export const userStore = {
     const now = new Date().toISOString();
     try {
       db.transactionSync(tx => {
-        tx.executeSync(
+        const res = tx.executeSync(
           `UPDATE users SET week_starts_monday = ?, updated_at = ? WHERE id = ?`,
           [enabled ? 1 : 0, now, userId],
         );
-        enqueueProfileMutation(userId, 'update', tx);
+        if ((res.rowsAffected ?? 0) > 0) {
+          enqueueProfileMutation(userId, 'update', tx);
+        }
       });
     } catch (error) {
       console.error('Error saving week starts on Monday setting:', error);
@@ -598,11 +618,13 @@ export const userStore = {
     const now = new Date().toISOString();
     try {
       db.transactionSync(tx => {
-        tx.executeSync(
+        const res = tx.executeSync(
           `UPDATE users SET dark_mode = ?, updated_at = ? WHERE id = ?`,
           [enabled ? 1 : 0, now, userId],
         );
-        enqueueProfileMutation(userId, 'update', tx);
+        if ((res.rowsAffected ?? 0) > 0) {
+          enqueueProfileMutation(userId, 'update', tx);
+        }
       });
     } catch (error) {
       console.error('Error saving dark mode setting:', error);

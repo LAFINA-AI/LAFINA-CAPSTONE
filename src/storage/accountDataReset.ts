@@ -17,6 +17,7 @@ import {corImportStore} from './corImportStore';
 import {scheduleEntriesStore} from './scheduleEntriesStore';
 import {studentSetupStore} from './studentSetupStore';
 import {materialStore} from './materialStore';
+import {syncOutboxStore} from './syncOutboxStore';
 import {invalidateOwnerWork} from './ownerWorkEpoch';
 import {
   recordPersonalFileCleanup,
@@ -134,6 +135,7 @@ const PLANNER_LEFT = [
   'SELECT COUNT(*) AS n FROM events WHERE user_id = ? AND deleted_at IS NULL',
   'SELECT COUNT(*) AS n FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL',
   'SELECT COUNT(*) AS n FROM reminders WHERE user_id = ? AND deleted_at IS NULL',
+  'SELECT COUNT(*) AS n FROM custom_categories WHERE user_id = ? AND deleted_at IS NULL',
   'SELECT COUNT(*) AS n FROM user_behavior_logs WHERE user_id = ?',
   'SELECT COUNT(*) AS n FROM ml_feature_snapshots WHERE user_id = ?',
   'SELECT COUNT(*) AS n FROM alarms WHERE user_id = ?',
@@ -168,8 +170,61 @@ const clearPlanner = (tx: DatabaseTransaction, userId: string): void => {
     tasksStore.deleteEvent(event.id, tx);
   for (const block of timeBlocksStore.getAllOrThrow(userId, tx))
     timeBlocksStore.delete(block.id, tx);
-  for (const reminder of remindersStore.getAllRemindersOrThrow(userId, tx)) {
+  const remainingReminders = remindersStore.getAllRemindersOrThrow(userId, tx);
+  const cleanupRows: Array<{id: string; preCastAudioPath: string | null}> = [];
+  for (const reminder of remainingReminders) {
     remindersStore.deleteReminder(reminder.id, tx);
+    cleanupRows.push({
+      id: reminder.id,
+      preCastAudioPath: reminder.preCastAudioPath ?? null,
+    });
+  }
+  if (cleanupRows.length > 0) {
+    const cleanup = (): void => {
+      try {
+        const {
+          cancelReminderAlarm,
+          finishNativeIncomingCall,
+        } = require('../scheduler/reminderAlarm');
+        const {deletePreCachedReminderAudio} = require('../ai/tts/ttsService');
+        for (const rem of cleanupRows) {
+          cancelReminderAlarm(rem.id).catch(() => undefined);
+          finishNativeIncomingCall(rem.id).catch(() => undefined);
+          if (rem.preCastAudioPath) {
+            deletePreCachedReminderAudio(rem.preCastAudioPath).catch(
+              () => undefined,
+            );
+          }
+        }
+      } catch (error) {
+        console.warn('[DataReset] Could not cancel reminder alarms:', error);
+      }
+    };
+    if (tx.afterCommit) tx.afterCommit(cleanup);
+    else cleanup();
+  }
+  const categories =
+    tx.executeSync(
+      'SELECT id FROM custom_categories WHERE user_id = ? AND deleted_at IS NULL',
+      [userId],
+    ).rows ?? [];
+  const catNow = new Date().toISOString();
+  for (const row of categories) {
+    const catId = String(row.id);
+    tx.executeSync(
+      'UPDATE custom_categories SET deleted_at = ?, updated_at = ? WHERE id = ?',
+      [catNow, catNow, catId],
+    );
+    syncOutboxStore.enqueueMutation(
+      userId,
+      'custom_category',
+      catId,
+      'delete',
+      {},
+      'account',
+      userId,
+      tx,
+    );
   }
   // The new ML history is personal derived data, not a device preference.
   tx.executeSync('DELETE FROM user_behavior_logs WHERE user_id = ?', [userId]);
@@ -258,6 +313,12 @@ export const resetPersonalData = (
     try {
       db.transactionSync(tx => {
         // Codex audit A3: saved event defaults are personal scheduling memory.
+        const corDraft = corImportStore.getDraft(userId, tx);
+        const corDocPath = corDraft?.document?.localPath;
+        const skillDocs = readSkillsDocumentPaths(userId, tx, true);
+        if (typeof corDocPath === 'string' && corDocPath.trim()) {
+          skillDocs.push(corDocPath.trim());
+        }
         recordPersonalFileCleanup(
           tx,
           userId,
@@ -266,7 +327,7 @@ export const resetPersonalData = (
               userId,
             ])
             .rows.map(row => String(row.id)),
-          readSkillsDocumentPaths(userId, tx, true),
+          skillDocs,
         );
         personalMemoryStore.clearForDataReset(userId, tx);
         academicProfileStore.clear(userId, tx);

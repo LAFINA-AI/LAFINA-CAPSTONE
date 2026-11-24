@@ -30,6 +30,7 @@ class LafinaReminderService : Service() {
       return START_NOT_STICKY
     }
 
+    val token = intent.getLongExtra(EXTRA_START_TOKEN, -1L)
     val task = intent.getStringExtra(EXTRA_TASK).orEmpty()
     val notification = createNotification(task)
     try {
@@ -38,15 +39,22 @@ class LafinaReminderService : Service() {
       } else {
         startForeground(NOTIFICATION_ID, notification)
       }
-    } catch (error: SecurityException) {
+    } catch (error: Exception) {
       synchronized(START_LOCK) {
-        startPromise?.reject("PERMISSION_DENIED", "Microphone service could not start.", error)
-        startPromise = null
+        if (token < 0L || token == startSequence) {
+          val code = if (error is SecurityException) "PERMISSION_DENIED" else "SERVICE_START_FAILED"
+          startPromise?.reject(code, "Microphone service could not start.", error)
+          startPromise = null
+        }
       }
       stopSelf()
       return START_NOT_STICKY
     }
     synchronized(START_LOCK) {
+      if (token >= 0L && token != startSequence) {
+        // Stale intent superseded by a newer begin(); do not settle its promise or stop it.
+        return START_NOT_STICKY
+      }
       running = this
       startPromise?.resolve(!stopRequested)
       startPromise = null
@@ -130,9 +138,12 @@ class LafinaReminderService : Service() {
     private var running: LafinaReminderService? = null
     private var stopRequested = false
     private var startPromise: Promise? = null
+    private var startSequence = 0L
 
     fun begin(context: Context, intent: Intent, promise: Promise) = synchronized(START_LOCK) {
       startPromise?.reject("SUPERSEDED", "Another call replaced this startup.")
+      val token = ++startSequence
+      intent.putExtra(EXTRA_START_TOKEN, token)
       startPromise = promise
       stopRequested = false
       try { ContextCompat.startForegroundService(context, intent) }
@@ -147,6 +158,7 @@ class LafinaReminderService : Service() {
     }
     const val ACTION_START_ACTIVE_CALL = "com.lafina.capstone.ACTION_START_ACTIVE_CALL"
     const val EXTRA_TASK = "extra_task"
+    private const val EXTRA_START_TOKEN = "extra_start_token"
     private const val CHANNEL_ID = "lafina_active_call_channel"
     private const val NOTIFICATION_ID = 4001
     private const val ACTIVE_CALL_REQUEST_CODE = 4002

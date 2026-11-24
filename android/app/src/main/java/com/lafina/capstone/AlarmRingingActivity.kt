@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.text.format.DateFormat
 import android.util.TypedValue
@@ -18,6 +19,8 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.core.content.ContextCompat
 import java.util.Date
 
@@ -28,9 +31,14 @@ import java.util.Date
  * asks for the microphone.
  */
 class AlarmRingingActivity : Activity() {
+  private var waitingForKeyguardDismiss = false
+  private var backInvokedCallback: OnBackInvokedCallback? = null
+
   private val stoppedReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-      finish()
+      if (!waitingForKeyguardDismiss) {
+        finish()
+      }
     }
   }
 
@@ -40,6 +48,46 @@ class AlarmRingingActivity : Activity() {
     setTurnScreenOn(true)
     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      val callback = OnBackInvokedCallback {
+        // Ignore Back while an alarm is actively ringing so it must be Dismissed or Snoozed.
+        if (LafinaAlarmService.ringing == null && !waitingForKeyguardDismiss) {
+          finish()
+        }
+      }
+      backInvokedCallback = callback
+      onBackInvokedDispatcher.registerOnBackInvokedCallback(
+          OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+    }
+
+    ContextCompat.registerReceiver(
+        this, stoppedReceiver, IntentFilter(LafinaAlarms.ACTION_STOPPED), ContextCompat.RECEIVER_NOT_EXPORTED)
+
+    bindRingingRequest()
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    bindRingingRequest()
+  }
+
+  override fun onResume() {
+    super.onResume()
+    if (!waitingForKeyguardDismiss) {
+      bindRingingRequest()
+    }
+  }
+
+  @Deprecated("Deprecated in Java")
+  override fun onBackPressed() {
+    if (LafinaAlarmService.ringing == null && !waitingForKeyguardDismiss) {
+      @Suppress("DEPRECATION")
+      super.onBackPressed()
+    }
+  }
+
+  private fun bindRingingRequest() {
     val request = LafinaAlarmService.ringing
     if (request == null) {
       finish()
@@ -79,17 +127,19 @@ class AlarmRingingActivity : Activity() {
       })
     }
     root.addView(button("Dismiss", accent, Color.WHITE) {
-      LafinaAlarmService.finish(this, AlarmEvent.DISMISSED)
       if (briefing) {
-        openForBriefing { finish() }
+        waitingForKeyguardDismiss = true
+        LafinaAlarmService.finish(this, AlarmEvent.DISMISSED)
+        openForBriefing {
+          waitingForKeyguardDismiss = false
+          finish()
+        }
       } else {
+        LafinaAlarmService.finish(this, AlarmEvent.DISMISSED)
         finish()
       }
     })
     setContentView(root)
-
-    ContextCompat.registerReceiver(
-        this, stoppedReceiver, IntentFilter(LafinaAlarms.ACTION_STOPPED), ContextCompat.RECEIVER_NOT_EXPORTED)
   }
 
   /**
@@ -104,21 +154,26 @@ class AlarmRingingActivity : Activity() {
     }
     val keyguard = getSystemService(KeyguardManager::class.java)
     if (keyguard?.isKeyguardLocked == true) {
+      waitingForKeyguardDismiss = true
       keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
         override fun onDismissSucceeded() {
+          waitingForKeyguardDismiss = false
           startActivity(open)
           onDone()
         }
 
         override fun onDismissCancelled() {
+          waitingForKeyguardDismiss = false
           onDone()
         }
 
         override fun onDismissError() {
+          waitingForKeyguardDismiss = false
           onDone()
         }
       })
     } else {
+      waitingForKeyguardDismiss = false
       startActivity(open)
       onDone()
     }
@@ -145,6 +200,15 @@ class AlarmRingingActivity : Activity() {
       TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics).toInt()
 
   override fun onDestroy() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      backInvokedCallback?.let { cb ->
+        try {
+          onBackInvokedDispatcher.unregisterOnBackInvokedCallback(cb)
+        } catch (_: Exception) {
+        }
+      }
+      backInvokedCallback = null
+    }
     try {
       unregisterReceiver(stoppedReceiver)
     } catch (_: Exception) {

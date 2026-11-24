@@ -41,15 +41,11 @@ class AlarmFireReceiver : BroadcastReceiver() {
         if (!current.enabled) return
         if (current.isRepeating) {
           LafinaAlarms.bookFollowing(context, current, maxOf(now, triggerAt))
-        } else {
-          registry.put(current.copy(enabled = false, snoozeUntilMs = 0L))
-          LafinaAlarms.recordEvent(context, AlarmEvent(alarmId, AlarmEvent.ONE_SHOT_DONE, now, generation))
         }
       }
       current
     }
-    LafinaAlarms.recordEvent(context, AlarmEvent(alarmId, AlarmEvent.FIRED, now, generation))
-    LafinaAlarmService.start(
+    val started = LafinaAlarmService.start(
         context,
         RingRequest(
             alarmId = definition.id,
@@ -58,6 +54,19 @@ class AlarmFireReceiver : BroadcastReceiver() {
             vibrate = definition.vibrate,
             soundUri = definition.soundUri,
             isTest = false))
+    if (started) {
+      if (!isSnooze && !definition.isRepeating) {
+        synchronized(LafinaAlarms.LOCK) {
+          val registry = LafinaAlarms.registry(context)
+          val latest = registry.get(alarmId)
+          if (latest != null && latest.generation == generation && latest.enabled && !latest.isRepeating) {
+            registry.put(latest.copy(enabled = false, snoozeUntilMs = 0L))
+            LafinaAlarms.recordEvent(context, AlarmEvent(alarmId, AlarmEvent.ONE_SHOT_DONE, now, generation))
+          }
+        }
+      }
+      LafinaAlarms.recordEvent(context, AlarmEvent(alarmId, AlarmEvent.FIRED, now, generation))
+    }
   }
 }
 

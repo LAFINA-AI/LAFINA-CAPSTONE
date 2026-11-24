@@ -21,6 +21,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 
 /** What to ring: from a saved alarm, or the "test alarm in 1 minute" button. */
@@ -54,7 +55,7 @@ class LafinaAlarmService : Service() {
     @Volatile var ringing: RingRequest? = null
       private set
 
-    fun start(context: Context, request: RingRequest) {
+    fun start(context: Context, request: RingRequest): Boolean {
       val intent = Intent(context, LafinaAlarmService::class.java).apply {
         action = ACTION_RING
         putExtra(LafinaAlarms.EXTRA_ALARM_ID, request.alarmId)
@@ -64,7 +65,45 @@ class LafinaAlarmService : Service() {
         putExtra(EXTRA_VIBRATE, request.vibrate)
         putExtra(EXTRA_SOUND, request.soundUri)
       }
-      ContextCompat.startForegroundService(context, intent)
+      return try {
+        ContextCompat.startForegroundService(context, intent)
+        true
+      } catch (_: Exception) {
+        postFallbackAlarmNotification(context, request)
+        false
+      }
+    }
+
+    private fun postFallbackAlarmNotification(context: Context, request: RingRequest) {
+      try {
+        createChannel(context)
+        val fullScreen = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, AlarmRingingActivity::class.java).apply {
+              addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val dismiss = PendingIntent.getBroadcast(
+            context,
+            1,
+            Intent(context, AlarmFireReceiver::class.java).setAction(LafinaAlarms.ACTION_DISMISS),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(request.label)
+            .setContentText("LAFINA alarm")
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setFullScreenIntent(fullScreen, true)
+            .setContentIntent(fullScreen)
+            .setAutoCancel(true)
+            .addAction(0, "Dismiss", dismiss)
+            .build()
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+      } catch (_: Exception) {
+      }
     }
 
     /** Dismiss or Snooze from the ringing screen, the notification or JS. */
@@ -146,10 +185,17 @@ class LafinaAlarmService : Service() {
     ringing = request
     createChannel(this)
     val notification = buildNotification(request)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-    } else {
-      startForeground(NOTIFICATION_ID, notification)
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+      } else {
+        startForeground(NOTIFICATION_ID, notification)
+      }
+    } catch (_: Exception) {
+      ringing = null
+      postFallbackAlarmNotification(this, request)
+      stopSelf()
+      return START_NOT_STICKY
     }
     acquireWakeLock()
     startSound(request)

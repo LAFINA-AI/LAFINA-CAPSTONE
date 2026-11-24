@@ -100,22 +100,51 @@ export const getTimeOfDayGreeting = (now: Date): string => {
   return 'Good evening';
 };
 
+const previousDateStr = (dateStr: string): string | null => {
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(n => !Number.isFinite(n))) return null;
+  const d = new Date(parts[0], parts[1] - 1, parts[2] - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    '0',
+  )}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const buildDayScheduleItems = (
   dateStr: string,
   blocks: readonly TimeBlock[],
   events: readonly Event[],
 ): DashboardScheduleItem[] => {
   const items: DashboardScheduleItem[] = [];
+  const prevDate = previousDateStr(dateStr);
 
   for (const block of blocks) {
-    if (block.date !== dateStr) continue;
     const startMinutes = parseTimeMinutes(block.startTime, false);
     const endMinutes = parseTimeMinutes(block.endTime, true);
     if (
       startMinutes === null ||
       endMinutes === null ||
-      endMinutes <= startMinutes
+      endMinutes === startMinutes
     ) {
+      continue;
+    }
+    const isOvernight = endMinutes < startMinutes;
+    let clippedStart: number;
+    let clippedEnd: number;
+    let itemId = block.id;
+    if (block.date === dateStr) {
+      clippedStart = startMinutes;
+      clippedEnd = isOvernight ? 1440 : endMinutes;
+    } else if (
+      prevDate &&
+      block.date === prevDate &&
+      isOvernight &&
+      endMinutes > 0
+    ) {
+      clippedStart = 0;
+      clippedEnd = endMinutes;
+      itemId = `${block.id}::carry`;
+    } else {
       continue;
     }
     const isClass = block.category.toLowerCase() === 'class';
@@ -123,15 +152,15 @@ export const buildDayScheduleItems = (
     const trimmedNotes = block.notes?.trim() || null;
 
     items.push({
-      id: block.id,
+      id: itemId,
       baseId: baseEntityId(block.id),
       kind: isClass ? 'class' : 'block',
       title: block.title,
-      date: block.date,
+      date: dateStr,
       startTime: block.startTime,
       endTime: block.endTime,
-      startMinutes,
-      endMinutes,
+      startMinutes: clippedStart,
+      endMinutes: clippedEnd,
       color: block.color || getCategoryColor(block.category),
       category: block.category || 'Time Block',
       subtitle: isClass
@@ -144,28 +173,46 @@ export const buildDayScheduleItems = (
   }
 
   for (const event of events) {
-    if (event.date !== dateStr) continue;
     if (isBirthdayEvent(event)) continue;
     const startMinutes = parseTimeMinutes(event.startTime, false);
     const endMinutes = parseTimeMinutes(event.endTime, true);
     if (
       startMinutes === null ||
       endMinutes === null ||
-      endMinutes <= startMinutes
+      endMinutes === startMinutes
     ) {
+      continue;
+    }
+    const isOvernight = endMinutes < startMinutes;
+    let clippedStart: number;
+    let clippedEnd: number;
+    let itemId = event.id;
+    if (event.date === dateStr) {
+      clippedStart = startMinutes;
+      clippedEnd = isOvernight ? 1440 : endMinutes;
+    } else if (
+      prevDate &&
+      event.date === prevDate &&
+      isOvernight &&
+      endMinutes > 0
+    ) {
+      clippedStart = 0;
+      clippedEnd = endMinutes;
+      itemId = `${event.id}::carry`;
+    } else {
       continue;
     }
 
     items.push({
-      id: event.id,
+      id: itemId,
       baseId: baseEntityId(event.id),
       kind: 'event',
       title: event.title,
-      date: event.date,
+      date: dateStr,
       startTime: event.startTime,
       endTime: event.endTime,
-      startMinutes,
-      endMinutes,
+      startMinutes: clippedStart,
+      endMinutes: clippedEnd,
       color: Colors.blue,
       category: 'Event',
       subtitle: event.location?.trim() || null,

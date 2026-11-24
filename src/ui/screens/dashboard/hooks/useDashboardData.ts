@@ -122,6 +122,7 @@ const resolveGreetingName = (
 
 const readDashboardSnapshot = (userId: string, refDate: Date): RawSnapshot => {
   const todayStr = formatLocalDateStr(refDate);
+  const yesterdayStr = formatLocalDateStr(addDaysToDate(refDate, -1));
   const sevenDaysStr = formatLocalDateStr(addDaysToDate(refDate, 7));
 
   let academic: AcademicProfileRecord | null = null;
@@ -174,10 +175,10 @@ const readDashboardSnapshot = (userId: string, refDate: Date): RawSnapshot => {
   let readError: string | null = null;
 
   try {
-    const win = plannerQueries.window(userId, todayStr, sevenDaysStr);
+    const win = plannerQueries.window(userId, yesterdayStr, sevenDaysStr);
     blocks = win.blocks;
     events = win.events;
-    windowTasks = win.tasks;
+    windowTasks = win.tasks.filter(t => !t.dueDate || t.dueDate >= todayStr);
     overdue = plannerQueries.overdueTasks(userId, todayStr, 20);
   } catch {
     readError = 'Could not read your local schedule from storage.';

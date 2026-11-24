@@ -135,32 +135,70 @@ export const getOccurrences = (
 ): string[] => {
   if (!startDateStr) return [];
 
+  const localRangeStart = new Date(
+    rangeStart.getFullYear(),
+    rangeStart.getMonth(),
+    rangeStart.getDate(),
+  );
+  const localRangeEnd = new Date(
+    rangeEnd.getFullYear(),
+    rangeEnd.getMonth(),
+    rangeEnd.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+
   // Imported rules keep their RFC semantics (e.g. Jan 31 skips February),
   // while existing manually created rules retain LAFINA's month-end clamping.
   if (recurrenceRule?.startsWith('RRULE:')) {
-    const utcDay = (date: Date) =>
-      new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const end = utcDay(rangeEnd);
-    end.setUTCHours(23, 59, 59, 999);
-    const imported = rrulestr(
-      `DTSTART:${startDateStr.replace(/-/g, '')}T000000Z\n${recurrenceRule}`,
-    );
-    return imported
-      .between(utcDay(rangeStart), end, true, (_date, index) => {
-        if (index >= 10000)
-          throw new Error(
-            'The recurrence window is too large. Choose a shorter date range.',
-          );
-        return true;
-      })
-      .map(date => date.toISOString().slice(0, 10));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDateStr)) return [];
+    try {
+      const utcDay = (date: Date) =>
+        new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const end = utcDay(rangeEnd);
+      end.setUTCHours(23, 59, 59, 999);
+      const imported = rrulestr(
+        `DTSTART:${startDateStr.replace(/-/g, '')}T000000Z\n${recurrenceRule}`,
+      );
+      return imported
+        .between(utcDay(rangeStart), end, true, (_date, index) => {
+          if (index >= 10000)
+            throw new Error(
+              'The recurrence window is too large. Choose a shorter date range.',
+            );
+          return true;
+        })
+        .map(date => date.toISOString().slice(0, 10));
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('recurrence window is too large')
+      ) {
+        throw error;
+      }
+      const startDt = parseLocalDate(startDateStr);
+      if (
+        Number.isFinite(startDt.getTime()) &&
+        startDt >= localRangeStart &&
+        startDt <= localRangeEnd
+      ) {
+        return [startDateStr];
+      }
+      return [];
+    }
   }
 
   const rule = parseRrule(recurrenceRule);
   if (!rule) {
     // If no recurrence, only return the start date if it falls inside the range
     const startDt = parseLocalDate(startDateStr);
-    if (startDt >= rangeStart && startDt <= rangeEnd) {
+    if (
+      Number.isFinite(startDt.getTime()) &&
+      startDt >= localRangeStart &&
+      startDt <= localRangeEnd
+    ) {
       return [startDateStr];
     }
     return [];
@@ -174,9 +212,9 @@ export const getOccurrences = (
   if (!Number.isFinite(startDt.getTime()) || count <= 0) return [];
   const dayNumber = (d: Date) =>
     Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
-  const end = untilDt && untilDt < rangeEnd ? untilDt : rangeEnd;
+  const end = untilDt && untilDt < localRangeEnd ? untilDt : localRangeEnd;
   const push = (date: Date) => {
-    if (date < rangeStart || date > end) return;
+    if (date < localRangeStart || date > end) return;
     if (occurrences.length >= 10000)
       throw new Error(
         'The recurrence window is too large. Choose a shorter date range.',

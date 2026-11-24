@@ -6,7 +6,10 @@ import {
 } from './authService';
 import {cloudClient, CloudResultStatus} from './cloudClient';
 import {normalizeEmail, validatePassword} from '../storage/authUtils';
+import {guestMigration} from '../storage/guestMigration';
 import {userStore} from '../storage/userStore';
+import {reconcileAlarms} from '../scheduler/alarmService';
+import {reconcileReminderDelivery} from '../scheduler/deliveryReconciler';
 import {secureKeystore} from '../utils/keystore';
 
 export type AccountFlowStatus =
@@ -40,7 +43,37 @@ interface RegistrationInput {
   username: string;
   email: string;
   password: string;
+  migrateGuestData?: boolean;
 }
+
+interface CloudAuthOutcome {
+  data: AuthResponseData;
+  existingAccount: boolean;
+}
+
+const migrateGuestDataIfRequested = async (
+  localUserId: string,
+  normalizedEmail: string,
+  migrateGuestData?: boolean,
+): Promise<void> => {
+  if (!migrateGuestData || !guestMigration.hasGuestAccountData()) {
+    return;
+  }
+  try {
+    await guestMigration.linkGuestToCloudAccount(localUserId, normalizedEmail, {
+      preserveActiveSession: true,
+    });
+    await Promise.allSettled([
+      reconcileAlarms(localUserId),
+      reconcileReminderDelivery(localUserId),
+    ]);
+  } catch (error: unknown) {
+    console.warn(
+      '[AccountLink] Failed to migrate guest data to account:',
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+};
 
 const mapCloudFailure = (
   status: CloudResultStatus,
@@ -196,11 +229,11 @@ const registerOrAuthenticateCloudAccount = async (
   email: string,
   password: string,
   options?: {preferLogin?: boolean; allowRegisterFallback?: boolean},
-): Promise<AccountFlowResult | AuthResponseData> => {
+): Promise<AccountFlowResult | CloudAuthOutcome> => {
   if (options?.preferLogin) {
     const loginResult = await authService.login(email, password);
     if (loginResult.status === 'success' && loginResult.data) {
-      return loginResult.data;
+      return {data: loginResult.data, existingAccount: true};
     }
     if (
       loginResult.status === 'auth_required' &&
@@ -208,7 +241,7 @@ const registerOrAuthenticateCloudAccount = async (
     ) {
       const registrationResult = await authService.register(email, password);
       if (registrationResult.status === 'success' && registrationResult.data) {
-        return registrationResult.data;
+        return {data: registrationResult.data, existingAccount: false};
       }
       if (registrationResult.status !== 'conflict') {
         return mapCloudFailure(
@@ -227,10 +260,13 @@ const registerOrAuthenticateCloudAccount = async (
 
   const registrationResult = await authService.register(email, password);
   if (registrationResult.status === 'success' && registrationResult.data) {
-    return registrationResult.data;
+    return {data: registrationResult.data, existingAccount: false};
   }
   if (registrationResult.status === 'conflict') {
-    return await authenticateExistingCloudAccount(email, password);
+    const existing = await authenticateExistingCloudAccount(email, password);
+    return isFlowResult(existing)
+      ? existing
+      : {data: existing, existingAccount: true};
   }
   return mapCloudFailure(
     registrationResult.status,
@@ -240,7 +276,7 @@ const registerOrAuthenticateCloudAccount = async (
 };
 
 const isFlowResult = (
-  result: AccountFlowResult | AuthResponseData,
+  result: AccountFlowResult | AuthResponseData | CloudAuthOutcome,
 ): result is AccountFlowResult => 'status' in result;
 
 const persistDeferredCloudCredential = async (
@@ -381,7 +417,7 @@ const runDeferredCloudLink = async (
       }
       return cloudAuth;
     }
-    return await attachAuthenticatedCloudSession(localUserId, cloudAuth);
+    return await attachAuthenticatedCloudSession(localUserId, cloudAuth.data);
   } finally {
     password = '';
   }
@@ -405,6 +441,7 @@ const restoreAttempts = new Map<string, Promise<AccountFlowResult>>();
 const runCloudRestore = async (
   email: string,
   password: string,
+  options?: {migrateGuestData?: boolean},
 ): Promise<AccountFlowResult> => {
   if (!(await cloudClient.isOnline())) {
     return {
@@ -462,6 +499,11 @@ const runCloudRestore = async (
   userStore.setCurrentUser(localUserId);
   cloudClient.resetSessionCache();
   await persistDeferredCloudCredential(localUserId, password);
+  await migrateGuestDataIfRequested(
+    localUserId,
+    email,
+    options?.migrateGuestData,
+  );
 
   const linkResult = await attachAuthenticatedCloudSession(
     localUserId,
@@ -488,10 +530,11 @@ const runCloudRestore = async (
 const restoreAccountFromCloud = async (
   email: string,
   password: string,
+  options?: {migrateGuestData?: boolean},
 ): Promise<AccountFlowResult> => {
   const running = restoreAttempts.get(email);
   if (running) return await running;
-  const attempt = runCloudRestore(email, password);
+  const attempt = runCloudRestore(email, password, options);
   restoreAttempts.set(email, attempt);
   try {
     return await attempt;
@@ -558,14 +601,28 @@ export const accountLinkService = {
 
     let localUserId: string;
     try {
-      localUserId = await userStore.register(
-        input.username.trim(),
-        normalizedEmail,
-        input.password,
-      );
+      if (cloudResult.existingAccount && cloudResult.data.user_id) {
+        localUserId = await userStore.createFromCloud({
+          email: normalizedEmail,
+          password: input.password,
+          cloudAccountId: cloudResult.data.user_id,
+          role: cloudResult.data.role,
+        });
+      } else {
+        localUserId = await userStore.register(
+          input.username.trim(),
+          normalizedEmail,
+          input.password,
+        );
+      }
       userStore.setCurrentUser(localUserId);
       cloudClient.resetSessionCache();
       await persistDeferredCloudCredential(localUserId, input.password);
+      await migrateGuestDataIfRequested(
+        localUserId,
+        normalizedEmail,
+        input.migrateGuestData,
+      );
     } catch (error: unknown) {
       return {
         status: 'registration_failed',
@@ -578,7 +635,7 @@ export const accountLinkService = {
 
     const linkResult = await attachAuthenticatedCloudSession(
       localUserId,
-      cloudResult,
+      cloudResult.data,
     );
     if (linkResult.status !== 'success') {
       return {
@@ -586,10 +643,13 @@ export const accountLinkService = {
         status: 'local_only',
         cloudStatus: linkResult.status,
         localUserId,
+        restoredFromCloud: cloudResult.existingAccount || undefined,
         message: `${linkResult.message} The new local account remains available offline.`,
       };
     }
-    return linkResult;
+    return cloudResult.existingAccount
+      ? {...linkResult, restoredFromCloud: true}
+      : linkResult;
   },
 
   registerOfflineOnly: async (
@@ -621,6 +681,11 @@ export const accountLinkService = {
         localUserId,
         input.password,
       );
+      await migrateGuestDataIfRequested(
+        localUserId,
+        normalizedEmail,
+        input.migrateGuestData,
+      );
       return {
         status: 'offline_only',
         localUserId,
@@ -641,6 +706,7 @@ export const accountLinkService = {
   login: async (
     email: string,
     password: string,
+    options?: {migrateGuestData?: boolean},
   ): Promise<AccountFlowResult> => {
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
@@ -652,7 +718,7 @@ export const accountLinkService = {
     const normalizedEmail = normalizeEmail(email);
     const localUser = userStore.getUserByEmail(normalizedEmail);
     if (!localUser) {
-      return await restoreAccountFromCloud(normalizedEmail, password);
+      return await restoreAccountFromCloud(normalizedEmail, password, options);
     }
     const authenticatedLocalUser = await userStore.login(
       normalizedEmail,
@@ -672,6 +738,11 @@ export const accountLinkService = {
     const credentialStored = await persistDeferredCloudCredential(
       authenticatedLocalUser.id,
       password,
+    );
+    await migrateGuestDataIfRequested(
+      authenticatedLocalUser.id,
+      normalizedEmail,
+      options?.migrateGuestData,
     );
 
     if (!(await cloudClient.isOnline())) {
@@ -705,7 +776,7 @@ export const accountLinkService = {
             ? cloudAuth
             : await attachAuthenticatedCloudSession(
                 authenticatedLocalUser.id,
-                cloudAuth,
+                cloudAuth.data,
               );
         })();
     if (linkResult.status !== 'success') {
@@ -769,6 +840,12 @@ export const accountLinkService = {
       };
     }
     if (profileResult.status !== 'success' || !profileResult.data) {
+      if (
+        profileResult.status === 'auth_required' &&
+        profileResult.sessionEnded
+      ) {
+        cloudClient.clearActiveSession();
+      }
       const mapped = mapCloudFailure(
         profileResult.status,
         profileResult.error || 'The live FastAPI profile could not be loaded.',

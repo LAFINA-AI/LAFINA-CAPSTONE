@@ -5,8 +5,11 @@ import {
 import {
   autoSnoozeCall,
   commitAgentSnooze,
+  isExternalVoiceDowngraded,
   ownsCallCapture,
 } from '../../scheduler/callDispatcher';
+import {silenceNativeIncomingCall} from '../../scheduler/reminderAlarm';
+import {stopSpeechPlayback} from '../../ai/tts/ttsService';
 import {cloudClient} from '../../cloud/cloudClient';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
@@ -133,7 +136,7 @@ const NO_CARD_CONTEXT =
 /** How long the agent's planner tool waits for the device's reading of a turn. */
 const TURN_READ_WAIT_MS = 8000;
 /** Longest the online audio waits for the reminder reading to finish. */
-const GREETING_GATE_MAX_MS = 20_000;
+const GREETING_GATE_MAX_MS = 45_000;
 
 /** What the device made of one student turn, for the agent's planner tools. */
 type TurnOutcome =
@@ -388,7 +391,10 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     return Promise.race([
       gate.promise,
       new Promise<void>(done => {
-        timer = setTimeout(done, GREETING_GATE_MAX_MS);
+        timer = setTimeout(() => {
+          void stopSpeechPlayback().catch(() => undefined);
+          done();
+        }, GREETING_GATE_MAX_MS);
       }),
     ]).finally(() => {
       if (timer) clearTimeout(timer);
@@ -612,6 +618,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     setAnswering(true);
     const attempt = ++attemptRef.current;
     Vibration.cancel();
+    void silenceNativeIncomingCall(reminderId, userId, deliveryGeneration);
     setCallState('connected');
     const currentAlertPrefs = alertPrefsRef.current;
     // Online Mode on (when allowed by answer mode): open straight into the
@@ -736,7 +743,13 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           closeCallScreen();
         return;
       }
-      if (goOnline && AppState.currentState !== 'active') {
+      if (goOnline && isExternalVoiceDowngraded?.(reminderId, userId)) {
+        void stopOnline();
+        setOnlineView(false);
+        setReply(
+          'Microphone access is unavailable. Use Acknowledge or Snooze below.',
+        );
+      } else if (goOnline && AppState.currentState !== 'active') {
         void stopOnline();
         setOnlineView(false);
         setReply('The app left the screen. Use Acknowledge or Snooze below.');

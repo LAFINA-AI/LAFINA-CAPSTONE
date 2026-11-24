@@ -414,6 +414,64 @@ const resolveDtend = (vevent: any, dtstart: Date): Date => {
 export const MAX_ICS_BYTES = 5 * 1024 * 1024;
 export const MAX_ICS_OCCURRENCES = 10000;
 
+const resolveIcsUtcInstant = (
+  prop: {value?: string; timezone?: string} | undefined,
+  rawValue?: string,
+): Date => {
+  const digits = cleanIcsValue(prop?.value ?? '')
+    .trim()
+    .replace(/Z$/i, '');
+  const match = ICS_DATE_TIME.exec(digits);
+  const isUtc =
+    rawValue !== undefined && /Z$/i.test(cleanIcsValue(rawValue).trim());
+  if (
+    match &&
+    match[4] !== undefined &&
+    !isUtc &&
+    prop?.timezone &&
+    isKnownTimeZone(prop.timezone)
+  ) {
+    try {
+      const date = `${match[1]}-${match[2]}-${match[3]}`;
+      const time = `${match[4]}:${match[5]}`;
+      const sec = Number(match[6] ?? '0');
+      const ms =
+        Date.parse(localToUtc(date, time, prop.timezone, 'earlier')) +
+        sec * 1000;
+      if (Number.isFinite(ms)) return new Date(ms);
+    } catch {
+      // Fall back to raw value parsing below.
+    }
+  }
+  return parseIcsToUtcDate(prop?.value ?? '');
+};
+
+const deriveWallEnd = (start: IcsWall, durationMs: number): IcsWall => {
+  const safeDurationMs = durationMs > 0 ? durationMs : 60 * 60 * 1000;
+  if (!start.time) return {date: start.date};
+  const startMs = Date.parse(`${start.date}T${start.time}:00Z`);
+  if (!Number.isFinite(startMs)) return {date: start.date, time: start.time};
+  const endDate = new Date(startMs + safeDurationMs);
+  return {date: formatUtcDate(endDate), time: formatUtcTime(endDate)};
+};
+
+const rewriteUntilForTzid = (
+  rruleText: string,
+  tzid: string | undefined,
+): string => {
+  if (!tzid || !isKnownTimeZone(tzid)) return rruleText;
+  return rruleText.replace(
+    /UNTIL=(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/i,
+    (_m, y, mo, d, h, mi, s) => {
+      const iso = `${y}-${mo}-${d}T${h}:${mi}:${s}Z`;
+      const local = localDateTime(iso, tzid);
+      const compactDate = local.date.replace(/-/g, '');
+      const compactTime = local.time.replace(':', '') + s;
+      return `UNTIL=${compactDate}T${compactTime}Z`;
+    },
+  );
+};
+
 const expandRecurringEvent = (
   vevent: any,
   dtstart: Date,
@@ -424,9 +482,13 @@ const expandRecurringEvent = (
   const duration = dtend.getTime() - dtstart.getTime();
   const ruleSet = new RRuleSet();
 
-  const rruleString = `DTSTART:${formatDateForRRule(dtstart)}\nRRULE:${
-    vevent.rrule
-  }`;
+  const effectiveRrule = rewriteUntilForTzid(
+    vevent.rrule,
+    rawStart?.endsWith('Z') ? undefined : vevent.dtstart?.timezone,
+  );
+  const rruleString = `DTSTART:${formatDateForRRule(
+    dtstart,
+  )}\nRRULE:${effectiveRrule}`;
   const rule = rrulestr(rruleString, {forceset: false});
   ruleSet.rrule(rule instanceof RRule ? rule : (rule as RRuleSet).rrules()[0]);
 
@@ -673,64 +735,80 @@ export const parseIcsString = (
   let skipped = invalidComponents;
   const unfoldedLines = sanitized.split('\n');
 
-  // Step 2: Scan unfolded lines to collect all RDATEs by UID (needed because ical-js-parser only keeps last RDATE)
+  // Step 2: Scan unfolded lines per VEVENT/VTODO block so RDATEs before UID are kept,
+  // and raw DTSTART/DTEND/RECURRENCE-ID/DUE strings (with Z/TZID) are preserved.
   const rdatesByUid: {[uid: string]: string[]} = {};
-  let scanUid: string | null = null;
-  for (const line of unfoldedLines) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-    const fullKey = line.substring(0, colonIndex);
-    const value = line.substring(colonIndex + 1);
-    const baseKey = fullKey.split(';')[0].toUpperCase();
-
-    if (baseKey === 'BEGIN' && value.toUpperCase() === 'VEVENT') {
-      scanUid = null;
-    } else if (baseKey === 'UID') {
-      scanUid = value.trim();
-    } else if (baseKey === 'RDATE' && scanUid) {
-      if (!rdatesByUid[scanUid]) {
-        rdatesByUid[scanUid] = [];
-      }
-      const cleanVal = cleanIcsValue(value);
-      const parts = cleanVal.split(',');
-      for (const part of parts) {
-        if (part.trim()) {
-          rdatesByUid[scanUid].push(part.trim());
-        }
-      }
-    }
-  }
-
-  // AGY-PORT 08: DTSTART/DTEND exactly as written, per non-override VEVENT UID,
-  // so a floating time is never mistaken for UTC (see readIcsWall).
   const rawTimesByUid: {[uid: string]: {dtstart?: string; dtend?: string}} = {};
+  const rawOverridesByKey: {
+    [key: string]: {dtstart?: string; dtend?: string; recurrenceId?: string};
+  } = {};
+  const rawTodoDueByUid: {
+    [uid: string]: {due?: string; timezone?: string};
+  } = {};
   let rawCurrent: {
+    kind: 'VEVENT' | 'VTODO';
     uid?: string;
     dtstart?: string;
     dtend?: string;
-    override: boolean;
+    recurrenceId?: string;
+    due?: string;
+    dueTz?: string;
+    rdates: string[];
   } | null = null;
   for (const line of unfoldedLines) {
     const colonIndex = line.indexOf(':');
     if (colonIndex === -1) continue;
-    const baseKey = line.substring(0, colonIndex).split(';')[0].toUpperCase();
+    const fullKey = line.substring(0, colonIndex);
+    const keyParts = fullKey.split(';');
+    const baseKey = keyParts[0].toUpperCase();
     const value = line.substring(colonIndex + 1).trim();
-    if (baseKey === 'BEGIN' && value.toUpperCase() === 'VEVENT') {
-      rawCurrent = {override: false};
+    if (
+      baseKey === 'BEGIN' &&
+      (value.toUpperCase() === 'VEVENT' || value.toUpperCase() === 'VTODO')
+    ) {
+      rawCurrent = {
+        kind: value.toUpperCase() as 'VEVENT' | 'VTODO',
+        rdates: [],
+      };
     } else if (rawCurrent) {
       if (baseKey === 'UID') rawCurrent.uid = value;
       else if (baseKey === 'DTSTART') rawCurrent.dtstart = value;
       else if (baseKey === 'DTEND') rawCurrent.dtend = value;
-      else if (baseKey === 'RECURRENCE-ID') rawCurrent.override = true;
-      else if (baseKey === 'END' && value.toUpperCase() === 'VEVENT') {
-        if (
-          rawCurrent.uid &&
-          !rawCurrent.override &&
-          !(rawCurrent.uid in rawTimesByUid)
-        ) {
-          rawTimesByUid[rawCurrent.uid] = {
-            dtstart: rawCurrent.dtstart,
-            dtend: rawCurrent.dtend,
+      else if (baseKey === 'RECURRENCE-ID') rawCurrent.recurrenceId = value;
+      else if (baseKey === 'DUE') {
+        rawCurrent.due = value;
+        const tzParam = keyParts.find(p => /^TZID=/i.test(p));
+        if (tzParam) rawCurrent.dueTz = tzParam.slice(5).replace(/^"|"$/g, '');
+      } else if (baseKey === 'RDATE') {
+        const cleanVal = cleanIcsValue(value);
+        for (const part of cleanVal.split(',')) {
+          if (part.trim()) rawCurrent.rdates.push(part.trim());
+        }
+      } else if (baseKey === 'END' && value.toUpperCase() === rawCurrent.kind) {
+        if (rawCurrent.kind === 'VEVENT' && rawCurrent.uid) {
+          if (rawCurrent.rdates.length > 0) {
+            if (!rdatesByUid[rawCurrent.uid]) rdatesByUid[rawCurrent.uid] = [];
+            rdatesByUid[rawCurrent.uid].push(...rawCurrent.rdates);
+          }
+          if (rawCurrent.recurrenceId) {
+            const ovKey = `${rawCurrent.uid}::${cleanIcsValue(
+              rawCurrent.recurrenceId,
+            )}`;
+            rawOverridesByKey[ovKey] = {
+              dtstart: rawCurrent.dtstart,
+              dtend: rawCurrent.dtend,
+              recurrenceId: rawCurrent.recurrenceId,
+            };
+          } else if (!(rawCurrent.uid in rawTimesByUid)) {
+            rawTimesByUid[rawCurrent.uid] = {
+              dtstart: rawCurrent.dtstart,
+              dtend: rawCurrent.dtend,
+            };
+          }
+        } else if (rawCurrent.kind === 'VTODO' && rawCurrent.uid) {
+          rawTodoDueByUid[rawCurrent.uid] = {
+            due: rawCurrent.due,
+            timezone: rawCurrent.dueTz,
           };
         }
         rawCurrent = null;
@@ -787,6 +865,11 @@ export const parseIcsString = (
       const parsedStart = readIcsWall(vevent.dtstart, raw?.dtstart);
       const parsedEnd = vevent.dtend
         ? readIcsWall(vevent.dtend, raw?.dtend)
+        : parsedStart !== 'invalid' && parsedStart.time
+        ? deriveWallEnd(
+            parsedStart,
+            vevent.duration ? parseDuration(vevent.duration) : 60 * 60 * 1000,
+          )
         : null;
       if (parsedStart === 'invalid' || parsedEnd === 'invalid') {
         skipped += 1;
@@ -849,16 +932,24 @@ export const parseIcsString = (
         !overrides.some(override => override.uid === uid);
       if (simple) {
         const start = readIcsWall(vevent.dtstart, raw?.dtstart);
-        const end = vevent.dtend ? readIcsWall(vevent.dtend, raw?.dtend) : null;
+        const end = vevent.dtend
+          ? readIcsWall(vevent.dtend, raw?.dtend)
+          : start !== 'invalid' && start.time
+          ? deriveWallEnd(
+              start,
+              vevent.duration ? parseDuration(vevent.duration) : 60 * 60 * 1000,
+            )
+          : null;
         if (start === 'invalid' || end === 'invalid') {
           skipped += 1;
           continue;
         }
         // Repetitions are retained as floating local wall times, just like events
         // created in Calendar, rather than cut off relative to their original date.
+        const trueUtcStart = resolveIcsUtcInstant(vevent.dtstart, raw?.dtstart);
         const shift = Math.round(
           (Date.parse(`${start.date}T00:00:00Z`) -
-            Date.parse(`${formatUtcDate(dtstart)}T00:00:00Z`)) /
+            Date.parse(`${formatUtcDate(trueUtcStart)}T00:00:00Z`)) /
             86400000,
         );
         const codes = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
@@ -882,7 +973,8 @@ export const parseIcsString = (
             )}`;
             if (
               time &&
-              `${time.slice(0, 2)}:${time.slice(2, 4)}` < formatUtcTime(dtstart)
+              `${time.slice(0, 2)}:${time.slice(2, 4)}` <
+                formatUtcTime(trueUtcStart)
             )
               lastDate = addDaysToDate(lastDate, -1);
             return `UNTIL=${addDaysToDate(lastDate, shift).replace(/-/g, '')}`;
@@ -893,8 +985,8 @@ export const parseIcsString = (
             id: uid,
             title: summary,
             date: start.date,
-            startTime: start.time || '12:00',
-            endTime: end?.time || '13:00',
+            startTime: start.time || '09:00',
+            endTime: end?.time || '10:00',
             color,
             category,
             notes,
@@ -960,31 +1052,57 @@ export const parseIcsString = (
     const overrideUid = override.uid;
     if (!overrideUid || !override.recurrenceId || !override.recurrenceId.value)
       continue;
-    const overrideDate = parseIcsToUtcDate(override.recurrenceId.value);
+    const rawOv =
+      rawOverridesByKey[
+        `${overrideUid}::${cleanIcsValue(override.recurrenceId.value)}`
+      ];
+    const overrideWall = readIcsWall(
+      override.recurrenceId,
+      rawOv?.recurrenceId,
+    );
+    if (overrideWall === 'invalid') continue;
+    const overrideStart = readIcsWall(override.dtstart, rawOv?.dtstart);
+    if (overrideStart === 'invalid') continue;
+    const overrideEnd = override.dtend
+      ? readIcsWall(override.dtend, rawOv?.dtend)
+      : overrideStart.time
+      ? deriveWallEnd(
+          overrideStart,
+          override.duration ? parseDuration(override.duration) : 60 * 60 * 1000,
+        )
+      : null;
+    if (overrideEnd === 'invalid') continue;
+    const overrideDateMs = Date.parse(
+      `${overrideWall.date}T${overrideWall.time ?? '00:00'}:00Z`,
+    );
+    const matchesOverride = (ev: {
+      id: string;
+      date: string;
+      startTime: string;
+    }) => {
+      if (ev.id !== overrideUid && !ev.id.startsWith(`${overrideUid}_`)) {
+        return false;
+      }
+      const evMs = Date.parse(`${ev.date}T${ev.startTime}:00Z`);
+      return Math.abs(evMs - overrideDateMs) < 86400000;
+    };
     const type = veventType(override.xLafinaType);
 
     if (type === 'time_block') {
-      const idx = blocks.findIndex(ev => {
-        if (!ev.id.startsWith(overrideUid)) return false;
-        const occurrenceStart = parseIcsToUtcDate(
-          formatIcsDateTime(ev.date, ev.startTime),
-        );
-        return (
-          Math.abs(occurrenceStart.getTime() - overrideDate.getTime()) <
-          86400000
-        );
-      });
+      const idx = blocks.findIndex(matchesOverride);
       if (idx !== -1) {
-        const dtstart = parseIcsToUtcDate(override.dtstart.value);
-        const dtend = resolveDtend(override, dtstart);
         blocks[idx] = {
           id: blocks[idx].id,
-          title: override.summary || blocks[idx].title,
-          date: formatUtcDate(dtstart),
-          startTime: formatUtcTime(dtstart),
-          endTime: formatUtcTime(dtend),
+          title: override.summary
+            ? unescapeText(override.summary)
+            : blocks[idx].title,
+          date: overrideStart.date,
+          startTime: overrideStart.time || blocks[idx].startTime,
+          endTime: overrideEnd?.time || blocks[idx].endTime,
           color: override.xLafinaColor || blocks[idx].color,
-          category: override.categories || blocks[idx].category,
+          category: override.categories
+            ? unescapeText(override.categories)
+            : blocks[idx].category,
           notes: override.description
             ? unescapeText(override.description)
             : blocks[idx].notes,
@@ -992,30 +1110,25 @@ export const parseIcsString = (
         };
       }
     } else {
-      const idx = events.findIndex(ev => {
-        if (!ev.id.startsWith(overrideUid)) return false;
-        const occurrenceStart = parseIcsToUtcDate(
-          formatIcsDateTime(ev.date, ev.startTime),
-        );
-        return (
-          Math.abs(occurrenceStart.getTime() - overrideDate.getTime()) <
-          86400000
-        );
-      });
+      const idx = events.findIndex(matchesOverride);
       if (idx !== -1) {
-        const dtstart = parseIcsToUtcDate(override.dtstart.value);
-        const dtend = resolveDtend(override, dtstart);
         events[idx] = {
           id: events[idx].id,
-          title: override.summary || events[idx].title,
-          date: formatUtcDate(dtstart),
-          startTime: formatUtcTime(dtstart),
-          endTime: formatUtcTime(dtend),
+          title: override.summary
+            ? unescapeText(override.summary)
+            : events[idx].title,
+          date: overrideStart.date,
+          startTime: overrideStart.time || events[idx].startTime,
+          endTime: overrideEnd?.time || events[idx].endTime,
           location:
             override.location !== undefined
               ? override.location
+                ? unescapeText(override.location)
+                : null
               : events[idx].location,
           recurrenceRule: events[idx].recurrenceRule,
+          startFold: overrideStart.fold ?? null,
+          endFold: overrideEnd?.fold ?? null,
         };
       }
     }
@@ -1033,6 +1146,7 @@ export const parseIcsString = (
     const status = todo.status || 'NEEDS-ACTION';
     const priorityVal = parseInt(todo.priority || '5', 10);
     const dueVal = cleanIcsValue(todo.due || '');
+    const rawTodoDue = todo.uid ? rawTodoDueByUid[todo.uid] : undefined;
     const rrule = todo.rrule || null;
 
     let priority: 'High' | 'Medium' | 'Low' = 'Medium';
@@ -1043,9 +1157,18 @@ export const parseIcsString = (
     let dueDate: string | null = null;
     let dueTime: string | null = null;
     if (dueVal) {
-      const dueParsed = parseIcsDateTime(dueVal);
-      dueDate = dueParsed.date;
-      dueTime = dueParsed.time || null;
+      const dueWall = readIcsWall(
+        {value: dueVal, timezone: rawTodoDue?.timezone},
+        rawTodoDue?.due,
+      );
+      if (dueWall !== 'invalid') {
+        dueDate = dueWall.date;
+        dueTime = dueWall.time || null;
+      } else {
+        const dueParsed = parseIcsDateTime(dueVal);
+        dueDate = dueParsed.date;
+        dueTime = dueParsed.time || null;
+      }
     }
 
     tasks.push({

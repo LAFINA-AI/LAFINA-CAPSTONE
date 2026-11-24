@@ -49,17 +49,17 @@ const PATTERNS: Array<[SmallTalkKind, RegExp, boolean]> = [
   ],
   [
     'thanks',
-    /^(?:(?:ok(?:ay)?|oh)\s+)?(?:thanks?|thank\s*(?:you|u|ya)|thx|tnx|ty(?:sm)?|salamat|appreciate\s+it|much\s+appreciated)\b/i,
+    /^(?:(?:ok(?:ay)?|oh)[,!\s]+)?(?:thanks?|thank\s*(?:you|u|ya)|thx|tnx|ty(?:sm)?|salamat|appreciate\s+it|much\s+appreciated)(?:[\s,!]+(?:lafina|so\s+much|very\s+much|a\s+lot|again|for\s+(?:the\s+help|that|everything)|po|ha))*[\s.!]*$/i,
     true,
   ],
   [
     'farewell',
-    /^(?:bye|byee*|good\s*bye|good\s+night|goodnight|nighty?\s+night|night|see\s+(?:you|ya)|later|talk\s+later|gtg|gotta\s+go|i(?:'?m|\s+am)\s+(?:off|going)|ttyl)\b/i,
+    /^(?:bye|byee*|good\s*bye|good\s+night|goodnight|nighty?\s+night|see\s+(?:you|ya)|later|talk\s+later|gtg|gotta\s+go|i(?:'?m|\s+am)\s+(?:off|going)|ttyl)(?:[\s,!]+(?:lafina|for\s+now|later|soon|tomorrow|everyone|all|po))*[\s.!]*$/i,
     true,
   ],
   [
     'greeting',
-    /^(?:hey+|hi+|hii+|hello+|helo|hallo|yo|hiya|howdy|heya|good\s+(?:morning|afternoon|evening|day)|morning|evening|sup|wh?at'?s\s+up|wassup|musta|kumusta)\b/i,
+    /^(?:hey+|hi+|hii+|hello+|helo|hallo|yo|hiya|howdy|heya|good\s+(?:morning|afternoon|evening|day)|morning|evening|sup|wh?at'?s\s+up|wassup|musta|kumusta)(?:[\s,!]+(?:lafina|there|everyone|all|po|bro|friend))*[\s.!]*$/i,
     true,
   ],
   [

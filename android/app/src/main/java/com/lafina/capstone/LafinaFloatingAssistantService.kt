@@ -307,6 +307,12 @@ class LafinaFloatingAssistantService : Service(), FloatingOrbView.Listener {
       return START_NOT_STICKY
     }
     if (!canRun(this)) {
+      if (intent != null) {
+        // Satisfy startForegroundService() contract before stopping so Android
+        // never throws ForegroundServiceDidNotStartInTimeException.
+        createChannel(this)
+        startForegroundSafely()
+      }
       shutDown()
       return START_NOT_STICKY
     }
@@ -480,6 +486,11 @@ class LafinaFloatingAssistantService : Service(), FloatingOrbView.Listener {
       // BadTokenException / SecurityException when the permission is gone.
       Log.w(TAG, "Could not show the orb: ${e.javaClass.simpleName}")
       orbAttached = false
+      if (e is WindowManager.BadTokenException ||
+          e is SecurityException ||
+          !Settings.canDrawOverlays(this)) {
+        shutDown()
+      }
     }
   }
 

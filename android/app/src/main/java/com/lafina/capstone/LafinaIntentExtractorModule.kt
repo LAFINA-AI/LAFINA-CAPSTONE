@@ -220,8 +220,36 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
     promise.resolve(true)
   }
 
+  private fun submitToExecutor(promise: Promise?, fallbackResolve: Any? = null, block: () -> Unit) {
+    if (executor.isShutdown) {
+      if (promise != null) {
+        if (fallbackResolve != null) promise.resolve(fallbackResolve)
+        else promise.reject("MODULE_INVALIDATED", "Intent extractor is shutting down.")
+      }
+      return
+    }
+    try {
+      executor.execute {
+        try {
+          block()
+        } catch (error: Throwable) {
+          Log.w(TAG, "On-device NLU worker error", error)
+          if (promise != null) {
+            if (fallbackResolve != null) promise.resolve(fallbackResolve)
+            else promise.reject("NLU_EXTRACT_ERROR", error.message ?: error.javaClass.simpleName, error)
+          }
+        }
+      }
+    } catch (error: java.util.concurrent.RejectedExecutionException) {
+      if (promise != null) {
+        if (fallbackResolve != null) promise.resolve(fallbackResolve)
+        else promise.reject("MODULE_INVALIDATED", "Intent extractor is shutting down.", error)
+      }
+    }
+  }
+
   private val autoUnloadRunnable = Runnable {
-    executor.execute {
+    submitToExecutor(null) {
       unloadNativeModelInternal()
     }
   }
@@ -274,16 +302,16 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
    */
   @ReactMethod
   fun warmupModel(modelPath: String, promptFormat: String?, minValidBytes: Double, promise: Promise) {
-    executor.execute {
+    submitToExecutor(promise, fallbackResolve = false) {
       try {
         if (!LafinaLlamaBridge.isLoaded() || modelPath.isBlank()) {
           promise.resolve(false)
-          return@execute
+          return@submitToExecutor
         }
         val modelFile = File(modelPath)
         if (!modelFile.exists() || modelFile.length() <= resolveMinValidBytes(minValidBytes)) {
           promise.resolve(false)
-          return@execute
+          return@submitToExecutor
         }
         if (nativeContextPointer.get() == 0L || loadedModelPath != modelPath) {
           unloadNativeModelInternal()
@@ -292,7 +320,7 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
           val ptr = LafinaLlamaBridge.initModel(modelPath, nThreads)
           if (ptr == 0L) {
             promise.resolve(false)
-            return@execute
+            return@submitToExecutor
           }
           nativeContextPointer.set(ptr)
           loadedModelPath = modelPath
@@ -310,7 +338,7 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
         }
         scheduleAutoUnload()
         promise.resolve(true)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
         Log.w(TAG, "On-device SLM warmup failed", e)
         promise.resolve(false)
       }
@@ -319,7 +347,7 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
 
   @ReactMethod
   fun unloadModel(promise: Promise) {
-    executor.execute {
+    submitToExecutor(promise, fallbackResolve = true) {
       unloadNativeModelInternal()
       promise.resolve(true)
     }
@@ -379,58 +407,54 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
 
   @ReactMethod
   fun extractIntent(options: ReadableMap, promise: Promise) {
-    val transcript = if (options.hasKey("transcript")) options.getString("transcript") ?: "" else ""
-    val modelPath = if (options.hasKey("modelPath")) options.getString("modelPath") else null
-    val requestedFormat = if (options.hasKey("promptFormat")) options.getString("promptFormat") else null
+    val transcript = if (options.hasKey("transcript") && !options.isNull("transcript")) options.getString("transcript") ?: "" else ""
+    val modelPath = if (options.hasKey("modelPath") && !options.isNull("modelPath")) options.getString("modelPath") else null
+    val requestedFormat = if (options.hasKey("promptFormat") && !options.isNull("promptFormat")) options.getString("promptFormat") else null
     val promptFormat = resolvePromptFormat(requestedFormat, modelPath)
     val minValidBytes = resolveMinValidBytes(
       if (options.hasKey("minValidBytes") && !options.isNull("minValidBytes")) options.getDouble("minValidBytes") else null
     )
-    val requestId = if (options.hasKey("requestId")) options.getString("requestId")?.takeIf { it.isNotBlank() } else null
+    val requestId = if (options.hasKey("requestId") && !options.isNull("requestId")) options.getString("requestId")?.takeIf { it.isNotBlank() } else null
 
-    executor.execute {
-      try {
-        val trimmed = transcript.trim()
-        if (trimmed.isEmpty()) {
-          val empty = JSONObject().apply {
-            put("intent", "out_of_scope")
-            put("title", JSONObject.NULL)
-            put("date", JSONObject.NULL)
-            put("time", JSONObject.NULL)
-            put("duration_minutes", JSONObject.NULL)
-            put("status", "rejected")
-            put("reply", "No speech detected.")
-          }
-          promise.resolve(empty.toString())
-          return@execute
+    submitToExecutor(promise) {
+      val trimmed = transcript.trim()
+      if (trimmed.isEmpty()) {
+        val empty = JSONObject().apply {
+          put("intent", "out_of_scope")
+          put("title", JSONObject.NULL)
+          put("date", JSONObject.NULL)
+          put("time", JSONObject.NULL)
+          put("duration_minutes", JSONObject.NULL)
+          put("status", "rejected")
+          put("reply", "No speech detected.")
         }
-
-        // Check if dynamic model is available and requested
-        if (!modelPath.isNullOrBlank() && LafinaLlamaBridge.isLoaded()) {
-          val modelFile = File(modelPath)
-          if (modelFile.exists() && modelFile.length() > minValidBytes) {
-            try {
-              val resultJson = executeOnDeviceLlm(modelPath, trimmed, promptFormat, requestId)
-              if (resultJson != null) {
-                scheduleAutoUnload()
-                promise.resolve(
-                  tagTiming(tagEngine(resultJson, ENGINE_SLM), lastLoadMs, lastInferenceMs, lastColdLoad)
-                )
-                return@execute
-              }
-            } catch (e: Exception) {
-              Log.w(TAG, "On-device SLM inference failed, falling back to deterministic fast path", e)
-            }
-          }
-        }
-
-        // Fast-path deterministic Kotlin parser. Tagged so JS never mistakes
-        // it for model output (audit H4).
-        val fastResult = executeFastPath(trimmed)
-        promise.resolve(tagEngine(fastResult, ENGINE_FALLBACK))
-      } catch (e: Exception) {
-        promise.reject("NLU_EXTRACT_ERROR", e.message, e)
+        promise.resolve(empty.toString())
+        return@submitToExecutor
       }
+
+      // Check if dynamic model is available and requested
+      if (!modelPath.isNullOrBlank() && LafinaLlamaBridge.isLoaded()) {
+        val modelFile = File(modelPath)
+        if (modelFile.exists() && modelFile.length() > minValidBytes) {
+          try {
+            val resultJson = executeOnDeviceLlm(modelPath, trimmed, promptFormat, requestId)
+            if (resultJson != null) {
+              scheduleAutoUnload()
+              promise.resolve(
+                tagTiming(tagEngine(resultJson, ENGINE_SLM), lastLoadMs, lastInferenceMs, lastColdLoad)
+              )
+              return@submitToExecutor
+            }
+          } catch (e: Throwable) {
+            Log.w(TAG, "On-device SLM inference failed, falling back to deterministic fast path", e)
+          }
+        }
+      }
+
+      // Fast-path deterministic Kotlin parser. Tagged so JS never mistakes
+      // it for model output (audit H4).
+      val fastResult = executeFastPath(trimmed)
+      promise.resolve(tagEngine(fastResult, ENGINE_FALLBACK))
     }
   }
 
@@ -594,8 +618,11 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
       cancelledRequestIds.clear()
     }
     if (!executor.isShutdown) {
-      executor.execute {
-        unloadNativeModelInternal()
+      try {
+        executor.execute {
+          unloadNativeModelInternal()
+        }
+      } catch (_: java.util.concurrent.RejectedExecutionException) {
       }
       executor.shutdown()
     }

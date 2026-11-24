@@ -15,12 +15,14 @@ interface LoginScreenProps {
   onLoginSuccess: (userId: string) => void;
   onNavigateToRegister: () => void;
   onBack?: () => void;
+  fromGuest?: boolean;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLoginSuccess,
   onNavigateToRegister,
   onBack,
+  fromGuest = false,
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,7 +63,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setError(null);
 
     try {
-      const result = await accountLinkService.login(trimmedEmail, password);
+      const result = fromGuest
+        ? await accountLinkService.login(trimmedEmail, password, {
+            migrateGuestData: true,
+          })
+        : await accountLinkService.login(trimmedEmail, password);
       if (
         (result.status === 'success' || result.status === 'local_only') &&
         result.localUserId

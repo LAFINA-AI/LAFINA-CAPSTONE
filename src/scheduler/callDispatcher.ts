@@ -645,7 +645,7 @@ export const answerCall = async (
     // The pre-cast audio is the offline wording (it names on-screen choices
     // this call does not show), so it is not used as the fallback here.
     await speakText(buildOnlineAnnouncement(reminder.task, greetingStyle));
-    if (!isCurrentSession(session)) return false;
+    if (!isCurrentSession(session) || !session.externalVoice) return false;
     publishCallState('connected', 'Connecting to online conversation…');
     return true;
   }
@@ -678,6 +678,21 @@ export const answerCall = async (
   void startAutomaticAttempt(session, announcement, reminder.preCastAudioPath);
   return true;
 };
+
+/**
+ * True when the active answered call downgraded out of external online voice
+ * (for example, because Android refused the microphone foreground service).
+ */
+export const isExternalVoiceDowngraded = (
+  reminderId: string,
+  userId: string,
+): boolean =>
+  Boolean(
+    activeSession &&
+      activeSession.reminderId === reminderId &&
+      activeSession.userId === userId &&
+      !activeSession.externalVoice,
+  );
 
 /** Resume the existing offline call only while the same accepted call remains active. */
 export const resumeOfflineCall = (

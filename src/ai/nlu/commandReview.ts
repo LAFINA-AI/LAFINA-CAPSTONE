@@ -183,7 +183,17 @@ type PlannedOperation =
       body: string;
       category: string;
     }
-  | {op: 'complete_task'; target: TargetRef; isCompleted?: boolean}
+  | {
+      op: 'complete_task';
+      target: TargetRef;
+      isCompleted?: boolean;
+      restoreReminders?: Array<{
+        id: string;
+        task: string;
+        status: 'pending' | 'snoozed' | 'triggered';
+        triggerAt: string;
+      }>;
+    }
   | {
       op: 'update_task';
       target: TargetRef;
@@ -508,7 +518,12 @@ const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
     targetTime: cleanTime(intent.targetTime),
     durationMinutes: cleanMinutes(intent.durationMinutes, 24 * 60),
     rawSnoozeMinutes: intent.snoozeMinutes,
-    details: cleanText(intent.details, MAX_TEXT_LENGTH),
+    details:
+      typeof intent.details === 'string' &&
+      intent.details.trim().startsWith('[BATCH_CLASSES:') &&
+      intent.details.trim().endsWith(']')
+        ? cleanText(intent.details, 24000)
+        : cleanText(intent.details, MAX_TEXT_LENGTH),
     category:
       rawCategory && rawCategory !== 'APPEND' ? rawCategory : 'Academic',
     appendToNote: rawCategory === 'APPEND',
@@ -1341,27 +1356,122 @@ const buildCreateTimeBlock = (
       },
     };
   }
+  interface ValidatedBatchClassItem {
+    title: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    category?: string;
+    notes?: string;
+    recurrenceRule?: string;
+  }
+
+  const parseBatchClasses = (
+    raw: string | null | undefined,
+  ):
+    | {
+        valid: true;
+        classes: ValidatedBatchClassItem[];
+        firstClassLocation: string | null;
+      }
+    | {valid: false; error: string} => {
+    if (!raw || !raw.startsWith('[BATCH_CLASSES:') || !raw.endsWith(']')) {
+      return {
+        valid: false,
+        error:
+          'The class schedule batch was incomplete or truncated. Please try scanning again. Nothing was changed.',
+      };
+    }
+    try {
+      const jsonStr = raw.slice('[BATCH_CLASSES:'.length, -1);
+      const parsed = JSON.parse(jsonStr);
+      const items = Array.isArray(parsed) ? parsed : parsed?.classes;
+      const firstClassLocation =
+        !Array.isArray(parsed) && typeof parsed?.firstClassLocation === 'string'
+          ? parsed.firstClassLocation
+          : null;
+      if (!Array.isArray(items)) {
+        return {
+          valid: false,
+          error: 'The class schedule batch was invalid. Nothing was changed.',
+        };
+      }
+      const classes: ValidatedBatchClassItem[] = [];
+      for (const item of items) {
+        const itemTitle =
+          typeof item?.title === 'string'
+            ? item.title.trim().slice(0, 120)
+            : '';
+        const itemDate = typeof item?.date === 'string' ? item.date.trim() : '';
+        const itemStartTime =
+          typeof item?.startTime === 'string' ? item.startTime.trim() : '';
+        const itemEndTime =
+          typeof item?.endTime === 'string' ? item.endTime.trim() : '';
+        if (
+          !itemTitle ||
+          !isRealDate(itemDate) ||
+          !isWallTime(itemStartTime) ||
+          !isWallTime(itemEndTime) ||
+          itemEndTime === itemStartTime
+        ) {
+          return {
+            valid: false,
+            error: `Class "${
+              itemTitle || 'entry'
+            }" has an invalid date or time range. Nothing was changed.`,
+          };
+        }
+        classes.push({
+          title: itemTitle,
+          date: itemDate,
+          startTime: itemStartTime,
+          endTime: itemEndTime,
+          category:
+            typeof item?.category === 'string' && item.category.trim()
+              ? item.category.trim().slice(0, MAX_CATEGORY_LENGTH)
+              : 'Class',
+          notes:
+            typeof item?.notes === 'string' && item.notes.trim()
+              ? item.notes.trim().slice(0, 400)
+              : undefined,
+          recurrenceRule:
+            typeof item?.recurrenceRule === 'string' &&
+            item.recurrenceRule.trim()
+              ? item.recurrenceRule.trim().replace(/^RRULE:/i, '')
+              : 'FREQ=WEEKLY',
+        });
+      }
+      return {valid: true, classes, firstClassLocation};
+    } catch {
+      return {
+        valid: false,
+        error:
+          'The class schedule batch could not be read cleanly. Please try again. Nothing was changed.',
+      };
+    }
+  };
+
   let displayHeading = 'Create time block';
   let displayTitle = title;
   let batchCount = 0;
   let cleanFirstNotes: string | null = c.details;
+  let extraBatchClasses: ValidatedBatchClassItem[] = [];
 
   if (c.details && c.details.startsWith('[BATCH_CLASSES:')) {
-    try {
-      const jsonStr = c.details.slice('[BATCH_CLASSES:'.length, -1);
-      const parsed = JSON.parse(jsonStr);
-      const items = Array.isArray(parsed) ? parsed : parsed.classes;
-      if (Array.isArray(items)) {
-        batchCount = items.length;
-        displayHeading = 'Create class schedule';
-        displayTitle = `${title} (+${batchCount} more classes)`;
-      }
-      if (!Array.isArray(parsed) && parsed.firstClassLocation) {
-        cleanFirstNotes = parsed.firstClassLocation;
-      }
-    } catch {
-      // fallback
+    const batch = parseBatchClasses(c.details);
+    if (!batch.valid) {
+      return {
+        result: {
+          status: 'invalid',
+          reply: batch.error,
+        },
+      };
     }
+    extraBatchClasses = batch.classes;
+    batchCount = batch.classes.length;
+    displayHeading = 'Create class schedule';
+    displayTitle = `${title} (+${batchCount} more classes)`;
+    cleanFirstNotes = batch.firstClassLocation;
   }
 
   const isWeeklyClass =
@@ -1371,22 +1481,43 @@ const buildCreateTimeBlock = (
 
   const warnings: string[] = [];
   if (userId) {
-    try {
-      const conflict = checkScheduleConflict(userId, date, startTime, endTime);
-      if (conflict.hasConflict) {
-        const personalConflicts = conflict.conflictingItems.filter(
-          item =>
-            item.title.toLowerCase().trim() !== title.toLowerCase().trim(),
+    const checkList = [
+      {title, date, startTime, endTime},
+      ...extraBatchClasses.map(item => ({
+        title: item.title,
+        date: item.date,
+        startTime: item.startTime,
+        endTime: item.endTime,
+      })),
+    ];
+    for (const candidate of checkList) {
+      try {
+        const conflict = checkScheduleConflict(
+          userId,
+          candidate.date,
+          candidate.startTime,
+          candidate.endTime,
         );
-        if (personalConflicts.length > 0) {
-          const conflictTitles = personalConflicts
-            .map(ci => `"${ci.title}" (${ci.startTime}–${ci.endTime})`)
-            .join(', ');
-          warnings.push(`Notice: Overlaps with ${conflictTitles}.`);
+        if (conflict.hasConflict) {
+          const personalConflicts = conflict.conflictingItems.filter(
+            item =>
+              item.title.toLowerCase().trim() !==
+              candidate.title.toLowerCase().trim(),
+          );
+          if (personalConflicts.length > 0) {
+            const conflictTitles = personalConflicts
+              .map(ci => `"${ci.title}" (${ci.startTime}–${ci.endTime})`)
+              .join(', ');
+            const prefix =
+              extraBatchClasses.length > 0
+                ? `"${candidate.title}" overlaps`
+                : 'Overlaps';
+            warnings.push(`Notice: ${prefix} with ${conflictTitles}.`);
+          }
         }
+      } catch {
+        // ignore conflict check failure
       }
-    } catch {
-      // ignore conflict check failure
     }
   }
 
@@ -3618,6 +3749,19 @@ const applyOperation = (
 
           if (Array.isArray(extraClasses)) {
             for (const item of extraClasses) {
+              if (
+                typeof item?.title !== 'string' ||
+                !item.title.trim() ||
+                typeof item?.date !== 'string' ||
+                !isRealDate(item.date) ||
+                typeof item?.startTime !== 'string' ||
+                !isWallTime(item.startTime) ||
+                typeof item?.endTime !== 'string' ||
+                !isWallTime(item.endTime) ||
+                item.endTime === item.startTime
+              ) {
+                continue;
+              }
               const existing = findExisting(
                 item.title,
                 item.date,
@@ -3887,6 +4031,28 @@ const applyOperation = (
       verifyTarget(tx, op.target, ownerId);
       const nextCompleted = op.isCompleted !== false;
       tasksStore.updateTask({id: op.target.id, isCompleted: nextCompleted}, tx);
+      if (!nextCompleted && op.restoreReminders?.length) {
+        const nowMs = Date.now();
+        for (const rem of op.restoreReminders) {
+          const exists = tx.executeSync(
+            'SELECT id FROM reminders WHERE id = ? AND user_id = ? AND deleted_at IS NULL LIMIT 1',
+            [rem.id, ownerId],
+          ).rows?.[0];
+          if (!exists) continue;
+          remindersStore.updateReminderStatus(
+            rem.id,
+            rem.status,
+            undefined,
+            tx,
+          );
+          if (
+            (rem.status === 'pending' || rem.status === 'snoozed') &&
+            Date.parse(rem.triggerAt) > nowMs
+          ) {
+            scheduleAfterCommit(tx, rem.id, rem.task, rem.triggerAt);
+          }
+        }
+      }
       return {
         operation: op.op,
         entityType: 'task',
@@ -4929,16 +5095,57 @@ const inverseOf = (
   op: PlannedOperation,
 ): {inverse: PlannedOperation; label: string} | null => {
   if (op.op === 'complete_task') {
-    const row = tx.executeSync('SELECT is_completed FROM tasks WHERE id = ?', [
-      op.target.id,
-    ]).rows?.[0];
+    const row = tx.executeSync(
+      'SELECT user_id, title, is_completed FROM tasks WHERE id = ?',
+      [op.target.id],
+    ).rows?.[0];
     if (!row) return null;
     const wasCompleted = Number(row.is_completed ?? 0) === 1;
+    const ownerId = String(row.user_id ?? '');
+    const restoreReminders =
+      op.isCompleted !== false && ownerId
+        ? remindersForSource(tx, ownerId, 'task', op.target.id, row.title, [
+            'pending',
+            'snoozed',
+            'triggered',
+          ])
+            .map(r => {
+              const statusRow = tx.executeSync(
+                'SELECT status FROM reminders WHERE id = ? LIMIT 1',
+                [r.id],
+              ).rows?.[0];
+              const status = String(statusRow?.status ?? '');
+              if (
+                status !== 'pending' &&
+                status !== 'snoozed' &&
+                status !== 'triggered'
+              ) {
+                return null;
+              }
+              return {
+                id: r.id,
+                task: r.task,
+                status: status as 'pending' | 'snoozed' | 'triggered',
+                triggerAt: r.trigger_at,
+              };
+            })
+            .filter(
+              (
+                item,
+              ): item is {
+                id: string;
+                task: string;
+                status: 'pending' | 'snoozed' | 'triggered';
+                triggerAt: string;
+              } => item !== null,
+            )
+        : undefined;
     return {
       inverse: {
         op: 'complete_task',
         target: op.target,
         isCompleted: wasCompleted,
+        ...(restoreReminders?.length ? {restoreReminders} : {}),
       },
       label:
         op.isCompleted !== false

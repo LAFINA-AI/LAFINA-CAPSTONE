@@ -23,7 +23,13 @@ export type ParsedIntentType =
   | 'chat'
   | 'out_of_scope';
 
-export type CrudTargetEntityType = 'task' | 'time_block' | 'event' | 'note' | 'reminder' | 'any';
+export type CrudTargetEntityType =
+  | 'task'
+  | 'time_block'
+  | 'event'
+  | 'note'
+  | 'reminder'
+  | 'any';
 
 export interface ExtractedIntent {
   intent: ParsedIntentType;
@@ -184,12 +190,12 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
 
   // Call responses
   if (intent.intent === 'acknowledge') {
-    return { ...intent, isValid: true };
+    return {...intent, isValid: true};
   }
 
   if (intent.intent === 'snooze') {
     const minutes = Math.max(1, Math.min(1440, intent.snoozeMinutes || 10));
-    return { ...intent, snoozeMinutes: minutes, isValid: true };
+    return {...intent, snoozeMinutes: minutes, isValid: true};
   }
 
   if (intent.intent === 'reschedule') {
@@ -197,10 +203,10 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
       return {
         ...intent,
         isValid: false,
-        validationError: 'Reschedule request requires at least a new time or date.',
+        validationError:
+          'Reschedule request requires at least a new time or date.',
       };
     }
-    return { ...intent, isValid: true };
   }
 
   if (
@@ -208,11 +214,11 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     intent.intent === 'query_notes' ||
     intent.intent === 'list_alarms'
   ) {
-    return { ...intent, isValid: true };
+    return {...intent, isValid: true};
   }
 
   if (intent.intent === 'chat' || intent.intent === 'out_of_scope') {
-    return { ...intent, isValid: true };
+    return {...intent, isValid: true};
   }
 
   // Validate time & date formats whenever present
@@ -252,27 +258,30 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     const [y, m, d] = intent.date.split('-').map(Number);
     const daysInMonth = new Date(y, m, 0).getDate();
     if (m < 1 || m > 12 || d < 1 || d > daysInMonth) {
-      const monthName =
-        [
-          'January',
-          'February',
-          'March',
-          'April',
-          'May',
-          'June',
-          'July',
-          'August',
-          'September',
-          'October',
-          'November',
-          'December',
-        ][Math.min(Math.max(m, 1), 12) - 1];
+      const monthName = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ][Math.min(Math.max(m, 1), 12) - 1];
       return {
         ...intent,
         isValid: false,
         validationError: `${monthName} ${d} doesn't exist (${monthName} has ${daysInMonth} days). Which date did you mean? Nothing was changed.`,
       };
     }
+  }
+
+  if (intent.intent === 'reschedule') {
+    return {...intent, isValid: true};
   }
 
   // Alarm plan A3. Which alarm is meant is resolved against the owner's
@@ -282,7 +291,8 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
       return {
         ...intent,
         isValid: false,
-        validationError: 'What time should the alarm ring? For example "set an alarm for 6 AM".',
+        validationError:
+          'What time should the alarm ring? For example "set an alarm for 6 AM".',
       };
     }
     return {...intent, title: sanitizedTitle || null, isValid: true};
@@ -292,7 +302,8 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
       return {
         ...intent,
         isValid: false,
-        validationError: 'Tell me the new alarm time, for example "change my 6 AM alarm to 6:30".',
+        validationError:
+          'Tell me the new alarm time, for example "change my 6 AM alarm to 6:30".',
       };
     }
     return {...intent, isValid: true};
@@ -330,7 +341,8 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
       return {
         ...intent,
         isValid: false,
-        validationError: 'Please specify which item you want to remove or cancel.',
+        validationError:
+          'Please specify which item you want to remove or cancel.',
       };
     }
     return {
@@ -347,7 +359,9 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     intent.intent === 'update_time_block' ||
     intent.intent === 'update_note'
   ) {
-    const hasTarget = Boolean(sanitizedTargetTitle || sanitizedTitle || intent.targetTime);
+    const hasTarget = Boolean(
+      sanitizedTargetTitle || sanitizedTitle || intent.targetTime,
+    );
     const hasMutation = Boolean(
       intent.time ||
         intent.endTime ||
@@ -365,7 +379,8 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
       return {
         ...intent,
         isValid: false,
-        validationError: 'Please specify which item to update and the new changes.',
+        validationError:
+          'Please specify which item to update and the new changes.',
       };
     }
     return {
@@ -382,7 +397,8 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     return {
       ...intent,
       isValid: false,
-      validationError: 'Title cannot be empty for task, event, reminder, or note creation.',
+      validationError:
+        'Title cannot be empty for task, event, reminder, or note creation.',
     };
   }
 

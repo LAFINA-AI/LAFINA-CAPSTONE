@@ -1,6 +1,7 @@
 export {
   buildFtsQueries,
   buildPromptHandbookContext,
+  buildPromptHandbookContextWithMeta,
   extractQueryTokens,
   formatOfflineHandbookReply,
   hitToHandbookSource,
@@ -10,6 +11,7 @@ export {
   sanitizePassageForPrompt,
   shouldMergeFollowUpQuery,
   uniqueLinks,
+  wrongAcademicYearReply,
 } from './handbookSearch';
 export type {
   BuiltFtsQueries,
@@ -25,7 +27,10 @@ export {
 } from './knowledgeScope';
 export type {KnowledgeQueryScope} from './knowledgeScope';
 export {campusSourceNote} from './knowledgeCitations';
-export {localHandbookService, withCampusKnowledge} from './localHandbookService';
+export {
+  localHandbookService,
+  withCampusKnowledge,
+} from './localHandbookService';
 export type {
   HandbookPackOrigin,
   LocalHandbookSearchOptions,

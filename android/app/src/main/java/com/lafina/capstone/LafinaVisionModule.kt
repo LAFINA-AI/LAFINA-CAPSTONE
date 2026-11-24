@@ -54,7 +54,11 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
       promise.reject("MODULE_INVALIDATED", "Vision module is no longer active.")
       return
     }
-    visionExecutor.execute(block)
+    try {
+      visionExecutor.execute(block)
+    } catch (e: java.util.concurrent.RejectedExecutionException) {
+      promise.reject("MODULE_INVALIDATED", "Vision module is no longer active.", e)
+    }
   }
 
   private val activityEventListener: ActivityEventListener =
@@ -262,9 +266,21 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
 
   private fun renderPdfPage(renderer: PdfRenderer, pageIndex: Int, targetWidth: Float = 3100f): Bitmap {
     renderer.openPage(pageIndex).use { page ->
-      val scale = (targetWidth / page.width.coerceAtLeast(1)).coerceIn(2.0f, 4.5f)
-      val width = (page.width * scale).toInt().coerceAtLeast(1)
-      val height = (page.height * scale).toInt().coerceAtLeast(1)
+      val pageW = page.width.coerceAtLeast(1).toFloat()
+      val pageH = page.height.coerceAtLeast(1).toFloat()
+      var scale = (targetWidth / pageW).coerceIn(1.0f, 4.5f)
+      if (pageW * scale > OCR_MAX_DIMENSION) {
+        scale = OCR_MAX_DIMENSION / pageW
+      }
+      if (pageH * scale > OCR_MAX_DIMENSION) {
+        scale = minOf(scale, OCR_MAX_DIMENSION / pageH)
+      }
+      val pixels = (pageW * scale) * (pageH * scale)
+      if (pixels > OCR_MAX_PIXELS) {
+        scale *= kotlin.math.sqrt(OCR_MAX_PIXELS / pixels).toFloat()
+      }
+      val width = (pageW * scale).toInt().coerceAtLeast(1)
+      val height = (pageH * scale).toInt().coerceAtLeast(1)
       val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
       bitmap.eraseColor(Color.WHITE)
       page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
@@ -1119,12 +1135,19 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     }
   }
 
+  private data class LoadedOcrImage(
+    val image: InputImage,
+    val size: IntArray,
+    val ownedBitmap: Bitmap? = null,
+  )
+
   /**
    * Small screenshots (e.g. a ~800 px wide COR) put the smallest COR text at a
-   * few pixels tall, below what OCR reads reliably. They are enlarged first.
-   * Large photos keep the original path (which also honors EXIF rotation).
+   * few pixels tall, below what OCR reads reliably. They are enlarged first,
+   * bounded to safe memory dimensions. Large photos keep the original path
+   * (which also honors EXIF rotation).
    */
-  private fun loadImageForOcr(uri: Uri): Pair<InputImage, IntArray> {
+  private fun loadImageForOcr(uri: Uri): LoadedOcrImage {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     openInput(uri).use { BitmapFactory.decodeStream(it, null, bounds) }
     val width = bounds.outWidth
@@ -1132,65 +1155,107 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     if (width in 1 until OCR_MIN_WIDTH && height > 0) {
       val decoded = openInput(uri).use { BitmapFactory.decodeStream(it) }
         ?: throw IllegalStateException("Could not decode the image.")
-      val factor = OCR_TARGET_WIDTH.toFloat() / decoded.width
-      val scaled = Bitmap.createScaledBitmap(
-        decoded,
-        OCR_TARGET_WIDTH,
-        (decoded.height * factor).toInt().coerceAtLeast(1),
-        true
+      var factor = OCR_TARGET_WIDTH.toFloat() / decoded.width
+      if (decoded.height * factor > OCR_MAX_DIMENSION) {
+        factor = minOf(factor, OCR_MAX_DIMENSION / decoded.height.toFloat())
+      }
+      val targetPixels = (decoded.width * factor) * (decoded.height * factor)
+      if (targetPixels > OCR_MAX_PIXELS) {
+        factor *= kotlin.math.sqrt(OCR_MAX_PIXELS / targetPixels).toFloat()
+      }
+      val targetW = (decoded.width * factor).toInt().coerceAtLeast(1)
+      val targetH = (decoded.height * factor).toInt().coerceAtLeast(1)
+      val scaled = if (targetW == decoded.width && targetH == decoded.height) {
+        decoded
+      } else {
+        try {
+          Bitmap.createScaledBitmap(decoded, targetW, targetH, true).also {
+            if (it !== decoded) decoded.recycle()
+          }
+        } catch (error: Throwable) {
+          decoded.recycle()
+          throw error
+        }
+      }
+      return LoadedOcrImage(
+        InputImage.fromBitmap(scaled, 0),
+        intArrayOf(scaled.width, scaled.height),
+        scaled,
       )
-      return Pair(InputImage.fromBitmap(scaled, 0), intArrayOf(scaled.width, scaled.height))
     }
     val image = InputImage.fromFilePath(reactContext, uri)
-    return Pair(image, intArrayOf(image.width, image.height))
+    return LoadedOcrImage(image, intArrayOf(image.width, image.height), null)
   }
 
   @ReactMethod
   fun recognizeText(uriString: String, promise: Promise) {
-    try {
-      val uri = Uri.parse(uriString)
-      val (image, size) = if (isPdfUri(uri, uriString)) {
-        val pdfBitmap = renderPdfFirstPage(uri)
-        Pair(InputImage.fromBitmap(pdfBitmap, 0), intArrayOf(pdfBitmap.width, pdfBitmap.height))
-      } else {
-        loadImageForOcr(uri)
-      }
-      val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    runVisionTask(promise) {
+      var ownedBitmap: Bitmap? = null
+      var recognizer: TextRecognizer? = null
+      var asyncCleanupAttached = false
+      try {
+        val uri = Uri.parse(uriString)
+        val loaded = if (isPdfUri(uri, uriString)) {
+          val pdfBitmap = renderPdfFirstPage(uri)
+          LoadedOcrImage(
+            InputImage.fromBitmap(pdfBitmap, 0),
+            intArrayOf(pdfBitmap.width, pdfBitmap.height),
+            pdfBitmap,
+          )
+        } else {
+          loadImageForOcr(uri)
+        }
+        ownedBitmap = loaded.ownedBitmap
+        val size = loaded.size
+        val client = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        recognizer = client
+        val bitmapToRecycle = ownedBitmap
 
-      recognizer.process(image)
-        .addOnSuccessListener { visionText ->
-          val structuredText = buildCoordinateSortedText(visionText)
-          val result: WritableMap = Arguments.createMap()
-          result.putString("text", visionText.text)
-          result.putString("structuredText", structuredText)
-          result.putInt("blockCount", visionText.textBlocks.size)
-          result.putInt("imageWidth", size[0])
-          result.putInt("imageHeight", size[1])
-          val words = Arguments.createArray()
-          for (block in visionText.textBlocks) {
-            for (line in block.lines) {
-              for (element in line.elements) {
-                val box = element.boundingBox ?: continue
-                val text = element.text.trim()
-                if (text.isEmpty()) continue
-                val w = Arguments.createMap()
-                w.putString("t", text)
-                w.putDouble("x0", box.left.toDouble())
-                w.putDouble("y0", box.top.toDouble())
-                w.putDouble("x1", box.right.toDouble())
-                w.putDouble("y1", box.bottom.toDouble())
-                words.pushMap(w)
+        client.process(loaded.image)
+          .addOnSuccessListener { visionText ->
+            val structuredText = buildCoordinateSortedText(visionText)
+            val result: WritableMap = Arguments.createMap()
+            result.putString("text", visionText.text)
+            result.putString("structuredText", structuredText)
+            result.putInt("blockCount", visionText.textBlocks.size)
+            result.putInt("imageWidth", size[0])
+            result.putInt("imageHeight", size[1])
+            val words = Arguments.createArray()
+            for (block in visionText.textBlocks) {
+              for (line in block.lines) {
+                for (element in line.elements) {
+                  val box = element.boundingBox ?: continue
+                  val text = element.text.trim()
+                  if (text.isEmpty()) continue
+                  val w = Arguments.createMap()
+                  w.putString("t", text)
+                  w.putDouble("x0", box.left.toDouble())
+                  w.putDouble("y0", box.top.toDouble())
+                  w.putDouble("x1", box.right.toDouble())
+                  w.putDouble("y1", box.bottom.toDouble())
+                  words.pushMap(w)
+                }
               }
             }
+            result.putArray("words", words)
+            promise.resolve(result)
           }
-          result.putArray("words", words)
-          promise.resolve(result)
+          .addOnFailureListener { e ->
+            promise.reject("OCR_FAILED", e.message, e)
+          }
+          .addOnCompleteListener {
+            try { bitmapToRecycle?.recycle() } catch (_: Throwable) {}
+            try { client.close() } catch (_: Throwable) {}
+          }
+        asyncCleanupAttached = true
+      } catch (e: Throwable) {
+        promise.reject("IMAGE_ERROR", e.message ?: e.javaClass.simpleName, e)
+      } finally {
+        if (!asyncCleanupAttached) {
+          try { ownedBitmap?.recycle() } catch (_: Throwable) {}
+          try { recognizer?.close() } catch (_: Throwable) {}
         }
-        .addOnFailureListener { e ->
-          promise.reject("OCR_FAILED", e.message, e)
-        }
-    } catch (e: Exception) {
-      promise.reject("IMAGE_ERROR", e.message, e)
+      }
     }
   }
 
@@ -1199,6 +1264,8 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     /** Images narrower than this are enlarged before OCR. */
     private const val OCR_MIN_WIDTH = 1600
     private const val OCR_TARGET_WIDTH = 2400
+    private const val OCR_MAX_DIMENSION = 4800f
+    private const val OCR_MAX_PIXELS = 16_000_000.0
     private const val MAX_MATERIAL_PDF_PAGES = 100
     private const val MAX_MATERIAL_PDF_BYTES = 15 * 1024 * 1024L
     private const val MAX_OFFICE_BYTES = 15 * 1024 * 1024

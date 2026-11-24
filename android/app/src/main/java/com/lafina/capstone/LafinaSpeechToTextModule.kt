@@ -193,14 +193,29 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
   private val activeCaptureId = AtomicReference<String?>(null)
   @Volatile private var activeRecorder: AudioRecord? = null
   @Volatile private var whisperContext: Long = 0L
+  @Volatile private var invalidated: Boolean = false
   private var vadProcessor: SileroVadProcessor? = null
 
   // 60-second inactivity auto-unload mechanism to conserve system RAM and battery
   private val mainHandler = Handler(Looper.getMainLooper())
-  private val inactivityUnloadRunnable = Runnable {
-    if (!warmupExecutor.isShutdown) {
-      warmupExecutor.execute { unloadModelsInternal() }
+  private fun submitWarmup(block: () -> Unit): Boolean {
+    if (invalidated || warmupExecutor.isShutdown) return false
+    return try {
+      warmupExecutor.execute {
+        try {
+          block()
+        } catch (error: Throwable) {
+          Log.w(TAG, "Warmup worker error", error)
+        }
+      }
+      true
+    } catch (_: java.util.concurrent.RejectedExecutionException) {
+      false
     }
+  }
+
+  private val inactivityUnloadRunnable = Runnable {
+    submitWarmup { unloadModelsInternal() }
   }
 
   // Separate from `executor` so a warmup never delays the start of audio capture.
@@ -213,12 +228,12 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       @Suppress("DEPRECATION")
       val lowMemory = level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
         level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
-      if (lowMemory) warmupExecutor.execute { unloadModelsInternal() }
+      if (lowMemory) submitWarmup { unloadModelsInternal() }
     }
 
     @Deprecated("Deprecated in Java")
     override fun onLowMemory() {
-      warmupExecutor.execute { unloadModelsInternal() }
+      submitWarmup { unloadModelsInternal() }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {}
@@ -243,15 +258,23 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
   @ReactMethod
   fun warmup(promise: Promise) {
     cancelInactivityUnload()
-    warmupExecutor.execute {
+    val submitted = submitWarmup {
       try {
+        if (invalidated) {
+          promise.resolve(false)
+          return@submitWarmup
+        }
         promise.resolve(ensureWhisperContext() != 0L)
-      } catch (error: Exception) {
+      } catch (error: Throwable) {
         Log.w(TAG, "Whisper warmup failed", error)
         promise.resolve(false)
       } finally {
-        if (activeCaptureId.get() == null) scheduleInactivityUnload()
+        if (invalidated) unloadModelsInternal()
+        else if (activeCaptureId.get() == null) scheduleInactivityUnload()
       }
+    }
+    if (!submitted) {
+      promise.resolve(false)
     }
   }
 
@@ -340,36 +363,36 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       return
     }
 
-    val captureId = if (options.hasKey("captureId")) {
+    val captureId = if (options.hasKey("captureId") && !options.isNull("captureId")) {
       options.getString("captureId")?.takeIf { it.isNotBlank() }
     } else {
       null
     } ?: "legacy-${System.nanoTime()}"
-    val requestedMode = if (options.hasKey("mode")) {
+    val requestedMode = if (options.hasKey("mode") && !options.isNull("mode")) {
       options.getString("mode") ?: MODE_AUTOMATIC
     } else {
       MODE_AUTOMATIC
     }
     val mode = if (requestedMode == MODE_MANUAL) MODE_MANUAL else MODE_AUTOMATIC
-    val captureContext = if (options.hasKey("context")) {
+    val captureContext = if (options.hasKey("context") && !options.isNull("context")) {
       options.getString("context") ?: CONTEXT_MAIN_MIC
     } else {
       CONTEXT_MAIN_MIC
     }
-    val bargeIn = options.hasKey("bargeIn") && options.getBoolean("bargeIn")
-    val useHardwareAudioEffects = if (options.hasKey("hardwareNoiseSuppression")) {
+    val bargeIn = options.hasKey("bargeIn") && !options.isNull("bargeIn") && options.getBoolean("bargeIn")
+    val useHardwareAudioEffects = if (options.hasKey("hardwareNoiseSuppression") && !options.isNull("hardwareNoiseSuppression")) {
       options.getBoolean("hardwareNoiseSuppression")
     } else {
       bargeIn
     }
     // Offline call tuning: a shorter end-of-turn pause, and the first moments
     // ignored so LAFINA's own voice still in the room is not heard as speech.
-    val endSilenceMs = if (options.hasKey("endSilenceMs")) {
+    val endSilenceMs = if (options.hasKey("endSilenceMs") && !options.isNull("endSilenceMs")) {
       options.getDouble("endSilenceMs").toInt().coerceIn(MIN_END_SILENCE_MS, MAX_END_SILENCE_MS)
     } else {
       null
     }
-    val leadInIgnoreMs = if (options.hasKey("leadInIgnoreMs")) {
+    val leadInIgnoreMs = if (options.hasKey("leadInIgnoreMs") && !options.isNull("leadInIgnoreMs")) {
       options.getDouble("leadInIgnoreMs").toInt().coerceIn(0, MAX_LEAD_IN_IGNORE_MS)
     } else {
       0
@@ -513,11 +536,11 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
             captured.maxVadProbability
           )
         )
-      } catch (error: Exception) {
+      } catch (error: Throwable) {
         if (discardRequested.get()) {
           promise.resolve(resultMap(captureId, "", false, true, 0L, 0L))
         } else {
-          promise.reject("OFFLINE_STT_ERROR", error.message, error)
+          promise.reject("OFFLINE_STT_ERROR", error.message ?: error.javaClass.simpleName, error)
         }
       } finally {
         // The real worker has returned: AudioRecord is released and Whisper is done, so
@@ -525,7 +548,11 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
         activeRecorder = null
         activeCaptureId.compareAndSet(captureId, null)
         LafinaMicrophoneLease.release(ticket)
-        scheduleInactivityUnload()
+        if (invalidated) {
+          unloadModelsInternal()
+        } else {
+          scheduleInactivityUnload()
+        }
         promise.flush()
       }
   }
@@ -597,112 +624,115 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       throw IllegalStateException("Microphone recorder could not initialize")
     }
 
-    val echoCanceler = try {
-      if (bargeIn && AcousticEchoCanceler.isAvailable()) {
-        AcousticEchoCanceler.create(recorder.audioSessionId)?.apply { enabled = true }
-      } else {
-        null
-      }
-    } catch (_: Exception) {
-      null
-    }
-    val noiseSuppressor = try {
-      if (useHardwareAudioEffects && NoiseSuppressor.isAvailable()) {
-        NoiseSuppressor.create(recorder.audioSessionId)?.apply { enabled = true }
-      } else {
-        null
-      }
-    } catch (_: Exception) {
-      null
-    }
-    val automaticGainControl = try {
-      if (useHardwareAudioEffects && AutomaticGainControl.isAvailable()) {
-        AutomaticGainControl.create(recorder.audioSessionId)?.apply { enabled = true }
-      } else {
-        null
-      }
-    } catch (_: Exception) {
-      null
-    }
-    val vad = vadProcessor ?: SileroVadProcessor(reactContext).also { vadProcessor = it }
-    vad.reset()
-    val waitSeconds = when {
-      mode == MODE_MANUAL -> MANUAL_CAPTURE_LIMIT_SECONDS
-      captureContext == CONTEXT_REMINDER_CALL -> REMINDER_WAIT_FOR_SPEECH_SECONDS
-      else -> MAIN_WAIT_FOR_SPEECH_SECONDS
-    }
+    var echoCanceler: AcousticEchoCanceler? = null
+    var noiseSuppressor: NoiseSuppressor? = null
+    var automaticGainControl: AutomaticGainControl? = null
     val speechLimitSeconds = when {
       mode == MODE_MANUAL -> MANUAL_CAPTURE_LIMIT_SECONDS
       isReminderCall -> CALL_COMMAND_LIMIT_SECONDS
       else -> MAX_UTTERANCE_SECONDS
     }
-    val maximumWaitSamples = SAMPLE_RATE * waitSeconds
     val maximumSpeechSamples = SAMPLE_RATE * speechLimitSeconds
     val audio = FloatArray(PRE_ROLL_SAMPLES + maximumSpeechSamples + FRAME_SIZE)
     var audioSize = 0
-    val preRoll = FloatArray(PRE_ROLL_SAMPLES)
-    var preRollSize = 0
-    var preRollWriteIndex = 0
-    val frame = ShortArray(FRAME_SIZE)
     var speechDetected = false
-    var speechEvidenceFrames = 0
-    var silenceFramesAfterSpeech = 0
-    var samplesWaitingForSpeech = 0
     var maxVadProbability = 0f
     var peakAmplitude = 0f
-    var noiseFloorRms = INITIAL_NOISE_FLOOR_RMS
-    var totalStreamSamples = 0
     var audioStreamStartSample = if (mode == MODE_MANUAL) 0 else -1
-    var speechCandidateStartSample = -1
     var speechStartStreamSample = -1
     var speechEndStreamSample = -1
-    var energyEvidenceFrames = 0
-    var energyCandidateStartSample = -1
     var energyStartStreamSample = -1
     var energyEndStreamSample = -1
-    val silenceAfterSpeechMs =
-      when {
-        endSilenceMs != null && mode == MODE_AUTOMATIC -> endSilenceMs
-        isReminderCall -> CALL_COMMAND_SILENCE_AFTER_SPEECH_MS
-        else -> MAIN_SILENCE_AFTER_SPEECH_MS
-      }
-    val leadInIgnoreSamples = (leadInIgnoreMs * SAMPLE_RATE) / 1000
-    // One buffer for every frame (was a new array per 32 ms frame).
-    val normalized = FloatArray(FRAME_SIZE)
-    val silenceFramesRequired =
-      (silenceAfterSpeechMs * SAMPLE_RATE) / (1000 * FRAME_SIZE)
-    val speechEvidenceFramesRequired =
-      if (isReminderCall) CALL_SPEECH_EVIDENCE_FRAMES else MIN_SPEECH_EVIDENCE_FRAMES
-    val allowEnergyFallback = mode == MODE_AUTOMATIC && (!bargeIn || isReminderCall)
-
-    fun appendAudio(samples: FloatArray, sampleCount: Int) {
-      val writable = minOf(sampleCount, audio.size - audioSize)
-      if (writable <= 0) return
-      samples.copyInto(audio, audioSize, 0, writable)
-      audioSize += writable
-    }
-
-    fun appendPreRoll(samples: FloatArray, sampleCount: Int) {
-      for (index in 0 until sampleCount) {
-        preRoll[preRollWriteIndex] = samples[index]
-        preRollWriteIndex = (preRollWriteIndex + 1) % preRoll.size
-        if (preRollSize < preRoll.size) preRollSize += 1
-      }
-    }
-
-    fun flushPreRoll() {
-      val oldestIndex = if (preRollSize == preRoll.size) preRollWriteIndex else 0
-      for (offset in 0 until preRollSize) {
-        if (audioSize >= audio.size) break
-        audio[audioSize] = preRoll[(oldestIndex + offset) % preRoll.size]
-        audioSize += 1
-      }
-      preRollSize = 0
-    }
-
-    activeRecorder = recorder
-    recorder.startRecording()
     try {
+      echoCanceler = try {
+        if (bargeIn && AcousticEchoCanceler.isAvailable()) {
+          AcousticEchoCanceler.create(recorder.audioSessionId)?.apply { enabled = true }
+        } else {
+          null
+        }
+      } catch (_: Exception) {
+        null
+      }
+      noiseSuppressor = try {
+        if (useHardwareAudioEffects && NoiseSuppressor.isAvailable()) {
+          NoiseSuppressor.create(recorder.audioSessionId)?.apply { enabled = true }
+        } else {
+          null
+        }
+      } catch (_: Exception) {
+        null
+      }
+      automaticGainControl = try {
+        if (useHardwareAudioEffects && AutomaticGainControl.isAvailable()) {
+          AutomaticGainControl.create(recorder.audioSessionId)?.apply { enabled = true }
+        } else {
+          null
+        }
+      } catch (_: Exception) {
+        null
+      }
+      val vad = vadProcessor ?: SileroVadProcessor(reactContext).also { vadProcessor = it }
+      vad.reset()
+      val waitSeconds = when {
+        mode == MODE_MANUAL -> MANUAL_CAPTURE_LIMIT_SECONDS
+        captureContext == CONTEXT_REMINDER_CALL -> REMINDER_WAIT_FOR_SPEECH_SECONDS
+        else -> MAIN_WAIT_FOR_SPEECH_SECONDS
+      }
+      val maximumWaitSamples = SAMPLE_RATE * waitSeconds
+      val preRoll = FloatArray(PRE_ROLL_SAMPLES)
+      var preRollSize = 0
+      var preRollWriteIndex = 0
+      val frame = ShortArray(FRAME_SIZE)
+      var speechEvidenceFrames = 0
+      var silenceFramesAfterSpeech = 0
+      var samplesWaitingForSpeech = 0
+      var noiseFloorRms = INITIAL_NOISE_FLOOR_RMS
+      var totalStreamSamples = 0
+      var speechCandidateStartSample = -1
+      var energyEvidenceFrames = 0
+      var energyCandidateStartSample = -1
+      val silenceAfterSpeechMs =
+        when {
+          endSilenceMs != null && mode == MODE_AUTOMATIC -> endSilenceMs
+          isReminderCall -> CALL_COMMAND_SILENCE_AFTER_SPEECH_MS
+          else -> MAIN_SILENCE_AFTER_SPEECH_MS
+        }
+      val leadInIgnoreSamples = (leadInIgnoreMs * SAMPLE_RATE) / 1000
+      // One buffer for every frame (was a new array per 32 ms frame).
+      val normalized = FloatArray(FRAME_SIZE)
+      val silenceFramesRequired =
+        (silenceAfterSpeechMs * SAMPLE_RATE) / (1000 * FRAME_SIZE)
+      val speechEvidenceFramesRequired =
+        if (isReminderCall) CALL_SPEECH_EVIDENCE_FRAMES else MIN_SPEECH_EVIDENCE_FRAMES
+      val allowEnergyFallback = mode == MODE_AUTOMATIC && (!bargeIn || isReminderCall)
+
+      fun appendAudio(samples: FloatArray, sampleCount: Int) {
+        val writable = minOf(sampleCount, audio.size - audioSize)
+        if (writable <= 0) return
+        samples.copyInto(audio, audioSize, 0, writable)
+        audioSize += writable
+      }
+
+      fun appendPreRoll(samples: FloatArray, sampleCount: Int) {
+        for (index in 0 until sampleCount) {
+          preRoll[preRollWriteIndex] = samples[index]
+          preRollWriteIndex = (preRollWriteIndex + 1) % preRoll.size
+          if (preRollSize < preRoll.size) preRollSize += 1
+        }
+      }
+
+      fun flushPreRoll() {
+        val oldestIndex = if (preRollSize == preRoll.size) preRollWriteIndex else 0
+        for (offset in 0 until preRollSize) {
+          if (audioSize >= audio.size) break
+          audio[audioSize] = preRoll[(oldestIndex + offset) % preRoll.size]
+          audioSize += 1
+        }
+        preRollSize = 0
+      }
+
+      activeRecorder = recorder
+      recorder.startRecording()
       while (!stopRequested.get() && audioSize < audio.size) {
         val read = try {
           recorder.read(frame, 0, frame.size, AudioRecord.READ_BLOCKING)
@@ -929,6 +959,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
   }
 
   override fun invalidate() {
+    invalidated = true
     cancelInactivityUnload()
     discardRequested.set(true)
     stopRequested.set(true)
@@ -937,7 +968,10 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       activeRecorder?.stop()
     } catch (_: Exception) {
     }
-    reactContext.applicationContext.unregisterComponentCallbacks(memoryCallbacks)
+    try {
+      reactContext.applicationContext.unregisterComponentCallbacks(memoryCallbacks)
+    } catch (_: Exception) {
+    }
     unloadModelsInternal()
     executor.shutdownNow()
     warmupExecutor.shutdownNow()

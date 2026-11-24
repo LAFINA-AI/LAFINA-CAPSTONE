@@ -142,13 +142,43 @@ export const guestMigration = {
   },
 
   /**
+   * True when the guest account exists locally or owns any personal/study data
+   * that should be preserved when upgrading to a full account.
+   */
+  hasGuestAccountData: (): boolean => {
+    try {
+      const checks = [
+        'SELECT 1 FROM users WHERE id = ? LIMIT 1',
+        'SELECT 1 FROM tasks WHERE user_id = ? AND deleted_at IS NULL LIMIT 1',
+        'SELECT 1 FROM events WHERE user_id = ? AND deleted_at IS NULL LIMIT 1',
+        'SELECT 1 FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL LIMIT 1',
+        'SELECT 1 FROM reminders WHERE user_id = ? AND deleted_at IS NULL LIMIT 1',
+        'SELECT 1 FROM notes WHERE user_id = ? AND deleted_at IS NULL LIMIT 1',
+        'SELECT 1 FROM custom_categories WHERE user_id = ? AND deleted_at IS NULL LIMIT 1',
+        'SELECT 1 FROM chat_sessions WHERE user_id = ? LIMIT 1',
+        'SELECT 1 FROM alarms WHERE user_id = ? LIMIT 1',
+        'SELECT 1 FROM recorded_meetings WHERE user_id = ? LIMIT 1',
+        'SELECT 1 FROM user_materials WHERE user_id = ? LIMIT 1',
+        'SELECT 1 FROM local_settings WHERE user_id = ? LIMIT 1',
+      ];
+      return checks.some(
+        sql => (db.executeSync(sql, [GUEST_USER_ID]).rows?.length ?? 0) > 0,
+      );
+    } catch {
+      return false;
+    }
+  },
+
+  /**
    * Re-keys all guest records to cloudUserId, enqueues outbox sync entries,
    * and clears local password hash upon cloud authentication confirmation.
    */
   linkGuestToCloudAccount: async (
     cloudUserId: string,
     cloudEmail: string,
+    options: {preserveActiveSession?: boolean} = {},
   ): Promise<void> => {
+    if (!cloudUserId || cloudUserId === GUEST_USER_ID) return;
     db.transactionSync((tx: DatabaseTransaction) => {
       const now = new Date().toISOString();
 
@@ -412,16 +442,18 @@ export const guestMigration = {
       }
 
       // The guest's session is replaced: retire its open confirmations once committed.
-      if (tx.afterCommit) {
-        tx.afterCommit(() => noteSessionChange());
-      } else {
-        noteSessionChange();
+      if (!options.preserveActiveSession) {
+        if (tx.afterCommit) {
+          tx.afterCommit(() => noteSessionChange());
+        } else {
+          noteSessionChange();
+        }
+        tx.executeSync('DELETE FROM active_session');
+        tx.executeSync(
+          `INSERT INTO active_session (user_id, created_at, updated_at) VALUES (?, ?, ?)`,
+          [cloudUserId, now, now],
+        );
       }
-      tx.executeSync('DELETE FROM active_session');
-      tx.executeSync(
-        `INSERT INTO active_session (user_id, created_at, updated_at) VALUES (?, ?, ?)`,
-        [cloudUserId, now, now],
-      );
 
       // Guest-scoped mutations cannot be sent under the new account token. Rebuild them below.
       tx.executeSync(`DELETE FROM sync_outbox WHERE user_id = ?`, [

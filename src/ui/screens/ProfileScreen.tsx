@@ -37,6 +37,7 @@ import type {ThemeColors} from '../contexts/ThemeContext';
 import {APP_VERSION} from '../../appVersion';
 import {GUEST_USER_ID} from '../../constants';
 import {cancelFocusTimer} from '../../scheduler/focusTimer';
+import {reconcileReminderDelivery} from '../../scheduler/deliveryReconciler';
 import {SvgXml} from 'react-native-svg';
 import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
 import {
@@ -683,8 +684,8 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     }
     return ids
       .map(id => MODERN_AI_BUTTON_DESIGNS.find(design => design.id === id))
-      .filter(
-        (d): d is (typeof MODERN_AI_BUTTON_DESIGNS)[number] => Boolean(d),
+      .filter((d): d is (typeof MODERN_AI_BUTTON_DESIGNS)[number] =>
+        Boolean(d),
       );
   }, [modernAiButtonDesign]);
   const themed = useThemedStyles(getProfileThemedStyles);
@@ -1031,6 +1032,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       ? await finishPersonalFileCleanup(authority)
       : {pending: 0};
     const plannerCleared = outcome.planner === 'cleared';
+    if (plannerCleared) {
+      void reconcileReminderDelivery(authority.userId).catch(() => undefined);
+    }
     const chatCleared = outcome.chat === 'cleared';
     const defaultsCleared = outcome.defaults === 'cleared';
     const filesPending = cleanup.pending;

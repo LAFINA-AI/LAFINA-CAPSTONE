@@ -11,7 +11,10 @@ import {
 } from '../../../../storage';
 import {isUstpSchoolEnabled} from '../../../../storage/ustpEligibility';
 import {nextAlarm} from '../../../../scheduler/alarmService';
-import {readPomodoro, subscribePomodoro} from '../../../../skills/pomodoroService';
+import {
+  readPomodoro,
+  subscribePomodoro,
+} from '../../../../skills/pomodoroService';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {avatarSource} from '../../../components/profile/avatarFile';
 import {Fonts, ModernLayout, Spacing} from '../../../theme';
@@ -63,7 +66,10 @@ export interface ModernHomeContentProps {
   onRefresh: () => void;
 }
 
-const readActivePomodoroMinutes = (userId: string, nowMs: number): number | null => {
+const readActivePomodoroMinutes = (
+  userId: string,
+  nowMs: number,
+): number | null => {
   try {
     const state = readPomodoro(userId, nowMs);
     if (!state.deadline || state.remaining <= 0) return null;
@@ -250,6 +256,13 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
     return data.todayItems;
   }, [data.todayItems, scheduleFilter]);
 
+  const hasLiveUnfilteredItem = useMemo(() => {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    return data.todayItems.some(
+      item => item.startMinutes <= nowMinutes && item.endMinutes > nowMinutes,
+    );
+  }, [data.todayItems, now]);
+
   const timelineRows = useMemo(
     () =>
       buildTodayTimelineRows({
@@ -257,8 +270,15 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         freeStudy: data.freeStudy,
         now,
         timeFormat24h,
+        hasLiveUnfilteredItem,
       }),
-    [filteredTodayItems, data.freeStudy, now, timeFormat24h],
+    [
+      filteredTodayItems,
+      data.freeStudy,
+      now,
+      timeFormat24h,
+      hasLiveUnfilteredItem,
+    ],
   );
 
   const renderWidget = (id: DashboardWidgetId): React.ReactNode => {
@@ -369,9 +389,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         </View>
       )}
 
-      {heroFirst && (
-        <UpNextHeroCard hero={hero} onPress={handlePressHero} />
-      )}
+      {heroFirst && <UpNextHeroCard hero={hero} onPress={handlePressHero} />}
 
       <QuickActionsRow
         ustpEnabled={ustpEnabled}

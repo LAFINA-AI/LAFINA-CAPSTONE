@@ -456,6 +456,7 @@ export const playSpeechFile = async (filePath: string): Promise<boolean> => {
  * This is the existing app-wide stop (calls, voice sheet, chat).
  */
 export const stopSpeechPlayback = async (): Promise<void> => {
+  activeSpeech?.stop();
   try {
     await Tts.stop();
   } catch {
@@ -498,8 +499,11 @@ const normalizeUtterance = (text: string): string =>
 
 const eventUtteranceId = (event: unknown): string | null => {
   if (typeof event === 'string') return event;
+  if (typeof event === 'number') return String(event);
   const id = (event as {utteranceId?: unknown} | null)?.utteranceId;
-  return typeof id === 'string' ? id : null;
+  if (typeof id === 'string') return id;
+  if (typeof id === 'number') return String(id);
+  return null;
 };
 
 /**
@@ -579,6 +583,7 @@ const speakOwned = (
         }
       }
     }, timeoutMs);
+    activeSpeech?.stop();
     activeSpeech = {token, owner, stop: () => settle('stopped')};
     onToken?.(token);
 
@@ -598,7 +603,12 @@ const speakOwned = (
       const started = Tts.speak(trimmed) as unknown;
       const onId = (id: unknown) => {
         idKnown = true;
-        ownId = typeof id === 'string' ? id : null;
+        ownId =
+          typeof id === 'string'
+            ? id
+            : typeof id === 'number'
+            ? String(id)
+            : null;
         for (const item of early.splice(0)) handle(item.kind, item.id);
       };
       if (started && typeof (started as Promise<unknown>).then === 'function') {

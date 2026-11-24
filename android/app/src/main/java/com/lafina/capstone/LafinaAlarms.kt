@@ -124,9 +124,20 @@ object LafinaAlarms {
   /** Boot, package replace, time or zone change, exact-alarm permission change. */
   fun restoreAll(context: Context) {
     synchronized(LOCK) {
-      for (definition in registry(context).all()) {
+      val reg = registry(context)
+      val now = System.currentTimeMillis()
+      for (definition in reg.all()) {
         try {
-          book(context, definition)
+          val nextTrigger = book(context, definition)
+          if (nextTrigger == null &&
+              !definition.isRepeating &&
+              definition.enabled &&
+              definition.oneShotDate != null) {
+            reg.put(definition.copy(enabled = false, snoozeUntilMs = 0L))
+            recordEvent(
+                context,
+                AlarmEvent(definition.id, AlarmEvent.ONE_SHOT_DONE, now, definition.generation))
+          }
         } catch (_: Exception) {
           // One bad booking must not stop the others.
         }

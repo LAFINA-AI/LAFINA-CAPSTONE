@@ -11,11 +11,12 @@ import {
 } from '../storage/localHandbookStore';
 import {
   buildFtsQueries,
-  buildPromptHandbookContext,
+  buildPromptHandbookContextWithMeta,
   formatOfflineHandbookReply,
   freeTokensOf,
   rankAndFilterFtsCandidates,
   shouldMergeFollowUpQuery,
+  wrongAcademicYearReply,
   type LocalHandbookMatch,
   type LocalHandbookSearchResult,
   type LocalHandbookSource,
@@ -45,6 +46,7 @@ export interface OnlineHandbookContext {
   contextBlock: string;
   sources: LocalHandbookSource[];
   matches: LocalHandbookMatch[];
+  academicYearRefusal?: string;
 }
 
 export interface OfflineHandbookAnswer {
@@ -116,7 +118,10 @@ async function loadBestAvailablePack(): Promise<{
         const rawText = await RNFS.readFile(overridePath, 'utf8');
         const parsedOverride = parseHandbookPack(JSON.parse(rawText));
         if (parsedOverride && parsedOverride.chunkCount > 0) {
-          return {pack: withCampusKnowledge(parsedOverride), origin: 'device_file'};
+          return {
+            pack: withCampusKnowledge(parsedOverride),
+            origin: 'device_file',
+          };
         }
       }
     } catch (error) {
@@ -415,20 +420,28 @@ export const localHandbookService = {
       collections: options.collections,
     });
     if (result.insufficientEvidence || result.matches.length === 0) {
+      if (result.insufficientReason === 'academic_year') {
+        return {
+          contextBlock: '',
+          sources: [],
+          matches: [],
+          academicYearRefusal: wrongAcademicYearReply(result),
+        };
+      }
       return null;
     }
-    const contextBlock = buildPromptHandbookContext(
+    const built = buildPromptHandbookContextWithMeta(
       result.matches,
       options.maxChars ?? 2400,
       {referenceDate: options.referenceDate},
     );
-    if (!contextBlock) {
+    if (!built.contextBlock) {
       return null;
     }
     return {
-      contextBlock,
-      sources: result.sources,
-      matches: result.matches,
+      contextBlock: built.contextBlock,
+      sources: built.includedSources,
+      matches: built.includedMatches,
     };
   },
 

@@ -413,7 +413,9 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
                     style={[
                       styles.itemButtonSecondary,
                       {borderColor: colors.border},
+                      busy && {opacity: 0.5},
                     ]}
+                    disabled={busy}
                     onPress={() => onCancelItem(item.id)}
                     accessibilityRole="button"
                     accessibilityLabel={`Remove item ${index + 1}`}

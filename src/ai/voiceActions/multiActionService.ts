@@ -194,7 +194,10 @@ export function createMultiActionBatch(
   truncated = false,
 ): MultiActionBatchData {
   const cappedItems = items.slice(0, MAX_MULTI_ITEMS);
-  cappedItems.forEach(item => refreshMultiItemConflict(ownerId, item));
+  cappedItems.forEach(item => {
+    refreshMultiItemConflict(ownerId, item);
+    item.reviewedScheduleWarning = item.scheduleWarning;
+  });
   return {
     id: `batch-${generateId()}`,
     sessionId,
@@ -352,15 +355,20 @@ export async function executeMultiActionBatch(
         reminderTriggerIso = localDt.toISOString();
       }
       if (item.kind === 'event') {
-        const reviewedWarning = item.scheduleWarning;
+        const reviewedWarning =
+          item.reviewedScheduleWarning !== undefined
+            ? item.reviewedScheduleWarning
+            : item.scheduleWarning;
         refreshMultiItemConflict(ownerId, item);
         if (
           item.scheduleWarning?.startsWith('Schedule could not') ||
           item.scheduleWarning !== reviewedWarning
-        )
+        ) {
           throw new Error(
             'Schedule changed or could not be checked. Review the warning before retrying.',
           );
+        }
+        item.reviewedScheduleWarning = item.scheduleWarning;
       }
       db.transactionSync(tx => {
         const receipt = assistantOperationStore.getReceipt(operationId, tx);
@@ -531,6 +539,7 @@ export function reviseMultiItem(
       throw new Error('Unsupported grouped edit.');
   Object.assign(target, patch);
   refreshMultiItemConflict(batch.ownerId, target);
+  target.reviewedScheduleWarning = target.scheduleWarning;
   batch.revision += 1;
   return {...batch};
 }

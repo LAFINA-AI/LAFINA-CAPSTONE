@@ -24,6 +24,7 @@ interface RegisterScreenProps {
   onRegisterSuccess: (userId: string) => void;
   onNavigateToLogin: () => void;
   onBack?: () => void;
+  fromGuest?: boolean;
 }
 
 const STRENGTH_SEGMENT_COUNT = 5;
@@ -53,6 +54,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   onRegisterSuccess,
   onNavigateToLogin,
   onBack,
+  fromGuest = false,
 }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -88,6 +90,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         username,
         email,
         password,
+        ...(fromGuest ? {migrateGuestData: true} : {}),
       });
       if (result.status === 'offline_only' && result.localUserId) {
         completeRegistration(result.localUserId, result.message);
@@ -137,6 +140,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         username,
         email,
         password,
+        ...(fromGuest ? {migrateGuestData: true} : {}),
       });
 
       if (

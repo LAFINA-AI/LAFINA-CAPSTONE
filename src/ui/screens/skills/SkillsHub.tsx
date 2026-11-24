@@ -30,7 +30,10 @@ import {
 } from 'lucide-react-native';
 import {db, materialStore, notesQueryStore} from '../../../storage';
 import type {UserMaterialRecord} from '../../../storage';
-import {escapeLike} from '../../../storage/notesQueryStore';
+import {
+  escapeLike,
+  InvalidNotesQueryError,
+} from '../../../storage/notesQueryStore';
 import {readSkillState, writeSkillState} from '../../../skills/skillsState';
 import {useStudyJob} from '../../../skills/studyJobs';
 import {readDecks, subscribeDecks} from '../../../skills/studyDecks';
@@ -202,9 +205,7 @@ export const SkillsHub = React.memo(function SkillsHubView({
       });
       setError('');
     } catch {
-      setError(
-        'Could not read your skills data. Try opening the page again.',
-      );
+      setError('Could not read your skills data. Try opening the page again.');
     }
   }, [isVisible, refreshTrigger, userId]);
   useEffect(() => {
@@ -258,8 +259,15 @@ export const SkillsHub = React.memo(function SkillsHubView({
         } else {
           setIndexing(false);
         }
-      } catch {
+      } catch (err) {
         if (!active) return;
+        if (err instanceof InvalidNotesQueryError) {
+          setResults([]);
+          setMaterialMatches([]);
+          setIndexing(false);
+          setError(err.message);
+          return;
+        }
         setError(
           'Could not read your skills data. Try opening the page again.',
         );

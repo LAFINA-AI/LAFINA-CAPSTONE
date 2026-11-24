@@ -5,6 +5,10 @@ import {runAttachmentCleanup} from '../storage/attachmentCleanup';
 import {CHAT_LIMIT_REASON, chatSyncStore} from '../storage/chatSyncStore';
 import {db, DatabaseTransaction} from '../storage/database';
 import {normalizeAvatarSeed} from '../storage/profileSyncPayload';
+import {
+  getSessionGeneration,
+  subscribeSessionChanges,
+} from '../storage/sessionEpoch';
 import {syncConflictStore} from '../storage/syncConflictStore';
 import {syncMetadataStore} from '../storage/syncMetadataStore';
 import {OutboxItem, syncOutboxStore} from '../storage/syncOutboxStore';
@@ -148,6 +152,10 @@ const isProfileAvatarSeedValidationRejection = (
 const OUTBOX_BATCH_SIZE = 100;
 const MAX_SYNC_REQUESTS = 100;
 const MAX_BATCH_BYTES = 768 * 1024;
+const BATCH_ENVELOPE_RESERVE_BYTES = 4096;
+const MAX_MUTATIONS_PAYLOAD_BYTES =
+  MAX_BATCH_BYTES - BATCH_ENVELOPE_RESERVE_BYTES;
+const MAX_OUTBOX_ATTEMPTS = 10;
 const OUTBOX_PRESERVE_STATUSES = ['pending', 'in_progress', 'failed'];
 
 const utf8Length = (value: string): number => {
@@ -168,6 +176,10 @@ let inFlightSync: Promise<void> | null = null;
 let followUpSyncRequested = false;
 let retryAttempt = 0;
 let remoteChangesApplied = 0;
+
+subscribeSessionChanges(() => {
+  retryAttempt = 0;
+});
 
 type RemoteChangeListener = (userId: string, changeCount: number) => void;
 const remoteChangeListeners = new Set<RemoteChangeListener>();
@@ -821,9 +833,17 @@ const reportChatChanges = (
   if (tally.changed) emitChatRemoteChanged(localUserId);
 };
 
-const assertActiveLocalUser = (localUserId: string): void => {
+const assertActiveLocalUser = (
+  localUserId: string,
+  expectedSessionGeneration?: number,
+): void => {
   const session = userStore.getActiveSessionToken();
-  if (session.userId !== localUserId || !userStore.getUserById(localUserId)) {
+  if (
+    session.userId !== localUserId ||
+    !userStore.getUserById(localUserId) ||
+    (expectedSessionGeneration !== undefined &&
+      getSessionGeneration() !== expectedSessionGeneration)
+  ) {
     throw new Error('The active local account changed during sync.');
   }
 };
@@ -1056,17 +1076,79 @@ const hasPendingLocalMutation = (
   localUserId: string,
   entityType: SyncEntityType,
   entityId: string,
-): boolean =>
-  Boolean(
+  includeInProgress = false,
+): boolean => {
+  const statusClause = includeInProgress
+    ? "status IN ('pending', 'in_progress', 'failed')"
+    : "status IN ('pending', 'failed')";
+  return Boolean(
     tx.executeSync(
       `SELECT 1 FROM sync_outbox
        WHERE user_id = ? AND scope_type = ? AND scope_id = ?
          AND entity_type = ? AND entity_id = ?
-         AND status = 'pending'
+         AND ${statusClause}
        LIMIT 1`,
       [localUserId, ACCOUNT_SCOPE, localUserId, entityType, entityId],
     ).rows?.[0],
   );
+};
+
+const hasPendingParentSessionDelete = (
+  tx: DatabaseTransaction,
+  localUserId: string,
+  change: SyncChange,
+): boolean => {
+  if (change.entityType !== 'chat_message' || change.operation === 'delete') {
+    return false;
+  }
+  const sessionId =
+    typeof change.payload.session_id === 'string'
+      ? change.payload.session_id
+      : '';
+  if (!sessionId) return false;
+  return Boolean(
+    tx.executeSync(
+      `SELECT 1 FROM sync_outbox
+       WHERE user_id = ? AND scope_type = ? AND scope_id = ?
+         AND entity_type = 'chat_session' AND entity_id = ?
+         AND operation = 'delete'
+         AND status IN ('pending', 'in_progress', 'failed')
+       LIMIT 1`,
+      [localUserId, ACCOUNT_SCOPE, localUserId, sessionId],
+    ).rows?.[0],
+  );
+};
+
+const orderSnapshotItems = (items: SyncChange[]): SyncChange[] => {
+  const nonChat: SyncChange[] = [];
+  const chatSessions: SyncChange[] = [];
+  const chatMessages: SyncChange[] = [];
+  for (const item of items) {
+    if (item.entityType === 'chat_session') chatSessions.push(item);
+    else if (item.entityType === 'chat_message') chatMessages.push(item);
+    else nonChat.push(item);
+  }
+  chatMessages.sort((left, right) => {
+    const leftCreated =
+      typeof left.payload.created_at === 'string'
+        ? left.payload.created_at
+        : left.updatedAt;
+    const rightCreated =
+      typeof right.payload.created_at === 'string'
+        ? right.payload.created_at
+        : right.updatedAt;
+    if (leftCreated !== rightCreated) {
+      return leftCreated.localeCompare(rightCreated);
+    }
+    if (left.changeId !== right.changeId) {
+      return left.changeId - right.changeId;
+    }
+    const leftSenderRank = left.payload.sender === 'user' ? 0 : 1;
+    const rightSenderRank = right.payload.sender === 'user' ? 0 : 1;
+    return leftSenderRank - rightSenderRank;
+  });
+  return [...nonChat, ...chatSessions, ...chatMessages];
+};
 
 const pruneServerMissingEntities = (
   tx: DatabaseTransaction,
@@ -1176,14 +1258,16 @@ const applyAuthoritativeSnapshot = (
       );
       reminderTextUpdated = pruned.reminderTextUpdated;
       localRemoteChanges += pruned.remoteChanges;
-      for (const change of items) {
+      for (const change of orderSnapshotItems(items)) {
         if (
           hasPendingLocalMutation(
             tx,
             localUserId,
             change.entityType,
             change.entityId,
-          )
+            true,
+          ) ||
+          hasPendingParentSessionDelete(tx, localUserId, change)
         ) {
           continue;
         }
@@ -1363,9 +1447,7 @@ const persistMutationResults = (
     tx,
   );
   return (
-    response.rejected.length -
-    heldForLimit.size -
-    deferredCompatRetries.size
+    response.rejected.length - heldForLimit.size - deferredCompatRetries.size
   );
 };
 
@@ -1406,7 +1488,8 @@ const applyPage = (
             localUserId,
             change.entityType,
             change.entityId,
-          )
+          ) ||
+          hasPendingParentSessionDelete(tx, localUserId, change)
         ) {
           if (ownEcho) {
             syncMetadataStore.upsert(
@@ -1496,13 +1579,14 @@ interface PreparedOutboxBatch {
   oversizedCount: number;
 }
 
-const failOversizedMutations = (
+const failOutboxMutations = (
   localUserId: string,
-  oversized: OutboundMutation[],
+  failed: OutboundMutation[],
+  reason: string,
 ): void => {
-  if (oversized.length === 0) return;
+  if (failed.length === 0) return;
   db.transactionSync(tx => {
-    for (const mutation of oversized) {
+    for (const mutation of failed) {
       syncConflictStore.record(
         localUserId,
         {
@@ -1510,7 +1594,7 @@ const failOversizedMutations = (
           entityType: mutation.entityType,
           entityId: mutation.entityId,
           operation: mutation.operation,
-          reason: 'payload_too_large',
+          reason,
           localPayload: {},
           baseVersion: mutation.baseVersion ?? null,
           serverVersion: null,
@@ -1523,7 +1607,7 @@ const failOversizedMutations = (
     }
     syncOutboxStore.markMutationsFailed(
       localUserId,
-      oversized.map(mutation => mutation.mutationId),
+      failed.map(mutation => mutation.mutationId),
       ACCOUNT_SCOPE,
       localUserId,
       tx,
@@ -1551,7 +1635,9 @@ const queueUnsyncedChat = (
 const prepareOutboxBatch = (
   localUserId: string,
   effectiveTypes: readonly SyncEntityType[],
+  maxCount: number = OUTBOX_BATCH_SIZE,
 ): PreparedOutboxBatch => {
+  const effectiveMaxCount = Math.max(1, Math.min(OUTBOX_BATCH_SIZE, maxCount));
   let oversizedCount = 0;
   for (let claimAttempt = 0; claimAttempt < 2; claimAttempt += 1) {
     let mutations: OutboundMutation[] = [];
@@ -1567,24 +1653,39 @@ const prepareOutboxBatch = (
       const seenEntities = new Set<string>();
       mutations = [];
       const oversized: OutboundMutation[] = [];
+      const exhausted: OutboundMutation[] = [];
       let batchBytes = 0;
       for (const item of pending) {
         const key = `${item.entityType}:${item.entityId}`;
         if (seenEntities.has(key)) continue;
         seenEntities.add(key);
         const mutation = formatMutation(localUserId, item);
+        if (item.attempts >= MAX_OUTBOX_ATTEMPTS) {
+          exhausted.push(mutation);
+          continue;
+        }
         const size = utf8Length(JSON.stringify(mutation));
-        if (size > MAX_BATCH_BYTES) {
+        if (size > MAX_MUTATIONS_PAYLOAD_BYTES) {
           oversized.push(mutation);
           continue;
         }
-        if (batchBytes + size > MAX_BATCH_BYTES) break;
-        batchBytes += size;
+        const addedBytes = size + (mutations.length > 0 ? 1 : 0);
+        if (
+          mutations.length >= effectiveMaxCount ||
+          batchBytes + addedBytes > MAX_MUTATIONS_PAYLOAD_BYTES
+        ) {
+          break;
+        }
+        batchBytes += addedBytes;
         mutations.push(mutation);
       }
-      failOversizedMutations(localUserId, oversized);
-      oversizedCount += oversized.length;
-      if (mutations.length > 0 || oversized.length === 0) {
+      failOutboxMutations(localUserId, oversized, 'payload_too_large');
+      failOutboxMutations(localUserId, exhausted, 'max_attempts_exceeded');
+      oversizedCount += oversized.length + exhausted.length;
+      if (
+        mutations.length > 0 ||
+        (oversized.length === 0 && exhausted.length === 0)
+      ) {
         break;
       }
     }
@@ -1659,6 +1760,7 @@ export const syncWorker = {
         syncState.deactivate('Local only');
         return;
       }
+      const sessionGeneration = getSessionGeneration();
       const session = userStore.getActiveSessionToken();
       localUserId = session.userId;
       if (!localUserId || !userStore.getUserById(localUserId)) {
@@ -1672,6 +1774,7 @@ export const syncWorker = {
 
       const persistedState = syncState.activate(localUserId);
       const isOnline = await cloudClient.isOnline();
+      assertActiveLocalUser(localUserId, sessionGeneration);
       if (!isOnline) {
         syncState.setStatus(localUserId, 'Offline');
         return;
@@ -1681,6 +1784,7 @@ export const syncWorker = {
         const linkResult = await accountLinkService.completeDeferredCloudLink(
           localUserId,
         );
+        assertActiveLocalUser(localUserId, sessionGeneration);
         if (linkResult.status !== 'success' || !cloudClient.getAccessToken()) {
           syncState.setStatus(
             localUserId,
@@ -1693,14 +1797,36 @@ export const syncWorker = {
 
       syncState.setStatus(localUserId, 'Syncing');
 
+      let refreshResult: Awaited<
+        ReturnType<typeof accountLinkService.refreshCloudProfile>
+      > | null = null;
       try {
-        await accountLinkService.refreshCloudProfile(localUserId, {
-          skipIfFresh: true,
-        });
+        refreshResult = await accountLinkService.refreshCloudProfile(
+          localUserId,
+          {
+            skipIfFresh: true,
+          },
+        );
       } catch (error: unknown) {
         console.warn('[SyncWorker] Profile refresh note:', error);
       }
-      assertActiveLocalUser(localUserId);
+      assertActiveLocalUser(localUserId, sessionGeneration);
+      if (refreshResult?.status === 'offline') {
+        syncState.setStatus(localUserId, 'Offline');
+        return;
+      }
+      if (
+        refreshResult?.status === 'account_disabled' ||
+        (refreshResult?.status === 'auth_required' &&
+          !cloudClient.getAccessToken())
+      ) {
+        syncState.setStatus(
+          localUserId,
+          'Sign-in required',
+          refreshResult.message,
+        );
+        return;
+      }
 
       syncOutboxStore.recoverInProgressMutations(
         localUserId,
@@ -1727,16 +1853,52 @@ export const syncWorker = {
             'delete',
           );
           if (!pendingDeletes.length) break;
-          inFlightMutations = pendingDeletes.map(item =>
-            formatMutation(localUserId!, item),
+          const deleteMutations: OutboundMutation[] = [];
+          const oversizedDeletes: OutboundMutation[] = [];
+          let deleteBytes = 0;
+          for (const item of pendingDeletes) {
+            const mutation = formatMutation(localUserId!, item);
+            const size = utf8Length(JSON.stringify(mutation));
+            if (size > MAX_MUTATIONS_PAYLOAD_BYTES) {
+              oversizedDeletes.push(mutation);
+              continue;
+            }
+            const addedBytes = size + (deleteMutations.length > 0 ? 1 : 0);
+            if (deleteBytes + addedBytes > MAX_MUTATIONS_PAYLOAD_BYTES) {
+              break;
+            }
+            deleteBytes += addedBytes;
+            deleteMutations.push(mutation);
+          }
+          failOutboxMutations(
+            localUserId,
+            oversizedDeletes,
+            'payload_too_large',
           );
-          inFlightMutationIds = pendingDeletes.map(item => item.id);
-          syncOutboxStore.markMutationsInProgress(
+          chatDeleteRejections += oversizedDeletes.length;
+          if (!deleteMutations.length) {
+            if (oversizedDeletes.length > 0) continue;
+            break;
+          }
+          inFlightMutations = deleteMutations;
+          inFlightMutationIds = deleteMutations.map(m => m.mutationId);
+          const claimedDeletes = syncOutboxStore.markMutationsInProgress(
             localUserId,
             inFlightMutationIds,
             ACCOUNT_SCOPE,
             localUserId,
           );
+          if (claimedDeletes !== inFlightMutationIds.length) {
+            syncOutboxStore.requeueMutations(
+              localUserId,
+              inFlightMutationIds,
+              ACCOUNT_SCOPE,
+              localUserId,
+            );
+            inFlightMutationIds = [];
+            inFlightMutations = [];
+            continue;
+          }
           const deleted = await cloudClient.request<SyncBatchResponsePayload>(
             '/v1/sync/batch',
             {
@@ -1748,7 +1910,34 @@ export const syncWorker = {
               }),
             },
           );
-          assertActiveLocalUser(localUserId);
+          assertActiveLocalUser(localUserId, sessionGeneration);
+          if (deleted.status === 'offline') {
+            syncOutboxStore.requeueMutations(
+              localUserId,
+              inFlightMutationIds,
+              ACCOUNT_SCOPE,
+              localUserId,
+            );
+            inFlightMutationIds = [];
+            inFlightMutations = [];
+            syncState.setStatus(localUserId, 'Offline');
+            return;
+          }
+          if (deleted.status === 'auth_required') {
+            syncOutboxStore.requeueMutations(
+              localUserId,
+              inFlightMutationIds,
+              ACCOUNT_SCOPE,
+              localUserId,
+            );
+            inFlightMutationIds = [];
+            inFlightMutations = [];
+            if (deleted.sessionEnded) {
+              cloudClient.clearActiveSession();
+            }
+            syncState.setStatus(localUserId, 'Sign-in required');
+            return;
+          }
           if (deleted.status !== 'success' || !deleted.data)
             throw new Error(
               deleted.error || 'Cloud chat deletion could not finish.',
@@ -1779,9 +1968,10 @@ export const syncWorker = {
         negotiated.snapshotEntityTypes === null ||
         !sameEntityTypeSet(negotiated.snapshotEntityTypes, effectiveTypes);
       if (!snapshotFirst) queueUnsyncedChat(localUserId, effectiveTypes);
+      let batchSizeLimit = OUTBOX_BATCH_SIZE;
       let preparedBatch: PreparedOutboxBatch = snapshotFirst
         ? {mutations: [], ids: [], oversizedCount: 0}
-        : prepareOutboxBatch(localUserId, effectiveTypes);
+        : prepareOutboxBatch(localUserId, effectiveTypes, batchSizeLimit);
       let outboundMutations = preparedBatch.mutations;
       inFlightMutationIds = preparedBatch.ids;
       inFlightMutations = preparedBatch.mutations;
@@ -1800,7 +1990,7 @@ export const syncWorker = {
         requestNumber <= MAX_SYNC_REQUESTS;
         requestNumber += 1
       ) {
-        assertActiveLocalUser(localUserId);
+        assertActiveLocalUser(localUserId, sessionGeneration);
         const result = await cloudClient.request<SyncBatchResponsePayload>(
           '/v1/sync/batch',
           {
@@ -1814,6 +2004,7 @@ export const syncWorker = {
           },
           true,
         );
+        assertActiveLocalUser(localUserId, sessionGeneration);
 
         if (result.status === 'offline') {
           syncOutboxStore.requeueMutations(
@@ -1836,7 +2027,68 @@ export const syncWorker = {
           );
           inFlightMutationIds = [];
           inFlightMutations = [];
+          if (result.sessionEnded) {
+            cloudClient.clearActiveSession();
+          }
           syncState.setStatus(localUserId, 'Sign-in required');
+          return;
+        }
+        if (
+          result.status === 'validation_error' &&
+          inFlightMutations.length > 0
+        ) {
+          const failedBatch = inFlightMutations;
+          syncOutboxStore.requeueMutations(
+            localUserId,
+            inFlightMutationIds,
+            ACCOUNT_SCOPE,
+            localUserId,
+          );
+          inFlightMutationIds = [];
+          inFlightMutations = [];
+          if (failedBatch.length > 1) {
+            batchSizeLimit = Math.max(1, Math.floor(failedBatch.length / 2));
+            preparedBatch = prepareOutboxBatch(
+              localUserId,
+              effectiveTypes,
+              batchSizeLimit,
+            );
+            rejectedCount += preparedBatch.oversizedCount;
+            outboundMutations = preparedBatch.mutations;
+            inFlightMutationIds = preparedBatch.ids;
+            inFlightMutations = preparedBatch.mutations;
+            continue;
+          }
+          failOutboxMutations(
+            localUserId,
+            failedBatch,
+            result.error || 'validation_error',
+          );
+          rejectedCount += failedBatch.length;
+          batchSizeLimit = OUTBOX_BATCH_SIZE;
+          preparedBatch = prepareOutboxBatch(
+            localUserId,
+            effectiveTypes,
+            batchSizeLimit,
+          );
+          rejectedCount += preparedBatch.oversizedCount;
+          outboundMutations = preparedBatch.mutations;
+          inFlightMutationIds = preparedBatch.ids;
+          inFlightMutations = preparedBatch.mutations;
+          if (outboundMutations.length > 0) {
+            continue;
+          }
+          syncState.setStatus(
+            localUserId,
+            'Attention required',
+            `${rejectedCount} mutation${
+              rejectedCount === 1 ? '' : 's'
+            } rejected by server`,
+          );
+          retryAttempt = 0;
+          if (reminderTextUpdated) {
+            await reconcileReminderDelivery(localUserId);
+          }
           return;
         }
         if (result.status !== 'success' || !result.data) {
@@ -1859,7 +2111,7 @@ export const syncWorker = {
 
         const response = result.data;
         validateMutationResults(response, inFlightMutations);
-        assertActiveLocalUser(localUserId);
+        assertActiveLocalUser(localUserId, sessionGeneration);
 
         effectiveTypes = effectiveSyncEntityTypes(
           response.supportedEntityTypes,

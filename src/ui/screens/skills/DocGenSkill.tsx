@@ -793,9 +793,10 @@ export function DocGenSkill({
             handbookQuery,
             {maxChars: 1200, collections: ['handbook']},
           );
-          if (!localCtx) {
+          if (!localCtx || !localCtx.contextBlock) {
             throw new Error(
-              'No verified USTP Handbook passages matched this topic. Try a more specific prompt or turn off the Handbook source.',
+              localCtx?.academicYearRefusal ||
+                'No verified USTP Handbook passages matched this topic. Try a more specific prompt or turn off the Handbook source.',
             );
           }
           citations = localCtx.sources

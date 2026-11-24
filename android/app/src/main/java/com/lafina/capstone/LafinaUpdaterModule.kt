@@ -234,6 +234,14 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
           return@execute
         }
         val installer = reactContext.packageManager.packageInstaller
+        // Clean up any abandoned/stale sessions left behind by cancelled attempts.
+        runCatching {
+          for (existing in installer.mySessions) {
+            if (!existing.isActive) {
+              runCatching { installer.abandonSession(existing.sessionId) }
+            }
+          }
+        }
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
           setAppPackageName(reactContext.packageName)
           setSize(apk.length())

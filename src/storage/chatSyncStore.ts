@@ -421,14 +421,31 @@ export const chatSyncStore = {
       );
       return;
     }
-    const held = readHeld(tx, userId);
-    if (!held.includes(localId)) writeHeld(tx, userId, [...held, localId]);
+    const cloudSessionId = toCloudSessionId(userId, localId);
+    const sessionRow = tx.executeSync(
+      'SELECT 1 FROM chat_sessions WHERE id = ? AND user_id = ? LIMIT 1',
+      [localId, userId],
+    ).rows?.[0];
+    const pendingSessionDelete = tx.executeSync(
+      `SELECT 1 FROM sync_outbox
+       WHERE user_id = ? AND scope_type = ? AND scope_id = ?
+         AND entity_type = 'chat_session' AND entity_id = ?
+         AND operation = 'delete'
+         AND status IN ('pending', 'in_progress', 'failed')
+       LIMIT 1`,
+      [...scope, cloudSessionId],
+    ).rows?.[0];
+    if (sessionRow && !pendingSessionDelete) {
+      const held = readHeld(tx, userId);
+      if (!held.includes(localId)) writeHeld(tx, userId, [...held, localId]);
+    }
     tx.executeSync(
       `DELETE FROM sync_outbox WHERE user_id = ? AND scope_type = ? AND scope_id = ?
+         AND operation != 'delete'
          AND ((entity_type = 'chat_session' AND entity_id = ?)
            OR (entity_type = 'chat_message'
                AND entity_id IN (SELECT id FROM messages WHERE session_id = ?)))`,
-      [...scope, toCloudSessionId(userId, localId), localId],
+      [...scope, cloudSessionId, localId],
     );
   },
 
@@ -683,6 +700,11 @@ export const chatSyncStore = {
         : payload.content;
 
     const localMetadata = parseObject(existing?.metadata_json) ?? {};
+    const localPassageIds = Array.isArray(localMetadata.sourcePassageIds)
+      ? localMetadata.sourcePassageIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        )
+      : [];
     const review = payload.review_resolution as
       | Record<string, unknown>
       | null
@@ -692,7 +714,12 @@ export const chatSyncStore = {
         ? {memoryChanges: localMetadata.memoryChanges}
         : {}),
       ...(typeof payload.handbook_note === 'string' && payload.handbook_note
-        ? {handbookNote: payload.handbook_note}
+        ? {
+            handbookNote: payload.handbook_note,
+            ...(localPassageIds.length > 0
+              ? {sourcePassageIds: localPassageIds}
+              : {}),
+          }
         : {}),
       ...(payload.local_reply === true ? {localReply: true} : {}),
       ...(payload.voice_interrupted === true ? {voiceInterrupted: true} : {}),

@@ -110,19 +110,21 @@ export function PomodoroSkill({
     const next = reconcilePomodoro(current, Date.now());
     if (current.deadline && next.deadline === null) {
       save(next);
+      void native?.cancel().catch(() => undefined);
       if (mountedRef.current) {
         setNotice('Session complete. Choose when to start the next session.');
       }
     } else if (mountedRef.current) {
       setTimer(next);
     }
-  }, [save]);
+  }, [native, save]);
   useEffect(() => {
     if (completedOnMountRef.current) {
       completedOnMountRef.current = false;
       save(ref.current);
+      void native?.cancel().catch(() => undefined);
     }
-  }, [save]);
+  }, [native, save]);
   useEffect(() => {
     const sub = AppState.addEventListener('change', s => {
       setAppState(s);

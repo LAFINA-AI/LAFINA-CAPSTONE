@@ -486,6 +486,7 @@ export const corImportStore = {
           .getAllOrThrow(userId, tx)
           .map(block => [block.id, block]),
       );
+      const restoredBlockIds = new Map<string, string>();
       for (const entry of [...record.blocks].reverse()) {
         if (entry.action === 'created') {
           if (live.has(entry.blockId)) {
@@ -499,10 +500,12 @@ export const corImportStore = {
             );
           }
         } else if (entry.action === 'removed' && entry.previous) {
+          const restoredId = generateId('block');
           timeBlocksStore.insert(
-            {id: generateId('block'), userId, ...entry.previous},
+            {id: restoredId, userId, ...entry.previous},
             tx as DatabaseTransaction,
           );
+          restoredBlockIds.set(entry.blockId, restoredId);
         }
       }
       if (record.previousProfile) {
@@ -520,6 +523,7 @@ export const corImportStore = {
       studentSetupStore.update(
         userId,
         {
+          affiliation: record.previousSetup.affiliation,
           corStatus:
             record.previousSetup.corStatus === 'confirmed' &&
             record.previousSetup.confirmedImportId
@@ -531,8 +535,17 @@ export const corImportStore = {
         tx as DatabaseTransaction,
       );
       const undoneRecord = {...record, undoneAt: new Date().toISOString()};
-      const imports = [...ledger.imports];
-      imports[index] = undoneRecord;
+      const imports = ledger.imports.map((imp, impIndex) => {
+        if (impIndex === index) return undoneRecord;
+        if (restoredBlockIds.size === 0) return imp;
+        return {
+          ...imp,
+          blocks: imp.blocks.map(blockEntry => {
+            const remapped = restoredBlockIds.get(blockEntry.blockId);
+            return remapped ? {...blockEntry, blockId: remapped} : blockEntry;
+          }),
+        };
+      });
       writeSetting(
         tx,
         userId,

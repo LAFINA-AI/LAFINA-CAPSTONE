@@ -241,6 +241,7 @@ function AppContent({
   const [authScreen, setAuthScreen] = useState<
     'welcome' | 'login' | 'register'
   >('welcome');
+  const [guestUpgradePending, setGuestUpgradePending] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -252,7 +253,18 @@ function AppContent({
   const tourReturnTabRef = useRef<TabType>('dashboard');
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
+  const [startupError, setStartupError] = useState<string | null>(null);
   const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
+  const [quickChatOpen, setQuickChatOpen] = useState(() =>
+    quickChatPresence.isOpen(),
+  );
+  useEffect(
+    () =>
+      quickChatPresence.subscribe(() =>
+        setQuickChatOpen(quickChatPresence.isOpen()),
+      ),
+    [],
+  );
   const [callNavigation, setCallNavigation] =
     useState<CallNavigationRequest | null>(null);
   const [callLafinaVisible, setCallLafinaVisible] = useState(false);
@@ -348,6 +360,22 @@ function AppContent({
   const presentCall = useCallback(
     (incoming: CallRequest): boolean => {
       if (!userId || quickChatPresence.isOpen()) return false;
+      if (
+        isOnboarding &&
+        !isOnboardingReplay &&
+        incoming.action !== 'acknowledge' &&
+        incoming.action !== 'snooze' &&
+        incoming.action !== 'decline'
+      ) {
+        if (!incoming.ownerId || incoming.ownerId === userId) {
+          callLifecycle.put(userId, {
+            ...incoming,
+            ownerId: userId,
+            action: 'call',
+          });
+        }
+        return false;
+      }
       const request = recoverNativeCall(incoming, userId);
       if (!request) return false;
       // Startup events are retained natively until account hydration finishes.
@@ -598,7 +626,8 @@ function AppContent({
       !userId ||
       (isOnboarding && !isOnboardingReplay) ||
       isLoading ||
-      callVisible
+      callVisible ||
+      quickChatOpen
     )
       return;
     const entries = callLifecycle.list(userId);
@@ -616,6 +645,7 @@ function AppContent({
     isOnboardingReplay,
     isLoading,
     callVisible,
+    quickChatOpen,
     presentCall,
   ]);
 
@@ -641,13 +671,14 @@ function AppContent({
   }, [presentCall]);
 
   const setupApp = useCallback(async () => {
+    setStartupError(null);
     try {
       await initDatabase();
       preparePerformanceFixture();
       // Debug/test builds: use the server chosen in Profile before any request.
       backendSelection.applySaved();
 
-      const currentUser = userStore.getCurrentUser();
+      const currentUser = userStore.getCurrentUserOrThrow();
       if (currentUser) {
         setUserId(currentUser.id);
         setIsOnboarding(currentUser.isNewUser);
@@ -665,9 +696,28 @@ function AppContent({
         .catch(() => undefined);
     } catch (error) {
       console.error('Failed application startup setup:', error);
+      setStartupError(
+        error instanceof Error
+          ? error.message
+          : 'Local storage could not be read on startup.',
+      );
       setIsLoading(false);
     }
   }, [setUserId]);
+
+  // Keep a downloaded OTA bundle only after local storage and the first screen
+  // succeed without hitting recovery.
+  useEffect(() => {
+    if (
+      startupReady &&
+      !isLoading &&
+      !startupError &&
+      storageHealth.status !== 'unavailable' &&
+      storageHealth.status !== 'quarantined'
+    ) {
+      confirmLaunch();
+    }
+  }, [startupReady, isLoading, startupError, storageHealth.status]);
 
   // Subscribed before setup runs so no health change is missed.
   useEffect(() => db.subscribeHealth(setStorageHealth), []);
@@ -791,6 +841,7 @@ function AppContent({
   }, []);
 
   const handleGetStarted = (uid: string) => {
+    setGuestUpgradePending(false);
     tourReturnTabRef.current = 'dashboard';
     const resetPending = applyPendingOnboardingReset(uid);
     setUserId(uid);
@@ -799,13 +850,35 @@ function AppContent({
     setActiveTab('dashboard');
   };
 
+  const resetSessionUi = useCallback(() => {
+    void cancelFocusTimer();
+    activeCallRequest.current = null;
+    callOwnerRef.current = null;
+    setCallVisible(false);
+    setCallGeneration(null);
+    setCallLafinaVisible(false);
+    setCallLafinaMinimized(false);
+    setCallNavigation(null);
+    setPermissionModalVisible(false);
+    setSkillsPageOpen(false);
+    tourReturnTabRef.current = 'dashboard';
+    setTourOpen(false);
+    setActiveTourStep(null);
+    setIsOnboardingReplay(false);
+    setIsOnboarding(false);
+    setActiveTab('dashboard');
+  }, []);
+
   const handleGuestCreateAccount = useCallback(() => {
+    resetSessionUi();
     userStore.logout();
+    setGuestUpgradePending(true);
     setUserId(null);
     setAuthScreen('register');
-  }, [setUserId]);
+  }, [resetSessionUi, setUserId]);
 
   const handleLoginSuccess = (uid: string) => {
+    setGuestUpgradePending(false);
     tourReturnTabRef.current = 'dashboard';
     const resetPending = applyPendingOnboardingReset(uid);
     setUserId(uid);
@@ -815,6 +888,7 @@ function AppContent({
   };
 
   const handleRegisterSuccess = (uid: string) => {
+    setGuestUpgradePending(false);
     applyPendingOnboardingReset(uid);
     setUserId(uid);
     setIsOnboarding(true);
@@ -865,20 +939,12 @@ function AppContent({
 
   const handleLogout = useCallback(
     (isGuestParam?: boolean) => {
-      void cancelFocusTimer();
-      tourReturnTabRef.current = 'dashboard';
-      setTourOpen(false);
-      setActiveTourStep(null);
-      setCallLafinaVisible(false);
-      setCallLafinaMinimized(false);
-      setCallNavigation(null);
-      setSkillsPageOpen(false);
+      resetSessionUi();
+      setGuestUpgradePending(false);
       setUserId(null);
       setAuthScreen(isGuestParam ? 'welcome' : 'login');
-      setIsOnboarding(false);
-      setActiveTab('dashboard');
     },
-    [setUserId],
+    [resetSessionUi, setUserId],
   );
 
   const handleOpenCalendarFromDashboard = useCallback(
@@ -1002,25 +1068,11 @@ function AppContent({
     setIsOnboarding(true);
   }, []);
   const resetFromOnboarding = useCallback(() => {
-    void cancelFocusTimer();
-    activeCallRequest.current = null;
-    callOwnerRef.current = null;
-    previousUserRef.current = null;
-    setCallVisible(false);
-    setCallGeneration(null);
-    setCallLafinaVisible(false);
-    setCallLafinaMinimized(false);
-    setCallNavigation(null);
-    setPermissionModalVisible(false);
-    setTourOpen(false);
-    setActiveTourStep(null);
-    tourReturnTabRef.current = 'dashboard';
-    setIsOnboardingReplay(false);
-    setIsOnboarding(false);
-    setActiveTab('dashboard');
+    resetSessionUi();
+    setGuestUpgradePending(false);
     setAuthScreen('welcome');
     setUserId(null);
-  }, [setUserId]);
+  }, [resetSessionUi, setUserId]);
   const finishOpenRequest = useCallback((requestId: string) => {
     setCallNavigation(current =>
       current?.requestId === requestId ? null : current,
@@ -1122,10 +1174,23 @@ function AppContent({
 
   if (
     storageHealth.status === 'unavailable' ||
-    storageHealth.status === 'quarantined'
+    storageHealth.status === 'quarantined' ||
+    startupError
   ) {
+    const recoveryHealth =
+      storageHealth.status === 'unavailable' ||
+      storageHealth.status === 'quarantined'
+        ? storageHealth
+        : {
+            ...storageHealth,
+            status: 'unavailable' as const,
+            durable: false,
+            reason: 'unreadable' as const,
+            message:
+              startupError ?? 'Local storage could not be read on startup.',
+          };
     return (
-      <StorageRecoveryScreen health={storageHealth} onRetry={retryStorage} />
+      <StorageRecoveryScreen health={recoveryHealth} onRetry={retryStorage} />
     );
   }
 
@@ -1164,15 +1229,23 @@ function AppContent({
   if (!userId) {
     return authScreen === 'register' ? (
       <RegisterScreen
+        fromGuest={guestUpgradePending}
         onRegisterSuccess={handleRegisterSuccess}
         onNavigateToLogin={() => setAuthScreen('login')}
-        onBack={() => setAuthScreen('welcome')}
+        onBack={() => {
+          setGuestUpgradePending(false);
+          setAuthScreen('welcome');
+        }}
       />
     ) : (
       <LoginScreen
+        fromGuest={guestUpgradePending}
         onLoginSuccess={handleLoginSuccess}
         onNavigateToRegister={() => setAuthScreen('register')}
-        onBack={() => setAuthScreen('welcome')}
+        onBack={() => {
+          setGuestUpgradePending(false);
+          setAuthScreen('welcome');
+        }}
       />
     );
   }
@@ -1342,10 +1415,7 @@ function AppContent({
       {/* In-app updates from the GitHub release; never over a call or the walkthrough. */}
       <AppUpdatePrompt
         suppressed={
-          callVisible ||
-          callLafinaVisible ||
-          tourOpen ||
-          permissionModalVisible
+          callVisible || callLafinaVisible || tourOpen || permissionModalVisible
         }
       />
 
@@ -1388,11 +1458,6 @@ const getThemedStyles = (colors: ThemeColors) => ({
 
 export function App() {
   const [userId, setUserId] = useState<string | null>(null);
-
-  // The JavaScript started and rendered: keep a downloaded update (see OtaBundles).
-  useEffect(() => {
-    confirmLaunch();
-  }, []);
 
   return (
     <SafeAreaProvider>

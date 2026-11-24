@@ -7,11 +7,12 @@ import {
   DEFAULT_SNOOZE_TENDENCY,
   DEFAULT_STUDY_PEAK_HOURS,
   DEFAULT_WAKE_TIME,
+  GUEST_USER_ID,
 } from '../constants';
-import { generateId } from '../utils';
-import { db } from './database';
-import { buildProfileSyncPayload } from './profileSyncPayload';
-import { syncOutboxStore } from './syncOutboxStore';
+import {generateId} from '../utils';
+import {db} from './database';
+import {buildProfileSyncPayload} from './profileSyncPayload';
+import {syncOutboxStore} from './syncOutboxStore';
 
 export type StudyPeakHour =
   | 'morning'
@@ -76,7 +77,12 @@ const VALID_SNOOZE_TENDENCIES: SnoozeTendency[] = [
   'ignore',
 ];
 const VALID_CLASS_COUNTS: WeeklyClassCount[] = ['1-3', '4-6', '7+'];
-const VALID_CLASS_GAPS: LongestClassGap[] = ['None', '30 min', '1 hour', '2+ hours'];
+const VALID_CLASS_GAPS: LongestClassGap[] = [
+  'None',
+  '30 min',
+  '1 hour',
+  '2+ hours',
+];
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
 export const getDefaultUserPreferences = (): UserPreferences => ({
@@ -90,10 +96,12 @@ export const getDefaultUserPreferences = (): UserPreferences => ({
   longestClassGap: DEFAULT_LONGEST_GAP as LongestClassGap,
 });
 
-const normalizePreferences = (preferences: UserPreferences): UserPreferences => {
+const normalizePreferences = (
+  preferences: UserPreferences,
+): UserPreferences => {
   const defaults = getDefaultUserPreferences();
   const studyPeakHours = preferences.studyPeakHours.filter(
-    (value): value is StudyPeakHour => VALID_STUDY_PEAK_HOURS.includes(value)
+    (value): value is StudyPeakHour => VALID_STUDY_PEAK_HOURS.includes(value),
   );
 
   return {
@@ -132,7 +140,7 @@ const parseStudyPeakHours = (value: string): StudyPeakHour[] => {
     return parsed.filter(
       (entry): entry is StudyPeakHour =>
         typeof entry === 'string' &&
-        VALID_STUDY_PEAK_HOURS.includes(entry as StudyPeakHour)
+        VALID_STUDY_PEAK_HOURS.includes(entry as StudyPeakHour),
     );
   } catch {
     return [];
@@ -165,7 +173,7 @@ export const preferencesStore = {
     try {
       const result = db.executeSync(
         'SELECT * FROM user_preferences WHERE user_id = ?',
-        [userId]
+        [userId],
       );
       if (!result.rows || result.rows.length === 0) {
         return null;
@@ -194,12 +202,15 @@ export const preferencesStore = {
     };
   },
 
-  save: (userId: string, preferences: UserPreferences): StoredUserPreferences => {
+  save: (
+    userId: string,
+    preferences: UserPreferences,
+  ): StoredUserPreferences => {
     const normalized = normalizePreferences(preferences);
     const now = new Date().toISOString();
 
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         const existingResult = tx.executeSync(
           'SELECT id FROM user_preferences WHERE user_id = ?',
           [userId],
@@ -250,16 +261,18 @@ export const preferencesStore = {
           );
         }
 
-        syncOutboxStore.enqueueMutation(
-          userId,
-          'profile',
-          'profile',
-          'update',
-          buildProfileSyncPayload(userId, tx),
-          'account',
-          userId,
-          tx,
-        );
+        if (userId !== GUEST_USER_ID) {
+          syncOutboxStore.enqueueMutation(
+            userId,
+            'profile',
+            'profile',
+            'update',
+            buildProfileSyncPayload(userId, tx),
+            'account',
+            userId,
+            tx,
+          );
+        }
       });
     } catch (error) {
       console.error('Error saving user preferences:', error);

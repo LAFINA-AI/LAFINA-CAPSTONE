@@ -172,6 +172,7 @@ export type MultiItemStatus =
 
 export interface MultiActionItemData {
   scheduleWarning?: string;
+  reviewedScheduleWarning?: string;
   id: string;
   kind: 'task' | 'event' | 'reminder' | 'note';
   title: string;

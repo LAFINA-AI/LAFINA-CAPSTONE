@@ -96,11 +96,12 @@ export const runPersonalFileCleanup = async (
             !target.value
               .split('/')
               .some(part => part === '..' || part === '.') &&
-            [owner, GUEST_USER_ID].some(id =>
+            ([owner, GUEST_USER_ID].some(id =>
               target.value.startsWith(
                 `${root}/skills_documents/${encodeURIComponent(id)}/`,
               ),
-            );
+            ) ||
+              target.value.startsWith(`${root}/cor_drafts/`));
           if (!valid) continue;
           if (await RNFS.exists(target.value)) {
             if (!(await RNFS.stat(target.value)).isFile()) continue;

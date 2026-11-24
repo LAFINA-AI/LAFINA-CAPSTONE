@@ -400,7 +400,10 @@ const QUERY_SYNONYMS: ReadonlyArray<readonly [RegExp, string]> = [
 ];
 
 const applyQuerySynonyms = (text: string): string =>
-  QUERY_SYNONYMS.reduce((acc, [pattern, word]) => acc.replace(pattern, word), text);
+  QUERY_SYNONYMS.reduce(
+    (acc, [pattern, word]) => acc.replace(pattern, word),
+    text,
+  );
 
 const TOKEN_TO_GROUP_INDEX: Map<string, number> = (() => {
   const map = new Map<string, number>();
@@ -750,7 +753,10 @@ function rankListLines(
   };
 }
 
-function conceptFlags(docWords: Set<string>, conceptTerms: string[][]): boolean[] {
+function conceptFlags(
+  docWords: Set<string>,
+  conceptTerms: string[][],
+): boolean[] {
   return conceptTerms.map(terms => terms.some(t => wordMatches(docWords, t)));
 }
 
@@ -834,7 +840,8 @@ export function rankAndFilterFtsCandidates(
   const unknown = options.unknownTokens;
   const unknownFreeTokens = unknown
     ? built.conceptTokens.filter(
-        (toks, i) => !built.conceptIsDomain[i] && toks.some(t => unknown.has(t)),
+        (toks, i) =>
+          !built.conceptIsDomain[i] && toks.some(t => unknown.has(t)),
       ).length
     : 0;
 
@@ -904,7 +911,9 @@ export function rankAndFilterFtsCandidates(
     const years = Array.from(
       new Set(wrongYear.flatMap(hit => hit.meta?.academicYears ?? [])),
     ).sort();
-    const links = uniqueLinks(wrongYear.flatMap(hit => hit.meta?.sources ?? []));
+    const links = uniqueLinks(
+      wrongYear.flatMap(hit => hit.meta?.sources ?? []),
+    );
     return {
       ...refused,
       insufficientReason: 'academic_year',
@@ -946,8 +955,7 @@ export function rankAndFilterFtsCandidates(
     const guidanceOnly =
       hit.collection === 'ustp_cdo' && hit.meta?.category === 'qa' ? 3 : 0;
     // Asked about one semester: that semester's own passages first.
-    const termMatch =
-      scope.term && hit.meta?.term === scope.term ? 2 : 0;
+    const termMatch = scope.term && hit.meta?.term === scope.term ? 2 : 0;
     // A campus list with a row for the question beats one without.
     const listRows =
       hit.collection === 'ustp_cdo' ? rankListLines(hit, rawQuery) : null;
@@ -1062,17 +1070,24 @@ function campusEntryLabel(chunk: HandbookFtsHit): string {
   if (meta?.asOf) parts[0] += `, as of ${formatAsOfDate(meta.asOf)}`;
   if (meta?.scope === 'UG') parts.push('undergraduate');
   if (meta?.scope === 'GR') parts.push('graduate');
-  if (meta?.academicYears.length) parts.push(`AY ${meta.academicYears.join(', ')}`);
+  if (meta?.academicYears.length)
+    parts.push(`AY ${meta.academicYears.join(', ')}`);
   return `(${parts.join('; ')})`;
 }
 
-export function buildPromptHandbookContext(
+export interface BuiltPromptHandbookContext {
+  contextBlock: string;
+  includedMatches: LocalHandbookMatch[];
+  includedSources: LocalHandbookSource[];
+}
+
+export function buildPromptHandbookContextWithMeta(
   matches: LocalHandbookMatch[],
   maxChars = 2400,
   options: KnowledgeFormatOptions = {},
-): string {
+): BuiltPromptHandbookContext {
   if (matches.length === 0) {
-    return '';
+    return {contextBlock: '', includedMatches: [], includedSources: []};
   }
   const referenceDate = options.referenceDate ?? new Date();
   const header = matches.some(m => m.chunk.collection === 'ustp_cdo')
@@ -1082,6 +1097,7 @@ export function buildPromptHandbookContext(
   const budget = Math.max(400, maxChars - header.length - footer.length);
 
   const lines: string[] = [];
+  const includedMatches: LocalHandbookMatch[] = [];
   let used = 0;
   for (let i = 0; i < matches.length; i += 1) {
     const m = matches[i];
@@ -1099,24 +1115,49 @@ export function buildPromptHandbookContext(
         ]
       : [];
     const label = campus ? ` ${campusEntryLabel(m.chunk)}` : '';
-    const entry = `[${i + 1}] ${m.chunk.chapter} — ${
+    const headingLine = `[${i + 1}] ${m.chunk.chapter} — ${
       m.chunk.section
-    }${pageStr}${label}\n${cleanBody}\n${extras.map(e => `${e}\n`).join('')}`;
+    }${pageStr}${label}\n`;
+    const extrasBlock = extras.map(e => `${e}\n`).join('');
+    const entry = `${headingLine}${extrasBlock}${cleanBody}\n`;
     if (lines.length > 0 && used + entry.length > budget) {
       break;
     }
     if (lines.length === 0 && entry.length > budget) {
-      lines.push(`${entry.slice(0, Math.max(120, budget - 4)).trimEnd()}...\n`);
+      const prefix = `${headingLine}${extrasBlock}`;
+      const bodyBudget = Math.max(60, budget - prefix.length - 5);
+      if (prefix.length < budget - 40) {
+        lines.push(`${prefix}${cleanBody.slice(0, bodyBudget).trimEnd()}...\n`);
+      } else {
+        lines.push(
+          `${entry.slice(0, Math.max(120, budget - 4)).trimEnd()}...\n`,
+        );
+      }
+      includedMatches.push(m);
       break;
     }
     lines.push(entry);
+    includedMatches.push(m);
     used += entry.length;
   }
 
   if (lines.length === 0) {
-    return '';
+    return {contextBlock: '', includedMatches: [], includedSources: []};
   }
-  return `${header}${lines.join('')}${footer}`;
+  return {
+    contextBlock: `${header}${lines.join('')}${footer}`,
+    includedMatches,
+    includedSources: includedMatches.map(m => m.source),
+  };
+}
+
+export function buildPromptHandbookContext(
+  matches: LocalHandbookMatch[],
+  maxChars = 2400,
+  options: KnowledgeFormatOptions = {},
+): string {
+  return buildPromptHandbookContextWithMeta(matches, maxChars, options)
+    .contextBlock;
 }
 
 /** Chunks can start mid-sentence; mark that honestly instead of hiding it. */
@@ -1163,7 +1204,9 @@ function formatHandbookBlock(match: LocalHandbookMatch): string {
 }
 
 /** "AY 2025-2026" was asked, but LAFINA's calendar is for another year. */
-function wrongAcademicYearReply(result: LocalHandbookSearchResult): string {
+export function wrongAcademicYearReply(
+  result: LocalHandbookSearchResult,
+): string {
   const asked = analyzeKnowledgeQuery(result.queryUsed).academicYear;
   const have = (result.availableYears ?? []).map(y => `AY ${y}`).join(' and ');
   const links = (result.fallbackLinks ?? [])
@@ -1222,9 +1265,12 @@ export function formatOfflineHandbookReply(
   const closing = stale?.chunk.meta?.asOf
     ? [`*${staleSnapshotNote(stale.chunk.meta.asOf)}*`]
     : [];
-  return [intro, '', blocks.join('\n\n---\n\n'), ...closing.flatMap(c => ['', c])].join(
-    '\n',
-  );
+  return [
+    intro,
+    '',
+    blocks.join('\n\n---\n\n'),
+    ...closing.flatMap(c => ['', c]),
+  ].join('\n');
 }
 
 export function shouldMergeFollowUpQuery(query: string): boolean {

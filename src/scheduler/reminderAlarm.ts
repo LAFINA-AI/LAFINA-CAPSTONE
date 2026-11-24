@@ -86,6 +86,11 @@ interface LafinaReminderNativeModule {
     generation: number,
     silenceOnly: boolean,
   ) => Promise<boolean>;
+  silenceIncomingCall?: (
+    reminderId: string,
+    ownerId: string,
+    generation: number,
+  ) => Promise<boolean>;
   consumePendingCall: () => Promise<NativeCallTrigger | null>;
   finishIncomingCall: (reminderId: string) => Promise<boolean>;
   startActiveCall?: (task: string) => Promise<boolean>;
@@ -247,6 +252,35 @@ export const stopActiveCallSession = async (): Promise<void> => {
   const module = getNativeModule();
   if (!module?.stopActiveCall) return;
   await module.stopActiveCall();
+};
+
+export const silenceNativeIncomingCall = async (
+  reminderId: string,
+  ownerId?: string | null,
+  generation?: number | null,
+): Promise<void> => {
+  const module = getNativeModule();
+  if (!module) return;
+  try {
+    if (module.silenceIncomingCall) {
+      await module.silenceIncomingCall(
+        reminderId,
+        ownerId ?? '',
+        generation ?? 0,
+      );
+      return;
+    }
+    if (module.finishIncomingCallIdentity && ownerId && generation) {
+      await module.finishIncomingCallIdentity(
+        reminderId,
+        ownerId,
+        generation,
+        true,
+      );
+    }
+  } catch {
+    // Non-fatal: ringtone will still stop when finishNativeIncomingCall runs.
+  }
 };
 
 export const consumePendingNativeCall =

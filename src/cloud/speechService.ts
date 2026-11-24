@@ -301,8 +301,16 @@ export const createCallSpeechProvider = (
     }
     if (disposed || owner !== cancellationSequence)
       return {source: 'cancelled'};
-    await speakTextWithTts(text);
-    return withReason({source: 'native_tts'}, outcome);
+    try {
+      await speakTextWithTts(text);
+      return withReason({source: 'native_tts'}, outcome);
+    } catch {
+      return {
+        source: 'native_tts',
+        fallbackReason:
+          outcome.reason || 'Speech could not play on this device.',
+      };
+    }
   };
 
   const requestElevenLabsAudio = async (
@@ -425,17 +433,31 @@ export const createCallSpeechProvider = (
       if (playbackFinished && owner === cancellationSequence && !disposed) {
         return {source: 'elevenlabs'};
       }
-    } catch {
-      // If native audio player is unavailable, speak via react-native-tts
+      if (playbackFinished === false) {
+        return {source: 'cancelled'};
+      }
+    } catch (error: unknown) {
+      const code = (error as {code?: unknown} | null)?.code;
+      if (code === 'PLAY_INTERRUPTED') {
+        return {source: 'cancelled'};
+      }
+      // If native audio player is unavailable or failed, speak via react-native-tts
     }
     if (disposed || owner !== cancellationSequence)
       return {source: 'cancelled'};
-    await speakTextWithTts(fallbackText);
-    return {
-      source: 'native_tts',
-      fallbackReason:
-        'Online audio could not play. Check media volume or try another voice.',
-    };
+    try {
+      await speakTextWithTts(fallbackText);
+      return {
+        source: 'native_tts',
+        fallbackReason:
+          'Online audio could not play. Check media volume or try another voice.',
+      };
+    } catch {
+      return {
+        source: 'native_tts',
+        fallbackReason: 'Speech could not play on this device.',
+      };
+    }
   };
 
   const prepareText = async (text: string): Promise<void> => {
@@ -624,12 +646,16 @@ export const createCallSpeechProvider = (
   }
 
   /** A chunk is spoken once; its prepared audio is not kept for replay. */
-  const releasePrepared = (chunk: string) => {
+  const releasePrepared = (chunk: string, voiceIdOverride?: string | null) => {
     let voiceId: string | null;
-    try {
-      voiceId = getVoiceId();
-    } catch {
-      return;
+    if (voiceIdOverride !== undefined) {
+      voiceId = voiceIdOverride;
+    } else {
+      try {
+        voiceId = getVoiceId();
+      } catch {
+        return;
+      }
     }
     const key = JSON.stringify([voiceId, normalizeText(chunk)]);
     const path = preparedAudioPaths.get(key);
@@ -639,26 +665,44 @@ export const createCallSpeechProvider = (
     }
   };
 
+  const readVoiceIdSafe = (): string | null => {
+    try {
+      return getVoiceId();
+    } catch {
+      return null;
+    }
+  };
+
   const speakChunks = async (chunks: string[]): Promise<CallSpeechResult> => {
     const chain = ++speechChain;
     const current = () => chain === speechChain && !disposed;
     let fallbackReason: string | undefined;
     for (let index = 0; index < chunks.length; index += 1) {
       if (!current()) return {source: 'cancelled'};
+      const voiceIdAtStart = readVoiceIdSafe();
       // Fetch the next piece while this one plays, so there is no gap.
       const next = chunks[index + 1];
       if (next) void prepareText(next).catch(() => undefined);
       const result = await runSpeakText(chunks[index]);
-      releasePrepared(chunks[index]);
+      releasePrepared(chunks[index], voiceIdAtStart);
       if (result.source === 'cancelled' || !current()) {
+        if (next) releasePrepared(next, voiceIdAtStart);
         return {source: 'cancelled'};
       }
       if (result.source === 'native_tts') {
+        if (next) releasePrepared(next, voiceIdAtStart);
         // Online speech failed: read the rest with the device voice at once
         // instead of retrying ElevenLabs for every remaining piece.
         fallbackReason = result.fallbackReason;
         const rest = chunks.slice(index + 1).join(' ');
-        if (rest) await speakTextWithTts(rest);
+        if (rest) {
+          try {
+            await speakTextWithTts(rest);
+          } catch {
+            fallbackReason =
+              fallbackReason || 'Speech could not play on this device.';
+          }
+        }
         if (!current()) return {source: 'cancelled'};
         return {
           source: 'native_tts',
@@ -746,23 +790,32 @@ export const createCallSpeechProvider = (
           if (deviceVoice) {
             // Online speech already failed: the device voice reads the rest.
             upcoming = nextSegment();
-            await speakTextWithTts(piece);
+            try {
+              await speakTextWithTts(piece);
+            } catch {
+              fallbackReason =
+                fallbackReason || 'Speech could not play on this device.';
+            }
             continue;
           }
           // Synthesize this piece. The next one is cut once this audio exists
           // (taking every sentence written meanwhile, so fewer requests) or as
           // soon as the whole reply has arrived, whichever comes first.
+          const voiceIdAtStart = readVoiceIdSafe();
           await Promise.race([
             prepareText(piece).catch(() => undefined),
             replyComplete,
           ]);
-          if (!current()) break;
+          if (!current()) {
+            releasePrepared(piece, voiceIdAtStart);
+            break;
+          }
           upcoming = nextSegment();
           void upcoming
             .then(next => (next && current() ? prepareText(next) : undefined))
             .catch(() => undefined);
           const result = await runSpeakText(piece);
-          releasePrepared(piece);
+          releasePrepared(piece, voiceIdAtStart);
           if (result.source === 'cancelled' || !current()) {
             return {source: 'cancelled'};
           }
@@ -782,7 +835,13 @@ export const createCallSpeechProvider = (
         }
         return {source: 'elevenlabs'};
       } catch {
-        return {source: 'cancelled'};
+        return current()
+          ? {
+              source: 'native_tts',
+              fallbackReason:
+                fallbackReason || 'Speech could not play on this device.',
+            }
+          : {source: 'cancelled'};
       } finally {
         activeSpeechOperations -= 1;
       }

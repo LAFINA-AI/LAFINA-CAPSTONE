@@ -236,10 +236,7 @@ export const buildHeroModel = (options: {
       ringProgress = Math.max(0.08, Math.min(0.96, gapElapsed / gapTotal));
     } else {
       const windowMins = minsUntil <= 60 ? 60 : Math.min(240, minsUntil + 30);
-      ringProgress = Math.max(
-        0.08,
-        Math.min(0.96, 1 - minsUntil / windowMins),
-      );
+      ringProgress = Math.max(0.08, Math.min(0.96, 1 - minsUntil / windowMins));
     }
 
     return {
@@ -333,8 +330,7 @@ export const buildHeroModel = (options: {
   const todayTotal = data.todayItems.length;
   return {
     badge: 'ALL CLEAR',
-    title:
-      todayTotal > 0 ? 'Wrapped up for today' : 'Your day is wide open',
+    title: todayTotal > 0 ? 'Wrapped up for today' : 'Your day is wide open',
     subtitle: ustpEnabled
       ? 'Plan study blocks or ask LAFINA about USTP'
       : 'Plan study blocks or ask LAFINA to organize your day',
@@ -356,8 +352,9 @@ export const buildTodayTimelineRows = (options: {
   freeStudy: FreeStudySummary;
   now: Date;
   timeFormat24h: boolean;
+  hasLiveUnfilteredItem?: boolean;
 }): TodayTimelineRow[] => {
-  const {items, freeStudy, now, timeFormat24h} = options;
+  const {items, freeStudy, now, timeFormat24h, hasLiveUnfilteredItem} = options;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const past: DashboardScheduleItem[] = [];
@@ -367,7 +364,10 @@ export const buildTodayTimelineRows = (options: {
   for (const item of items) {
     if (item.endMinutes <= nowMinutes) {
       past.push(item);
-    } else if (item.startMinutes <= nowMinutes && item.endMinutes > nowMinutes) {
+    } else if (
+      item.startMinutes <= nowMinutes &&
+      item.endMinutes > nowMinutes
+    ) {
       live.push(item);
     } else {
       upcoming.push(item);
@@ -409,7 +409,7 @@ export const buildTodayTimelineRows = (options: {
         item,
       });
     }
-  } else {
+  } else if (!hasLiveUnfilteredItem) {
     // Student is currently in a free window (before next item or until sleep).
     const nextItem = upcoming[0] ?? null;
     const rawSleepMin = parseTimeMinutes(freeStudy.sleepTime, true) ?? 23 * 60;
@@ -420,7 +420,10 @@ export const buildTodayTimelineRows = (options: {
     let untilLabel = '';
     if (nextItem) {
       gapEndMinutes = nextItem.startMinutes;
-      untilLabel = `Until ${formatTimeLabel(nextItem.startTime, timeFormat24h)}`;
+      untilLabel = `Until ${formatTimeLabel(
+        nextItem.startTime,
+        timeFormat24h,
+      )}`;
     } else if (!freeStudy.dayEnded && nowMinutes < windowEnd) {
       gapEndMinutes = windowEnd;
       untilLabel =
