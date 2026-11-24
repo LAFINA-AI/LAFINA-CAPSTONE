@@ -137,7 +137,7 @@ describe('AGY-PORT 10 Profile row', () => {
         <ProfileScreen userId={userId} refreshTrigger={0} onRefresh={jest.fn()} onLogout={jest.fn()} />
       </ThemeProvider>,
     );
-    for (const text of ['Detailed AI Summaries', 'Test TTS Voice', 'Offline Voice', 'Default']) {
+    for (const text of ['Detailed answers', 'Play a voice sample', 'Voice without internet', 'Default']) {
       expect(screen.getByText(text)).toBeTruthy();
     }
   });

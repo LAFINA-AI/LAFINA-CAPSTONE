@@ -30,7 +30,10 @@ import {
 import {migrateChatMemories, migrateChatMemoriesV2} from './chatMemorySchema';
 import {migrateReminderDeliveryStyles} from './reminderDeliveryStyleSchema';
 import {migrateAlarms} from './alarmSchema';
-import {migrateHandbookIndex} from './handbookSchema';
+import {
+  migrateHandbookIndex,
+  migrateKnowledgeCollections,
+} from './handbookSchema';
 import {migrateMaterialIndex} from './materialSchema';
 
 export interface SchemaMigration {
@@ -181,6 +184,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       );
       tx.executeSync('DROP INDEX IF EXISTS idx_notes_user_sort');
       tx.executeSync('DROP INDEX IF EXISTS idx_messages_session');
+    },
+  },
+  {
+    version: 32,
+    description:
+      'Knowledge collections in the handbook index: USTP CDO knowledge pack chunks with provenance metadata',
+    up: tx => {
+      migrateKnowledgeCollections(tx);
     },
   },
 ];

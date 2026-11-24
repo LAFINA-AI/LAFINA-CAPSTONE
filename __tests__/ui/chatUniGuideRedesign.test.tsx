@@ -154,7 +154,8 @@ describe('UniGuide-inspired Chat Tab Redesign', () => {
 
     expect(getByText('New chat')).toBeTruthy();
     expect(getByText('Temporary')).toBeTruthy();
-    expect(getByText('USTP Handbook')).toBeTruthy();
+    expect(getByText('Ask USTP')).toBeTruthy();
+    expect(getByText('USTP sources')).toBeTruthy();
     expect(queryByText('RAG')).toBeNull();
     expect(getByText('Camera')).toBeTruthy();
     expect(getByText('Gallery')).toBeTruthy();

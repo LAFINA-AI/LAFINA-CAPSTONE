@@ -7,6 +7,8 @@ import { appUpdater } from '../../../updates';
 import type { UpdateService, UpdateState } from '../../../updates';
 import { useUpdateState } from '../updates/AppUpdatePrompt';
 import { requestUpdateSheet } from '../updates/updateMemory';
+import { RefreshCw } from 'lucide-react-native';
+import { useSettingTone } from './SettingItem';
 
 export const labelFor = (state: UpdateState): string => {
   switch (state.phase) {
@@ -46,6 +48,7 @@ export const AppUpdateItem: React.FC<AppUpdateItemProps> = ({
   const { phase } = state;
   const attention = phase === 'available' || phase === 'ready' || phase === 'needs-install';
   const busy = phase === 'checking' || phase === 'downloading';
+  const tone = useSettingTone(attention ? 'danger' : 'mint');
 
   const handlePress = (): void => {
     if (!openSheet()) void service.check();
@@ -61,6 +64,9 @@ export const AppUpdateItem: React.FC<AppUpdateItemProps> = ({
       accessibilityState={{ busy }}
       testID="app-update-item"
     >
+      <View style={[styles.iconTile, { backgroundColor: tone.bg }]}>
+        <RefreshCw size={17} color={tone.ink} />
+      </View>
       <View style={styles.textColumn}>
         <Text
           style={[
@@ -96,14 +102,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
+    paddingVertical: 13,
+  },
+  iconTile: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   textColumn: {
     flex: 1,
     marginRight: 8,
   },
   label: {
-    fontSize: 14,
+    fontSize: 14.5,
+    fontWeight: '600',
     fontFamily: Fonts.body,
   },
   attention: {

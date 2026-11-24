@@ -60,7 +60,7 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
   {
     id: 'calendar',
     title: 'Schedule',
-    body: 'Month, Week and Day views for classes, deadlines and study blocks. Tap an empty hour or + to add something, and open the top-right menu for COR classes, calendar groups and .ics files.',
+    body: 'See your classes and deadlines by month, week or day. Tap an empty hour or + to add something.',
     anchor: 'tab-calendar',
     tab: 'calendar',
   },
@@ -82,7 +82,7 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
     id: 'account',
     title: isGuest ? 'Your guest session' : 'Profile & settings',
     body: isGuest
-      ? 'Guest data lives on this phone. Create an account from here when you want cross-device sync — nothing you have made is lost in the swap. You can also turn on Floating LAFINA here.'
+      ? 'As a guest, your data stays on this phone. Create an account anytime to use it on other phones too. Nothing is lost.'
       : 'Floating LAFINA, voices, memory, Alarm & Reminder Health, dark mode and color themes all live here. Your data syncs when signed in and online.',
     anchor: 'tab-profile',
     tab: 'profile',
@@ -219,8 +219,7 @@ export const buildWalkthroughSteps = ({
     highlights: [
       {
         label: 'Hold Mic to speak offline',
-        detail:
-          'On-device Whisper speech-to-text works with no internet; slide left or up anytime to cancel.',
+        detail: 'Works with no internet. Slide left or up to cancel.',
       },
       {
         label: 'Confirm before save',
@@ -235,13 +234,13 @@ export const buildWalkthroughSteps = ({
     id: 'ai-engine-handbook',
     section: 'chat',
     sectionLabel: 'AI',
-    title: 'AI Engine, Scanner & USTP Handbook',
-    body: 'Switch AI modes from the top pill, scan schedules from images, or check official USTP policies.',
+    title: 'AI Engine, Scanner & Ask USTP',
+    body: 'Switch AI modes from the top pill, scan schedules from images, or ask about USTP policies, dates and offices.',
     highlights: [
       {
         label: 'Offline & Online AI',
         detail:
-          'Tap the top pill to switch between Fast-Path / downloaded offline models and Online Cloud AI.',
+          'Tap the top pill to switch between offline AI on your phone and online AI.',
       },
       {
         label: 'Scanner, History & Temp Chat',
@@ -249,12 +248,12 @@ export const buildWalkthroughSteps = ({
           'Tap + to scan a timetable from Camera/Photos, open the menu for History & Command Guide, or use Temporary Chat.',
       },
       {
-        label: 'USTP Handbook',
+        label: 'Ask USTP',
         detail: schoolEnabled
-          ? 'Open USTP Handbook from the sidebar for offline and online answers with checkable chapter and page citations.'
+          ? 'Open Ask USTP from the sidebar for offline and online answers with checkable chapter and page citations and official links. Tap See passages under an answer to read its sources.'
           : corPending
-          ? 'Add and confirm your USTP COR in Profile or Schedule to unlock cited USTP Handbook answers.'
-          : 'USTP Handbook stays off in Scheduling mode — switch anytime in Profile → Student Setup.',
+          ? 'Add and confirm your USTP COR in Profile or Schedule to unlock Ask USTP with cited answers.'
+          : 'Ask USTP stays off in Scheduling mode — switch anytime in Profile → Student Setup.',
       },
     ],
     anchor: 'chat-engine-pill',
@@ -293,7 +292,7 @@ export const buildWalkthroughSteps = ({
     section: 'notes',
     sectionLabel: 'Skills',
     title: 'Alarms & Morning Briefing',
-    body: 'Device-local clock alarms built on Android AlarmManager — kept separate from synced calendar reminders.',
+    body: 'Clock alarms that live on this phone, separate from your synced reminders.',
     highlights: [
       {
         label: 'Reliable wake-ups',
@@ -395,15 +394,15 @@ export const buildWalkthroughSteps = ({
       {
         label: 'Preferences, Memory & Voices',
         detail:
-          'Set routine, lead time, Adaptive Timing, Personal Memory, Event Defaults, Offline Voice, ElevenLabs Online Voice and Student Setup.',
+          'Reminder timing, what LAFINA remembers, voices and your school setup.',
       },
       {
         label: 'Health & Appearance',
         detail:
-          'Verify Notifications, Exact Alarms and Battery in Alarm & Reminder Health, and customize Dark Mode, 6 Color Themes & 5 AI Orb Designs.',
+          'Use "Check my reminders work" to fix alarm permissions, and pick dark mode or a color theme.',
       },
     ],
-    tip: 'You can replay this full walkthrough or jump to any section anytime from Profile → Show the walkthrough again.',
+    tip: 'Replay this tour anytime from Profile → Show the walkthrough again.',
     anchor: 'tab-profile',
     tab: 'profile',
   },

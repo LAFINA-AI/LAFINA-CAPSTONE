@@ -1,4 +1,8 @@
 import {useCallback, useSyncExternalStore} from 'react';
+import {
+  captureOwnerWork,
+  subscribeOwnerWorkInvalidation,
+} from '../storage/ownerWorkEpoch';
 
 interface JobState<T> {
   busy: boolean;
@@ -29,6 +33,18 @@ const generations = new Map<string, number>();
 const controllers = new Map<string, AbortController>();
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach(l => l());
+
+subscribeOwnerWorkInvalidation(owner => {
+  const keys = new Set([...states.keys(), ...controllers.keys()]);
+  for (const key of keys) {
+    if (owner !== null && !key.startsWith(`${owner}:`)) continue;
+    generations.set(key, (generations.get(key) ?? 0) + 1);
+    controllers.get(key)?.abort();
+    controllers.delete(key);
+    states.delete(key);
+  }
+  emit();
+});
 
 /** Jobs survive page navigation, but never pretend to survive process death. */
 export function useStudyJob<T>(owner: string, kind: string) {
@@ -88,9 +104,12 @@ export function useStudyJob<T>(owner: string, kind: string) {
       const myGen = (generations.get(key) ?? 0) + 1;
       generations.set(key, myGen);
       const controller = new AbortController();
+      const workCurrent = captureOwnerWork(owner);
       controllers.set(key, controller);
       const isCancelled = () =>
-        generations.get(key) !== myGen || controller.signal.aborted;
+        generations.get(key) !== myGen ||
+        controller.signal.aborted ||
+        !workCurrent();
       const setJobProgress = (progress: number, statusText?: string) => {
         if (isCancelled()) return;
         const current = states.get(key);
@@ -143,7 +162,7 @@ export function useStudyJob<T>(owner: string, kind: string) {
       }
       emit();
     },
-    [key],
+    [key, owner],
   );
   return {...state, run, consume, clearError, cancel, setProgress};
 }

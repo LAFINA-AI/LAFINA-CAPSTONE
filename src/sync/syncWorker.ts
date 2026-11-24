@@ -1600,6 +1600,61 @@ export const syncWorker = {
       // Chat is declared only while this account syncs chat and the server
       // has listed it; the set stays fixed for the whole pass (ADR-040).
       const chatSyncEnabled = chatSyncStore.isEnabled(localUserId);
+      let chatDeleteRejections = 0;
+      if (!chatSyncEnabled && chatSyncStore.serverSupportsChat(localUserId)) {
+        // Turning upload/download off never withholds a student's explicit deletion.
+        // This feed is deliberately not applied or used to advance the normal cursor.
+        for (let batch = 0; batch < MAX_SYNC_REQUESTS; batch += 1) {
+          const pendingDeletes = syncOutboxStore.getPendingMutations(
+            localUserId,
+            OUTBOX_BATCH_SIZE,
+            ACCOUNT_SCOPE,
+            localUserId,
+            undefined,
+            ['chat_session', 'chat_message'],
+            'delete',
+          );
+          if (!pendingDeletes.length) break;
+          inFlightMutations = pendingDeletes.map(item =>
+            formatMutation(localUserId!, item),
+          );
+          inFlightMutationIds = pendingDeletes.map(item => item.id);
+          syncOutboxStore.markMutationsInProgress(
+            localUserId,
+            inFlightMutationIds,
+            ACCOUNT_SCOPE,
+            localUserId,
+          );
+          const deleted = await cloudClient.request<SyncBatchResponsePayload>(
+            '/v1/sync/batch',
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                mutations: inFlightMutations,
+                cursor: 0,
+                entityTypes: declaredSyncEntityTypes(true, knownServerTypes),
+              }),
+            },
+          );
+          assertActiveLocalUser(localUserId);
+          if (deleted.status !== 'success' || !deleted.data)
+            throw new Error(
+              deleted.error || 'Cloud chat deletion could not finish.',
+            );
+          validateMutationResults(deleted.data, inFlightMutations);
+          chatDeleteRejections += settleMutationResults(
+            localUserId,
+            deleted.data,
+            inFlightMutations,
+          );
+          inFlightMutationIds = [];
+          inFlightMutations = [];
+          if (batch === MAX_SYNC_REQUESTS - 1)
+            throw new Error(
+              'More cloud chat deletions are waiting for the next sync.',
+            );
+        }
+      }
       const declaredTypes = declaredSyncEntityTypes(
         chatSyncEnabled,
         knownServerTypes,
@@ -1625,7 +1680,7 @@ export const syncWorker = {
         : null;
       let snapshotItems: SyncChange[] = [];
       const snapshotItemKeys = new Set<string>();
-      let rejectedCount = preparedBatch.oversizedCount;
+      let rejectedCount = preparedBatch.oversizedCount + chatDeleteRejections;
       let reminderTextUpdated = false;
 
       for (

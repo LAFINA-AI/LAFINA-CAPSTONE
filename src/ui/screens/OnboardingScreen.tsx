@@ -450,7 +450,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         <OnboardingPage
           {...common}
           title={schoolOn ? 'Your USTP COR is ready.' : 'Add your USTP COR.'}
-          copy="Upload your Certificate of Registration to import your classes and unlock USTP Handbook AI."
+          copy="Upload your Certificate of Registration to import your classes and unlock Ask USTP."
           note={notice ?? undefined}
           primary={
             schoolOn || notUstp

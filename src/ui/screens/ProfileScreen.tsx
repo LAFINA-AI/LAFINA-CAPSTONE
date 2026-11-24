@@ -37,8 +37,26 @@ import {cancelFocusTimer} from '../../scheduler/focusTimer';
 import {SvgXml} from 'react-native-svg';
 import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
 import {
+  AlignLeft,
+  AudioLines,
+  BellRing,
   BookOpen,
+  Brain,
+  CalendarClock,
+  CalendarDays,
   Camera,
+  Compass,
+  Info,
+  Lock,
+  MessageCircle,
+  Palette,
+  PhoneCall,
+  Play,
+  School,
+  ShieldCheck,
+  Type,
+  Undo2,
+  Volume2,
   Check,
   ChevronDown,
   ChevronRight,
@@ -99,12 +117,13 @@ import type {DetailedProfileStatistics} from '../../storage/profileStatisticsSto
 import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {
   authorizeDataReset,
-  clearSkillsDocumentsForUser,
   finishAttachmentCleanup,
   hasAttachmentCleanup,
-  readSkillsDocumentPaths,
   resetPersonalData,
+  preparePersonalDataReset,
+  finishPersonalFileCleanup,
 } from '../../storage/accountDataReset';
+import {hasPersonalFileCleanup} from '../../storage/personalFileCleanup';
 import type {DataResetAuthority} from '../../storage/accountDataReset';
 import {DeveloperModal} from '../components/profile/DeveloperModal';
 import {
@@ -216,13 +235,13 @@ const readAlertSettingsSummary = (userId: string): string => {
     const prefs = alertPreferencesStore.read(userId);
     const delivery =
       prefs.defaultReminderDeliveryStyle === 'notify'
-        ? 'Notify default'
-        : 'Call default';
+        ? 'Sends a notification'
+        : 'Calls you';
     return prefs.quietHoursDowngradeToNotify
-      ? `${delivery}, Quiet hrs`
+      ? `${delivery} · quiet hours on`
       : delivery;
   } catch {
-    return 'Call default';
+    return 'Calls you';
   }
 };
 
@@ -233,18 +252,20 @@ const readCallSettingsSummary = (userId: string): string => {
       prefs.callAnswerMode === 'buttons_only'
         ? 'Buttons only'
         : prefs.callAnswerMode === 'offline_voice'
-        ? 'Offline voice'
-        : 'Auto AI';
-    return `${mode}, ${prefs.callRingTimeoutSec}s`;
+        ? 'Talks without internet'
+        : 'LAFINA talks with you';
+    return `${mode} · rings ${prefs.callRingTimeoutSec} sec`;
   } catch {
-    return 'Auto AI, 45s';
+    return 'LAFINA talks with you · rings 45 sec';
   }
 };
 
 const readEventDefaultsSummary = (userId: string): string => {
   try {
     const saved = personalMemoryStore.read(userId);
-    return saved.enabled && saved.value ? 'On' : 'Off';
+    return saved.enabled && saved.value
+      ? 'On: start time and length filled in'
+      : 'Off';
   } catch {
     return 'Unavailable';
   }
@@ -252,7 +273,9 @@ const readEventDefaultsSummary = (userId: string): string => {
 
 const readVoiceSummary = (userId: string): string => {
   try {
-    return speechSettingsStore.read(userId).explicit ? 'Custom' : 'Default';
+    return speechSettingsStore.read(userId).explicit
+      ? 'Your chosen voice'
+      : 'Default';
   } catch {
     return 'Unavailable';
   }
@@ -269,6 +292,39 @@ const readDetailedSummariesEnabled = (userId: string): boolean => {
     return false;
   }
 };
+
+type ProfileSectionKey =
+  | 'reminders'
+  | 'assistant'
+  | 'voice'
+  | 'school'
+  | 'look'
+  | 'about';
+
+/** The shortcut chips above the settings, in the order the groups appear. */
+const PROFILE_SECTIONS: ReadonlyArray<{
+  key: ProfileSectionKey;
+  title: string;
+  short: string;
+  icon: React.ComponentType<{size?: number; color?: string}>;
+}> = [
+  {
+    key: 'reminders',
+    title: 'Reminders & schedule',
+    short: 'Reminders',
+    icon: BellRing,
+  },
+  {
+    key: 'assistant',
+    title: 'LAFINA assistant',
+    short: 'Assistant',
+    icon: Sparkles,
+  },
+  {key: 'voice', title: 'Voice', short: 'Voice', icon: Volume2},
+  {key: 'school', title: 'School', short: 'School', icon: School},
+  {key: 'look', title: 'Appearance', short: 'Look', icon: Palette},
+  {key: 'about', title: 'About & help', short: 'About', icon: Info},
+];
 
 interface ProfileScreenProps {
   userId: string;
@@ -385,7 +441,8 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     try {
       if (!chatMemoryStore.isEnabled(userId)) return 'Off';
       const count = chatMemoryStore.list(userId).length;
-      return count === 1 ? '1 memory' : `${count} memories`;
+      if (count === 0) return 'Nothing saved yet';
+      return count === 1 ? '1 thing saved' : `${count} things saved`;
     } catch {
       return 'Unavailable';
     }
@@ -403,7 +460,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   const [onlineVoiceVisible, setOnlineVoiceVisible] = useState(false);
   const [onlineVoiceSummary, setOnlineVoiceSummary] = useState(() => {
     try {
-      return onlineVoiceSettingsStore.read(userId)?.name ?? 'Server default';
+      return onlineVoiceSettingsStore.read(userId)?.name ?? 'Default voice';
     } catch {
       return 'Choose again';
     }
@@ -411,7 +468,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   const loadOnlineVoiceSummary = () => {
     try {
       setOnlineVoiceSummary(
-        onlineVoiceSettingsStore.read(userId)?.name ?? 'Server default',
+        onlineVoiceSettingsStore.read(userId)?.name ?? 'Default voice',
       );
     } catch {
       setOnlineVoiceSummary('Choose again');
@@ -454,9 +511,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       const preferences = preferencesStore.get(userId);
       return `${formatReminderLeadLabel(
         preferences.reminderLeadMinutes,
-      )}, ${getSnoozePreferenceLabel(preferences)}`;
+      )} before · ${getSnoozePreferenceLabel(preferences)}`;
     } catch {
-      return '15 min, Snooze once';
+      return '15 min before · Snooze once';
     }
   });
   const [preferencesVisible, setPreferencesVisible] = useState(false);
@@ -804,31 +861,26 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       const provider = createCallSpeechProvider(userId);
       disposeSpeech = provider.dispose;
 
-      Alert.alert(
-        'Synthesizing…',
-        'Synthesizing text to speech. Keep media volume up.',
-      );
+      Alert.alert('Playing a sample…', 'Turn your media volume up to hear it.');
       const result = await provider.speakText(
-        'Hey! This is lafina. Text to speech is working.',
+        'Hey! This is LAFINA. My voice is working.',
       );
       if (result.source === 'cancelled') {
-        Alert.alert('TTS Test Stopped', 'Voice playback was cancelled.');
+        Alert.alert('Sample stopped', 'The voice sample was cancelled.');
       } else if (result.source === 'elevenlabs') {
-        Alert.alert(
-          'TTS Test (ElevenLabs)',
-          'Playback finished using the configured ElevenLabs online voice.',
-        );
+        Alert.alert('Sample finished', 'That was your online voice.');
       } else {
         Alert.alert(
-          'TTS Test (Native Offline TTS)',
-          result.fallbackReason ||
-            'Playback finished using react-native-tts (Android TextToSpeech). Enable Online Mode in Chat for ElevenLabs.',
+          'Sample finished',
+          result.fallbackReason
+            ? `That was the phone's own voice. ${result.fallbackReason}`
+            : "That was the phone's own voice. Turn on Online in Chat to hear the online voice.",
         );
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       console.error('[Profile] TTS test failed:', e);
-      Alert.alert('TTS Test Error', message);
+      Alert.alert('Could not play the sample', message);
     } finally {
       await disposeSpeech?.().catch(() => undefined);
       setTtsTesting(false);
@@ -925,11 +977,11 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
    * changes nothing. The result names only the steps it confirmed.
    */
   const confirmClearData = async (authority: DataResetAuthority | null) => {
-    const skillsDocPaths = authority
-      ? readSkillsDocumentPaths(authority.userId)
-      : [];
+    const preparation = preparePersonalDataReset(authority);
+    const prepared =
+      typeof preparation === 'boolean' ? preparation : await preparation;
     const outcome = resetPersonalData(
-      authority,
+      prepared ? authority : null,
       () => alive.current && currentUserId.current === authority?.userId,
     );
     if (!outcome.admitted || !authority) {
@@ -938,7 +990,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
           status: 'not_cleared',
           title: 'Not Cleared',
           message:
-            'Nothing was deleted, because the account, sign-in or screen changed after Clear All Data was opened. Open Profile and choose Clear All Data again to clear the account that is signed in now.',
+            "Nothing was deleted. Your sign-in changed or recording could not be stopped safely. Stop any recording, then reopen Clear All Data for the account you're using now.",
         });
       }
       return;
@@ -950,16 +1002,20 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     const cleanup = hasAttachmentCleanup(authority)
       ? await finishAttachmentCleanup(authority)
       : {removed: 0, pending: 0, interrupted: false, unsaved: 0};
-    if (skillsDocPaths.length > 0) {
-      await clearSkillsDocumentsForUser(authority, skillsDocPaths);
-    }
+    const personalFiles = hasPersonalFileCleanup(authority.userId)
+      ? await finishPersonalFileCleanup(authority)
+      : {pending: 0};
     const plannerCleared = outcome.planner === 'cleared';
     const chatCleared = outcome.chat === 'cleared';
     const defaultsCleared = outcome.defaults === 'cleared';
     const filesPending = cleanup.pending;
     const refused = outcome.refusedAttachments;
     const unsaved = cleanup.unsaved;
-    const filesConfirmed = filesPending === 0 && refused === 0 && unsaved === 0;
+    const filesConfirmed =
+      filesPending === 0 &&
+      refused === 0 &&
+      unsaved === 0 &&
+      personalFiles.pending === 0;
 
     if (plannerCleared && chatCleared && defaultsCleared && filesConfirmed) {
       if (alive.current) {
@@ -979,6 +1035,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       (chatCleared ? done : notDone).push('chat history');
       (defaultsCleared ? done : notDone).push('saved event defaults');
       const lines = [
+        personalFiles.pending === 0
+          ? ''
+          : 'Some recording or document files could not be confirmed deleted. They remain queued; try Clear All Data again.',
         done.length > 0 ? `Your ${done.join(' and your ')} were cleared.` : '',
         notDone.length > 0
           ? `Your ${notDone.join(' and your ')} were not deleted${
@@ -1143,6 +1202,56 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
         {label: 'Curriculum', value: academicProfile.curriculum},
       ].filter(row => Boolean(row.value))
     : [];
+
+  // The settings list is long: a row of shortcuts jumps to each group.
+  const settingsTopY = useRef(0);
+  const mainContentY = useRef(0);
+  const sectionY = useRef<Partial<Record<ProfileSectionKey, number>>>({});
+  const rememberSection =
+    (key: ProfileSectionKey) =>
+    (event: {nativeEvent: {layout: {y: number}}}) => {
+      sectionY.current[key] = event.nativeEvent.layout.y;
+    };
+  const jumpToSection = (key: ProfileSectionKey) => {
+    const y = sectionY.current[key];
+    if (y === undefined) return;
+    scrollRef.current?.scrollTo?.({
+      y: Math.max(0, mainContentY.current + settingsTopY.current + y - 8),
+      animated: true,
+    });
+  };
+  const rowDivider = (
+    <View
+      style={[
+        styles.settingDivider,
+        styles.settingDividerInset,
+        themed.settingDivider,
+      ]}
+    />
+  );
+  const renderGroupHeader = (title: string, hint?: string) => (
+    <View style={styles.groupHeaderBlock}>
+      <Text
+        style={[
+          styles.groupHeaderTitle,
+          {color: isModern ? modernPalette.text : colors.textPrimary},
+        ]}
+        accessibilityRole="header"
+      >
+        {title}
+      </Text>
+      {hint ? (
+        <Text
+          style={[
+            styles.groupHeaderHint,
+            {color: isModern ? modernPalette.muted : colors.textSecondary},
+          ]}
+        >
+          {hint}
+        </Text>
+      ) : null}
+    </View>
+  );
 
   return (
     <View style={styles.container} collapsable={false} ref={scrollWrapRef}>
@@ -1467,6 +1576,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
 
         <View
           style={[styles.mainContent, isModern && styles.modernMainContent]}
+          onLayout={event => {
+            mainContentY.current = event.nativeEvent.layout.y;
+          }}
         >
           {academicProfile && (
             <View
@@ -1941,578 +2053,549 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
               styles.settingsContainer,
               isModern && styles.modernSettingsContainer,
             ]}
+            onLayout={event => {
+              settingsTopY.current = event.nativeEvent.layout.y;
+            }}
           >
-            <Text
-              style={[
-                styles.settingsGroupHeader,
-                themed.settingsGroupHeader,
-                isModern && [
-                  styles.modernSettingsGroupHeader,
-                  {color: modernPalette.muted, marginTop: 2},
-                ],
-              ]}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sectionJumpRow}
+              style={styles.sectionJumpScroll}
+              testID="profile-section-jump"
             >
-              Preferences
-            </Text>
-            <View
-              style={[
-                styles.settingsGroupCard,
-                cardSurfaceStyle,
-                themed.settingsGroupCard,
-              ]}
-            >
-              <SettingItem
-                text="Scheduling & Reminder Preferences"
-                type="link"
-                valueText={preferenceSummary}
-                onPress={() => setPreferencesVisible(true)}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Week Starts on Monday"
-                type="toggle"
-                value={weekStartsMonday}
-                onValueChange={handleToggleWeekStart}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Event Defaults"
-                type="link"
-                valueText={eventDefaultsSummary}
-                onPress={() => setMemoryVisible(true)}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Memory"
-                type="link"
-                valueText={chatMemorySummary}
-                onPress={() => setChatMemoryVisible(true)}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Student Setup"
-                type="link"
-                valueText={
-                  studentSetup.affiliation === 'ustp'
-                    ? academicProfile
-                      ? 'USTP · COR confirmed'
-                      : studentSetup.corStatus === 'needs_review'
-                      ? 'USTP · COR needs review'
-                      : 'USTP · COR pending'
-                    : studentSetup.affiliation === 'not_ustp'
-                    ? 'Scheduling mode'
-                    : 'Not chosen'
-                }
-                onPress={handleStudentSetup}
-              />
-              {hasLatestCorImport ? (
-                <>
-                  <View
-                    style={[styles.settingDivider, themed.settingDivider]}
-                  />
-                  <SettingItem
-                    text="Undo Last COR Import"
-                    type="link"
-                    valueText="Only that import"
-                    onPress={undoLatestCorImport}
-                  />
-                </>
-              ) : null}
-            </View>
+              {PROFILE_SECTIONS.map(section => {
+                const SectionIcon = section.icon;
+                return (
+                  <TouchableOpacity
+                    key={section.key}
+                    onPress={() => jumpToSection(section.key)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Go to ${section.title}`}
+                    testID={`profile-jump-${section.key}`}
+                    style={[
+                      styles.sectionJumpChip,
+                      {
+                        backgroundColor: isModern
+                          ? modernPalette.card
+                          : colors.cardBg,
+                        borderColor: isModern
+                          ? modernPalette.border
+                          : colors.border,
+                      },
+                    ]}
+                  >
+                    <SectionIcon
+                      size={14}
+                      color={isModern ? modernPalette.accent : colors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.sectionJumpText,
+                        {
+                          color: isModern
+                            ? modernPalette.text
+                            : colors.textPrimary,
+                        },
+                      ]}
+                    >
+                      {section.short}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
-            <Text
-              style={[
-                styles.settingsGroupHeader,
-                themed.settingsGroupHeader,
-                isModern && [
-                  styles.modernSettingsGroupHeader,
-                  {color: modernPalette.muted},
-                ],
-              ]}
-            >
-              AI & Voice
-            </Text>
-            <View
-              style={[
-                styles.settingsGroupCard,
-                cardSurfaceStyle,
-                themed.settingsGroupCard,
-              ]}
-            >
-              <SettingItem
-                text="Detailed AI Summaries"
-                type="toggle"
-                value={summaryStyleDetailed}
-                onValueChange={handleDetailedSummariesChange}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Markdown Chat Replies"
-                type="toggle"
-                value={replyFormat === 'markdown'}
-                onValueChange={handleMarkdownRepliesChange}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text={ttsTesting ? 'Testing TTS…' : 'Test TTS Voice'}
-                type="clickable"
-                onPress={handleTestTtsVoice}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Offline Voice"
-                type="link"
-                valueText={voiceSummary}
-                onPress={() => setVoiceVisible(true)}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Online Voice · ElevenLabs"
-                type="link"
-                valueText={onlineVoiceSummary}
-                onPress={() => setOnlineVoiceVisible(true)}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <View collapsable={false} ref={attachFloatingRowRef}>
+            <View onLayout={rememberSection('reminders')}>
+              {renderGroupHeader(
+                'Reminders & schedule',
+                'How and when LAFINA reminds you',
+              )}
+              <View
+                style={[
+                  styles.settingsGroupCard,
+                  cardSurfaceStyle,
+                  themed.settingsGroupCard,
+                ]}
+              >
                 <SettingItem
-                  text="Floating LAFINA"
-                  type="link"
-                  valueText={floatingSummary}
-                  onPress={() => setFloatingVisible(true)}
+                  text="Reminder timing"
+                  subtitle={preferenceSummary}
+                  icon={CalendarClock}
+                  tone="violet"
+                  onPress={() => setPreferencesVisible(true)}
+                />
+                {rowDivider}
+                <SettingItem
+                  text="Alerts & sounds"
+                  subtitle={alertSummary}
+                  icon={BellRing}
+                  tone="peach"
+                  onPress={() => setAlertSettingsVisible(true)}
+                />
+                {rowDivider}
+                <SettingItem
+                  text="Reminder calls"
+                  subtitle={callSettingsSummary}
+                  icon={PhoneCall}
+                  tone="mint"
+                  onPress={() => setCallSettingsVisible(true)}
+                />
+                {rowDivider}
+                <SettingItem
+                  text="Check my reminders work"
+                  subtitle="Phone permissions and battery"
+                  icon={ShieldCheck}
+                  tone="blue"
+                  onPress={() => setHealthVisible(true)}
+                />
+                {rowDivider}
+                <SettingItem
+                  text="New event defaults"
+                  subtitle={eventDefaultsSummary}
+                  icon={Clock}
+                  tone="lilac"
+                  onPress={() => setMemoryVisible(true)}
+                />
+                {rowDivider}
+                <SettingItem
+                  text="Week starts on Monday"
+                  type="toggle"
+                  icon={CalendarDays}
+                  tone="cream"
+                  value={weekStartsMonday}
+                  onValueChange={handleToggleWeekStart}
                 />
               </View>
             </View>
 
-            <Text
-              style={[
-                styles.settingsGroupHeader,
-                themed.settingsGroupHeader,
-                isModern && [
-                  styles.modernSettingsGroupHeader,
-                  {color: modernPalette.muted},
-                ],
-              ]}
-            >
-              Notifications
-            </Text>
-            <View
-              style={[
-                styles.settingsGroupCard,
-                cardSurfaceStyle,
-                themed.settingsGroupCard,
-              ]}
-            >
-              <SettingItem
-                text="Alert Tones & Notifications"
-                type="link"
-                valueText={alertSummary}
-                onPress={() => setAlertSettingsVisible(true)}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Reminder Call Settings"
-                type="link"
-                valueText={callSettingsSummary}
-                onPress={() => setCallSettingsVisible(true)}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <SettingItem
-                text="Alarm & Reminder Health"
-                type="link"
-                valueText="Permissions & battery"
-                onPress={() => setHealthVisible(true)}
-              />
-            </View>
-
-            <Text
-              style={[
-                styles.settingsGroupHeader,
-                themed.settingsGroupHeader,
-                isModern && [
-                  styles.modernSettingsGroupHeader,
-                  {color: modernPalette.muted},
-                ],
-              ]}
-            >
-              Appearance
-            </Text>
-            <View style={[styles.settingsGroupCard, ...cardSurfaceStyle]}>
-              <SettingItem
-                text="Dark Mode"
-                type="toggle"
-                value={isDarkMode}
-                onValueChange={(_enabled, origin) => toggleTheme(origin)}
-              />
-              {isModern && (
-                <>
-                  <View
-                    style={[
-                      styles.settingDivider,
-                      {backgroundColor: colors.divider},
-                    ]}
-                  />
-                  <View
-                    style={styles.themePickerBlock}
-                    testID="modern-theme-selector"
-                  >
-                    <View style={styles.themePickerHeader}>
-                      <View style={styles.themePickerHeaderCopy}>
-                        <Text
-                          style={[
-                            styles.interfaceTitle,
-                            {color: colors.textPrimary},
-                          ]}
-                        >
-                          Color Theme
-                        </Text>
-                        <Text
-                          style={[
-                            styles.themePickerSubtitle,
-                            {color: colors.textSecondary},
-                          ]}
-                        >
-                          Choose your palette across Modern mode
-                        </Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.themeActiveBadge,
-                          {backgroundColor: modernPalette.softViolet},
-                        ]}
-                        testID="modern-theme-active-badge"
-                      >
-                        <Text
-                          style={[
-                            styles.themeActiveBadgeText,
-                            {color: modernPalette.accent},
-                          ]}
-                        >
-                          {modernThemeMeta.label}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={styles.themeGrid}
-                      accessibilityRole="radiogroup"
-                      accessibilityLabel="Color theme"
-                    >
-                      {MODERN_THEMES.map(theme => {
-                        const active = modernTheme === theme.id;
-                        const preview = isDarkMode
-                          ? theme.previewDark
-                          : theme.previewLight;
-                        return (
-                          <TouchableOpacity
-                            key={theme.id}
-                            testID={`modern-theme-${theme.id}`}
-                            accessibilityRole="radio"
-                            accessibilityState={{
-                              checked: active,
-                              selected: active,
-                            }}
-                            accessibilityLabel={`${theme.label} theme — ${theme.subtitle}`}
-                            activeOpacity={0.8}
-                            onPress={() => setModernTheme(theme.id)}
-                            style={[
-                              styles.themeTile,
-                              {
-                                backgroundColor: active
-                                  ? modernPalette.softViolet
-                                  : modernPalette.surface,
-                                borderColor: active
-                                  ? modernPalette.accent
-                                  : modernPalette.border,
-                              },
-                            ]}
-                          >
-                            <View style={styles.themeSwatchCluster}>
-                              <View
-                                style={[
-                                  styles.themeSwatchPrimary,
-                                  {
-                                    backgroundColor: preview[0],
-                                    borderColor: modernPalette.card,
-                                  },
-                                ]}
-                              />
-                              <View
-                                style={[
-                                  styles.themeSwatchSecondary,
-                                  {
-                                    backgroundColor: preview[1],
-                                    borderColor: modernPalette.card,
-                                  },
-                                ]}
-                              />
-                            </View>
-                            <View style={styles.themeTileTextCol}>
-                              <Text
-                                style={[
-                                  styles.themeTileLabel,
-                                  {
-                                    color: active
-                                      ? modernPalette.accent
-                                      : colors.textPrimary,
-                                  },
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {theme.label}
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.themeTileSubtitle,
-                                  {color: colors.textSecondary},
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {theme.subtitle}
-                              </Text>
-                            </View>
-                            {active && (
-                              <View
-                                style={[
-                                  styles.themeTileCheck,
-                                  {backgroundColor: modernPalette.accent},
-                                ]}
-                              >
-                                <Check
-                                  size={10}
-                                  color="#FFFFFF"
-                                  strokeWidth={3}
-                                />
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                  <View
-                    style={[
-                      styles.settingDivider,
-                      {backgroundColor: colors.divider},
-                    ]}
-                  />
-                  <View
-                    style={styles.themePickerBlock}
-                    testID="modern-ai-button-selector"
-                  >
-                    <View style={styles.themePickerHeader}>
-                      <View style={styles.themePickerHeaderCopy}>
-                        <Text
-                          style={[
-                            styles.interfaceTitle,
-                            {color: colors.textPrimary},
-                          ]}
-                        >
-                          AI Button Design
-                        </Text>
-                        <Text
-                          style={[
-                            styles.themePickerSubtitle,
-                            {color: colors.textSecondary},
-                          ]}
-                        >
-                          Customize the center AI tab button
-                        </Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.themeActiveBadge,
-                          {backgroundColor: modernPalette.softViolet},
-                        ]}
-                        testID="modern-ai-button-active-badge"
-                      >
-                        <Text
-                          style={[
-                            styles.themeActiveBadgeText,
-                            {color: modernPalette.accent},
-                          ]}
-                        >
-                          {modernAiButtonDesignMeta.label}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={styles.themeGrid}
-                      accessibilityRole="radiogroup"
-                      accessibilityLabel="AI button design"
-                    >
-                      {MODERN_AI_BUTTON_DESIGNS.map(design => {
-                        const active = modernAiButtonDesign === design.id;
-                        return (
-                          <TouchableOpacity
-                            key={design.id}
-                            testID={`modern-ai-button-${design.id}`}
-                            accessibilityRole="radio"
-                            accessibilityState={{
-                              checked: active,
-                              selected: active,
-                            }}
-                            accessibilityLabel={`${design.label} AI button — ${design.subtitle}`}
-                            activeOpacity={0.8}
-                            onPress={() => setModernAiButtonDesign(design.id)}
-                            style={[
-                              styles.themeTile,
-                              {
-                                backgroundColor: active
-                                  ? modernPalette.softViolet
-                                  : modernPalette.surface,
-                                borderColor: active
-                                  ? modernPalette.accent
-                                  : modernPalette.border,
-                              },
-                            ]}
-                          >
-                            <LafinaSynthOrb
-                              design={design.id}
-                              size={28}
-                              isActive={active}
-                              isDarkMode={isDarkMode}
-                              modernTheme={modernTheme}
-                              modernPalette={modernPalette}
-                              modernThemeExtras={modernThemeExtras}
-                              testID={`modern-ai-button-preview-${design.id}`}
-                            />
-                            <View style={styles.themeTileTextCol}>
-                              <Text
-                                style={[
-                                  styles.themeTileLabel,
-                                  {
-                                    color: active
-                                      ? modernPalette.accent
-                                      : colors.textPrimary,
-                                  },
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {design.label}
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.themeTileSubtitle,
-                                  {color: colors.textSecondary},
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {design.subtitle}
-                              </Text>
-                            </View>
-                            {active && (
-                              <View
-                                style={[
-                                  styles.themeTileCheck,
-                                  {backgroundColor: modernPalette.accent},
-                                ]}
-                              >
-                                <Check
-                                  size={10}
-                                  color="#FFFFFF"
-                                  strokeWidth={3}
-                                />
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                </>
+            <View onLayout={rememberSection('assistant')}>
+              {renderGroupHeader(
+                'LAFINA assistant',
+                'How LAFINA talks with you',
               )}
-            </View>
-
-            <Text
-              style={[
-                styles.settingsGroupHeader,
-                themed.settingsGroupHeader,
-                isModern && [
-                  styles.modernSettingsGroupHeader,
-                  {color: modernPalette.muted},
-                ],
-              ]}
-            >
-              Data Settings
-            </Text>
-            <View
-              style={[
-                styles.settingsGroupCard,
-                cardSurfaceStyle,
-                themed.settingsGroupCard,
-                styles.clearDataGroupCard,
-              ]}
-            >
-              <TouchableOpacity
-                testID="profile-clear-all-data-btn"
-                onPress={handleClearData}
-                activeOpacity={0.78}
-                accessibilityRole="button"
-                accessibilityLabel="Clear All Data"
-                style={styles.clearDataActionRow}
+              <View
+                style={[
+                  styles.settingsGroupCard,
+                  cardSurfaceStyle,
+                  themed.settingsGroupCard,
+                ]}
               >
-                <View
-                  style={[
-                    styles.clearDataIconBadge,
-                    {
-                      backgroundColor: isModern
-                        ? modernPalette.dangerSoft
-                        : colors.bannerBg,
-                      borderColor: isModern
-                        ? `${modernPalette.danger}2E`
-                        : `${colors.error}2E`,
-                      borderRadius: isModern ? 12 : 10,
-                    },
-                  ]}
-                >
-                  <Trash2
-                    size={17}
-                    color={isModern ? modernPalette.danger : colors.error}
+                <SettingItem
+                  text="What LAFINA remembers"
+                  subtitle={chatMemorySummary}
+                  icon={Brain}
+                  tone="violet"
+                  onPress={() => setChatMemoryVisible(true)}
+                  testID="profile-memory-row"
+                />
+                {rowDivider}
+                <View collapsable={false} ref={attachFloatingRowRef}>
+                  <SettingItem
+                    text="Floating LAFINA"
+                    subtitle={floatingSummary}
+                    icon={MessageCircle}
+                    tone="blue"
+                    onPress={() => setFloatingVisible(true)}
                   />
                 </View>
-                <View style={styles.clearDataTextCol}>
-                  <Text
-                    style={[
-                      styles.clearDataTitle,
-                      {color: isModern ? modernPalette.danger : colors.error},
-                    ]}
-                  >
-                    Clear All Data
-                  </Text>
-                  <Text
-                    style={[
-                      styles.clearDataSubtitle,
-                      {
-                        color: isModern
-                          ? modernPalette.muted
-                          : colors.textSecondary,
-                      },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    Delete notes, tasks, schedule, chats &amp; event defaults
-                  </Text>
-                </View>
-                <ChevronRight
-                  size={17}
-                  color={isModern ? modernPalette.danger : colors.error}
+                {rowDivider}
+                <SettingItem
+                  text="Detailed answers"
+                  subtitle="Longer summaries with more detail"
+                  type="toggle"
+                  icon={AlignLeft}
+                  tone="lilac"
+                  value={summaryStyleDetailed}
+                  onValueChange={handleDetailedSummariesChange}
                 />
-              </TouchableOpacity>
+                {rowDivider}
+                <SettingItem
+                  text="Neat answer formatting"
+                  subtitle="Bold words, lists and headings"
+                  type="toggle"
+                  icon={Type}
+                  tone="mint"
+                  value={replyFormat === 'markdown'}
+                  onValueChange={handleMarkdownRepliesChange}
+                />
+              </View>
+            </View>
+
+            <View onLayout={rememberSection('voice')}>
+              {renderGroupHeader('Voice', 'How LAFINA sounds')}
+              <View
+                style={[
+                  styles.settingsGroupCard,
+                  cardSurfaceStyle,
+                  themed.settingsGroupCard,
+                ]}
+              >
+                <SettingItem
+                  text="Voice without internet"
+                  subtitle={voiceSummary}
+                  icon={Volume2}
+                  tone="peach"
+                  onPress={() => setVoiceVisible(true)}
+                />
+                {rowDivider}
+                <SettingItem
+                  text="Online voice"
+                  subtitle={onlineVoiceSummary}
+                  icon={AudioLines}
+                  tone="violet"
+                  onPress={() => setOnlineVoiceVisible(true)}
+                />
+                {rowDivider}
+                <SettingItem
+                  text={
+                    ttsTesting ? 'Playing a sample…' : 'Play a voice sample'
+                  }
+                  subtitle="Hear how LAFINA sounds now"
+                  type="clickable"
+                  icon={Play}
+                  tone="mint"
+                  onPress={handleTestTtsVoice}
+                />
+              </View>
+            </View>
+
+            <View onLayout={rememberSection('school')}>
+              {renderGroupHeader('School', 'Your school and class schedule')}
+              <View
+                style={[
+                  styles.settingsGroupCard,
+                  cardSurfaceStyle,
+                  themed.settingsGroupCard,
+                ]}
+              >
+                <SettingItem
+                  text="School setup"
+                  subtitle={
+                    studentSetup.affiliation === 'ustp'
+                      ? academicProfile
+                        ? 'USTP · COR confirmed'
+                        : studentSetup.corStatus === 'needs_review'
+                        ? 'USTP · COR needs checking'
+                        : 'USTP · COR not added yet'
+                      : studentSetup.affiliation === 'not_ustp'
+                      ? 'Schedule only (not USTP)'
+                      : 'Not chosen yet'
+                  }
+                  icon={GraduationCap}
+                  tone="blue"
+                  onPress={handleStudentSetup}
+                />
+                {hasLatestCorImport ? (
+                  <>
+                    {rowDivider}
+                    <SettingItem
+                      text="Undo last COR upload"
+                      subtitle="Removes only the classes from that upload"
+                      icon={Undo2}
+                      tone="peach"
+                      onPress={undoLatestCorImport}
+                    />
+                  </>
+                ) : null}
+              </View>
+            </View>
+
+            <View onLayout={rememberSection('look')}>
+              {renderGroupHeader('Appearance', 'Colors and style')}
+              <View style={[styles.settingsGroupCard, ...cardSurfaceStyle]}>
+                <SettingItem
+                  text="Dark Mode"
+                  type="toggle"
+                  icon={isDarkMode ? Moon : Sun}
+                  tone="lilac"
+                  value={isDarkMode}
+                  onValueChange={(_enabled, origin) => toggleTheme(origin)}
+                />
+                {isModern && (
+                  <>
+                    <View
+                      style={[
+                        styles.settingDivider,
+                        {backgroundColor: colors.divider},
+                      ]}
+                    />
+                    <View
+                      style={styles.themePickerBlock}
+                      testID="modern-theme-selector"
+                    >
+                      <View style={styles.themePickerHeader}>
+                        <View style={styles.themePickerHeaderCopy}>
+                          <Text
+                            style={[
+                              styles.interfaceTitle,
+                              {color: colors.textPrimary},
+                            ]}
+                          >
+                            Color Theme
+                          </Text>
+                          <Text
+                            style={[
+                              styles.themePickerSubtitle,
+                              {color: colors.textSecondary},
+                            ]}
+                          >
+                            Pick the colors for the whole app
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.themeActiveBadge,
+                            {backgroundColor: modernPalette.softViolet},
+                          ]}
+                          testID="modern-theme-active-badge"
+                        >
+                          <Text
+                            style={[
+                              styles.themeActiveBadgeText,
+                              {color: modernPalette.accent},
+                            ]}
+                          >
+                            {modernThemeMeta.label}
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        style={styles.themeGrid}
+                        accessibilityRole="radiogroup"
+                        accessibilityLabel="Color theme"
+                      >
+                        {MODERN_THEMES.map(theme => {
+                          const active = modernTheme === theme.id;
+                          const preview = isDarkMode
+                            ? theme.previewDark
+                            : theme.previewLight;
+                          return (
+                            <TouchableOpacity
+                              key={theme.id}
+                              testID={`modern-theme-${theme.id}`}
+                              accessibilityRole="radio"
+                              accessibilityState={{
+                                checked: active,
+                                selected: active,
+                              }}
+                              accessibilityLabel={`${theme.label} theme — ${theme.subtitle}`}
+                              activeOpacity={0.8}
+                              onPress={() => setModernTheme(theme.id)}
+                              style={[
+                                styles.themeTile,
+                                {
+                                  backgroundColor: active
+                                    ? modernPalette.softViolet
+                                    : modernPalette.surface,
+                                  borderColor: active
+                                    ? modernPalette.accent
+                                    : modernPalette.border,
+                                },
+                              ]}
+                            >
+                              <View style={styles.themeSwatchCluster}>
+                                <View
+                                  style={[
+                                    styles.themeSwatchPrimary,
+                                    {
+                                      backgroundColor: preview[0],
+                                      borderColor: modernPalette.card,
+                                    },
+                                  ]}
+                                />
+                                <View
+                                  style={[
+                                    styles.themeSwatchSecondary,
+                                    {
+                                      backgroundColor: preview[1],
+                                      borderColor: modernPalette.card,
+                                    },
+                                  ]}
+                                />
+                              </View>
+                              <View style={styles.themeTileTextCol}>
+                                <Text
+                                  style={[
+                                    styles.themeTileLabel,
+                                    {
+                                      color: active
+                                        ? modernPalette.accent
+                                        : colors.textPrimary,
+                                    },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {theme.label}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.themeTileSubtitle,
+                                    {color: colors.textSecondary},
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {theme.subtitle}
+                                </Text>
+                              </View>
+                              {active && (
+                                <View
+                                  style={[
+                                    styles.themeTileCheck,
+                                    {backgroundColor: modernPalette.accent},
+                                  ]}
+                                >
+                                  <Check
+                                    size={10}
+                                    color="#FFFFFF"
+                                    strokeWidth={3}
+                                  />
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.settingDivider,
+                        {backgroundColor: colors.divider},
+                      ]}
+                    />
+                    <View
+                      style={styles.themePickerBlock}
+                      testID="modern-ai-button-selector"
+                    >
+                      <View style={styles.themePickerHeader}>
+                        <View style={styles.themePickerHeaderCopy}>
+                          <Text
+                            style={[
+                              styles.interfaceTitle,
+                              {color: colors.textPrimary},
+                            ]}
+                          >
+                            AI Button Design
+                          </Text>
+                          <Text
+                            style={[
+                              styles.themePickerSubtitle,
+                              {color: colors.textSecondary},
+                            ]}
+                          >
+                            The look of the AI button in the tab bar
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.themeActiveBadge,
+                            {backgroundColor: modernPalette.softViolet},
+                          ]}
+                          testID="modern-ai-button-active-badge"
+                        >
+                          <Text
+                            style={[
+                              styles.themeActiveBadgeText,
+                              {color: modernPalette.accent},
+                            ]}
+                          >
+                            {modernAiButtonDesignMeta.label}
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        style={styles.themeGrid}
+                        accessibilityRole="radiogroup"
+                        accessibilityLabel="AI button design"
+                      >
+                        {MODERN_AI_BUTTON_DESIGNS.map(design => {
+                          const active = modernAiButtonDesign === design.id;
+                          return (
+                            <TouchableOpacity
+                              key={design.id}
+                              testID={`modern-ai-button-${design.id}`}
+                              accessibilityRole="radio"
+                              accessibilityState={{
+                                checked: active,
+                                selected: active,
+                              }}
+                              accessibilityLabel={`${design.label} AI button — ${design.subtitle}`}
+                              activeOpacity={0.8}
+                              onPress={() => setModernAiButtonDesign(design.id)}
+                              style={[
+                                styles.themeTile,
+                                {
+                                  backgroundColor: active
+                                    ? modernPalette.softViolet
+                                    : modernPalette.surface,
+                                  borderColor: active
+                                    ? modernPalette.accent
+                                    : modernPalette.border,
+                                },
+                              ]}
+                            >
+                              <LafinaSynthOrb
+                                design={design.id}
+                                size={28}
+                                isActive={active}
+                                isDarkMode={isDarkMode}
+                                modernTheme={modernTheme}
+                                modernPalette={modernPalette}
+                                modernThemeExtras={modernThemeExtras}
+                                testID={`modern-ai-button-preview-${design.id}`}
+                              />
+                              <View style={styles.themeTileTextCol}>
+                                <Text
+                                  style={[
+                                    styles.themeTileLabel,
+                                    {
+                                      color: active
+                                        ? modernPalette.accent
+                                        : colors.textPrimary,
+                                    },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {design.label}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.themeTileSubtitle,
+                                    {color: colors.textSecondary},
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {design.subtitle}
+                                </Text>
+                              </View>
+                              {active && (
+                                <View
+                                  style={[
+                                    styles.themeTileCheck,
+                                    {backgroundColor: modernPalette.accent},
+                                  ]}
+                                >
+                                  <Check
+                                    size={10}
+                                    color="#FFFFFF"
+                                    strokeWidth={3}
+                                  />
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </>
+                )}
+              </View>
             </View>
 
             {isDevMode && (
               <>
-                <Text
-                  style={[
-                    styles.settingsGroupHeader,
-                    themed.settingsGroupHeader,
-                    isModern && [
-                      styles.modernSettingsGroupHeader,
-                      {color: modernPalette.muted},
-                    ],
-                  ]}
-                >
-                  Developer
-                </Text>
+                {renderGroupHeader('Developer', 'Testing tools')}
                 <View
                   style={[
                     styles.settingsGroupCard,
@@ -2759,53 +2842,112 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
               </>
             )}
 
-            <Text
-              style={[
-                styles.settingsGroupHeader,
-                themed.settingsGroupHeader,
-                isModern && [
-                  styles.modernSettingsGroupHeader,
-                  {color: modernPalette.muted},
-                ],
-              ]}
-            >
-              About
-            </Text>
+            <View onLayout={rememberSection('about')}>
+              {renderGroupHeader('About & help')}
+              <View
+                style={[
+                  styles.settingsGroupCard,
+                  cardSurfaceStyle,
+                  themed.settingsGroupCard,
+                ]}
+              >
+                <SettingItem
+                  text="App version"
+                  type="value"
+                  icon={Info}
+                  tone="blue"
+                  valueText={APP_VERSION}
+                  onPress={handleVersionTap}
+                />
+                {rowDivider}
+                <AppUpdateItem />
+                {rowDivider}
+                {onReplayTour && (
+                  <>
+                    <SettingItem
+                      text="Show the walkthrough again"
+                      subtitle="A quick tour of every tab"
+                      icon={Compass}
+                      tone="violet"
+                      onPress={onReplayTour}
+                    />
+                    {rowDivider}
+                  </>
+                )}
+                <SettingItem
+                  text="Privacy Policy"
+                  icon={Lock}
+                  tone="lilac"
+                  onPress={() => setPrivacyModalVisible(true)}
+                />
+              </View>
+            </View>
+
+            {renderGroupHeader('Your data')}
             <View
               style={[
                 styles.settingsGroupCard,
                 cardSurfaceStyle,
                 themed.settingsGroupCard,
+                styles.clearDataGroupCard,
                 isModern && styles.modernLastGroupCard,
               ]}
             >
-              <SettingItem
-                text="App Version"
-                type="value"
-                valueText={`${APP_VERSION} (Mobile)`}
-                onPress={handleVersionTap}
-              />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              <AppUpdateItem />
-              <View style={[styles.settingDivider, themed.settingDivider]} />
-              {onReplayTour && (
-                <>
-                  <SettingItem
-                    text="Show the walkthrough again"
-                    type="link"
-                    valueText="All features"
-                    onPress={onReplayTour}
+              <TouchableOpacity
+                testID="profile-clear-all-data-btn"
+                onPress={handleClearData}
+                activeOpacity={0.78}
+                accessibilityRole="button"
+                accessibilityLabel="Clear All Data"
+                style={styles.clearDataActionRow}
+              >
+                <View
+                  style={[
+                    styles.clearDataIconBadge,
+                    {
+                      backgroundColor: isModern
+                        ? modernPalette.dangerSoft
+                        : colors.bannerBg,
+                      borderColor: isModern
+                        ? `${modernPalette.danger}2E`
+                        : `${colors.error}2E`,
+                      borderRadius: isModern ? 12 : 10,
+                    },
+                  ]}
+                >
+                  <Trash2
+                    size={17}
+                    color={isModern ? modernPalette.danger : colors.error}
                   />
-                  <View
-                    style={[styles.settingDivider, themed.settingDivider]}
-                  />
-                </>
-              )}
-              <SettingItem
-                text="Privacy Policy"
-                type="link"
-                onPress={() => setPrivacyModalVisible(true)}
-              />
+                </View>
+                <View style={styles.clearDataTextCol}>
+                  <Text
+                    style={[
+                      styles.clearDataTitle,
+                      {color: isModern ? modernPalette.danger : colors.error},
+                    ]}
+                  >
+                    Clear All Data
+                  </Text>
+                  <Text
+                    style={[
+                      styles.clearDataSubtitle,
+                      {
+                        color: isModern
+                          ? modernPalette.muted
+                          : colors.textSecondary,
+                      },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    Delete notes, tasks, schedule, chats &amp; event defaults
+                  </Text>
+                </View>
+                <ChevronRight
+                  size={17}
+                  color={isModern ? modernPalette.danger : colors.error}
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -3797,6 +3939,47 @@ const styles = StyleSheet.create({
   },
   settingDivider: {
     height: 1,
+  },
+  settingDividerInset: {
+    marginLeft: 46,
+  },
+  groupHeaderBlock: {
+    paddingHorizontal: 4,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  groupHeaderTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+  },
+  groupHeaderHint: {
+    fontSize: 12.5,
+    fontFamily: Fonts.body,
+    marginTop: 2,
+  },
+  sectionJumpScroll: {
+    marginHorizontal: -4,
+    marginBottom: 10,
+  },
+  sectionJumpRow: {
+    gap: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  sectionJumpChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  sectionJumpText: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
   },
   guestPromptCard: {
     borderRadius: Layout.borderRadiusCard,

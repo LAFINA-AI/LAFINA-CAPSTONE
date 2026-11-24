@@ -9,7 +9,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {Check, Pencil, Pin, Search, X} from 'lucide-react-native';
+import {
+  BellRing,
+  Brain,
+  Check,
+  GraduationCap,
+  Pencil,
+  Pin,
+  Plus,
+  Search,
+  ShieldCheck,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 import {ToolSheet} from '../tools';
 import {useTheme} from '../../contexts/ThemeContext';
 import {Fonts, FontSize, Layout, Spacing} from '../../theme';
@@ -47,18 +59,18 @@ interface ChatMemorySettingsProps {
 }
 
 const CATEGORY_LABELS: Record<MemoryCategory, string> = {
-  identity: 'Identity',
-  academic: 'Academic',
-  study: 'Study',
+  identity: 'About you',
+  academic: 'School',
+  study: 'Studying',
   goal: 'Goal',
   routine: 'Routine',
-  general: 'General',
+  general: 'Other',
 };
 
 const TIER_LABELS: Record<ChatMemory['tier'], string> = {
-  core: 'Core',
+  core: 'Important',
   preference: 'Preference',
-  episodic: 'Learned',
+  episodic: 'From chats',
 };
 
 /**
@@ -74,7 +86,7 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
   onChanged,
   onUpdateCor,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const [enabled, setEnabled] = useState(() =>
     chatMemoryStore.isEnabled(userId),
   );
@@ -101,7 +113,7 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
         profile.academicTerm ||
         profile.academicYearTerm ||
         profile.program ||
-        'COR confirmed'
+        'COR added'
       );
     } catch {
       return null;
@@ -270,25 +282,226 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
   const showGrowthCard =
     stats.total > 0 || insights.totalSamples > 0 || Boolean(academicTerm);
 
-  return (
-    <ToolSheet visible={visible} title="Memory" onClose={onClose}>
-      <Text style={[styles.note, {color: colors.textSecondary}]}>
-        In Online Mode, LAFINA remembers useful things you tell it, like your
-        program, routine or how you like answers, and uses them in later chats.
-        You see each change under the reply and can undo it. Pinned & core facts
-        stay protected as new memories are learned. Passwords, codes and long
-        numbers are never saved.
-        {isGuest ? ' Sign in to use online chat and memory.' : ''}
-      </Text>
+  const CATEGORY_TONES: Record<MemoryCategory, string> = isModern
+    ? {
+        identity: modernPalette.accent,
+        academic: modernPalette.blueInk,
+        study: modernPalette.mintInk,
+        goal: modernPalette.peachInk,
+        routine: modernPalette.lilacInk,
+        general: modernPalette.muted,
+      }
+    : {
+        identity: colors.primary,
+        academic: colors.blue,
+        study: colors.success,
+        goal: colors.warning,
+        routine: colors.primary,
+        general: colors.textSecondary,
+      };
+  const accent = isModern ? modernPalette.accent : colors.primary;
+  const softAccent = isModern
+    ? modernPalette.softViolet
+    : mixColors(colors.primary, colors.cardBg, 0.1);
+  const cardBg = isModern ? modernPalette.card : colors.cardBg;
+  const surfaceBg = isModern ? modernPalette.surface : colors.inputBg;
+  const borderInk = isModern ? modernPalette.border : colors.border;
+  const ink = isModern ? modernPalette.text : colors.textPrimary;
+  const muted = isModern ? modernPalette.muted : colors.textSecondary;
 
-      <View style={styles.switchRow}>
-        <Text style={[styles.label, {color: colors.textPrimary}]}>
-          Use memory in online chat
-        </Text>
+  const pinnedList = filteredMemories.filter(m => m.isPinned);
+  const otherList = filteredMemories.filter(m => !m.isPinned);
+  const learnedProgress =
+    insights.samplesRequired > 0
+      ? Math.min(1, insights.totalSamples / insights.samplesRequired)
+      : 0;
+
+  const renderMemory = (memory: ChatMemory) => {
+    const isEditing = editingId === memory.id;
+    const tone = CATEGORY_TONES[memory.category];
+    return (
+      <View
+        key={memory.id}
+        style={[
+          styles.memoryCard,
+          {
+            backgroundColor: cardBg,
+            borderColor: memory.isPinned ? accent : borderInk,
+          },
+        ]}
+        testID={`memory-item-${memory.id}`}
+      >
+        <View style={styles.memoryTopRow}>
+          <View
+            style={[
+              styles.categoryChip,
+              {backgroundColor: mixColors(tone, cardBg, 0.14)},
+            ]}
+          >
+            <Text style={[styles.categoryChipText, {color: tone}]}>
+              {CATEGORY_LABELS[memory.category]}
+            </Text>
+          </View>
+          {memory.isPinned ? (
+            <View style={styles.pinnedTag}>
+              <Pin size={11} color={accent} />
+              <Text style={[styles.pinnedTagText, {color: accent}]}>
+                Pinned
+              </Text>
+            </View>
+          ) : null}
+          {!isEditing ? (
+            <View style={styles.rowActions}>
+              <TouchableOpacity
+                onPress={() => togglePin(memory)}
+                hitSlop={{top: 8, bottom: 8, left: 6, right: 6}}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  memory.isPinned
+                    ? `Unpin memory: ${memory.text}`
+                    : `Pin memory: ${memory.text}`
+                }
+                testID={`memory-pin-${memory.id}`}
+                style={[styles.iconButton, {backgroundColor: surfaceBg}]}
+              >
+                <Pin size={14} color={memory.isPinned ? accent : muted} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => startEdit(memory)}
+                hitSlop={{top: 8, bottom: 8, left: 6, right: 6}}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit memory: ${memory.text}`}
+                testID={`memory-edit-${memory.id}`}
+                style={[styles.iconButton, {backgroundColor: surfaceBg}]}
+              >
+                <Pencil size={14} color={muted} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => removeMemory(memory)}
+                hitSlop={{top: 8, bottom: 8, left: 6, right: 6}}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete memory: ${memory.text}`}
+                testID={`memory-delete-${memory.id}`}
+                style={[styles.iconButton, {backgroundColor: surfaceBg}]}
+              >
+                <Trash2 size={14} color={colors.error} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+
+        {isEditing ? (
+          <View style={styles.editRow}>
+            <TextInput
+              value={editingDraft}
+              onChangeText={setEditingDraft}
+              maxLength={MAX_MEMORY_TEXT}
+              multiline
+              style={[
+                styles.editInput,
+                {color: ink, borderColor: accent, backgroundColor: surfaceBg},
+              ]}
+              testID={`memory-edit-input-${memory.id}`}
+              onSubmitEditing={() => saveEdit(memory)}
+            />
+            <View style={styles.editButtons}>
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingId(null);
+                  setEditingDraft('');
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel editing"
+                style={[styles.smallButton, {borderColor: borderInk}]}
+              >
+                <Text style={[styles.smallButtonText, {color: muted}]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => saveEdit(memory)}
+                accessibilityRole="button"
+                accessibilityLabel={`Save memory: ${memory.text}`}
+                testID={`memory-edit-save-${memory.id}`}
+                style={[
+                  styles.smallButton,
+                  {backgroundColor: accent, borderColor: accent},
+                ]}
+              >
+                <Check size={14} color="#FFFFFF" />
+                <Text style={[styles.smallButtonText, {color: '#FFFFFF'}]}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <Text style={[styles.memoryText, {color: ink}]}>{memory.text}</Text>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <ToolSheet
+      visible={visible}
+      title="What LAFINA remembers"
+      onClose={onClose}
+    >
+      <View
+        style={[
+          styles.introCard,
+          {backgroundColor: softAccent, borderColor: borderInk},
+        ]}
+      >
+        <View style={[styles.introIcon, {backgroundColor: cardBg}]}>
+          <Brain size={20} color={accent} />
+        </View>
+        <View style={styles.flex}>
+          <Text style={[styles.introTitle, {color: ink}]}>
+            LAFINA remembers helpful things you share
+          </Text>
+          <Text style={[styles.introBody, {color: muted}]}>
+            Like your course, your routine or how you like answers.
+          </Text>
+          <View style={styles.introPoint}>
+            <ShieldCheck size={13} color={accent} />
+            <Text style={[styles.introPointText, {color: muted}]}>
+              Passwords and codes are never saved.
+            </Text>
+          </View>
+          <View style={styles.introPoint}>
+            <Pencil size={13} color={accent} />
+            <Text style={[styles.introPointText, {color: muted}]}>
+              You can edit or delete anything below.
+            </Text>
+          </View>
+          {isGuest ? (
+            <Text style={[styles.introGuest, {color: accent}]}>
+              Sign in to use this in online chat.
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.switchCard,
+          {backgroundColor: cardBg, borderColor: borderInk},
+        ]}
+      >
+        <View style={styles.flex}>
+          <Text style={[styles.label, {color: ink}]}>
+            Remember things from chats
+          </Text>
+          <Text style={[styles.switchHint, {color: muted}]}>
+            Works when you chat online
+          </Text>
+        </View>
         <Switch
           value={enabled}
           onValueChange={toggle}
-          accessibilityLabel="Use memory in online chat"
+          accessibilityLabel="Remember things from chats"
           testID="memory-enabled-switch"
           trackColor={{false: colors.switchTrackOff, true: colors.red}}
           thumbColor={colors.switchThumb}
@@ -300,46 +513,102 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
           testID="memory-growth-summary"
           style={[
             styles.growthCard,
-            {
-              borderColor: colors.border,
-              backgroundColor: mixColors(colors.blue, colors.cardBg, 0.06),
-            },
+            {borderColor: borderInk, backgroundColor: cardBg},
           ]}
         >
-          <Text style={[styles.growthTitle, {color: colors.textPrimary}]}>
-            How LAFINA Has Grown With You
+          <Text style={[styles.sectionTitle, {color: ink}]}>
+            What LAFINA has learned
           </Text>
-          <Text style={[styles.growthLine, {color: colors.textSecondary}]}>
-            {`${stats.total} active ${
-              stats.total === 1 ? 'memory' : 'memories'
-            } (${stats.pinned} pinned · ${stats.byTier.core} core · ${
-              stats.byTier.preference
-            } preferences · ${stats.byTier.episodic} learned)`}
-          </Text>
-          <Text style={[styles.growthLine, {color: colors.textSecondary}]}>
-            {insights.mlReady
-              ? `Adaptive timing active: ${
-                  insights.totalSamples
-                } reminder signals · ${Math.round(
-                  insights.recentAckRate * 100,
-                )}% recent response rate · prefers ${
-                  insights.preferredChannel === 'call' ? 'Call' : 'Notification'
-                }${
-                  insights.bestResponseWindow
-                    ? ` · sharpest in ${insights.bestResponseWindow}`
-                    : ''
-                }`
-              : `Reminder rhythm: ${insights.totalSamples}/${insights.samplesRequired} responses recorded before adaptive scheduling activates`}
-          </Text>
+          <View style={styles.statRow}>
+            <StatTile
+              value={stats.total}
+              label="Saved"
+              ink={ink}
+              muted={muted}
+              bg={surfaceBg}
+            />
+            <StatTile
+              value={stats.pinned}
+              label="Pinned"
+              ink={ink}
+              muted={muted}
+              bg={surfaceBg}
+            />
+            <StatTile
+              value={stats.byTier.episodic}
+              label="From chats"
+              ink={ink}
+              muted={muted}
+              bg={surfaceBg}
+            />
+          </View>
+
+          <View style={styles.habitBlock}>
+            <View style={styles.habitHeader}>
+              <BellRing size={14} color={accent} />
+              <Text style={[styles.habitTitle, {color: ink}]}>
+                Your reminder habits
+              </Text>
+            </View>
+            {insights.mlReady ? (
+              <>
+                <Text style={[styles.habitLine, {color: muted}]}>
+                  You answer{' '}
+                  <Text style={[styles.bold, {color: ink}]}>
+                    {Math.round(insights.recentAckRate * 100)}%
+                  </Text>{' '}
+                  of recent reminders.
+                </Text>
+                <Text style={[styles.habitLine, {color: muted}]}>
+                  You respond best to{' '}
+                  <Text style={[styles.bold, {color: ink}]}>
+                    {insights.preferredChannel === 'call'
+                      ? 'calls'
+                      : 'notifications'}
+                  </Text>
+                  {insights.bestResponseWindow ? (
+                    <>
+                      , mostly in the{' '}
+                      <Text style={[styles.bold, {color: ink}]}>
+                        {insights.bestResponseWindow}
+                      </Text>
+                    </>
+                  ) : null}
+                  .
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.habitLine, {color: muted}]}>
+                  Still learning:{' '}
+                  <Text style={[styles.bold, {color: ink}]}>
+                    {insights.totalSamples} of {insights.samplesRequired}
+                  </Text>{' '}
+                  reminders answered so far.
+                </Text>
+                <View
+                  style={[styles.progressTrack, {backgroundColor: surfaceBg}]}
+                >
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        backgroundColor: accent,
+                        width: `${Math.round(learnedProgress * 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </>
+            )}
+          </View>
+
           {academicTerm ? (
-            <View style={styles.termRow}>
-              <Text
-                style={[
-                  styles.growthLine,
-                  {color: colors.textPrimary, flex: 1},
-                ]}
-              >
-                Academic context: {academicTerm}
+            <View style={[styles.termRow, {borderTopColor: borderInk}]}>
+              <GraduationCap size={14} color={accent} />
+              <Text style={[styles.habitLine, styles.flex, {color: muted}]}>
+                Using your COR:{' '}
+                <Text style={[styles.bold, {color: ink}]}>{academicTerm}</Text>
               </Text>
               {onUpdateCor ? (
                 <TouchableOpacity
@@ -347,7 +616,7 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
                   testID="memory-update-cor"
                   accessibilityRole="button"
                 >
-                  <Text style={[styles.updateCorLink, {color: colors.blue}]}>
+                  <Text style={[styles.updateCorLink, {color: accent}]}>
                     Update COR
                   </Text>
                 </TouchableOpacity>
@@ -357,14 +626,20 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
         </View>
       ) : null}
 
-      <View style={[styles.addRow, {borderColor: colors.border}]}>
+      <Text style={[styles.sectionTitle, {color: ink}]}>Add something</Text>
+      <View
+        style={[
+          styles.addRow,
+          {borderColor: borderInk, backgroundColor: cardBg},
+        ]}
+      >
         <TextInput
           value={draft}
           onChangeText={setDraft}
-          placeholder="Add something LAFINA should remember"
-          placeholderTextColor={colors.textSecondary}
+          placeholder="e.g. I prefer short answers"
+          placeholderTextColor={muted}
           maxLength={MAX_MEMORY_TEXT}
-          style={[styles.input, {color: colors.textPrimary}]}
+          style={[styles.input, {color: ink}]}
           accessibilityLabel="New memory"
           testID="memory-add-input"
           onSubmitEditing={addMemory}
@@ -375,41 +650,14 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Add memory"
           testID="memory-add-button"
-          style={styles.textButton}
+          style={[
+            styles.addButton,
+            {backgroundColor: draft.trim() ? accent : surfaceBg},
+          ]}
         >
-          <Text
-            style={[
-              styles.textButtonLabel,
-              {color: draft.trim() ? colors.primary : colors.textSecondary},
-            ]}
-          >
-            Add
-          </Text>
+          <Plus size={18} color={draft.trim() ? '#FFFFFF' : muted} />
         </TouchableOpacity>
       </View>
-
-      {memories.length >= 4 || searchQuery.length > 0 ? (
-        <View style={[styles.searchRow, {borderColor: colors.border}]}>
-          <Search size={14} color={colors.textSecondary} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Filter memories or categories"
-            placeholderTextColor={colors.textSecondary}
-            style={[styles.searchInput, {color: colors.textPrimary}]}
-            testID="memory-search-input"
-          />
-          {searchQuery ? (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              accessibilityRole="button"
-              accessibilityLabel="Clear filter"
-            >
-              <X size={14} color={colors.textSecondary} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : null}
 
       {notice ? (
         <Text
@@ -420,147 +668,67 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
         </Text>
       ) : null}
 
+      <View style={styles.listHeader}>
+        <Text style={[styles.sectionTitle, styles.flex, {color: ink}]}>
+          Saved memories
+        </Text>
+        {memories.length > 0 ? (
+          <Text style={[styles.countText, {color: muted}]}>
+            {memories.length}
+          </Text>
+        ) : null}
+      </View>
+
+      {memories.length >= 4 || searchQuery.length > 0 ? (
+        <View
+          style={[
+            styles.searchRow,
+            {borderColor: borderInk, backgroundColor: surfaceBg},
+          ]}
+        >
+          <Search size={15} color={muted} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search memories"
+            placeholderTextColor={muted}
+            style={[styles.searchInput, {color: ink}]}
+            testID="memory-search-input"
+          />
+          {searchQuery ? (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <X size={15} color={muted} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
       {memories.length === 0 ? (
-        <Text
-          style={[styles.empty, {color: colors.textSecondary}]}
+        <View
+          style={[styles.emptyCard, {borderColor: borderInk}]}
           testID="memory-empty"
         >
-          Nothing remembered yet.
-        </Text>
+          <Brain size={22} color={muted} />
+          <Text style={[styles.emptyTitle, {color: ink}]}>
+            Nothing remembered yet
+          </Text>
+          <Text style={[styles.empty, {color: muted}]}>
+            Add something above, or just chat with LAFINA.
+          </Text>
+        </View>
       ) : filteredMemories.length === 0 ? (
-        <Text style={[styles.empty, {color: colors.textSecondary}]}>
-          No memories match "{searchQuery}".
+        <Text style={[styles.empty, {color: muted}]}>
+          Nothing matches "{searchQuery}".
         </Text>
       ) : (
-        filteredMemories.map(memory => {
-          const isEditing = editingId === memory.id;
-          return (
-            <View
-              key={memory.id}
-              style={[styles.memoryRow, {borderColor: colors.border}]}
-              testID={`memory-item-${memory.id}`}
-            >
-              <View style={styles.memoryMain}>
-                <View style={styles.badgeRow}>
-                  <View
-                    style={[
-                      styles.metaBadge,
-                      {
-                        backgroundColor: memory.isPinned
-                          ? mixColors(colors.blue, colors.cardBg, 0.16)
-                          : mixColors(
-                              colors.textSecondary,
-                              colors.cardBg,
-                              0.12,
-                            ),
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.metaBadgeText,
-                        {
-                          color: memory.isPinned
-                            ? colors.blue
-                            : colors.textSecondary,
-                        },
-                      ]}
-                    >
-                      {memory.isPinned ? 'Pinned' : TIER_LABELS[memory.tier]} ·{' '}
-                      {CATEGORY_LABELS[memory.category]}
-                    </Text>
-                  </View>
-                </View>
-
-                {isEditing ? (
-                  <View style={styles.editRow}>
-                    <TextInput
-                      value={editingDraft}
-                      onChangeText={setEditingDraft}
-                      maxLength={MAX_MEMORY_TEXT}
-                      style={[
-                        styles.editInput,
-                        {
-                          color: colors.textPrimary,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                      testID={`memory-edit-input-${memory.id}`}
-                      onSubmitEditing={() => saveEdit(memory)}
-                    />
-                    <TouchableOpacity
-                      onPress={() => saveEdit(memory)}
-                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Save memory: ${memory.text}`}
-                      testID={`memory-edit-save-${memory.id}`}
-                    >
-                      <Check size={16} color={colors.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setEditingId(null);
-                        setEditingDraft('');
-                      }}
-                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                      accessibilityRole="button"
-                      accessibilityLabel="Cancel editing"
-                    >
-                      <X size={16} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <Text
-                    style={[styles.memoryText, {color: colors.textPrimary}]}
-                  >
-                    {memory.text}
-                  </Text>
-                )}
-              </View>
-
-              {!isEditing ? (
-                <View style={styles.rowActions}>
-                  <TouchableOpacity
-                    onPress={() => togglePin(memory)}
-                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      memory.isPinned
-                        ? `Unpin memory: ${memory.text}`
-                        : `Pin memory: ${memory.text}`
-                    }
-                    testID={`memory-pin-${memory.id}`}
-                  >
-                    <Pin
-                      size={15}
-                      color={
-                        memory.isPinned ? colors.blue : colors.textSecondary
-                      }
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => startEdit(memory)}
-                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit memory: ${memory.text}`}
-                    testID={`memory-edit-${memory.id}`}
-                  >
-                    <Pencil size={15} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => removeMemory(memory)}
-                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Delete memory: ${memory.text}`}
-                    testID={`memory-delete-${memory.id}`}
-                  >
-                    <X size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          );
-        })
+        <View style={styles.memoryList}>
+          {pinnedList.map(renderMemory)}
+          {otherList.map(renderMemory)}
+        </View>
       )}
 
       {memories.length > 0 ? (
@@ -569,9 +737,10 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Forget everything"
           testID="memory-forget-all"
-          style={styles.forgetAll}
+          style={[styles.forgetAll, {borderColor: colors.error}]}
         >
-          <Text style={[styles.textButtonLabel, {color: colors.error}]}>
+          <Trash2 size={15} color={colors.error} />
+          <Text style={[styles.forgetAllText, {color: colors.error}]}>
             Forget everything
           </Text>
         </TouchableOpacity>
@@ -580,47 +749,155 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
   );
 };
 
+const StatTile: React.FC<{
+  value: number;
+  label: string;
+  ink: string;
+  muted: string;
+  bg: string;
+}> = ({value, label, ink, muted, bg}) => (
+  <View style={[styles.statTile, {backgroundColor: bg}]}>
+    <Text style={[styles.statValue, {color: ink}]}>{value}</Text>
+    <Text style={[styles.statLabel, {color: muted}]}>{label}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  note: {
+  flex: {flex: 1},
+  bold: {fontWeight: '700'},
+  introCard: {
+    flexDirection: 'row',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: Spacing.md,
+  },
+  introIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  introTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.body,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  introBody: {
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
     lineHeight: 18,
-    marginBottom: Spacing.md,
+    marginBottom: 8,
   },
-  switchRow: {
+  introPoint: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
+    marginTop: 3,
+  },
+  introPointText: {
+    fontFamily: Fonts.body,
+    fontSize: 12.5,
+    flex: 1,
+  },
+  introGuest: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  switchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     marginBottom: Spacing.md,
   },
   label: {
     fontFamily: Fonts.body,
     fontSize: FontSize.body,
-    flex: 1,
+    fontWeight: '600',
   },
-  growthCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: Spacing.md,
-    gap: 4,
+  switchHint: {
+    fontFamily: Fonts.body,
+    fontSize: 12.5,
+    marginTop: 2,
   },
-  growthTitle: {
+  sectionTitle: {
     fontFamily: Fonts.heading,
     fontSize: FontSize.body,
     fontWeight: '700',
+    marginBottom: 8,
   },
-  growthLine: {
+  growthCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: Spacing.lg,
+  },
+  statRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statTile: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontFamily: Fonts.heading,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  habitBlock: {
+    marginTop: 14,
+    gap: 4,
+  },
+  habitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  habitTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+    fontWeight: '700',
+  },
+  habitLine: {
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
-    lineHeight: 17,
+    lineHeight: 19,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 6,
+  },
+  progressFill: {
+    height: 6,
+    borderRadius: 3,
   },
   termRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 8,
-    marginTop: 2,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   updateCorLink: {
     fontFamily: Fonts.heading,
@@ -631,24 +908,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 10,
-    paddingLeft: 10,
-    marginBottom: Spacing.sm,
+    borderRadius: 14,
+    paddingLeft: 12,
+    paddingRight: 6,
+    paddingVertical: 4,
+    marginBottom: Spacing.md,
   },
-  searchRow: {
-    flexDirection: 'row',
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    gap: 6,
-    marginBottom: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: Fonts.body,
-    fontSize: FontSize.small,
-    paddingVertical: 6,
+    justifyContent: 'center',
   },
   input: {
     flex: 1,
@@ -656,77 +927,154 @@ const styles = StyleSheet.create({
     fontSize: FontSize.body,
     paddingVertical: 8,
   },
-  textButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  textButtonLabel: {
-    fontFamily: Fonts.heading,
-    fontSize: FontSize.body,
+  countText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    marginBottom: 8,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    gap: 8,
+    marginBottom: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    paddingVertical: 8,
   },
   notice: {
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
     marginBottom: Spacing.sm,
   },
+  emptyCard: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    gap: 4,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.body,
+    fontWeight: '700',
+    marginTop: 4,
+  },
   empty: {
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
     textAlign: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: 4,
   },
-  memoryRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  memoryList: {
+    gap: 10,
+  },
+  memoryCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
     gap: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 10,
   },
-  memoryMain: {
-    flex: 1,
-    gap: 4,
-  },
-  badgeRow: {
+  memoryTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  metaBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+  categoryChip: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     borderRadius: Layout.borderRadiusPill,
   },
-  metaBadgeText: {
+  categoryChipText: {
     fontFamily: Fonts.body,
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 11.5,
+    fontWeight: '700',
   },
-  memoryText: {
-    fontFamily: Fonts.body,
-    fontSize: FontSize.body,
-  },
-  editRow: {
+  pinnedTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
+    gap: 3,
   },
-  editInput: {
-    flex: 1,
+  pinnedTagText: {
     fontFamily: Fonts.body,
-    fontSize: FontSize.body,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   rowActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingTop: 4,
+    gap: 6,
+    marginLeft: 'auto',
+  },
+  iconButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memoryText: {
+    fontFamily: Fonts.body,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  editRow: {
+    gap: 8,
+  },
+  editInput: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.body,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minHeight: 44,
+  },
+  editButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  smallButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  smallButtonText: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+    fontWeight: '700',
   },
   forgetAll: {
+    flexDirection: 'row',
     alignSelf: 'center',
-    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  forgetAllText: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+    fontWeight: '700',
   },
 });

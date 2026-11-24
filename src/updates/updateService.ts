@@ -1,5 +1,9 @@
-import { APP_VERSION } from '../appVersion';
-import { getNativeUpdater, type NativeUpdater, type UpdaterInfo } from './nativeUpdater';
+import {APP_VERSION} from '../appVersion';
+import {
+  getNativeUpdater,
+  type NativeUpdater,
+  type UpdaterInfo,
+} from './nativeUpdater';
 import {
   latestAssetUrl,
   latestReleaseApiUrl,
@@ -77,27 +81,43 @@ const NATIVE_ERRORS: Record<string, UpdateError['code']> = {
 
 const fromNativeError = (error: unknown): UpdateError => {
   if (error instanceof UpdateError) return error;
-  const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
+  const {code, message} = (error ?? {}) as {code?: unknown; message?: unknown};
   const mapped = typeof code === 'string' ? NATIVE_ERRORS[code] : undefined;
-  if (mapped && typeof message === 'string' && message) return new UpdateError(mapped, message);
-  return new UpdateError('download_failed', 'The update could not be downloaded. Try again.');
+  if (mapped && typeof message === 'string' && message)
+    return new UpdateError(mapped, message);
+  return new UpdateError(
+    'download_failed',
+    'The update could not be downloaded. Try again.',
+  );
 };
 
 const messageOf = (error: unknown): string =>
-  error instanceof UpdateError ? error.message : 'Something went wrong while updating. Try again.';
+  error instanceof UpdateError
+    ? error.message
+    : 'Something went wrong while updating. Try again.';
 
-const fetchWithin = async (
+const fetchWithin = async <T>(
   fetchImpl: Fetch,
   url: string,
   init: RequestInit,
   timeoutMs: number,
-): Promise<Response> => {
+  consume: (response: Response) => Promise<T>,
+): Promise<T> => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let timer: ReturnType<typeof setTimeout>;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error('Request timed out.'));
+    }, timeoutMs);
+  });
   try {
-    return await fetchImpl(url, { ...init, signal: controller.signal });
+    return await Promise.race([
+      fetchImpl(url, {...init, signal: controller.signal}).then(consume),
+      deadline,
+    ]);
   } finally {
-    clearTimeout(timer);
+    clearTimeout(timer!);
   }
 };
 
@@ -108,15 +128,26 @@ const SIGNER_REASON =
   'Install the new version from the release page once; after that, updates install from inside the app.';
 
 /** Why this phone cannot install the release's APK in place, or null. */
-export const apkBlocker = (manifest: UpdateManifest, info: UpdaterInfo): string | null => {
+export const apkBlocker = (
+  manifest: UpdateManifest,
+  info: UpdaterInfo,
+): string | null => {
   const apk = manifest.apk;
   if (!apk) return null;
   const abis = info.supportedAbis ?? [];
-  if (apk.abis && abis.length > 0 && !apk.abis.some((abi) => abis.includes(abi))) {
+  if (
+    apk.abis &&
+    abis.length > 0 &&
+    !apk.abis.some(abi => abis.includes(abi))
+  ) {
     return ABI_REASON;
   }
   const signers = info.signerSha256 ?? [];
-  if (apk.signerSha256 && signers.length > 0 && !signers.includes(apk.signerSha256)) {
+  if (
+    apk.signerSha256 &&
+    signers.length > 0 &&
+    !signers.includes(apk.signerSha256)
+  ) {
     return SIGNER_REASON;
   }
   return null;
@@ -134,7 +165,8 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
     if (!native.updatesEnabled) {
       return `In-app updates work only in the release app. This is a ${native.buildType} build.`;
     }
-    if (!isReleaseKey(config.publicKey)) return 'Updates are not set up for this build.';
+    if (!isReleaseKey(config.publicKey))
+      return 'Updates are not set up for this build.';
     return null;
   })();
 
@@ -158,24 +190,24 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   const listeners = new Set<(next: UpdateState) => void>();
 
   const setState = (patch: Partial<UpdateState>): UpdateState => {
-    state = { ...state, ...patch };
-    listeners.forEach((listener) => listener(state));
+    state = {...state, ...patch};
+    listeners.forEach(listener => listener(state));
     return state;
   };
 
   const getState = (): UpdateState => state;
 
-  native?.onInstallStatus?.(({ status, message }) => {
+  native?.onInstallStatus?.(({status, message}) => {
     if (state.kind !== 'apk') return;
     if (status === 'confirming') {
-      setState({ installing: true, message: null });
+      setState({installing: true, message: null});
     } else if (status === 'failure') {
       setState({
         installing: false,
         message: message ?? 'The update could not be installed. Try again.',
       });
     } else if (status === 'cancelled') {
-      setState({ installing: false, message: null });
+      setState({installing: false, message: null});
     }
   });
 
@@ -187,43 +219,52 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   };
 
   const fetchSignedManifest = async (): Promise<SignedManifest | null> => {
-    let response: Response;
     try {
-      response = await fetchWithin(
+      return await fetchWithin(
         fetchImpl,
         latestAssetUrl(config, config.manifestAsset),
-        { method: 'GET', headers: { Accept: 'application/json' } },
+        {method: 'GET', headers: {Accept: 'application/json'}},
         MANIFEST_TIMEOUT_MS,
+        async response => {
+          if (response.status === 404) return null;
+          if (!response.ok)
+            throw new UpdateError(
+              'server_error',
+              `GitHub answered ${response.status}. Try again later.`,
+            );
+          return parseSignedManifest(await response.text());
+        },
       );
-    } catch {
+    } catch (error) {
+      if (error instanceof UpdateError) throw error;
       throw new UpdateError(
         'network_unavailable',
         'Could not reach GitHub. Check the connection and try again.',
       );
     }
-    // No release yet, or the latest release has no in-app update in it.
-    if (response.status === 404) return null;
-    if (!response.ok) {
-      throw new UpdateError('server_error', `GitHub answered ${response.status}. Try again later.`);
-    }
-    return parseSignedManifest(await response.text());
   };
 
   /** Notes for a manifest that does not carry its own (older release tooling). */
   const fetchNotes = async (file: string): Promise<string | null> => {
     try {
-      const response = await fetchWithin(
+      return await fetchWithin(
         fetchImpl,
         latestReleaseApiUrl(config),
-        { method: 'GET', headers: { Accept: 'application/vnd.github+json' } },
+        {method: 'GET', headers: {Accept: 'application/vnd.github+json'}},
         NOTES_TIMEOUT_MS,
+        async response => {
+          if (!response.ok) return null;
+          const data = (await response.json()) as {
+            body?: unknown;
+            assets?: unknown;
+          };
+          const assets = Array.isArray(data.assets) ? data.assets : [];
+          if (!assets.some(asset => (asset as {name?: unknown})?.name === file))
+            return null;
+          const body = typeof data.body === 'string' ? data.body.trim() : '';
+          return body ? body.slice(0, MAX_NOTES_CHARS) : null;
+        },
       );
-      if (!response.ok) return null;
-      const data = (await response.json()) as { body?: unknown; assets?: unknown };
-      const assets = Array.isArray(data.assets) ? data.assets : [];
-      if (!assets.some((asset) => (asset as { name?: unknown })?.name === file)) return null;
-      const body = typeof data.body === 'string' ? data.body.trim() : '';
-      return body ? body.slice(0, MAX_NOTES_CHARS) : null;
     } catch {
       return null;
     }
@@ -235,7 +276,7 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   const runCheck = async (quiet: boolean): Promise<UpdateState> => {
     if (!native) return state;
     const before = state;
-    setState({ phase: 'checking', message: null });
+    setState({phase: 'checking', message: null});
     try {
       const signed = await fetchSignedManifest();
       const info = await native.getInfo();
@@ -266,15 +307,17 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
             'The update could not be verified (bad signature), so it was not downloaded.',
           );
         });
-      const manifest = readVerifiedManifest(payload, { product: config.product });
+      const manifest = readVerifiedManifest(payload, {product: config.product});
 
-      if (compareVersions(manifest.version, currentVersion) <= 0) return nothingNew();
+      if (compareVersions(manifest.version, currentVersion) <= 0)
+        return nothingNew();
       if (info.rejectedVersions.includes(manifest.version)) {
         return nothingNew(
           `LAFINA ${manifest.version} did not start properly on this phone, so it was undone and is not offered again.`,
         );
       }
-      if (manifest.nativeVersionCode < info.nativeVersionCode) return nothingNew();
+      if (manifest.nativeVersionCode < info.nativeVersionCode)
+        return nothingNew();
 
       const found = {
         version: manifest.version,
@@ -287,7 +330,12 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
 
       if (manifest.nativeVersionCode > info.nativeVersionCode) {
         const blocker = manifest.apk ? apkBlocker(manifest, info) : null;
-        if (manifest.apk && !blocker && native.downloadApk && native.installApk) {
+        if (
+          manifest.apk &&
+          !blocker &&
+          native.downloadApk &&
+          native.installApk
+        ) {
           offer = manifest;
           const ready =
             info.readyApkVersionCode === manifest.apk.versionCode &&
@@ -327,10 +375,13 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
     } catch (error) {
       if (quiet) {
         console.log(`[updates] Background check skipped: ${messageOf(error)}`);
-        return setState({ ...before, phase: before.phase === 'checking' ? 'idle' : before.phase });
+        return setState({
+          ...before,
+          phase: before.phase === 'checking' ? 'idle' : before.phase,
+        });
       }
       console.warn(`[updates] Check failed: ${messageOf(error)}`);
-      return setState({ phase: 'error', message: messageOf(error) });
+      return setState({phase: 'error', message: messageOf(error)});
     }
   };
 
@@ -339,7 +390,7 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
    * the app) keeps errors out of sight; a check the person asked for shows them.
    * Concurrent calls share one request.
    */
-  const check = (request: { quiet?: boolean } = {}): Promise<UpdateState> => {
+  const check = (request: {quiet?: boolean} = {}): Promise<UpdateState> => {
     if (unsupportedReason || !native) return Promise.resolve(state);
     if (inFlight) return inFlight;
     if (state.phase === 'downloading') return Promise.resolve(state);
@@ -352,10 +403,12 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   const download = async (): Promise<UpdateState> => {
     if (!native || state.phase !== 'available' || !offer) return state;
     const manifest = offer;
-    setState({ phase: 'downloading', percent: 0, message: null });
-    const progress = native.onProgress(({ received, total }) => {
+    setState({phase: 'downloading', percent: 0, message: null});
+    const progress = native.onProgress(({received, total}) => {
       if (total > 0 && state.phase === 'downloading') {
-        setState({ percent: Math.min(100, Math.floor((received / total) * 100)) });
+        setState({
+          percent: Math.min(100, Math.floor((received / total) * 100)),
+        });
       }
     });
     try {
@@ -375,13 +428,18 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
           sha256: manifest.sha256,
         });
       }
-      return setState({ phase: 'ready', percent: 100 });
+      return setState({phase: 'ready', percent: 100});
     } catch (error) {
       const failure = fromNativeError(error);
-      if (failure.code === 'cancelled') return setState({ phase: 'available', percent: null });
+      if (failure.code === 'cancelled')
+        return setState({phase: 'available', percent: null});
       console.warn(`[updates] Download failed: ${failure.message}`);
       // The offer stays: "Try again" downloads (and an APK resumes) without a new check.
-      return setState({ phase: 'error', percent: null, message: failure.message });
+      return setState({
+        phase: 'error',
+        percent: null,
+        message: failure.message,
+      });
     } finally {
       progress.remove();
     }
@@ -391,7 +449,7 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   const retry = async (): Promise<UpdateState> => {
     if (state.phase !== 'error') return state;
     if (offer) {
-      setState({ phase: 'available', message: null });
+      setState({phase: 'available', message: null});
       return download();
     }
     return check();
@@ -402,25 +460,35 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   };
 
   const restart = async (): Promise<UpdateState> => {
-    if (!native || state.phase !== 'ready' || state.kind !== 'bundle') return state;
+    if (!native || state.phase !== 'ready' || state.kind !== 'bundle')
+      return state;
     try {
       await native.restart();
       return state;
     } catch (error) {
-      return setState({ message: fromNativeError(error).message });
+      return setState({message: fromNativeError(error).message});
     }
   };
 
   const install = async (): Promise<InstallOutcome> => {
     const apk = offer?.apk;
-    if (!native?.installApk || state.phase !== 'ready' || state.kind !== 'apk' || !apk || !offer) {
+    if (
+      !native?.installApk ||
+      state.phase !== 'ready' ||
+      state.kind !== 'apk' ||
+      !apk ||
+      !offer
+    ) {
       return 'failed';
     }
-    if (native.canInstallApks && !(await native.canInstallApks().catch(() => false))) {
+    if (
+      native.canInstallApks &&
+      !(await native.canInstallApks().catch(() => false))
+    ) {
       return 'needs-permission';
     }
     try {
-      setState({ message: null });
+      setState({message: null});
       await native.installApk({
         versionCode: apk.versionCode,
         sha256: apk.sha256,
@@ -428,7 +496,10 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
       });
       return 'installing';
     } catch (error) {
-      const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
+      const {code, message} = (error ?? {}) as {
+        code?: unknown;
+        message?: unknown;
+      };
       if (code === 'E_PERMISSION') return 'needs-permission';
       const text =
         typeof message === 'string' && message
@@ -436,12 +507,17 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
           : 'The update could not be installed. Try again.';
       if (code === 'E_SIGNER') {
         offer = null;
-        setState({ phase: 'needs-install', kind: null, reason: text, message: null });
+        setState({
+          phase: 'needs-install',
+          kind: null,
+          reason: text,
+          message: null,
+        });
       } else if (code === 'E_VERIFY') {
         // The file is gone or damaged: download it again.
-        setState({ phase: 'available', percent: null, message: text });
+        setState({phase: 'available', percent: null, message: text});
       } else {
-        setState({ message: text });
+        setState({message: text});
       }
       return 'failed';
     }

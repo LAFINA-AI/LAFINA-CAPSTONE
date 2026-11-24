@@ -111,7 +111,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
       expect(res.usedOnline).toBe(false);
       expect(res.reply).toMatch(/lafina/i);
       expect(res.reply).toContain(
-        'Offline reply: DeepSeek is not available right now.',
+        'Offline reply: online answers are not available right now.',
       );
       expect(res.assistantMessage.localReply).toBe(true);
     });

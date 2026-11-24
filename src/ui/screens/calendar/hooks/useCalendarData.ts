@@ -16,7 +16,10 @@ import {
   ImportBatch,
 } from '../../../../storage/importedBatchesStore';
 import {calendarVisibilityStore} from '../../../../storage/calendarVisibilityStore';
-import {generateIcsString, parseIcsString} from '../../../../storage/icsHelper';
+import {MAX_ICS_BYTES, parseIcsString} from '../../../../storage/icsHelper';
+import {writeCalendarExport} from '../../../../storage/calendarExport';
+import {getSessionGeneration} from '../../../../storage/sessionEpoch';
+import {generateId} from '../../../../utils';
 import {
   pick,
   isErrorWithCode,
@@ -130,7 +133,8 @@ export const useCalendarData = (
   // Visibility and imports state
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>(
-    () => calendarVisibilityStore.getCachedVisibilityMap(userId) ?? {main: true},
+    () =>
+      calendarVisibilityStore.getCachedVisibilityMap(userId) ?? {main: true},
   );
   const [username, setUsername] = useState(() => {
     try {
@@ -594,6 +598,14 @@ export const useCalendarData = (
 
       const fileUri = res[0].uri;
       const fileName = res[0].name || 'imported_calendar.ics';
+      if (
+        Number(res[0].size) > MAX_ICS_BYTES ||
+        Number((await RNFS.stat(fileUri)).size) > MAX_ICS_BYTES
+      ) {
+        throw new Error(
+          'This calendar is larger than 5 MB. Export a smaller date range.',
+        );
+      }
       const content = await RNFS.readFile(fileUri, 'utf8');
 
       const {
@@ -662,39 +674,29 @@ export const useCalendarData = (
   }, [userId, loadImportsAndVisibility, onRefresh]);
 
   const handleExportCalendar = useCallback(async () => {
+    const tempPath = `${RNFS.TemporaryDirectoryPath}/${generateId(
+      'lafina_calendar',
+    )}.ics`;
+    const generation = getSessionGeneration();
+    const current = () =>
+      userStore.getActiveSessionToken().userId === userId &&
+      getSessionGeneration() === generation;
     try {
-      // Explicit full export: every owned item, read in bounded batches (AGY-PORT 06).
-      const everything = plannerQueries.exportAll(userId);
-      const allTasksData = everything.tasks;
-      const allEventsData = everything.events;
-      const allBlocksData = everything.blocks;
-      if (
-        allTasksData.length === 0 &&
-        allEventsData.length === 0 &&
-        allBlocksData.length === 0
-      ) {
+      const count = await writeCalendarExport(userId, tempPath, current);
+      if (!count) {
         Alert.alert(
           'Export Calendar',
           'Your calendar is empty. Nothing to export.',
         );
         return;
       }
-      const icsString = generateIcsString(
-        allEventsData,
-        allBlocksData,
-        allTasksData,
-      );
-      const tempPath = `${RNFS.TemporaryDirectoryPath}/lafina_calendar_export.ics`;
-      await RNFS.writeFile(tempPath, icsString, 'utf8');
+      if (!current()) return;
       await Share.open({
         url: `file://${tempPath}`,
         type: 'text/calendar',
         filename: 'lafina_calendar_export',
         title: 'Export LAFINA Calendar',
       });
-      await RNFS.unlink(tempPath).catch((err: any) =>
-        console.warn('Clean temp file failed:', err),
-      );
     } catch (err) {
       if (
         err &&
@@ -705,6 +707,8 @@ export const useCalendarData = (
       }
       console.error('Failed to export calendar:', err);
       Alert.alert('Error', 'Failed to generate or share calendar file.');
+    } finally {
+      await RNFS.unlink(tempPath).catch(() => undefined);
     }
   }, [userId]);
 

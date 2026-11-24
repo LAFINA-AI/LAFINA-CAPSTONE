@@ -802,7 +802,7 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> =
                 testID="call-settings-section-voice"
                 icon={<Volume2 size={16} color={accent} />}
                 iconBg={softAccentBg}
-                title="Voice Selection (ElevenLabs)"
+                title="Voice"
                 subtitle={
                   settings.voiceName
                     ? `Active: ${settings.voiceName}`

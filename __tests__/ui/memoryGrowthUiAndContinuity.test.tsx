@@ -531,7 +531,7 @@ describe('UI components: ChatMemorySettings growth card + inline edit/pin + Pref
     );
 
     expect(ui.getByTestId('memory-growth-summary')).toBeTruthy();
-    expect(ui.getByText(/How LAFINA Has Grown With You/)).toBeTruthy();
+    expect(ui.getByText(/What LAFINA has learned/)).toBeTruthy();
 
     // Live memory addition outside the sheet triggers instant UI refresh.
     const learned = chatMemoryStore.add(

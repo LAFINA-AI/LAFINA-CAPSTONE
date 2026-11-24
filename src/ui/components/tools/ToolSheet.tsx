@@ -21,6 +21,11 @@ interface ToolSheetProps {
   visible: boolean;
   title: string;
   onClose: () => void;
+  /**
+   * Android Back and a tap outside the sheet. Defaults to onClose; a sheet
+   * with pages inside it goes back one page instead.
+   */
+  onRequestClose?: () => void;
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -29,22 +34,24 @@ export const ToolSheet: React.FC<ToolSheetProps> = ({
   visible,
   title,
   onClose,
+  onRequestClose,
   footer,
   children,
 }) => {
+  const dismiss = onRequestClose ?? onClose;
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={dismiss}>
       <KeyboardAvoidingView
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <Pressable
           style={styles.dismissArea}
-          onPress={onClose}
+          onPress={dismiss}
           accessibilityLabel="Close sheet"
         />
         <View

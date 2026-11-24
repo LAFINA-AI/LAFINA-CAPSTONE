@@ -1,0 +1,166 @@
+{
+  "as_of": "2026-11-24",
+  "source_registry": {
+    "CAL": {
+      "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+      "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "notes": "University primary PDF, pages 1-6, letter dated May 12 2026, CHED received May 13 2026",
+      "authority": "CHED-noted USTP PDF",
+      "accessed_on": "2026-11-24"
+    },
+    "CAL_INDEX": {
+      "title": "USTP University Calendars",
+      "url": "https://www.ustp.edu.ph/university-calendars/",
+      "notes": "Official webpage linking PDF",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "CAMPUS": {
+      "title": "USTP Campuses",
+      "url": "https://www.ustp.edu.ph/campuses/",
+      "notes": "Official campus profile",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "CDO": {
+      "title": "USTP Cagayan de Oro",
+      "url": "https://www.ustp.edu.ph/cdeo/",
+      "notes": "Official campus landing page",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "CONTACT": {
+      "title": "USTP Contact Us",
+      "url": "https://www.ustp.edu.ph/contact-us/",
+      "notes": "Official office extensions and contact information",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "OFFICIALS": {
+      "title": "USTP Officials",
+      "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/",
+      "notes": "Official directory, subject to change",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "ADMISSIONS": {
+      "title": "USTP Admissions",
+      "url": "https://www.ustp.edu.ph/admissions/",
+      "notes": "Official admission and tuition overview",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "ASO": {
+      "title": "USTP CDO Admission and Scholarship Office",
+      "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/",
+      "notes": "Official office resources and contact",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "PORTAL": {
+      "title": "USTP Online Admissions Portal",
+      "url": "https://prisms.ustp.edu.ph/padmission",
+      "notes": "Live application portal; availability may vary",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "ENROLL": {
+      "title": "USTP Enrollment Flow",
+      "url": "https://www.ustp.edu.ph/enrollment-flow/",
+      "notes": "Official instructions; workflow may change",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "FAQ": {
+      "title": "USTP Admission FAQ",
+      "url": "https://www.ustp.edu.ph/admission-faq/",
+      "notes": "Official FAQ, some content old",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "UG_PROG": {
+      "title": "USTP Undergraduate Programs",
+      "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/",
+      "notes": "Official list; not proof intake is open",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "GR_PROG": {
+      "title": "USTP Graduate Programs",
+      "url": "https://www.ustp.edu.ph/academics/graduate-programs/",
+      "notes": "Official list; not proof intake is open",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "SCHOLAR": {
+      "title": "USTP CDO Scholarship Grants and Financial Aid",
+      "url": "https://www.ustp.edu.ph/cdeo/scholarship-grants-financial-aid/",
+      "notes": "Official categories, not evidence of active calls",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "LIB": {
+      "title": "USTP CDO Library",
+      "url": "https://www.ustp.edu.ph/cdeo/library/",
+      "notes": "Official campus library locations and contacts",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "LIB_SVC": {
+      "title": "USTP CDO Library Services",
+      "url": "https://www.ustp.edu.ph/cdeo/library/services/",
+      "notes": "Official service description; fees/limits may change",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "ORG_CUR": {
+      "title": "USTP CDO Curricular Student Organizations",
+      "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-curricular/",
+      "notes": "Legacy virtual WoW directory (2021) - historical listing",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "ORG_NON": {
+      "title": "USTP CDO Noncurricular Organizations",
+      "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-non-curricular/",
+      "notes": "Legacy virtual WoW directory (2021) - historical listing",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "USTEP": {
+      "title": "USTeP Login",
+      "url": "https://ustep.ustp.edu.ph/",
+      "notes": "Official learning platform login",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "PRISMS": {
+      "title": "PRISMS Login",
+      "url": "https://prisms.ustp.edu.ph/",
+      "notes": "Official student information system login",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "ECLEAR": {
+      "title": "USTP eClearance",
+      "url": "https://clearance.ustp.edu.ph/",
+      "notes": "Official clearance portal",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "TUITION": {
+      "title": "USTP Tuition and Other School Fees",
+      "url": "https://www.ustp.edu.ph/tuition-fees/",
+      "notes": "Official fee schedule landing; linked downloadable amounts not validated",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    },
+    "USTAT_RESULTS": {
+      "title": "USTAT Qualifiers Listings",
+      "url": "https://www.ustp.edu.ph/ustat-2-0-qualifiers-sy-2024-2025/",
+      "notes": "Mixed-year 2022-2026 content; not reliable for live deadlines",
+      "authority": "official USTP",
+      "accessed_on": "2026-11-24"
+    }
+  }
+}

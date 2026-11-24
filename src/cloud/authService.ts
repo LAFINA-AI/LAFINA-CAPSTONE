@@ -1,6 +1,7 @@
 import {cloudClient, CloudResult} from './cloudClient';
 import {normalizeEmail, validatePassword} from '../storage/authUtils';
 import {userStore} from '../storage/userStore';
+import {getSessionGeneration} from '../storage/sessionEpoch';
 import type {SubscriptionPlan, SystemRole} from '../storage/syncTypes';
 
 export interface AuthResponseData {
@@ -95,6 +96,7 @@ export const authService = {
     refreshToken: string,
   ): Promise<CloudResult<AuthResponseData>> => {
     const ownerAtStart = userStore.getActiveSessionToken().userId;
+    const generation = getSessionGeneration();
     const res = await cloudClient.request<AuthResponseData>(
       '/v1/auth/refresh',
       {
@@ -107,6 +109,7 @@ export const authService = {
       const activeSession = userStore.getActiveSessionToken();
       if (
         !activeSession.userId ||
+        generation !== getSessionGeneration() ||
         (ownerAtStart && activeSession.userId !== ownerAtStart)
       ) {
         return {
@@ -125,6 +128,7 @@ export const authService = {
 
   logout: async (): Promise<CloudResult<null>> => {
     const ownerAtStart = userStore.getActiveSessionToken().userId;
+    const generation = getSessionGeneration();
     try {
       return await cloudClient.request<null>(
         '/v1/auth/logout',
@@ -132,7 +136,10 @@ export const authService = {
         true,
       );
     } finally {
-      if (userStore.getActiveSessionToken().userId === ownerAtStart) {
+      if (
+        userStore.getActiveSessionToken().userId === ownerAtStart &&
+        generation === getSessionGeneration()
+      ) {
         cloudClient.clearActiveSession();
       }
     }

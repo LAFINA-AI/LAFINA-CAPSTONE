@@ -421,7 +421,7 @@ describe('Local offline USTP Student Handbook SQLite FTS5 RAG', () => {
     );
   });
 
-  it('displays Offline USTP Handbook readiness in ChatScreen when populated', async () => {
+  it('displays Ask USTP offline readiness in ChatScreen when populated', async () => {
     localHandbookService.ingestPackForTests(SAMPLE_PACK);
 
     const {getByTestId, findByText, getByText} = render(
@@ -434,13 +434,14 @@ describe('Local offline USTP Student Handbook SQLite FTS5 RAG', () => {
 
     fireEvent.press(getByTestId('chat-switch-to-ustp-button'));
 
-    expect(await findByText('Local FTS5 Ready')).toBeTruthy();
+    expect(await findByText('Works offline')).toBeTruthy();
     expect(
       getByText(
-        'Offline USTP Handbook ready (4 sections) · Tap to turn on Online AI',
+        'Works offline · Student Handbook (4 sections) + USTP CDO info · Tap to turn on Online AI',
       ),
     ).toBeTruthy();
-    expect(getByText(/^Offline USTP Handbook(?:\s·|$)/i)).toBeTruthy();
+    expect(getByText(/^Ask USTP(?:\s·|$)/)).toBeTruthy();
+    expect(getByTestId('chat-ustp-browse-sources')).toBeTruthy();
     expect(getByTestId('chat-ustp-mode-badge')).toBeTruthy();
   });
 });

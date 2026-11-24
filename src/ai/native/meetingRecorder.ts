@@ -46,6 +46,7 @@ interface LafinaMeetingRecorderNative {
   pauseRecording(): Promise<boolean>;
   resumeRecording(): Promise<boolean>;
   stopRecording(): Promise<MeetingRecordingResult>;
+  stopRecordingForMeeting?(meetingId: string): Promise<MeetingRecordingResult>;
   isRecording(): Promise<boolean>;
   isPaused(): Promise<boolean>;
   getRecoveryState(): Promise<MeetingRecoveryState | null>;
@@ -80,6 +81,7 @@ const getNative = (): LafinaMeetingRecorderNative | null => {
  * isRecording() stays the native truth.
  */
 let recordingClaimed = false;
+let claimedMeetingId: string | null = null;
 
 export const meetingRecorder = {
   isAvailable: (): boolean => getNative() !== null,
@@ -116,10 +118,14 @@ export const meetingRecorder = {
     const mod = getNative();
     if (!mod) throw new Error('Meeting recorder unavailable on this platform');
     recordingClaimed = true;
+    claimedMeetingId = meetingId;
     try {
       return await mod.startRecording(meetingId, title);
     } catch (error) {
-      recordingClaimed = false;
+      if (claimedMeetingId === meetingId) {
+        recordingClaimed = false;
+        claimedMeetingId = null;
+      }
       throw error;
     }
   },
@@ -136,16 +142,34 @@ export const meetingRecorder = {
     return mod.resumeRecording();
   },
 
-  stop: async (): Promise<MeetingRecordingResult> => {
+  stop: async (meetingId?: string): Promise<MeetingRecordingResult> => {
     const mod = getNative();
     if (!mod) {
       recordingClaimed = false;
       return {meetingId: '', chunkFiles: [], chunkDurationsMs: []};
     }
+    let stopped = false;
     try {
-      return await mod.stopRecording();
+      if (meetingId && mod.stopRecordingForMeeting) {
+        const result = await mod.stopRecordingForMeeting(meetingId);
+        stopped = true;
+        return result;
+      }
+      // Older installed native versions cannot stop another meeting by accident.
+      if (
+        meetingId &&
+        (await mod.getRecoveryState())?.meetingId !== meetingId
+      ) {
+        return {meetingId, chunkFiles: [], chunkDurationsMs: []};
+      }
+      const result = await mod.stopRecording();
+      stopped = true;
+      return result;
     } finally {
-      recordingClaimed = false;
+      if (stopped && (!meetingId || claimedMeetingId === meetingId)) {
+        recordingClaimed = false;
+        claimedMeetingId = null;
+      }
     }
   },
 

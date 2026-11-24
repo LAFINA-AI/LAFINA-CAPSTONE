@@ -57,6 +57,31 @@ export function migrateHandbookIndex(tx: DatabaseTransaction): void {
   }
 }
 
+/**
+ * Schema 32: the handbook index also holds the USTP Cagayan de Oro knowledge
+ * pack. `collection` names the corpus a chunk came from ('handbook' for the
+ * 2023 Student Handbook, 'ustp_cdo' for the campus knowledge pack) and
+ * `meta_json` keeps its provenance (source URLs, as-of date, academic year,
+ * semester, undergraduate/graduate scope, PDF pages, known conflicts).
+ * Additive: existing rows default to the handbook, and the FTS5 columns and
+ * triggers are unchanged.
+ */
+export function migrateKnowledgeCollections(tx: DatabaseTransaction): void {
+  const columns = new Set(
+    (tx.executeSync('PRAGMA table_info(handbook_chunks)').rows ?? []).map(row =>
+      String(row.name),
+    ),
+  );
+  if (!columns.has('collection')) {
+    tx.executeSync(
+      "ALTER TABLE handbook_chunks ADD COLUMN collection TEXT NOT NULL DEFAULT 'handbook'",
+    );
+  }
+  if (!columns.has('meta_json')) {
+    tx.executeSync('ALTER TABLE handbook_chunks ADD COLUMN meta_json TEXT');
+  }
+}
+
 export function handbookFtsIndexExists(
   executor: Pick<DatabaseTransaction, 'executeSync'>,
 ): boolean {

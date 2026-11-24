@@ -27,6 +27,10 @@ import {
 const flush = async (times = 20): Promise<void> => {
   for (let i = 0; i < times; i += 1) await Promise.resolve();
 };
+const activeControllers: OfflineCallController[] = [];
+afterEach(() => {
+  for (const controller of activeControllers.splice(0)) controller.dispose();
+});
 
 interface Pending<T> {
   promise: Promise<T>;
@@ -151,6 +155,7 @@ const setup = (
     now: overrides.now,
     capture: overrides.capture,
   });
+  activeControllers.push(controller);
   return {controller, mic, voice, respond, history};
 };
 
@@ -841,4 +846,113 @@ describe('offline call audit fixes (2026-11-22)', () => {
       CAPTURE_STUCK_MESSAGE,
     );
   });
+});
+
+test('the offline call deadline still ends a muted call', async () => {
+  jest.useFakeTimers();
+  try {
+    const {controller} = setup({limits: {maxDurationMs: 1000}});
+    await controller.start();
+    await flush();
+    controller.setMuted(true);
+    await flush();
+    await jest.advanceTimersByTimeAsync(1001);
+    expect(controller.getSnapshot().phase).toBe('ended');
+    expect(controller.getSnapshot().micCapturing).toBe(false);
+    expect(controller.getSnapshot().notice).toMatch(/time limit/);
+    controller.dispose();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('ending speech persists the interruption once and a late speech result cannot restore cleared history', async () => {
+  const {controller, history, voice} = setup({autoFinish: false});
+  await controller.start();
+  await flush();
+  controller.end();
+  expect(history).toEqual(['lafina(interrupted): Hi, Lafina here.']);
+  history.splice(0);
+  voice.lines[0].done.resolve('finished');
+  await flush();
+  expect(history).toEqual([]);
+});
+
+test('offline endAndWait reports a failed microphone release', async () => {
+  const {controller} = setup({
+    speech: {
+      isAvailable: async () => true,
+      ensurePermission: async () => true,
+      start: () => ({captureId: 'stuck', result: new Promise(() => undefined)}),
+      cancel: async () => false,
+    },
+  });
+  await controller.start();
+  await flush();
+  expect(await controller.endAndWait()).toBe(false);
+});
+
+test('offline handoff refuses success while a speech token is still being created', async () => {
+  const token = deferred<number>();
+  const stop = jest.fn(async () => true);
+  const {controller} = setup({
+    voice: {
+      ready: async () => true,
+      speak: () => ({
+        token: token.promise,
+        result: Promise.resolve('finished' as const),
+      }),
+      stop,
+    },
+  });
+  await controller.start();
+  await flush();
+  expect(await controller.endAndWait()).toBe(false);
+  token.resolve(42);
+  await flush();
+  expect(stop).toHaveBeenCalledWith(42);
+});
+
+test('a late old capture cannot remove the restarted call transcription watchdog', async () => {
+  jest.useFakeTimers();
+  try {
+    const hook: {ended: ((id: string, detected: boolean) => void) | null} = {
+      ended: null,
+    };
+    const {controller, mic} = setup({
+      limits: {transcribeTimeoutMs: 50, maxTranscribeTimeouts: 1},
+      speech: {
+        cancel: async () => false,
+        onCaptureEnded: (listener: NonNullable<typeof hook.ended>) => {
+          hook.ended = listener;
+          return () => undefined;
+        },
+      } as unknown as OfflineCallDeps['speech'],
+    });
+    // Keep the old native recognition pending even after Cancel reports failure.
+    await controller.start();
+    await flush();
+    controller.end();
+    await controller.start();
+    await flush();
+    expect(mic.captures).toHaveLength(2);
+    const old = mic.captures[0];
+    old.done.resolve({
+      captureId: old.id,
+      transcript: '',
+      speechDetected: false,
+      cancelled: true,
+      captureDurationMs: 0,
+      inferenceDurationMs: 0,
+    });
+    await flush();
+    hook.ended?.(mic.captures[1].id, true);
+    await jest.advanceTimersByTimeAsync(51);
+    expect(controller.getSnapshot().failure?.message).toBe(
+      TRANSCRIBE_STUCK_MESSAGE,
+    );
+    controller.dispose();
+  } finally {
+    jest.useRealTimers();
+  }
 });

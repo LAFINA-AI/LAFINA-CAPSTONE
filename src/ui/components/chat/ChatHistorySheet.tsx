@@ -21,6 +21,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   BookOpen,
   Camera,
+  Library,
   Image as ImageIcon,
   Lightbulb,
   Maximize2,
@@ -62,6 +63,8 @@ export interface ChatHistorySheetProps {
   /** The student opened another chat, started a new one, or deleted the open one. */
   onChanged: () => void;
   onStartUstpChat?: () => void;
+  /** Opens the USTP sources library (every passage Ask USTP answers from). */
+  onOpenUstpSources?: () => void;
   /** USTP school features (handbook chat) are on for this student. */
   ustpAvailable?: boolean;
   onStartTemporaryChat?: () => void;
@@ -260,6 +263,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   onClose,
   onChanged,
   onStartUstpChat,
+  onOpenUstpSources,
   ustpAvailable,
   onStartTemporaryChat,
   onScanCamera,
@@ -689,10 +693,31 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                   style={[styles.ustpRowTitle, {color: textPrimary}]}
                   numberOfLines={1}
                 >
-                  USTP Handbook
+                  Ask USTP
                 </Text>
               </TouchableOpacity>
             )}
+
+            {showUstp && onOpenUstpSources ? (
+              <TouchableOpacity
+                style={[
+                  styles.ustpRow,
+                  {backgroundColor: surfaceBg, borderColor: borderColor},
+                ]}
+                onPress={onOpenUstpSources}
+                accessibilityRole="button"
+                accessibilityLabel="Browse every USTP source LAFINA answers from"
+                testID="chat-history-ustp-sources"
+              >
+                <Library size={16} color={accent} />
+                <Text
+                  style={[styles.ustpRowTitle, {color: textPrimary}]}
+                  numberOfLines={1}
+                >
+                  USTP sources
+                </Text>
+              </TouchableOpacity>
+            ) : null}
 
             {(onScanCamera || onScanGallery || onOpenGuide) && (
               <View style={styles.toolsSection}>
@@ -814,7 +839,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   const emptyMessage = search.trim()
     ? 'No chats match your search.'
     : kindFilter === 'ustp'
-    ? 'No USTP Handbook chats yet. Ask LAFINA anything about USTP!'
+    ? 'No Ask USTP chats yet. Ask anything about USTP!'
     : kindFilter === 'general'
     ? 'No general chats yet. Start a new chat above!'
     : 'No chats yet. Say hi to LAFINA!';

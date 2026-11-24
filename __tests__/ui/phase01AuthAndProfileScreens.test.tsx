@@ -743,9 +743,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     expect(getByText('Guest User')).toBeTruthy();
     expect(queryByText('24-Hour Time Format')).toBeNull();
     expect(userStore.get24HourFormat(guest.id)).toBe(false);
-    expect(getByText('Week Starts on Monday')).toBeTruthy();
+    expect(getByText('Week starts on Monday')).toBeTruthy();
     expect(getByText('Dark Mode')).toBeTruthy();
-    expect(getByText('Test TTS Voice')).toBeTruthy();
+    expect(getByText('Play a voice sample')).toBeTruthy();
     expect(queryByText('App Interface')).toBeNull();
     expect(queryByText('Student Pro')).toBeNull();
   });

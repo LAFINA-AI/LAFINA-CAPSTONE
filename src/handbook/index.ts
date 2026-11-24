@@ -9,14 +9,23 @@ export {
   rankAndFilterFtsCandidates,
   sanitizePassageForPrompt,
   shouldMergeFollowUpQuery,
+  uniqueLinks,
 } from './handbookSearch';
 export type {
   BuiltFtsQueries,
+  KnowledgeFormatOptions,
   LocalHandbookMatch,
   LocalHandbookSearchResult,
   LocalHandbookSource,
 } from './handbookSearch';
-export {localHandbookService} from './localHandbookService';
+export {
+  analyzeKnowledgeQuery,
+  formatAsOfDate,
+  isSnapshotStale,
+} from './knowledgeScope';
+export type {KnowledgeQueryScope} from './knowledgeScope';
+export {campusSourceNote} from './knowledgeCitations';
+export {localHandbookService, withCampusKnowledge} from './localHandbookService';
 export type {
   HandbookPackOrigin,
   LocalHandbookSearchOptions,
@@ -24,3 +33,14 @@ export type {
   OfflineHandbookAnswer,
   OnlineHandbookContext,
 } from './localHandbookService';
+export {
+  getPassagesById,
+  listChapterPassages,
+  listKnowledgeChapters,
+  listKnowledgeSources,
+  listOfficialPages,
+  prepareKnowledgeLibrary,
+  searchKnowledgePassages,
+  toPassageView,
+} from './knowledgeLibrary';
+export type {KnowledgeSourceSummary, PassageView} from './knowledgeLibrary';

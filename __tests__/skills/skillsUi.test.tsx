@@ -138,6 +138,33 @@ test('GWA subjects are restored per semester and quarter-step changes persist', 
   expect(reopened.getByText('My subject')).toBeTruthy();
   expect(reopened.getAllByText('1.75').length).toBeGreaterThan(0);
 });
+
+test('deleting a GWA semester removes its grades permanently without touching another semester', async () => {
+  writeSkillState(owner, 'gwa.lastSemester', 'Term A');
+  writeSkillState(owner, 'gwa.semesters', ['Term A', 'Term B']);
+  writeSkillState<GradeSubject[]>(owner, 'gwa.Term%20A', [
+    {id: 'a', name: 'Deleted subject', units: 3, grade: 2},
+  ]);
+  writeSkillState<GradeSubject[]>(owner, 'gwa.Term%20B', [
+    {id: 'b', name: 'Kept subject', units: 3, grade: 1.5},
+  ]);
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const view = render(wrap(<GwaSkill userId={owner} />));
+  fireEvent.press(view.getByLabelText('Change semester'));
+  fireEvent.press(view.getByLabelText('Delete semester Term A'));
+  const confirm = alert.mock.calls
+    .at(-1)?.[2]
+    ?.find(button => button.text === 'Remove');
+  expect(confirm?.onPress).toBeDefined();
+  act(() => confirm!.onPress!());
+  expect(readSkillState<GradeSubject[]>(owner, 'gwa.Term%20A', [])).toEqual([]);
+  expect(
+    readSkillState<GradeSubject[]>(owner, 'gwa.Term%20B', [])[0].name,
+  ).toBe('Kept subject');
+  view.unmount();
+  const reopened = render(wrap(<GwaSkill userId={owner} />));
+  expect(reopened.queryByText('Deleted subject')).toBeNull();
+});
 test('a saved quiz gives feedback, a real score, and makes cards from mistakes without AI', async () => {
   writeSkillState(owner, 'quiz', {
     id: 'q',

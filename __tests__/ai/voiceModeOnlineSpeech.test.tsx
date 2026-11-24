@@ -282,7 +282,7 @@ describe('Voice mode', () => {
     send(utils, 'help me plan');
     await waitFor(() =>
       expect(utils.getByTestId('voice-notice')).toHaveTextContent(
-        /device voice: .*ElevenLabs is busy/,
+        /device voice: .*The online voice is busy/,
       ),
     );
     expect(tts.speak).toHaveBeenCalledWith('Sige, ayusin natin.');

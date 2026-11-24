@@ -8,6 +8,8 @@ import {
 } from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {CalendarScreen} from '../../src/ui/screens/calendar';
+import {ScheduleItemDetailModal} from '../../src/ui/screens/calendar/components/ScheduleItemDetailModal';
+import {remindersStore} from '../../src/storage/remindersStore';
 import {saveBirthday} from '../../src/ui/screens/calendar/utils/calendarGroups';
 import {groupClassBlocks} from '../../src/ui/screens/calendar/utils/classScheduleHelpers';
 import {
@@ -68,6 +70,50 @@ describe('ScheduleItemDetailModal & scheduleEntriesStore', () => {
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
+  });
+
+  test('reminder details show the student note without exposing recurrence bookkeeping', () => {
+    const description =
+      'Bring your notebook [RRULE:FREQ=MONTHLY;COUNT=3] [RRULE-START:2030-01-31T09:00:00.000Z]';
+    remindersStore.insertReminder({
+      id: 'audit-note-reminder',
+      userId,
+      task: 'Monthly review',
+      description,
+      scheduledAt: FIXED_NOW.toISOString(),
+      triggerAt: FIXED_NOW.toISOString(),
+      status: 'pending',
+      preCastAudioPath: null,
+    });
+    const screen = render(
+      <ThemeProvider userId={userId}>
+        <ScheduleItemDetailModal
+          visible
+          userId={userId}
+          item={{
+            id: 'audit-note-reminder',
+            kind: 'reminder',
+            title: 'Monthly review',
+            subtitle: '',
+            categoryLabel: 'Reminder',
+            timeLabel: '10 AM',
+            hour: 10,
+            sortMinutes: 600,
+            tone: 'peach',
+            rawReminder: remindersStore.getReminderById('audit-note-reminder')!,
+          }}
+          selectedDate={FIXED_NOW}
+          allBlocks={[]}
+          onClose={jest.fn()}
+          onEditSchedule={jest.fn()}
+        />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText('Bring your notebook')).toBeTruthy();
+    expect(screen.queryByText(/RRULE/)).toBeNull();
+    expect(
+      remindersStore.getReminderById('audit-note-reminder')?.description,
+    ).toBe(description);
   });
 
   test('URL helpers normalize bare domains and extract unique URLs from notes', () => {

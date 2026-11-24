@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
   Linking,
@@ -19,37 +19,37 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react-native';
-import { notesStore, tasksStore } from '../../../storage';
-import type { RecordedMeeting } from '../../../storage';
-import { generateId } from '../../../utils';
+import {notesStore, tasksStore} from '../../../storage';
+import type {RecordedMeeting} from '../../../storage';
+import {generateId} from '../../../utils';
 import {
   STATUS_LABELS,
   isBusy,
   notesToMarkdown,
   transcriptToText,
 } from '../../../meetings';
-import { formatWhen, shareTextFile } from '../../components/tools';
-import { useMeetings } from '../../contexts/MeetingsContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useThemedStyles } from '../../theme/createThemedStyles';
-import { Fonts, FontSize, Spacing } from '../../theme';
+import {formatWhen, shareTextFile} from '../../components/tools';
+import {useMeetings} from '../../contexts/MeetingsContext';
+import {useTheme} from '../../contexts/ThemeContext';
+import {useThemedStyles} from '../../theme/createThemedStyles';
+import {Fonts, FontSize, Spacing} from '../../theme';
 import {
   describeMeetingProblem,
   formatBytes,
   formatDuration,
   meetingFileName,
 } from './meetingCopy';
-import { getMeetingThemedStyles, meetingStyles } from './meetingStyles';
-import { NotesView } from './NotesView';
-import { ProcessingCard } from './ProcessingCard';
-import { TranscriptList } from './TranscriptList';
+import {getMeetingThemedStyles, meetingStyles} from './meetingStyles';
+import {NotesView} from './NotesView';
+import {ProcessingCard} from './ProcessingCard';
+import {TranscriptList} from './TranscriptList';
 
 type Tab = 'notes' | 'transcript';
 
 interface ActionButton {
   key: string;
   label: string;
-  icon: React.ComponentType<{ size: number; color: string }>;
+  icon: React.ComponentType<{size: number; color: string}>;
   onPress: () => void;
   primary?: boolean;
   destructive?: boolean;
@@ -58,8 +58,8 @@ interface ActionButton {
 export const MeetingDetail: React.FC<{
   meeting: RecordedMeeting;
   onNotesSaved?: () => void;
-}> = ({ meeting, onNotesSaved }) => {
-  const { colors } = useTheme();
+}> = ({meeting, onNotesSaved}) => {
+  const {colors} = useTheme();
   const themed = useThemedStyles(getMeetingThemedStyles);
   const {
     transcribeMeeting,
@@ -92,7 +92,10 @@ export const MeetingDetail: React.FC<{
     meeting.errorCode !== 'recording_lost';
   const hasTranscript = Boolean(meeting.transcript?.length);
   const error = meeting.errorCode
-    ? describeMeetingProblem(meeting.errorCode, meeting.errorDetail ?? undefined)
+    ? describeMeetingProblem(
+        meeting.errorCode,
+        meeting.errorDetail ?? undefined,
+      )
     : null;
   const isNotice = meeting.errorCode === 'plan_required';
   const meta = {
@@ -108,8 +111,8 @@ export const MeetingDetail: React.FC<{
     action: () => void,
   ): void => {
     Alert.alert(heading, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: label, onPress: action },
+      {text: 'Cancel', style: 'cancel'},
+      {text: label, onPress: action},
     ]);
   };
 
@@ -144,12 +147,11 @@ export const MeetingDetail: React.FC<{
           })
         : await shareTextFile({
             fileName: meetingFileName(`${meeting.title} transcript`, 'txt'),
-            contents: `${meeting.title}\n${formatWhen(meeting.startedAt)}\n\n${transcriptToText(
-              meeting.transcript ?? [],
-              {
-                timestamps: true,
-              },
-            )}\n`,
+            contents: `${meeting.title}\n${formatWhen(
+              meeting.startedAt,
+            )}\n\n${transcriptToText(meeting.transcript ?? [], {
+              timestamps: true,
+            })}\n`,
             title: 'Share transcript',
           });
     if (outcome === 'failed') setStatus('That could not be shared.');
@@ -158,7 +160,7 @@ export const MeetingDetail: React.FC<{
   const saveToNotes = (): void => {
     const body = meeting.notes
       ? notesToMarkdown(meeting.notes, meta)
-      : transcriptToText(meeting.transcript ?? [], { timestamps: true });
+      : transcriptToText(meeting.transcript ?? [], {timestamps: true});
     if (!body.trim()) return;
     try {
       notesStore.insert({
@@ -305,11 +307,17 @@ export const MeetingDetail: React.FC<{
             ? 'The recording is removed from this phone to free space. The transcript and notes stay, but the meeting cannot be transcribed again.'
             : 'The recording is removed from this phone. It has not been transcribed yet, so nothing of this meeting will be left but its title.',
           [
-            { text: 'Cancel', style: 'cancel' },
+            {text: 'Cancel', style: 'cancel'},
             {
               text: 'Delete audio',
               style: 'destructive',
-              onPress: () => void deleteAudio(meeting.id),
+              onPress: () =>
+                void deleteAudio(meeting.id).catch(() =>
+                  Alert.alert(
+                    'Audio not deleted',
+                    'The recording could not be removed. Please try again.',
+                  ),
+                ),
             },
           ],
         ),
@@ -359,17 +367,15 @@ export const MeetingDetail: React.FC<{
         {meeting.source === 'upload' && (
           <View style={[meetingStyles.chip, themed.chip]}>
             <Text style={[meetingStyles.chipLabel, themed.textPrimary]}>
-              Imported audio{meeting.sourceFileName ? ` (${meeting.sourceFileName})` : ''}
+              Imported audio
+              {meeting.sourceFileName ? ` (${meeting.sourceFileName})` : ''}
             </Text>
           </View>
         )}
       </View>
 
       {processing?.meetingId === meeting.id && (
-        <ProcessingCard
-          processing={processing}
-          onCancel={cancelProcessing}
-        />
+        <ProcessingCard processing={processing} onCancel={cancelProcessing} />
       )}
 
       {error &&
@@ -405,10 +411,7 @@ export const MeetingDetail: React.FC<{
                   accessibilityRole="button"
                 >
                   <Text
-                    style={[
-                      meetingStyles.secondaryLabel,
-                      themed.textPrimary,
-                    ]}
+                    style={[meetingStyles.secondaryLabel, themed.textPrimary]}
                   >
                     {error.recoveryLabel}
                   </Text>
@@ -433,7 +436,7 @@ export const MeetingDetail: React.FC<{
       {actions.length > 0 && (
         <View style={[meetingStyles.buttonRow, styles.actions]}>
           {actions.map(
-            ({ key, label, icon: Icon, onPress, primary, destructive }) => {
+            ({key, label, icon: Icon, onPress, primary, destructive}) => {
               const disabled =
                 busy &&
                 key !== 'save' &&
@@ -442,8 +445,8 @@ export const MeetingDetail: React.FC<{
               const tint = primary
                 ? colors.white
                 : destructive
-                  ? colors.error
-                  : colors.textPrimary;
+                ? colors.error
+                : colors.textPrimary;
               return (
                 <TouchableOpacity
                   key={key}
@@ -459,7 +462,7 @@ export const MeetingDetail: React.FC<{
                   onPress={onPress}
                   disabled={disabled}
                   accessibilityRole="button"
-                  accessibilityState={{ disabled }}
+                  accessibilityState={{disabled}}
                   testID={`meeting-action-${key}`}
                 >
                   <Icon size={16} color={tint} />
@@ -471,8 +474,8 @@ export const MeetingDetail: React.FC<{
                       primary
                         ? themed.onAccent
                         : destructive
-                          ? themed.errorText
-                          : themed.textPrimary,
+                        ? themed.errorText
+                        : themed.textPrimary,
                     ]}
                   >
                     {label}
@@ -494,7 +497,7 @@ export const MeetingDetail: React.FC<{
       ) : null}
 
       <View style={[styles.tabs, themed.divider]} accessibilityRole="tablist">
-        {(['notes', 'transcript'] as const).map((key) => (
+        {(['notes', 'transcript'] as const).map(key => (
           <TouchableOpacity
             key={key}
             style={[
@@ -503,7 +506,7 @@ export const MeetingDetail: React.FC<{
             ]}
             onPress={() => setTab(key)}
             accessibilityRole="tab"
-            accessibilityState={{ selected: tab === key }}
+            accessibilityState={{selected: tab === key}}
           >
             <Text
               style={[
@@ -522,10 +525,12 @@ export const MeetingDetail: React.FC<{
           <NotesView
             notes={meeting.notes}
             edited={meeting.notesEdited}
-            onSave={(notes) => saveNotes(meeting.id, notes)}
+            onSave={notes => saveNotes(meeting.id, notes)}
           />
         ) : (
-          <Text style={[meetingStyles.body, styles.empty, themed.textSecondary]}>
+          <Text
+            style={[meetingStyles.body, styles.empty, themed.textSecondary]}
+          >
             {!hasTranscript
               ? 'Notes can be generated once the recording has been transcribed.'
               : 'No AI summary notes yet. Tap Generate AI notes above, or view the full offline transcript in the Transcript tab.'}

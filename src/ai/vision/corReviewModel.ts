@@ -984,6 +984,68 @@ export const semesterTermDates = (
   return {startDate: formatIsoDate(start), endDate: formatIsoDate(end)};
 };
 
+/**
+ * USTP's published first semester: the term summary of the CHED-noted
+ * Academic Calendar AY 2026-2027 (PDF p. 2) gives August 10 to December 19,
+ * 2026, which includes the December 9-19 final exams (PDF p. 3). The review
+ * offers it as a one-tap suggestion; nothing is filled in until the student
+ * taps it.
+ */
+export const USTP_SUGGESTED_TERM = {
+  label: 'USTP 1st semester',
+  startDate: '2026-08-10',
+  endDate: '2026-12-19',
+} as const;
+
+/**
+ * The dates to suggest for this draft, or null when the suggestion does not
+ * fit: the term says 2nd semester or summer, or the suggested term is over.
+ */
+export const suggestedTermDates = (
+  draft: Pick<CorDraft, 'term'>,
+  today: Date = new Date(),
+): {label: string; startDate: string; endDate: string} | null => {
+  if (/\b(2nd|second|summer|midyear|mid-year)\b/i.test(draft.term)) {
+    return null;
+  }
+  if (formatIsoDate(today) > USTP_SUGGESTED_TERM.endDate) return null;
+  return {...USTP_SUGGESTED_TERM};
+};
+
+/**
+ * Fills only the missing class dates from the suggestion. A start date the
+ * student already chose is kept; if it is after the suggested end, the end
+ * falls back to 18 weeks after that start.
+ */
+export const fillMissingTermDates = (
+  draft: Pick<CorDraft, 'term' | 'startDate' | 'endDate'>,
+  today: Date = new Date(),
+): {startDate: string; endDate: string} => {
+  const suggestion = suggestedTermDates(draft, today);
+  const hasStart = isRealIsoDate(draft.startDate);
+  const hasEnd = isRealIsoDate(draft.endDate);
+  if (suggestion) {
+    const startDate = hasStart ? draft.startDate : suggestion.startDate;
+    const endDate = hasEnd
+      ? draft.endDate
+      : startDate <= suggestion.endDate
+      ? suggestion.endDate
+      : semesterTermDates(parseIsoDate(startDate)).endDate;
+    return {startDate, endDate};
+  }
+  if (hasStart && !hasEnd) {
+    return {
+      startDate: draft.startDate,
+      endDate: semesterTermDates(parseIsoDate(draft.startDate)).endDate,
+    };
+  }
+  const fallback = semesterTermDates(today);
+  return {
+    startDate: hasStart ? draft.startDate : fallback.startDate,
+    endDate: hasEnd ? draft.endDate : fallback.endDate,
+  };
+};
+
 export const acknowledgeOverlap = (draft: CorDraft, key: string): CorDraft =>
   draft.acknowledgedOverlaps.includes(key)
     ? draft

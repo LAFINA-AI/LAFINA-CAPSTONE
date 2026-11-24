@@ -36,6 +36,11 @@ export interface ChatMessage {
   attachment?: ChatAttachment | null;
   /** Handbook citation label persisted with the reply (schema 18+). */
   handbookNote?: string | null;
+  /**
+   * The on-device passages that note cites, for "See passages". Kept on
+   * this phone only: chat sync sends the note, not these ids.
+   */
+  sourcePassageIds?: string[];
   /** True for an assistant reply written on the device, not by DeepSeek. */
   localReply?: boolean;
   /** A live voice-conversation answer the student interrupted before it finished. */
@@ -85,6 +90,7 @@ export interface ChatReviewResolution {
 
 export interface ChatMessageMetadata {
   handbookNote?: string | null;
+  sourcePassageIds?: string[];
   /** Marks an on-device reply so it is never sent to DeepSeek as its own words. */
   localReply?: boolean;
   /** Saved from a live voice conversation and not heard to the end. */
@@ -163,6 +169,20 @@ const extractHandbookNote = (
 ): string | null => {
   const note = metadata?.handbookNote;
   return typeof note === 'string' && note ? note : null;
+};
+
+/** Passage ids saved with a reply: short strings, at most twelve. */
+const extractPassageIds = (
+  metadata: Record<string, unknown> | null,
+): string[] => {
+  const value = metadata?.sourcePassageIds;
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (id): id is string =>
+        typeof id === 'string' && id.length > 0 && id.length <= 200,
+    )
+    .slice(0, 12);
 };
 
 const extractFlag = (
@@ -281,6 +301,7 @@ const mapMessage = (row: Record<string, unknown>): ChatMessage => {
     content: String(row.content ?? ''),
     attachment: parseAttachment(row.attachment_json),
     handbookNote: extractHandbookNote(metadata),
+    sourcePassageIds: extractPassageIds(metadata),
     localReply: extractFlag(metadata, 'localReply'),
     voiceInterrupted: extractFlag(metadata, 'voiceInterrupted'),
     memoryChanges: extractMemoryChanges(metadata),
@@ -1010,9 +1031,15 @@ export const chatStore = {
         throw new ChatLimitReachedError();
       }
       const now = new Date().toISOString();
+      const passageIds = extractPassageIds(
+        (msg.metadata as Record<string, unknown> | undefined) ?? null,
+      );
       const metadataValue = {
         ...(msg.metadata?.handbookNote
           ? {handbookNote: msg.metadata.handbookNote}
+          : {}),
+        ...(msg.metadata?.handbookNote && passageIds.length > 0
+          ? {sourcePassageIds: passageIds}
           : {}),
         ...(msg.metadata?.localReply ? {localReply: true} : {}),
         ...(msg.metadata?.voiceInterrupted ? {voiceInterrupted: true} : {}),
@@ -1055,6 +1082,7 @@ export const chatStore = {
         content: msg.content,
         attachment: msg.attachment || null,
         handbookNote: msg.metadata?.handbookNote || null,
+        sourcePassageIds: msg.metadata?.handbookNote ? passageIds : [],
         localReply: msg.metadata?.localReply === true,
         voiceInterrupted: msg.metadata?.voiceInterrupted === true,
         memoryChanges: msg.metadata?.memoryChanges ?? null,

@@ -6,12 +6,7 @@
  */
 
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {CalendarDays, CheckCircle2, Clock, Circle} from 'lucide-react-native';
 import {Fonts, FontSize, Layout, Spacing} from '../../../theme';
 import {useTheme} from '../../../contexts/ThemeContext';
@@ -21,6 +16,8 @@ import type {ThemeColors} from '../../../contexts/ThemeContext';
 export interface AgendaItem {
   id?: string;
   title: string;
+  /** A short second line, e.g. "Task · due Wed, Nov 25". */
+  meta?: string;
   type: 'event' | 'task' | 'block';
   time?: string;
   endTime?: string;
@@ -64,9 +61,7 @@ export const AgendaCard: React.FC<AgendaCardProps> = ({
         >
           Agenda
         </Text>
-        <Text style={[styles.dateText, themed.secondaryText]}>
-          {data.date}
-        </Text>
+        <Text style={[styles.dateText, themed.primaryText]}>{data.date}</Text>
       </View>
 
       {!hasItems ? (
@@ -74,7 +69,7 @@ export const AgendaCard: React.FC<AgendaCardProps> = ({
           style={[styles.emptyText, themed.secondaryText]}
           testID={`${testIDPrefix}-empty`}
         >
-          No scheduled events or tasks for this date.
+          No scheduled events or tasks for this date. You're free!
         </Text>
       ) : (
         <View style={styles.itemsList} testID={`${testIDPrefix}-items`}>
@@ -83,6 +78,8 @@ export const AgendaCard: React.FC<AgendaCardProps> = ({
               ? item.endTime
                 ? `${item.time} - ${item.endTime}`
                 : item.time
+              : item.type === 'task'
+              ? 'Any time'
               : 'All day';
 
             return (
@@ -93,26 +90,43 @@ export const AgendaCard: React.FC<AgendaCardProps> = ({
               >
                 {item.type === 'task' ? (
                   item.completed ? (
-                    <CheckCircle2 size={14} color={colors.success} />
+                    <CheckCircle2
+                      size={15}
+                      color={colors.success}
+                      style={styles.itemIcon}
+                    />
                   ) : (
-                    <Circle size={14} color={colors.textSecondary} />
+                    <Circle
+                      size={15}
+                      color={colors.textSecondary}
+                      style={styles.itemIcon}
+                    />
                   )
                 ) : (
-                  <Clock size={14} color={colors.primary} />
+                  <Clock
+                    size={15}
+                    color={colors.primary}
+                    style={styles.itemIcon}
+                  />
                 )}
-                <Text style={[styles.itemTime, themed.secondaryText]}>
-                  {timeStr}
-                </Text>
-                <Text
-                  style={[
-                    styles.itemTitle,
-                    themed.primaryText,
-                    item.completed && styles.completedTitle,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.title}
-                </Text>
+                <View style={styles.itemTextCol}>
+                  <Text
+                    style={[
+                      styles.itemTitle,
+                      themed.primaryText,
+                      item.completed && styles.completedTitle,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.itemTime, themed.secondaryText]}>
+                    <Text style={[styles.itemTimeStrong, themed.primaryText]}>
+                      {timeStr}
+                    </Text>
+                    {item.meta ? `  ·  ${item.meta}` : ''}
+                  </Text>
+                </View>
               </View>
             );
           })}
@@ -182,6 +196,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
+    fontWeight: '700',
     marginLeft: 'auto',
   },
   emptyText: {
@@ -192,22 +207,32 @@ const styles = StyleSheet.create({
   },
   itemsList: {
     marginVertical: Spacing.xs,
-    gap: Spacing.xs,
+    gap: 10,
   },
   itemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  itemIcon: {
+    marginTop: 3,
+  },
+  itemTextCol: {
+    flex: 1,
+    gap: 2,
   },
   itemTime: {
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
-    width: 80,
+  },
+  itemTimeStrong: {
+    fontWeight: '600',
   },
   itemTitle: {
     fontFamily: Fonts.body,
     fontSize: FontSize.body,
-    flex: 1,
+    fontWeight: '700',
+    lineHeight: 20,
   },
   completedTitle: {
     textDecorationLine: 'line-through',
@@ -237,4 +262,3 @@ const styles = StyleSheet.create({
     fontSize: FontSize.body,
   },
 });
-

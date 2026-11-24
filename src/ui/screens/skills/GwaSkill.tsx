@@ -144,7 +144,7 @@ export function GwaSkill({userId}: {userId: string}) {
             db.transactionSync(() => {
               db.executeSync(
                 'DELETE FROM local_settings WHERE user_id = ? AND key = ?',
-                [userId, `skills.gwa.${encodeURIComponent(target)}`],
+                [userId, `skills.gwa.${encodeURIComponent(target)}.v1`],
               );
               writeSkillState(userId, 'gwa.semesters', nextSemesters);
               writeSkillState(userId, 'gwa.lastSemester', fallbackTerm);

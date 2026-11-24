@@ -84,6 +84,7 @@ import {ChatReplyText} from '../chat/ChatReplyText';
 import {useChatReplyFormat} from '../../hooks/useChatReplyFormat';
 import {ttsService} from '../../../ai/tts/ttsService';
 import {formatCallReplyMarkdown, generateId} from '../../../utils';
+import {hideVendorNames} from '../../../utils/vendorNames';
 import {
   groundedVoiceDraft,
   isVoiceScheduleStart,
@@ -3247,7 +3248,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                       ? modernPalette.blueSoft
                       : `${colors.blue}16`,
                     title: 'Knows your upcoming plans',
-                    body: 'Uses a short summary of your next 7 days, recent notes and saved memories so answers fit your schedule. Answered reminder calls use the same online voice and also share that reminder.',
+                    body: 'LAFINA looks at your next 7 days, recent notes and saved memories so its answers fit your schedule. Reminder calls also share that reminder.',
                   },
                   {
                     key: 'control',
@@ -3805,7 +3806,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   style={[styles.cardBody, styles.flex, themed.text]}
                   testID="voice-conversation-problem-text"
                 >
-                  {failure ? failure.message : snapshot.restartReason}
+                  {failure
+                    ? hideVendorNames(failure.message)
+                    : snapshot.restartReason}
                 </Text>
               </View>
               {failure?.kind === 'online_mode_required' ? (

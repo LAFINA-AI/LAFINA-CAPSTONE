@@ -244,7 +244,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 </Text>
               </View>
               <Text style={[styles.corBoxDesc, themed.stepDesc]}>
-                Upload your USTP Certificate of Registration (PDF or screenshot). LAFINA will extract your student profile, subjects, section, rooms, and faculty into your Calendar and memory.
+                Upload your USTP COR (PDF or screenshot). LAFINA adds your classes to your calendar.
               </Text>
 
               <TouchableOpacity
@@ -769,9 +769,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
           </View>
           <Text style={[styles.stepTitle, themed.stepTitle]}>Ready to Sync</Text>
           <Text style={[styles.stepDesc, themed.stepDesc]}>
-            We've created a baseline configuration. LAFINA will now learn from your daily schedule
-            choices, phone call reminder responses, and voice scheduler tasks to offer adaptive
-            scheduling.
+            You're all set! LAFINA will learn your habits over time to remind you at better times.
           </Text>
 
           <View style={[styles.summaryCard, themed.summaryCard]}>

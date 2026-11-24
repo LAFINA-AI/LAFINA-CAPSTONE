@@ -552,7 +552,7 @@ describe('voice conversation controller: lifecycle', () => {
     const {controller, calls} = setup({voice: () => null});
     await controller.start();
     expect(calls.createSession[0].voiceId).toBeNull();
-    expect(controller.getSnapshot().voiceName).toBe('Server default voice');
+    expect(controller.getSnapshot().voiceName).toBe('Default voice');
   });
 
   it('ending while the session is being created closes it and never opens the microphone', async () => {
@@ -1434,7 +1434,7 @@ describe('quiet opening (reminder call: the app already read the reminder)', () 
     controller.dispose();
   });
 
-  it('answers normally from the student\'s first spoken words', async () => {
+  it("answers normally from the student's first spoken words", async () => {
     const {controller, deps, message} = setup();
     deps.quietOpening = true;
     await controller.start();
@@ -1456,9 +1456,13 @@ describe('quiet opening (reminder call: the app already read the reminder)', () 
     await controller.sendText('What else is due today?');
     message(agentFinal('Your lab report is due at 5 PM.', 60));
     expect(
-      controller.getSnapshot().turns.some(
-        t => t.role === 'assistant' && t.text === 'Your lab report is due at 5 PM.',
-      ),
+      controller
+        .getSnapshot()
+        .turns.some(
+          t =>
+            t.role === 'assistant' &&
+            t.text === 'Your lab report is due at 5 PM.',
+        ),
     ).toBe(true);
     controller.dispose();
   });
@@ -1476,8 +1480,8 @@ describe('quiet opening (reminder call: the app already read the reminder)', () 
 });
 
 describe('opening line', () => {
-  const allowOpening = (): VoiceConversationDeps['api']['capabilities'] =>
-    async () => ({
+  const allowOpening =
+    (): VoiceConversationDeps['api']['capabilities'] => async () => ({
       ok: true,
       data: {
         enabled: true,
@@ -1544,4 +1548,59 @@ describe('opening line', () => {
     expect(broken.controller.getSnapshot().phase).toBe('listening');
     broken.controller.end();
   });
+});
+
+test.each(['owner', 'mode', 'consent'] as const)(
+  'revoking %s during session creation never opens native audio',
+  async revoked => {
+    let owner = true,
+      mode = true,
+      consent = true;
+    const pending = deferred<ApiOutcome<VoiceSessionGrant>>();
+    const {controller, calls} = setup({
+      gates: {
+        isSignedInOwner: () => owner,
+        isOnlineMode: () => mode,
+        hasConsent: () => consent,
+      },
+      createSession: () => pending.promise,
+    });
+    const start = controller.start();
+    await flush();
+    if (revoked === 'owner') owner = false;
+    if (revoked === 'mode') mode = false;
+    if (revoked === 'consent') consent = false;
+    pending.resolve({ok: true, data: grant()});
+    await start;
+    expect(calls.transportStart).toHaveLength(0);
+    expect(controller.getSnapshot().failure?.kind).toBe(
+      revoked === 'owner'
+        ? 'signin_required'
+        : revoked === 'mode'
+        ? 'online_mode_required'
+        : 'consent_required',
+    );
+    expect(calls.end).toHaveLength(1);
+    controller.dispose();
+  },
+);
+
+test('turning Online Mode off during connectivity checking does not request microphone access or server capability', async () => {
+  let onlineMode = true;
+  const network = deferred<boolean>();
+  const permission = jest.fn(async () => true);
+  const {controller, calls} = setup({
+    gates: {
+      isOnlineMode: () => onlineMode,
+      isOnline: () => network.promise,
+      ensureMicPermission: permission,
+    },
+  });
+  const start = controller.start();
+  onlineMode = false;
+  network.resolve(true);
+  await start;
+  expect(permission).not.toHaveBeenCalled();
+  expect(calls.capabilities).toBe(0);
+  controller.dispose();
 });

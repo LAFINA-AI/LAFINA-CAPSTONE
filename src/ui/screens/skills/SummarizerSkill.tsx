@@ -112,8 +112,14 @@ export function SummarizerSkill({
   const makeCards = () => {
     if (!result || savedCardsKey === result.text) return;
     const targetResult = result;
-    void cards.run(async () => {
-      const generated = await cardsFromSource(userId, targetResult.text);
+    void cards.run(async ({signal, isCancelled}) => {
+      const generated = await cardsFromSource(
+        userId,
+        targetResult.text,
+        undefined,
+        {signal},
+      );
+      if (isCancelled()) throw new Error('Cancelled.');
       const sourceLabel = targetResult.source.label.trim();
       const enriched = generated.map(card => ({
         ...card,

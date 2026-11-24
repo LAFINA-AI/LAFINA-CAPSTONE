@@ -219,12 +219,17 @@ export const createNextRecurringReminder = (
   if (!rule) return null;
   const at = new Date(reminder.scheduledAt || reminder.triggerAt);
   if (!Number.isFinite(at.getTime())) return null;
-  const date = `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(
-    2,
-    '0',
-  )}-${String(at.getDate()).padStart(2, '0')}`;
-  const time = `${String(at.getHours()).padStart(2, '0')}:${String(
-    at.getMinutes(),
+  const storedOrigin = /\[RRULE-START:([^\]]+)\]/.exec(
+    reminder.description || '',
+  )?.[1];
+  const origin = storedOrigin ? new Date(storedOrigin) : at;
+  if (!Number.isFinite(origin.getTime())) return null;
+  const leadMs = Math.max(0, at.getTime() - Date.parse(reminder.triggerAt));
+  const date = `${origin.getFullYear()}-${String(
+    origin.getMonth() + 1,
+  ).padStart(2, '0')}-${String(origin.getDate()).padStart(2, '0')}`;
+  const time = `${String(origin.getHours()).padStart(2, '0')}:${String(
+    origin.getMinutes(),
   ).padStart(2, '0')}`;
   const nextDay = new Date(at);
   nextDay.setDate(nextDay.getDate() + 1);
@@ -251,21 +256,24 @@ export const createNextRecurringReminder = (
   const until = new Date(from);
   until.setDate(until.getDate() + searchDays);
   const nextDate = getOccurrences(date, rule, from, until).find(
-    day => !floor || new Date(`${day}T${time}:00`).getTime() > floor.getTime(),
+    day =>
+      !floor ||
+      new Date(`${day}T${time}:00`).getTime() - leadMs > floor.getTime(),
   );
   if (!nextDate) return null;
   // Never a second copy of the same occurrence (a sweep after a miss, then
   // a late acknowledge of a stale call).
   const nextAt = new Date(`${nextDate}T${time}:00`).toISOString();
+  const triggerAt = new Date(Date.parse(nextAt) - leadMs).toISOString();
   const existing = tx.executeSync(
     `SELECT id FROM reminders WHERE user_id = ? AND task = ? AND trigger_at = ? AND deleted_at IS NULL AND status IN ('pending','snoozed','triggered') LIMIT 1`,
-    [userId, reminder.task, nextAt],
+    [userId, reminder.task, triggerAt],
   ).rows;
   if (existing && existing.length > 0) return null;
   const next = {
     id: generateId('rem'),
     task: reminder.task,
-    triggerAt: nextAt,
+    triggerAt,
   };
   const source = resolveReminderSource(tx, reminder);
   remindersStore.insertReminder(
@@ -273,8 +281,16 @@ export const createNextRecurringReminder = (
       id: next.id,
       userId,
       task: next.task,
-      description: reminder.description,
-      scheduledAt: next.triggerAt,
+      description:
+        !storedOrigin &&
+        (parsedRule?.count != null ||
+          parsedRule?.freq === 'MONTHLY' ||
+          parsedRule?.freq === 'YEARLY')
+          ? `${
+              reminder.description || ''
+            } [RRULE-START:${origin.toISOString()}]`
+          : reminder.description,
+      scheduledAt: nextAt,
       triggerAt: next.triggerAt,
       status: 'pending',
       preCastAudioPath: null,

@@ -96,6 +96,10 @@ import type {
 import {ChatMessageItem} from '../components/chat/ChatMessageItem';
 import {ChatHistorySheet} from '../components/chat/ChatHistorySheet';
 import {
+  UstpSourcesSheet,
+  type UstpSourcesTarget,
+} from '../components/chat/UstpSourcesSheet';
+import {
   getConfirmedAcademicProfile,
   getUstpEligibility,
   ustpUnavailableMessage,
@@ -128,6 +132,7 @@ import {useDraftProtection} from '../hooks/useDraftProtection';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
 import {chatDraftStore} from '../drafts/chatDraftStore';
+import {captureOwnerWork} from '../../storage/ownerWorkEpoch';
 import {shareAttachment} from '../components/chat/chatFiles';
 import {ToolSheet} from '../components/tools';
 import {MultiActionCard} from '../components/callLafina/cards/MultiActionCard';
@@ -344,7 +349,10 @@ interface ChatComposerProps {
   isOnlineMode: boolean;
   isUstpChat: boolean;
   schoolEnabled: boolean;
-  onSendText: (overrideText?: string, sendOptions?: {preserveDraft?: boolean}) => void;
+  onSendText: (
+    overrideText?: string,
+    sendOptions?: {preserveDraft?: boolean},
+  ) => void;
   onCallLafina?: () => void;
   onOpenFormatPicker?: () => void;
   onInputFocus: () => void;
@@ -401,7 +409,7 @@ const ChatComposer = React.memo(function ChatComposerView({
       showSuggestions={false}
       placeholderOverride={
         isUstpChat && schoolEnabled
-          ? 'Ask anything about the USTP Handbook…'
+          ? 'Ask about USTP policies, dates, offices…'
           : undefined
       }
       onFocus={onInputFocus}
@@ -639,6 +647,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
     useState<DeviceAiRecommendation | null>(null);
   const [localHandbookStatus, setLocalHandbookStatus] =
     useState<LocalHandbookStatus>(() => localHandbookService.getStatus());
+  // "See passages" under an answer, or the whole USTP sources library.
+  const [sourcesTarget, setSourcesTarget] = useState<UstpSourcesTarget | null>(
+    null,
+  );
+  const handleViewSources = useCallback((item: ChatMessage) => {
+    setSourcesTarget({kind: 'used', passageIds: item.sourcePassageIds ?? []});
+  }, []);
   const modelsStatusRef = useRef<ModelStatus[]>(modelsStatus);
   modelsStatusRef.current = modelsStatus;
   const [studentName, setStudentName] = useState(() =>
@@ -784,7 +799,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   // AGY-PORT 05: Android back with unsent text asks first (default keeps it).
   const readDraft = useCallback(() => chatDraftStore.get(userId), [userId]);
-  const clearDraft = useCallback(() => chatDraftStore.set(userId, ''), [userId]);
+  const clearDraft = useCallback(
+    () => chatDraftStore.set(userId, ''),
+    [userId],
+  );
   const replaceDraft = useCallback(
     (next: string) => chatDraftStore.set(userId, next),
     [userId],
@@ -1129,7 +1147,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
       // Avoid redundant re-authorization on <Activity> warm return when already
       // connected, opted-in, online, and verified for this user.
-      if (isInitialFetch && lastNetConnectivityRef.current === isDeviceConnected) {
+      if (
+        isInitialFetch &&
+        lastNetConnectivityRef.current === isDeviceConnected
+      ) {
         if (
           isDeviceConnected &&
           optedIn() &&
@@ -1646,6 +1667,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
     const requestUser = userId;
     const requestChatId = shownChatIdRef.current;
+    const workCurrent = captureOwnerWork(requestUser);
     const tempMode = isTemporaryChatRef.current;
     const ustpMode = !tempMode && isUstpSessionId(requestChatId);
     if (!sendOptions?.preserveDraft) {
@@ -1679,11 +1701,12 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
     const showLatest = () => {
       streamFlushRef.current = null;
-      if (activeUserRef.current !== requestUser) return;
+      if (!stillShown()) return;
       setStreamingReply({text: latestText, startedAt});
     };
     let questionShown = false;
     const stillShown = () =>
+      workCurrent() &&
       activeUserRef.current === requestUser &&
       shownChatIdRef.current === requestChatId &&
       isTemporaryChatRef.current === tempMode;
@@ -1695,6 +1718,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       loadMessages();
     };
     const onReplyText = (replySoFar: string) => {
+      if (!stillShown()) return;
       latestText = replySoFar;
       if (!shownFirst) {
         // The question is saved before the reply starts; show it above.
@@ -1752,7 +1776,14 @@ export const ChatScreen = React.memo(function ChatScreenView({
       }
       // If the account changed while the reply was pending, the reply was saved
       // for the account that sent it and must not appear in this one.
-      if (activeUserRef.current !== requestUser) return;
+      if (!stillShown()) {
+        if (result.review?.status === 'proposal')
+          cancelReviewedCommand(
+            requestUser,
+            result.review.proposal.operationId,
+          );
+        return;
+      }
       setUndoOffer(result.undo ?? null);
       setSkillOffer(result.skillLaunch ?? null);
       if (result.handbookNote && result.assistantMessage) {
@@ -1814,6 +1845,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
         );
         trace.finalize();
       }
+      if (
+        (err instanceof Error && err.name === 'ChatRequestCancelledError') ||
+        !stillShown()
+      )
+        return;
       if (tempMode && userTempMsg && activeUserRef.current === requestUser) {
         const failedId = userTempMsg.id;
         setTempMessages(prev => prev.filter(msg => msg.id !== failedId));
@@ -2207,10 +2243,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
             testID="chat-sync-notice"
           >
             <Text style={[styles.noticeText, themed.emptySubtitle]}>
-              Your chats are now saved to your LAFINA account, so they appear on
-              your other phones and come back if you reinstall. Chats you write
-              offline sync when you reconnect. Attached files stay on this phone.
-              You can change this in Preferences.
+              Your chats are now saved to your account, so they show up on your
+              other phones. Attached files stay on this phone. You can change
+              this in Preferences.
             </Text>
             <View style={styles.noticeActions}>
               <TouchableOpacity
@@ -2246,9 +2281,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
             testID="chat-legacy-notice"
           >
             <Text style={[styles.noticeText, themed.emptySubtitle]}>
-              Some chat history saved before accounts were kept separate could
-              not be matched to a single account. It is still stored on this
-              device, hidden from every account, and nothing was deleted.
+              Some old chats could not be matched to an account. They are still
+              on this phone, hidden, and nothing was deleted.
             </Text>
             <TouchableOpacity
               onPress={() => dismissLegacyNoticeRef.current()}
@@ -2438,7 +2472,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
         <View style={styles.emptyContainer} testID="chat-empty-state">
           <View style={styles.greetingBlock}>
             <Text style={[styles.greetingEyebrow, {color: subtitleColor}]}>
-              USTP Academic Policy & Handbook
+              USTP policies, dates and offices
             </Text>
             <Text style={[styles.greetingTitle, {color: greetingColor}]}>
               Ask LAFINA anything about USTP
@@ -2466,9 +2500,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
             >
               <BookOpen size={13} color={accentColor} />
               <Text style={[styles.mascotModeTagText, {color: accentColor}]}>
-                {localHandbookStatus.populated
-                  ? 'Local FTS5 Ready'
-                  : 'USTP Handbook'}
+                {localHandbookStatus.populated ? 'Works offline' : 'Ask USTP'}
               </Text>
             </View>
           </View>
@@ -2488,7 +2520,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
                   void handleToggleOnlineRef.current();
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="Enable Online Mode for USTP Handbook lookup"
+                accessibilityLabel="Turn on Online AI for Ask USTP"
                 testID="chat-ustp-enable-online"
                 activeOpacity={0.75}
               >
@@ -2496,11 +2528,23 @@ export const ChatScreen = React.memo(function ChatScreenView({
                   style={[styles.ustpOnlineBannerText, {color: accentColor}]}
                 >
                   {localHandbookStatus.populated
-                    ? `Offline USTP Handbook ready (${localHandbookStatus.chunkCount} sections) · Tap to turn on Online AI`
-                    : 'Online Mode is off · Tap to enable USTP lookup'}
+                    ? `Works offline · Student Handbook (${localHandbookStatus.chunkCount} sections) + USTP CDO info · Tap to turn on Online AI`
+                    : 'Online Mode is off · Tap to turn on Ask USTP'}
                 </Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={styles.ustpSourcesLink}
+              onPress={() => setSourcesTarget({kind: 'library'})}
+              accessibilityRole="button"
+              accessibilityLabel="Browse every USTP source LAFINA answers from"
+              testID="chat-ustp-browse-sources"
+            >
+              <BookOpen size={13} color={accentColor} />
+              <Text style={[styles.ustpSourcesLinkText, {color: accentColor}]}>
+                Browse every source
+              </Text>
+            </TouchableOpacity>
             {renderSampleGrid(USTP_SAMPLE_CARDS, 'chat-ustp-prompt-chip')}
           </View>
         </View>
@@ -2668,17 +2712,21 @@ export const ChatScreen = React.memo(function ChatScreenView({
         item={item}
         replyFormat={replyFormat}
         handbookNote={
-          schoolEnabled ? item.handbookNote ?? handbookNotes[item.id] : undefined
+          schoolEnabled
+            ? item.handbookNote ?? handbookNotes[item.id]
+            : undefined
         }
         onUndoMemory={handleUndoMemory}
         onOpenAttachment={handleOpenAttachment}
         timingLabel={perfOn ? timingLabels[item.id] : undefined}
+        onViewSources={schoolEnabled ? handleViewSources : undefined}
       />
     ),
     [
       handbookNotes,
       handleOpenAttachment,
       handleUndoMemory,
+      handleViewSources,
       perfOn,
       replyFormat,
       schoolEnabled,
@@ -2758,7 +2806,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
           ]}
           onPress={() => setHistoryVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Open chats, USTP Handbook, and skills sidebar"
+          accessibilityLabel="Open chats, Ask USTP, and skills sidebar"
           testID="chat-history-button"
         >
           <Menu size={20} color={themed.headerTitle.color} strokeWidth={2.2} />
@@ -2898,12 +2946,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
                 {chatTitle &&
                 chatTitle !== 'New chat' &&
                 chatTitle !== 'Ask LAFINA about USTP'
-                  ? localHandbookStatus.populated
-                    ? `Offline USTP Handbook · ${chatTitle}`
-                    : `USTP Handbook · ${chatTitle}`
-                  : localHandbookStatus.populated
-                  ? 'Offline USTP Handbook'
-                  : 'USTP Handbook'}
+                  ? `Ask USTP · ${chatTitle}`
+                  : 'Ask USTP'}
               </Text>
             </View>
           ) : isTemporaryChat ? (
@@ -2973,7 +3017,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
           maxToRenderPerBatch={6}
           windowSize={7}
           // Switching the reply format or chat mode redraws replies/empty state.
-          extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${studentName}:${modernTheme}:${isDarkMode}:${perfOn ? Object.keys(timingLabels)[0] ?? "" : ""}`}
+          extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${studentName}:${modernTheme}:${isDarkMode}:${
+            perfOn ? Object.keys(timingLabels)[0] ?? '' : ''
+          }`}
           keyExtractor={flatListKeyExtractor}
           style={styles.messagesList}
           keyboardShouldPersistTaps="handled"
@@ -3162,6 +3208,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
             onClose={() => setHistoryVisible(false)}
             onChanged={showCurrentChat}
             onStartUstpChat={handleStartUstpChat}
+            onOpenUstpSources={() => {
+              setHistoryVisible(false);
+              setSourcesTarget({kind: 'library'});
+            }}
             ustpAvailable={schoolEnabled}
             onStartTemporaryChat={handleStartTemporaryFromSidebar}
             onScanCamera={() => {
@@ -3176,6 +3226,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
               setHistoryVisible(false);
               setGuideVisible(true);
             }}
+          />
+        ) : null}
+
+        {schoolEnabled ? (
+          <UstpSourcesSheet
+            target={sourcesTarget}
+            onClose={() => setSourcesTarget(null)}
           />
         ) : null}
 
@@ -3512,6 +3569,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 4,
+  },
+  ustpSourcesLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  ustpSourcesLinkText: {
+    fontFamily: Fonts.body,
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   ustpOnlineBannerText: {
     fontFamily: Fonts.heading,

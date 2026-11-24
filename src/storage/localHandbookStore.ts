@@ -1,6 +1,54 @@
 import {db} from './database';
 import {createHandbookFtsIndex, handbookFtsIndexExists} from './handbookSchema';
 
+/**
+ * The corpora kept in the one on-device index: the 2023 USTP Student Handbook
+ * and the USTP Cagayan de Oro knowledge pack (calendar, admissions, offices,
+ * services; `scripts/build_campus_knowledge_pack.py`).
+ */
+export type KnowledgeCollection = 'handbook' | 'ustp_cdo';
+
+export const KNOWLEDGE_COLLECTIONS: readonly KnowledgeCollection[] = [
+  'handbook',
+  'ustp_cdo',
+];
+
+/** An official page or document a knowledge chunk cites. Always https. */
+export interface KnowledgeSourceRef {
+  id: string;
+  title: string;
+  url: string;
+  /** PDF pages of this document the passage cites (the academic calendar). */
+  pages?: number[];
+}
+
+/** A known inconsistency in the sources that an answer must disclose. */
+export interface KnowledgeCaveat {
+  id: string;
+  text: string;
+}
+
+export type KnowledgeVolatility = 'low' | 'medium' | 'high';
+export type KnowledgeTerm = 'first' | 'second' | 'midyear';
+export type KnowledgeScope = 'UG' | 'GR';
+
+/** Provenance of a knowledge-pack chunk (null for handbook chunks). */
+export interface KnowledgeChunkMeta {
+  doc: string | null;
+  category: string | null;
+  asOf: string | null;
+  volatility: KnowledgeVolatility | null;
+  /** Academic years the chunk belongs to, e.g. ['2026-2027']. */
+  academicYears: string[];
+  term: KnowledgeTerm | null;
+  scope: KnowledgeScope | null;
+  pdfPages: number[];
+  sources: KnowledgeSourceRef[];
+  caveats: KnowledgeCaveat[];
+  /** Acronyms this passage writes out in full: {CITC: "College of …"}. */
+  aliases?: Record<string, string>;
+}
+
 export interface HandbookPackChunk {
   id: string;
   seq: number;
@@ -10,6 +58,8 @@ export interface HandbookPackChunk {
   sourceLabel: string;
   keywords?: string;
   content: string;
+  collection?: KnowledgeCollection;
+  meta?: KnowledgeChunkMeta | null;
 }
 
 export interface HandbookPack {
@@ -42,6 +92,8 @@ export interface HandbookFtsHit {
   keywords: string;
   content: string;
   bm25Score: number;
+  collection: KnowledgeCollection;
+  meta: KnowledgeChunkMeta | null;
 }
 
 const INSERT_BATCH_SIZE = 25;
@@ -56,6 +108,91 @@ function asNullableString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+const asCollection = (value: unknown): KnowledgeCollection =>
+  value === 'ustp_cdo' ? 'ustp_cdo' : 'handbook';
+
+/** Only an absolute https link is ever shown as a source. */
+const isSafeSourceUrl = (value: unknown): value is string =>
+  typeof value === 'string' && /^https:\/\/[^\s<>"'()]+$/i.test(value.trim());
+
+/** Validates chunk provenance; anything malformed is dropped, never guessed. */
+export function parseKnowledgeMeta(raw: unknown): KnowledgeChunkMeta | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const r = raw as Record<string, unknown>;
+  const sources: KnowledgeSourceRef[] = [];
+  for (const item of Array.isArray(r.sources) ? r.sources : []) {
+    if (!item || typeof item !== 'object') continue;
+    const src = item as Record<string, unknown>;
+    const title = asTrimmedString(src.title);
+    if (!title || !isSafeSourceUrl(src.url)) continue;
+    const pages = (Array.isArray(src.pages) ? src.pages : []).filter(
+      (p): p is number => typeof p === 'number' && Number.isInteger(p) && p > 0,
+    );
+    sources.push({
+      id: asTrimmedString(src.id) || title,
+      title,
+      url: src.url.trim(),
+      ...(pages.length > 0 ? {pages} : {}),
+    });
+  }
+  const caveats: KnowledgeCaveat[] = [];
+  for (const item of Array.isArray(r.caveats) ? r.caveats : []) {
+    if (!item || typeof item !== 'object') continue;
+    const cav = item as Record<string, unknown>;
+    const text = asTrimmedString(cav.text);
+    if (text) caveats.push({id: asTrimmedString(cav.id) || 'caveat', text});
+  }
+  const asOf = asNullableString(r.asOf);
+  const aliases: Record<string, string> = {};
+  if (r.aliases && typeof r.aliases === 'object') {
+    for (const [acronym, name] of Object.entries(
+      r.aliases as Record<string, unknown>,
+    )) {
+      if (/^[A-Z]{2,8}$/.test(acronym) && typeof name === 'string' && name.trim()) {
+        aliases[acronym] = name.trim();
+      }
+    }
+  }
+  return {
+    ...(Object.keys(aliases).length > 0 ? {aliases} : {}),
+    doc: asNullableString(r.doc),
+    category: asNullableString(r.category),
+    asOf: asOf && /^\d{4}-\d{2}-\d{2}$/.test(asOf) ? asOf : null,
+    volatility:
+      r.volatility === 'low' ||
+      r.volatility === 'medium' ||
+      r.volatility === 'high'
+        ? r.volatility
+        : null,
+    academicYears: (Array.isArray(r.academicYears) ? r.academicYears : []).filter(
+      (y): y is string => typeof y === 'string' && /^\d{4}-\d{4}$/.test(y),
+    ),
+    term:
+      r.term === 'first' || r.term === 'second' || r.term === 'midyear'
+        ? r.term
+        : null,
+    scope: r.scope === 'UG' || r.scope === 'GR' ? r.scope : null,
+    pdfPages: (Array.isArray(r.pdfPages) ? r.pdfPages : []).filter(
+      (p): p is number => typeof p === 'number' && Number.isInteger(p) && p > 0,
+    ),
+    sources,
+    caveats,
+  };
+}
+
+function parseMetaJson(value: unknown): KnowledgeChunkMeta | null {
+  if (typeof value !== 'string' || !value) {
+    return null;
+  }
+  try {
+    return parseKnowledgeMeta(JSON.parse(value));
+  } catch {
+    return null;
+  }
 }
 
 export function parseHandbookPack(raw: unknown): HandbookPack | null {
@@ -99,6 +236,7 @@ export function parseHandbookPack(raw: unknown): HandbookPack | null {
     const pageLabel = asNullableString(c.pageLabel);
     const chunkSource = asTrimmedString(c.sourceLabel) || sourceLabel;
     const keywords = asTrimmedString(c.keywords);
+    const collection = asCollection(c.collection ?? record.collection);
     chunks.push({
       id,
       seq,
@@ -108,6 +246,8 @@ export function parseHandbookPack(raw: unknown): HandbookPack | null {
       sourceLabel: chunkSource,
       keywords,
       content,
+      collection,
+      meta: collection === 'ustp_cdo' ? parseKnowledgeMeta(c.meta) : null,
     });
   }
 
@@ -123,6 +263,15 @@ export function parseHandbookPack(raw: unknown): HandbookPack | null {
   };
 }
 
+/** One chapter (handbook) or document (campus pack) in the sources library. */
+export interface KnowledgeChapter {
+  chapter: string;
+  passageCount: number;
+}
+
+const PASSAGE_COLUMNS =
+  'id, seq, chapter, section, page_label, source_label, keywords, content, collection, meta_json';
+
 function mapHitRow(row: Record<string, unknown>): HandbookFtsHit {
   return {
     id: String(row.id),
@@ -137,6 +286,8 @@ function mapHitRow(row: Record<string, unknown>): HandbookFtsHit {
     keywords: typeof row.keywords === 'string' ? row.keywords : '',
     content: String(row.content),
     bm25Score: Number(row.bm25_score ?? 0),
+    collection: asCollection(row.collection),
+    meta: parseMetaJson(row.meta_json),
   };
 }
 
@@ -166,6 +317,119 @@ export const localHandbookStore = {
     }
   },
 
+  /** Chapters (handbook) or documents (campus pack) of one corpus, in order. */
+  listChapters(collection: KnowledgeCollection): KnowledgeChapter[] {
+    try {
+      const res = db.executeSync(
+        `SELECT chapter, MIN(seq) AS first_seq, COUNT(*) AS n
+         FROM handbook_chunks
+         WHERE collection = ?
+         GROUP BY chapter
+         ORDER BY first_seq ASC`,
+        [collection],
+      );
+      return res.rows.map(row => ({
+        chapter: String(row.chapter),
+        passageCount: Number(row.n ?? 0),
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  /** Every passage of one chapter or document, in reading order. */
+  listPassages(
+    collection: KnowledgeCollection,
+    chapter: string,
+  ): HandbookFtsHit[] {
+    try {
+      const res = db.executeSync(
+        `SELECT ${PASSAGE_COLUMNS}
+         FROM handbook_chunks
+         WHERE collection = ? AND chapter = ?
+         ORDER BY seq ASC`,
+        [collection, chapter],
+      );
+      return res.rows.map(row => mapHitRow(row));
+    } catch {
+      return [];
+    }
+  },
+
+  /** These passages in the given order; ids no longer indexed are skipped. */
+  getPassages(ids: readonly string[]): HandbookFtsHit[] {
+    const wanted = Array.from(new Set(ids)).slice(0, 25);
+    if (wanted.length === 0) {
+      return [];
+    }
+    try {
+      const res = db.executeSync(
+        `SELECT ${PASSAGE_COLUMNS}
+         FROM handbook_chunks
+         WHERE id IN (${wanted.map(() => '?').join(', ')})`,
+        wanted,
+      );
+      const byId = new Map(
+        res.rows.map(row => [String(row.id), mapHitRow(row)] as const),
+      );
+      return wanted
+        .map(id => byId.get(id))
+        .filter((hit): hit is HandbookFtsHit => Boolean(hit));
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Passages containing every word of `text` (plain substring match, so
+   * the student sees exactly what the words find; no ranking or synonyms).
+   */
+  searchPassages(text: string, limit = 30): HandbookFtsHit[] {
+    const words = text
+      .toLowerCase()
+      .split(/\s+/)
+      .map(word => word.trim())
+      .filter(word => word.length >= 2)
+      .slice(0, 6);
+    if (words.length === 0) {
+      return [];
+    }
+    const escape = (word: string) => word.replace(/[\\%_]/g, ch => `\\${ch}`);
+    const clauses = words.map(
+      () =>
+        "LOWER(chapter || ' ' || section || ' ' || content) LIKE ? ESCAPE '\\'",
+    );
+    try {
+      const res = db.executeSync(
+        `SELECT ${PASSAGE_COLUMNS}
+         FROM handbook_chunks
+         WHERE ${clauses.join(' AND ')}
+         ORDER BY seq ASC
+         LIMIT ?`,
+        [
+          ...words.map(word => `%${escape(word)}%`),
+          Math.max(1, Math.min(50, Math.floor(limit))),
+        ],
+      );
+      return res.rows.map(row => mapHitRow(row));
+    } catch {
+      return [];
+    }
+  },
+
+  /** Indexed passages of one corpus (the status shows handbook sections only). */
+  countChunks(collection: KnowledgeCollection): number {
+    try {
+      const res = db.executeSync(
+        'SELECT COUNT(*) AS n FROM handbook_chunks WHERE collection = ?',
+        [collection],
+      );
+      return Number(res.rows[0]?.n ?? 0);
+    } catch {
+      return 0;
+    }
+  },
+
   clearPack(): void {
     db.transactionSync(tx => {
       tx.executeSync('DELETE FROM handbook_chunks');
@@ -181,7 +445,7 @@ export const localHandbookStore = {
       for (let i = 0; i < pack.chunks.length; i += INSERT_BATCH_SIZE) {
         const batch = pack.chunks.slice(i, i + INSERT_BATCH_SIZE);
         const placeholders = batch
-          .map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)')
+          .map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
           .join(', ');
         const params: unknown[] = [];
         for (const chunk of batch) {
@@ -195,11 +459,14 @@ export const localHandbookStore = {
             chunk.keywords ?? '',
             chunk.content,
             chunk.content.length,
+            chunk.collection ?? 'handbook',
+            chunk.meta ? JSON.stringify(chunk.meta) : null,
           );
         }
         tx.executeSync(
           `INSERT INTO handbook_chunks (
-             id, seq, chapter, section, page_label, source_label, keywords, content, content_chars
+             id, seq, chapter, section, page_label, source_label, keywords, content, content_chars,
+             collection, meta_json
            ) VALUES ${placeholders}`,
           params,
         );
@@ -266,12 +533,27 @@ export const localHandbookStore = {
     return res.rows.length > 0;
   },
 
-  queryFts(matchExpression: string, limit = 8): HandbookFtsHit[] {
+  /**
+   * BM25-ranked chunks for an FTS5 expression. `collections` limits the
+   * search to some corpora (all of them when omitted or empty).
+   */
+  queryFts(
+    matchExpression: string,
+    limit = 8,
+    collections?: readonly KnowledgeCollection[],
+  ): HandbookFtsHit[] {
     const expr = matchExpression.trim();
     if (!expr) {
       return [];
     }
     const clampedLimit = Math.max(1, Math.min(25, Math.floor(limit)));
+    const wanted = (collections ?? []).filter(c =>
+      KNOWLEDGE_COLLECTIONS.includes(c),
+    );
+    const collectionFilter =
+      wanted.length > 0
+        ? `AND c.collection IN (${wanted.map(() => '?').join(', ')})`
+        : '';
     const res = db.executeSync(
       `SELECT
          c.id,
@@ -282,13 +564,15 @@ export const localHandbookStore = {
          c.source_label,
          c.keywords,
          c.content,
+         c.collection,
+         c.meta_json,
          bm25(handbook_chunks_fts, 3.0, 4.0, 2.5, 1.0) AS bm25_score
        FROM handbook_chunks_fts
        JOIN handbook_chunks c ON c.rowid = handbook_chunks_fts.rowid
-       WHERE handbook_chunks_fts MATCH ?
+       WHERE handbook_chunks_fts MATCH ? ${collectionFilter}
        ORDER BY bm25_score ASC, c.seq ASC
        LIMIT ?`,
-      [expr, clampedLimit],
+      [expr, ...wanted, clampedLimit],
     );
     return res.rows.map(row => mapHitRow(row));
   },

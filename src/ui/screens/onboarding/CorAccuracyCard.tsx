@@ -18,7 +18,7 @@ const detail = (accuracy: CorDraftAccuracy): string => {
     return 'Units match the printed total and every schedule is in the expected format. Still glance over it before adding.';
   }
   if (accuracy.level === 'checked') {
-    return 'Units match the printed total and every schedule is in the expected format. Image reading can still misspell names or rooms, so compare with the original. For the most accurate import, use the COR PDF from the student portal.';
+    return 'Everything looks right. Photos can still misspell names or rooms, so compare with your COR. The PDF from the student portal works best.';
   }
   return accuracy.method === 'pdf_text'
     ? 'These come from the COR itself. Compare them with the original:'

@@ -34,6 +34,7 @@ import type {
   MultiActionBatchData,
   MultiActionItemData,
 } from '../../../../ai/voiceActions/types';
+import {shortDate, time12} from './cardFormat';
 
 export interface MultiActionCardProps {
   batch: MultiActionBatchData;
@@ -128,7 +129,8 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
         <View style={styles.titleWithIcon}>
           <ListTodo size={18} color={colors.primary} />
           <Text style={[styles.headerTitle, themed.primaryText]}>
-            Grouped Actions ({activeItems.length})
+            {activeItems.length} {activeItems.length === 1 ? 'item' : 'items'}{' '}
+            to save
           </Text>
         </View>
         <View
@@ -180,7 +182,7 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
         >
           <AlertTriangle size={14} color={colors.warning} />
           <Text style={[styles.alertText, {color: colors.warning}]}>
-            Capped to 5 items to protect performance.
+            Only the first 5 items are shown.
           </Text>
         </View>
       )}
@@ -199,7 +201,7 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
         >
           <AlertTriangle size={14} color={colors.warning} />
           <Text style={[styles.alertText, {color: colors.warning}]}>
-            Some items are not saved. Review each status before retrying.
+            Some items did not save. Check each one, then try again.
           </Text>
         </View>
       )}
@@ -337,8 +339,13 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
                 >
                   <Calendar size={12} color={colors.textSecondary} />
                   <Text style={[styles.dateTimeText, themed.secondaryText]}>
-                    {item.date || ''} {item.time ? `at ${item.time}` : ''}
-                    {item.endTime ? ` - ${item.endTime}` : ''}
+                    <Text style={styles.dateTimeStrong}>
+                      {item.date ? shortDate(item.date) : ''}
+                    </Text>
+                    {item.time
+                      ? `${item.date ? ' at ' : ''}${time12(item.time)}`
+                      : ''}
+                    {item.endTime ? ` - ${time12(item.endTime)}` : ''}
                   </Text>
                 </View>
               )}
@@ -625,6 +632,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginTop: 2,
+  },
+  dateTimeStrong: {
+    fontWeight: '700',
   },
   dateTimeText: {
     fontFamily: Fonts.body,

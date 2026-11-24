@@ -21,6 +21,7 @@ import {
 } from '../../../skills/documentSkill';
 import {ChatReplyText} from './ChatReplyText';
 import {MemoryNote} from './MemoryNote';
+import {SourceNoteText} from './SourceNoteText';
 import {hasWideMarkdownBlock} from '../../../utils';
 import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
 
@@ -36,6 +37,8 @@ interface ChatMessageItemProps {
   onUndoMemory?: (item: ChatMessage) => void;
   /** Developer timing for this reply (Developer Mode + performance tracking only). */
   timingLabel?: string;
+  /** Opens the passages this reply's citation names ("See passages"). */
+  onViewSources?: (item: ChatMessage) => void;
 }
 
 const AttachmentIcon: React.FC<{format: string; color: string}> = ({
@@ -60,6 +63,7 @@ export const ChatMessageItem = React.memo(function MessageRow({
   replyFormat = 'markdown',
   onUndoMemory,
   timingLabel,
+  onViewSources,
 }: ChatMessageItemProps) {
   const isUser = item.sender === 'user';
   const {colors, isDarkMode, isModern, modernPalette, modernShadows} =
@@ -277,16 +281,40 @@ export const ChatMessageItem = React.memo(function MessageRow({
                 color={isModern ? modernPalette.accent : colors.textSecondary}
               />
             </View>
-            <Text
+            <SourceNoteText
+              note={handbookNote}
               style={[
                 styles.handbookText,
                 themed.assistantTime,
                 isModern && {color: modernPalette.accent, fontWeight: '600'},
               ]}
-            >
-              {handbookNote}
-            </Text>
+              linkColor={isModern ? modernPalette.accent : colors.primary}
+            />
           </View>
+        ) : null}
+
+        {!isUser &&
+        handbookNote &&
+        onViewSources &&
+        !streaming &&
+        (item.sourcePassageIds?.length ?? 0) > 0 ? (
+          <TouchableOpacity
+            style={styles.viewSourcesButton}
+            onPress={() => onViewSources(item)}
+            accessibilityRole="button"
+            accessibilityLabel="See the passages this answer used"
+            hitSlop={8}
+            testID="chat-handbook-view-sources"
+          >
+            <Text
+              style={[
+                styles.viewSourcesText,
+                {color: isModern ? modernPalette.accent : colors.primary},
+              ]}
+            >
+              See passages ›
+            </Text>
+          </TouchableOpacity>
         ) : null}
 
         {!isUser && item.voiceInterrupted ? (
@@ -461,6 +489,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     includeFontPadding: false,
+  },
+  viewSourcesButton: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingVertical: 2,
+  },
+  viewSourcesText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    fontWeight: '600',
   },
   interruptedText: {
     marginTop: 6,

@@ -74,3 +74,4 @@ CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1
 # Personal USTP COR samples (real student data) used only for local accuracy tests.
 cor-sample/
 tmp
+LAFINA_USTP_CDO_Knowledge_2026-11-24

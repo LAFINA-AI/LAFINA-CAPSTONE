@@ -1,5 +1,6 @@
 import {secureKeystore} from '../utils/keystore';
 import {userStore} from '../storage/userStore';
+import {getSessionGeneration} from '../storage/sessionEpoch';
 import {NativeModules, Platform} from 'react-native';
 
 export type CloudResultStatus =
@@ -32,6 +33,7 @@ export type RenewalOutcome = 'renewed' | 'ended' | 'failed';
 
 let inMemoryAccessToken: string | null = null;
 let inMemoryUserId: string | null = null;
+let inMemoryGeneration: number | null = null;
 export const CLOUD_API_BASE_URL = 'https://lafina-backend.vercel.app';
 export const LOCAL_API_BASE_URL = 'http://127.0.0.1:8000';
 
@@ -348,8 +350,12 @@ const renewAccessToken = (
     return outcome;
   };
   const owner = expectedOwner ?? userStore.getActiveSessionToken().userId;
+  const generation = getSessionGeneration();
+  const current = () =>
+    userStore.getActiveSessionToken().userId === owner &&
+    getSessionGeneration() === generation;
   if (!owner) return Promise.resolve(fail('ended', 'no active account'));
-  if (userStore.getActiveSessionToken().userId !== owner) {
+  if (!current()) {
     return Promise.resolve(fail('failed', 'account changed during renewal'));
   }
   const existing = renewals.get(owner);
@@ -369,7 +375,7 @@ const renewAccessToken = (
           })`,
         );
       }
-      if (userStore.getActiveSessionToken().userId !== owner) {
+      if (!current()) {
         return fail('failed', 'account changed during renewal');
       }
       if (!refreshToken)
@@ -404,7 +410,7 @@ const renewAccessToken = (
         );
       }
       // Signed out or switched account meanwhile: keep the tokens off it.
-      if (userStore.getActiveSessionToken().userId !== owner) {
+      if (!current()) {
         return fail('failed', 'account changed during renewal');
       }
       await cloudClient.establishSession(owner, access, refresh);
@@ -452,22 +458,39 @@ const withRenewal = async <T>(
     ? userStore.getActiveSessionToken().userId
     : null;
   const usedToken = requiresAuth ? cloudClient.getAccessToken() : null;
+  const generation = getSessionGeneration();
+  const current = () =>
+    !requiresAuth ||
+    (userStore.getActiveSessionToken().userId === ownerAtStart &&
+      getSessionGeneration() === generation);
   const first = await once();
+  if (!current()) return accountChangedResult();
   if (!shouldRenew(first, requiresAuth, signal)) return first;
   const outcome = await renewedSince(usedToken, ownerAtStart);
+  if (!current()) return accountChangedResult();
   if (outcome === 'ended') return {...first, sessionEnded: true};
   if (outcome === 'failed') return first;
-  if (
-    ownerAtStart &&
-    userStore.getActiveSessionToken().userId !== ownerAtStart
-  ) {
-    return first;
-  }
+  if (!current()) return accountChangedResult();
   const retried = await once();
+  if (!current()) return accountChangedResult();
   // A brand-new token rejected too: the account itself is signed out.
   return retried.status === 'auth_required' && retried.httpStatus === 401
     ? {...retried, sessionEnded: true}
     : retried;
+};
+
+const accountChangedResult = (): CloudResult<never> => ({
+  status: 'server_unavailable',
+  error: 'The active sign-in changed. Please try again.',
+});
+
+const requestFence = (requiresAuth: boolean): (() => boolean) => {
+  const owner = requiresAuth ? userStore.getActiveSessionToken().userId : null;
+  const generation = getSessionGeneration();
+  return () =>
+    !requiresAuth ||
+    (userStore.getActiveSessionToken().userId === owner &&
+      getSessionGeneration() === generation);
 };
 
 let isOnlineMockState: boolean | null = null;
@@ -496,6 +519,7 @@ export const cloudClient = {
         userStore.saveSessionTokens(session.userId, token);
       }
       inMemoryUserId = session.userId;
+      inMemoryGeneration = getSessionGeneration();
       inMemoryAccessToken = token;
     } catch (e) {
       console.warn('Error saving access token to userStore:', e);
@@ -505,8 +529,12 @@ export const cloudClient = {
   getAccessToken: (): string | null => {
     try {
       const session = userStore.getActiveSessionToken();
-      if (session.userId !== inMemoryUserId) {
+      if (
+        session.userId !== inMemoryUserId ||
+        inMemoryGeneration !== getSessionGeneration()
+      ) {
         inMemoryUserId = session.userId;
+        inMemoryGeneration = getSessionGeneration();
         inMemoryAccessToken = session.accessToken;
       } else if (!inMemoryAccessToken && session.accessToken) {
         inMemoryAccessToken = session.accessToken;
@@ -523,6 +551,7 @@ export const cloudClient = {
     refreshToken: string,
   ): Promise<void> => {
     const session = userStore.getActiveSessionToken();
+    const generation = getSessionGeneration();
     if (session.userId !== localUserId) {
       throw new Error(
         'Cloud credentials could not be associated with the active local account.',
@@ -531,7 +560,10 @@ export const cloudClient = {
     const encryptedRefreshToken = await secureKeystore.encryptString(
       refreshToken,
     );
-    if (userStore.getActiveSessionToken().userId !== localUserId) {
+    if (
+      userStore.getActiveSessionToken().userId !== localUserId ||
+      getSessionGeneration() !== generation
+    ) {
       throw new Error(
         'Cloud credentials could not be associated with the active local account.',
       );
@@ -542,6 +574,7 @@ export const cloudClient = {
       encryptedRefreshToken,
     );
     inMemoryUserId = localUserId;
+    inMemoryGeneration = generation;
     inMemoryAccessToken = accessToken;
   },
 
@@ -580,6 +613,7 @@ export const cloudClient = {
   resetSessionCache: (): void => {
     inMemoryAccessToken = null;
     inMemoryUserId = null;
+    inMemoryGeneration = null;
   },
 
   isOnline: async (): Promise<boolean> => {
@@ -624,12 +658,17 @@ export const cloudClient = {
     options: CloudRequestOptions = {},
     requiresAuth: boolean = true,
   ): Promise<CloudResult<T>> => {
+    const current = requestFence(requiresAuth);
     if (options.signal?.aborted) {
       return {status: 'server_unavailable', error: 'Request cancelled.'};
     }
     const {timeoutMs = REQUEST_TIMEOUT_MS, ...fetchOptions} = options;
 
     const online = await cloudClient.isOnline();
+    if (!current()) return accountChangedResult();
+    if (options.signal?.aborted) {
+      return {status: 'server_unavailable', error: 'Request cancelled.'};
+    }
     if (!online) {
       return {
         status: 'offline',
@@ -657,11 +696,21 @@ export const cloudClient = {
     let lastConnectionError: unknown = null;
 
     for (let index = 0; index < apiBaseUrls.length; index += 1) {
+      if (!current()) return accountChangedResult();
       const baseUrl = apiBaseUrls[index];
       const hasFallback = index < apiBaseUrls.length - 1;
       const timeoutController =
         typeof AbortController !== 'undefined' ? new AbortController() : null;
       let timedOut = false;
+      let rejectAbort: (error: Error) => void = () => undefined;
+      const interrupted = new Promise<never>((_resolve, reject) => {
+        rejectAbort = reject;
+      });
+      const onTimeoutAbort = () =>
+        rejectAbort(new Error(timedOut ? 'timed out' : 'Request cancelled.'));
+      timeoutController?.signal.addEventListener('abort', onTimeoutAbort, {
+        once: true,
+      });
       const onCallerAbort = () => timeoutController?.abort();
       options.signal?.addEventListener('abort', onCallerAbort, {once: true});
       const timeoutId = timeoutController
@@ -672,21 +721,61 @@ export const cloudClient = {
         : null;
 
       try {
-        const candidateResponse = await fetch(`${baseUrl}${endpoint}`, {
-          ...fetchOptions,
-          headers,
-          ...(timeoutController ? {signal: timeoutController.signal} : {}),
-        });
+        const work = async (): Promise<CloudResult<T> | null> => {
+          const candidateResponse = await fetch(`${baseUrl}${endpoint}`, {
+            ...fetchOptions,
+            headers,
+            ...(timeoutController ? {signal: timeoutController.signal} : {}),
+          });
 
-        const isTemporarilyUnavailable = [502, 503, 504].includes(
-          candidateResponse.status,
-        );
-        if (isTemporarilyUnavailable && hasFallback) {
-          continue;
-        }
-
-        response = candidateResponse;
-        break;
+          const isTemporarilyUnavailable = [502, 503, 504].includes(
+            candidateResponse.status,
+          );
+          if (isTemporarilyUnavailable && hasFallback) {
+            return null;
+          }
+          response = candidateResponse;
+          if (!response.ok) {
+            const errorData = await response
+              .json()
+              .catch(() => ({detail: null}));
+            return errorResult(
+              response.status,
+              errorData,
+              endpoint,
+              options.method || 'GET',
+              requiresAuth,
+            );
+          }
+          if (response.status === 204)
+            return {status: 'success', data: {} as T, httpStatus: 204};
+          try {
+            const data =
+              typeof response.text === 'function'
+                ? await response
+                    .text()
+                    .then(raw =>
+                      raw.trim() ? (JSON.parse(raw) as T) : ({} as T),
+                    )
+                : await response.json();
+            return {
+              status: 'success',
+              data: (data ?? {}) as T,
+              httpStatus: response.status,
+            };
+          } catch {
+            if (timeoutController?.signal.aborted)
+              throw new Error('Request interrupted.');
+            return {
+              status: 'server_error',
+              error: 'Received an invalid response from the server.',
+              httpStatus: response.status,
+            };
+          }
+        };
+        const result = await Promise.race([work(), interrupted]);
+        if (!current()) return accountChangedResult();
+        if (result) return result;
       } catch (error: unknown) {
         lastConnectionError = timedOut ? new Error('timed out') : error;
         if (
@@ -701,11 +790,12 @@ export const cloudClient = {
         }
       } finally {
         if (timeoutId !== null) clearTimeout(timeoutId);
+        timeoutController?.signal.removeEventListener('abort', onTimeoutAbort);
         options.signal?.removeEventListener('abort', onCallerAbort);
       }
     }
 
-    if (!response) {
+    {
       const reason = await describeConnectionFailure(
         apiBaseUrls[0],
         lastConnectionError,
@@ -716,51 +806,6 @@ export const cloudClient = {
         } ${endpoint} got no response: ${reason}`,
       );
       return {status: 'server_unavailable', error: reason};
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({detail: null}));
-      return errorResult(
-        response.status,
-        errorData,
-        endpoint,
-        options.method || 'GET',
-        requiresAuth,
-      );
-    }
-
-    if (response.status === 204) {
-      return {status: 'success', data: {} as T, httpStatus: response.status};
-    }
-
-    try {
-      if (typeof response.text === 'function') {
-        const raw = await response.text();
-        if (!raw.trim()) {
-          return {
-            status: 'success',
-            data: {} as T,
-            httpStatus: response.status,
-          };
-        }
-        return {
-          status: 'success',
-          data: JSON.parse(raw) as T,
-          httpStatus: response.status,
-        };
-      }
-      const data = await response.json();
-      return {
-        status: 'success',
-        data: (data ?? {}) as T,
-        httpStatus: response.status,
-      };
-    } catch {
-      return {
-        status: 'server_error',
-        error: 'Received an invalid response from the server.',
-        httpStatus: response.status,
-      };
     }
   },
 
@@ -790,12 +835,14 @@ export const cloudClient = {
     options: CloudStreamOptions,
     requiresAuth: boolean = true,
   ): Promise<CloudResult<string>> => {
+    const current = requestFence(requiresAuth);
     if (!(await cloudClient.isOnline())) {
       return {
         status: 'offline',
         error: 'Device is offline. Cloud feature unavailable.',
       };
     }
+    if (!current()) return accountChangedResult();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
@@ -815,6 +862,7 @@ export const cloudClient = {
     const forward: CloudStreamOptions = {
       ...options,
       onText: chunk => {
+        if (!current()) return;
         received = true;
         options.onText(chunk);
       },
@@ -822,6 +870,7 @@ export const cloudClient = {
 
     let lastError: unknown = null;
     for (let index = 0; index < apiBaseUrls.length; index += 1) {
+      if (!current()) return accountChangedResult();
       const baseUrl = apiBaseUrls[index];
       const hasFallback = index < apiBaseUrls.length - 1;
       const outcome = await postStreaming(
@@ -830,6 +879,7 @@ export const cloudClient = {
         payload,
         forward,
       );
+      if (!current()) return accountChangedResult();
       if (outcome.kind === 'aborted') {
         return {status: 'server_unavailable', error: 'cancelled'};
       }

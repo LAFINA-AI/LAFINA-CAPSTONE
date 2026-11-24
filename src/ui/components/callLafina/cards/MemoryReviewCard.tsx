@@ -124,7 +124,7 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
       {data.sourceUtterance ? (
         <View style={styles.sourceBox}>
           <Text style={[styles.sourceLabel, {color: colors.textSecondary}]}>
-            From spoken request:
+            You said:
           </Text>
           <Text style={[styles.sourceText, {color: colors.textSecondary}]}>
             “{data.sourceUtterance}”
@@ -136,7 +136,7 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
         {isDraft ? (
           <View style={styles.draftBox}>
             <Text style={[styles.instruction, {color: colors.textPrimary}]}>
-              Review the fact Lafina will remember about you:
+              LAFINA will remember:
             </Text>
             <TextInput
               style={[
@@ -178,13 +178,14 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
           <View style={styles.resultBox}>
             <CircleAlert size={20} color={colors.warning} />
             <Text style={[styles.resultTitle, {color: colors.textPrimary}]}>
-              Memory is turned off in Profile settings. No memories are saved or shared.
+              Memory is off, so nothing was saved. Turn it on in Profile → What
+              LAFINA remembers.
             </Text>
           </View>
         ) : isUndone ? (
           <View style={styles.resultBox}>
             <Text style={[styles.resultTitle, {color: colors.textPrimary}]}>
-              Memory change undone. Fact removed from local storage.
+              Undone. LAFINA forgot it.
             </Text>
           </View>
         ) : isFailed ? (
@@ -197,7 +198,7 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
         ) : isCanceled ? (
           <View style={styles.resultBox}>
             <Text style={[styles.resultTitle, {color: colors.textSecondary}]}>
-              Memory proposal declined. Nothing was saved.
+              Not saved.
             </Text>
           </View>
         ) : null}
@@ -207,7 +208,7 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
         style={[styles.disclosureText, {color: colors.textSecondary}]}
         testID="memory-disclosure-text"
       >
-        Stored on this device only. Relevant memories are shared with the voice provider during calls to personalize assistance.
+        Saved on this phone. LAFINA may use it in calls to help you better.
       </Text>
 
       <View style={styles.buttonRow}>
@@ -229,7 +230,8 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
               style={[
                 styles.button,
                 themed.primaryButton,
-                (expired || busy || editText.trim().length < 2) && styles.disabledButton,
+                (expired || busy || editText.trim().length < 2) &&
+                  styles.disabledButton,
               ]}
               onPress={() => onSave(editText.trim())}
               disabled={expired || busy || editText.trim().length < 2}

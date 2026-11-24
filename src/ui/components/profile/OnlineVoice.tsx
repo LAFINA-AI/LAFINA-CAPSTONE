@@ -13,6 +13,7 @@ import type {CallSpeechProvider} from '../../../scheduler/speechProvider';
 import {isSpeechBusy} from '../../../ai/tts/ttsService';
 import {getActiveOfflineCaptureId} from '../../../ai/native/speechCapture';
 import {meetingRecorder} from '../../../ai/native/meetingRecorder';
+import {hideVendorNames} from '../../../utils/vendorNames';
 
 interface Props {
   userId: string;
@@ -89,7 +90,7 @@ export const OnlineVoice: React.FC<Props> = ({
     const timeout = setTimeout(() => controller.abort(), LOAD_TIMEOUT_MS);
     const ticket = epoch.current;
     setLoading(true);
-    setNotice('Loading ElevenLabs voices…');
+    setNotice('Loading online voices…');
     try {
       const available = await loadOnlineVoices(userId, controller.signal);
       if (ticket !== epoch.current || request.current !== controller) return;
@@ -161,7 +162,7 @@ export const OnlineVoice: React.FC<Props> = ({
       const saved = next ? {id: next.id, name: next.name} : null;
       onlineVoiceSettingsStore.save(userId, saved);
       setChoice(saved);
-      setNotice(`${next?.name ?? 'Server default'} saved for online speech.`);
+      setNotice(`${next?.name ?? 'Default voice'} saved for online speech.`);
       onChanged?.();
     } catch (error) {
       setNotice(
@@ -199,12 +200,12 @@ export const OnlineVoice: React.FC<Props> = ({
       if (ticket !== epoch.current || preview.current !== provider) return;
       setNotice(
         result.source === 'elevenlabs'
-          ? 'ElevenLabs preview finished. Check media volume if you heard nothing.'
+          ? 'Sample finished. Turn up media volume if you heard nothing.'
           : result.source === 'cancelled'
           ? 'Preview stopped.'
-          : `Played with the offline device voice, not ElevenLabs. ${
+          : `Played with the phone's own voice instead. ${
               result.fallbackReason ??
-              'Enable Online Mode in Chat and connect to the internet to use ElevenLabs.'
+              'Turn on Online in Chat and connect to the internet to use online voices.'
             }`,
       );
     } catch {
@@ -222,7 +223,7 @@ export const OnlineVoice: React.FC<Props> = ({
 
   const option = (value: OnlineVoiceOption | null) => {
     const selected = (choice?.id ?? null) === (value?.id ?? null);
-    const name = value?.name ?? 'Server default';
+    const name = value?.name ?? 'Default voice';
     const detail = value ? describeOnlineVoice(value) : '';
     return (
       <TouchableOpacity
@@ -260,7 +261,7 @@ export const OnlineVoice: React.FC<Props> = ({
   return (
     <ToolSheet
       visible={visible}
-      title="Online Voice · ElevenLabs"
+      title="Online voice"
       onClose={() => {
         epoch.current += 1;
         void stop();
@@ -273,7 +274,7 @@ export const OnlineVoice: React.FC<Props> = ({
             testID="online-voice-notice"
             style={[styles.note, themed.muted]}
           >
-            {notice}
+            {hideVendorNames(notice)}
           </Text>
           <View style={styles.actions}>
             <TouchableOpacity
@@ -314,17 +315,13 @@ export const OnlineVoice: React.FC<Props> = ({
       }
     >
       <Text style={[styles.note, themed.muted]}>
-        For all signed-in accounts in Online Mode. Loading voices contacts
-        ElevenLabs through the LAFINA server. Preview sends the sample sentence
-        for speech generation and counts toward your online allowance.
+        The voice LAFINA uses when you're online and signed in. Previews count
+        toward your online allowance.
       </Text>
       <Text style={[styles.label, themed.text]}>
-        Current: {choice?.name ?? 'Server default'}
+        Current: {choice?.name ?? 'Default voice'}
       </Text>
-      <Text style={[styles.note, themed.muted]}>
-        Tap a voice to save it for this account on this device. Offline Voice
-        keeps its own settings and works without the internet.
-      </Text>
+      <Text style={[styles.note, themed.muted]}>Tap a voice to choose it.</Text>
       {choice && voices.length > 0 && !voices.some(v => v.id === choice.id) && (
         <Text style={[styles.note, themed.text]}>
           Your saved voice is no longer in this catalogue. Choose another voice

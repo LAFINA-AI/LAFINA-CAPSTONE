@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {reminderDescriptionText} from '../../../../utils/reminderDescription';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -502,7 +503,7 @@ export const ScheduleItemDetailModal: React.FC<
           icon: <Clock size={15} color={iconColor} />,
         });
       }
-      const desc = rem.description?.trim();
+      const desc = reminderDescriptionText(rem.description);
       if (desc && desc !== 'Scheduled reminder') {
         legacyNote = desc;
       }

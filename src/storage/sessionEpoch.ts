@@ -1,5 +1,5 @@
-import { db } from './database';
-import type { DatabaseTransaction } from './database';
+import {db} from './database';
+import type {DatabaseTransaction} from './database';
 
 /**
  * Remediation audit P1 (codex-remediation-audit-7b3b183-20261106.md): which
@@ -14,10 +14,27 @@ import type { DatabaseTransaction } from './database';
  * written by a path that did not bump it.
  */
 let generation = 0;
+const sessionListeners = new Set<() => void>();
+export const subscribeSessionChanges = (listener: () => void): (() => void) => {
+  sessionListeners.add(listener);
+  return () => {
+    sessionListeners.delete(listener);
+  };
+};
+
+/** Cheap fence for asynchronous work; token renewal does not replace a sign-in. */
+export const getSessionGeneration = (): number => generation;
 
 /** Call after any write that replaces or removes the active session. */
 export const noteSessionChange = (): void => {
   generation += 1;
+  for (const listener of [...sessionListeners]) {
+    try {
+      listener();
+    } catch (error) {
+      console.warn('[Session] Work cancellation failed:', error);
+    }
+  }
 };
 
 export interface SessionEpoch {
@@ -40,6 +57,8 @@ export const readSessionEpoch = (
   const userId = String(row.user_id);
   return {
     userId,
-    epoch: `${generation}|${userId}|${row.created_at == null ? '' : String(row.created_at)}`,
+    epoch: `${generation}|${userId}|${
+      row.created_at == null ? '' : String(row.created_at)
+    }`,
   };
 };

@@ -10,6 +10,7 @@ import {replyPreferenceInstruction} from '../ai/personalization';
 import {onlineChatSkill} from './onlineChatSkill';
 import {generateId} from '../utils';
 import type {StudyCard} from './studyLogic';
+import {captureOwnerWork} from '../storage/ownerWorkEpoch';
 
 export const STUDY_OFFLINE_MESSAGE =
   'Online AI features need internet. Turn on Online Mode in Chat and connect to the internet.';
@@ -27,11 +28,16 @@ const QUIZ_SOURCE_CHUNK_CHARS = 2800;
 const MAX_QUIZ_BATCH_SIZE = 5;
 
 export async function requireStudyOnline(owner: string): Promise<void> {
+  const current = captureOwnerWork(owner);
   if (userStore.getCurrentUser()?.id !== owner)
     throw new Error('This account is no longer active.');
   if (localSettingsStore.get(owner, 'chat.onlineMode') !== 'true')
     throw new Error(STUDY_OFFLINE_MESSAGE);
   const net = await NetInfo.fetch();
+  if (!current() || userStore.getCurrentUser()?.id !== owner)
+    throw new Error('This account is no longer active.');
+  if (localSettingsStore.get(owner, 'chat.onlineMode') !== 'true')
+    throw new Error(STUDY_OFFLINE_MESSAGE);
   if (net.isConnected === false || net.isInternetReachable === false)
     throw new Error(STUDY_OFFLINE_MESSAGE);
 }
@@ -97,8 +103,10 @@ async function singleStudyChat(
   sourceChunk: string,
   options?: {jsonOnly?: boolean; signal?: AbortSignal},
 ): Promise<string> {
+  const current = captureOwnerWork(owner);
   throwIfAborted(options?.signal);
   await requireStudyOnline(owner);
+  if (!current()) throw new Error(STUDY_CANCELLED_MESSAGE);
   throwIfAborted(options?.signal);
   const contextLine = studyPersonalContext(owner, options?.jsonOnly);
   const promptHeader = `${instruction}${
@@ -124,7 +132,7 @@ async function singleStudyChat(
   // Cancel aborts the request itself, so a cancelled job stops using the
   // student's online AI allowance right away.
   throwIfAborted(options?.signal);
-  if (userStore.getCurrentUser()?.id !== owner)
+  if (!current() || userStore.getCurrentUser()?.id !== owner)
     throw new Error('This account is no longer active.');
   if (result.status !== 'success' || !result.data)
     throw new Error(
@@ -194,7 +202,9 @@ export async function condenseSourceForBudget(
     options?.onProgress?.(i + 1, chunks.length);
     const notes = await singleStudyChat(
       owner,
-      `Condense part ${i + 1} of ${chunks.length} of this study material into dense notes of at most ${perPart} characters. Keep headings, key terms, definitions, steps, names, dates and numbers. Plain text, no introduction.`,
+      `Condense part ${i + 1} of ${
+        chunks.length
+      } of this study material into dense notes of at most ${perPart} characters. Keep headings, key terms, definitions, steps, names, dates and numbers. Plain text, no introduction.`,
       chunks[i],
       {signal},
     );

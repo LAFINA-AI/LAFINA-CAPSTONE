@@ -1,7 +1,6 @@
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {notesQueryStore} from '../../storage/notesQueryStore';
-import {notesStore} from '../../storage/notesStore';
-import {tasksStore} from '../../storage/tasksStore';
+import {voiceQueryStore} from '../../storage/voiceQueryStore';
 import {plannerQueries} from '../../storage/plannerQueries';
 import {isRealDate, addDaysToDate} from '../../storage/eventTime';
 import {formatLocalDate} from '../../ai/nlu/fastPathParser';
@@ -68,21 +67,11 @@ export const readLocalVoiceResult = (
       limit: Math.min(options.limit || 5, 5),
     });
     let items = pageResult.items;
+    let fallbackPartial = false;
     if (items.length === 0 && query) {
-      try {
-        const all = notesStore.getAll(userId);
-        const q = query.toLowerCase();
-        items = all
-          .filter(
-            n =>
-              n.title.toLowerCase().includes(q) ||
-              noteBodyToMarkdown(n.body).toLowerCase().includes(q) ||
-              n.category?.toLowerCase().includes(q),
-          )
-          .slice(0, 5) as never;
-      } catch {
-        // best-effort
-      }
+      const fallback = voiceQueryStore.notes(userId, query, 6);
+      items = fallback.items.slice(0, 5) as never;
+      fallbackPartial = fallback.truncated || fallback.items.length > 5;
     }
     return {
       notes: items.map(n => ({
@@ -92,42 +81,24 @@ export const readLocalVoiceResult = (
         title: n.title.slice(0, 150),
         body: noteBodyToMarkdown(n.body).slice(0, 600),
       })),
-      partial: pageResult.indexing || !!pageResult.nextCursor,
+      partial:
+        pageResult.indexing || !!pageResult.nextCursor || fallbackPartial,
       dataIsUntrusted: true,
     };
   }
   if (kind === 'todos') {
     const q = query.toLowerCase();
     const limit = Math.min(options.limit || 12, 20);
-    const allTasks = tasksStore.getAllTasks(userId);
-    const openTasks = allTasks.filter(t => !t.isCompleted);
-    const matchedTasks = q
-      ? openTasks.filter(
-          t =>
-            t.title.toLowerCase().includes(q) ||
-            (t.category || '').toLowerCase().includes(q) ||
-            (t.notes || '').toLowerCase().includes(q),
-        )
-      : openTasks;
-    matchedTasks.sort((a, b) => {
-      const aUndated = a.dueDate ? 1 : 0;
-      const bUndated = b.dueDate ? 1 : 0;
-      if (aUndated !== bUndated) return aUndated - bUndated;
-      const prioRank: Record<string, number> = {High: 0, Medium: 1, Low: 2};
-      const prDiff = (prioRank[a.priority] ?? 1) - (prioRank[b.priority] ?? 1);
-      if (prDiff !== 0) return prDiff;
-      return (a.dueDate || '9999-99-99').localeCompare(
-        b.dueDate || '9999-99-99',
-      );
-    });
-
+    const matchedTasks = voiceQueryStore.tasks(userId, q, limit + 1);
+    const notePage = voiceQueryStore.notes(userId, q, 51);
     const noteChecklists: Array<{
       noteId: string;
       noteTitle: string;
       text: string;
     }> = [];
     try {
-      for (const note of notesStore.getAll(userId)) {
+      for (const note of notePage.items.slice(0, 50)) {
+        if (noteChecklists.length >= 9) break;
         for (const item of extractChecklistItems(note.body)) {
           if (item.done || !item.text) continue;
           if (
@@ -140,6 +111,7 @@ export const readLocalVoiceResult = (
               noteTitle: note.title.slice(0, 100),
               text: item.text.slice(0, 150),
             });
+            if (noteChecklists.length >= 9) break;
           }
         }
       }
@@ -158,7 +130,11 @@ export const readLocalVoiceResult = (
         completed: t.isCompleted,
       })),
       noteChecklists: noteChecklists.slice(0, 8),
-      partial: matchedTasks.length > limit || noteChecklists.length > 8,
+      partial:
+        matchedTasks.length > limit ||
+        noteChecklists.length > 8 ||
+        notePage.items.length > 50 ||
+        notePage.truncated,
       dataIsUntrusted: true,
     };
   }
@@ -363,20 +339,18 @@ export const buildStudentVoiceContext = (
     // best-effort
   }
 
-  let cachedNotes: ReturnType<typeof notesStore.getAll> | null = null;
+  let cachedNotes: ReturnType<typeof voiceQueryStore.notes>['items'] | null =
+    null;
   try {
-    cachedNotes = notesStore.getAll(userId);
+    cachedNotes = voiceQueryStore.notes(userId, '', 51).items;
   } catch {
     cachedNotes = null;
   }
 
   // 2b. To-Do List in Notes Tab (undated To-Dos, open tasks, and Note checklists)
   try {
-    const allTasks = tasksStore.getAllTasks(userId);
-    const openUndated = allTasks.filter(t => !t.isCompleted && !t.dueDate);
-    const openDated = allTasks.filter(
-      t => !t.isCompleted && Boolean(t.dueDate),
-    );
+    const openUndated = voiceQueryStore.tasks(userId, '', 12, false);
+    const openDated = voiceQueryStore.tasks(userId, '', 8, true);
     const checklistLines: string[] = [];
     if (cachedNotes) {
       for (const n of cachedNotes) {
@@ -424,7 +398,7 @@ export const buildStudentVoiceContext = (
 
   // 3. Notes in Notes Tab
   try {
-    const allNotes = cachedNotes ?? notesStore.getAll(userId);
+    const allNotes = cachedNotes ?? voiceQueryStore.notes(userId, '', 15).items;
     if (allNotes.length > 0) {
       const noteSummaries = allNotes.slice(0, 15).map(n => {
         const bodyClean = noteBodyToMarkdown(n.body)

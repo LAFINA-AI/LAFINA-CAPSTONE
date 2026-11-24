@@ -223,12 +223,22 @@ export type {MeetingPatch, RecordedMeeting} from './recordedMeetingStore';
 export {assistantOperationStore} from './assistantOperationStore';
 export type {OperationReceipt} from './assistantOperationStore';
 export type {RevisionEntityType} from './assistantOperationSchema';
-export {localHandbookStore, parseHandbookPack} from './localHandbookStore';
+export {
+  KNOWLEDGE_COLLECTIONS,
+  localHandbookStore,
+  parseHandbookPack,
+  parseKnowledgeMeta,
+} from './localHandbookStore';
 export type {
   HandbookFtsHit,
   HandbookMeta,
   HandbookPack,
   HandbookPackChunk,
+  KnowledgeCaveat,
+  KnowledgeChapter,
+  KnowledgeChunkMeta,
+  KnowledgeCollection,
+  KnowledgeSourceRef,
 } from './localHandbookStore';
 export {materialStore} from './materialStore';
 export type {

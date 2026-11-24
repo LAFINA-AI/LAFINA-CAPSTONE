@@ -937,7 +937,7 @@ describe('connected Call Lafina result cards', () => {
     await waitFor(() =>
       expect(utils.getByTestId('call-agenda-result')).toBeTruthy(),
     );
-    expect(utils.getByText('Panel lecture (2030-06-01)')).toBeTruthy();
+    expect(utils.getByText('Panel lecture')).toBeTruthy();
     fireEvent.press(utils.getByLabelText('Open agenda in Calendar'));
     expect(navigate).toHaveBeenCalledWith({
       ownerId: userId,

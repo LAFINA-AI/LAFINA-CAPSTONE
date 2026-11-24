@@ -15,6 +15,7 @@ import {useThemedStyles} from '../../../theme/createThemedStyles';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
 import type {CommandProposal} from '../../../../ai/nlu/commandReview';
 import {ConfirmSaveButton} from './ConfirmSaveButton';
+import {CardDetailLine} from './CardDetailLine';
 
 export interface ReminderDraftCardProps {
   proposal: CommandProposal;
@@ -67,18 +68,21 @@ export const ReminderDraftCard: React.FC<ReminderDraftCardProps> = ({
         style={[styles.action, themed.primaryText]}
         testID={`${testIDPrefix}-action`}
       >
-        {actionText}
+        <Text style={[styles.actionVerb, themed.secondaryText]}>
+          {`${proposal.heading} `}
+        </Text>
+        <Text style={styles.actionTitle}>{`“${proposal.title}”`}</Text>
       </Text>
 
-      {proposal.details.map((line, index) => (
-        <Text
-          key={`detail-${index}`}
-          style={[styles.line, themed.secondaryText]}
-          testID={`${testIDPrefix}-detail-${index}`}
-        >
-          {line}
-        </Text>
-      ))}
+      <View style={[styles.detailsBox, themed.detailsBox]}>
+        {proposal.details.map((line, index) => (
+          <CardDetailLine
+            key={`detail-${index}`}
+            line={line}
+            testID={`${testIDPrefix}-detail-${index}`}
+          />
+        ))}
+      </View>
 
       {proposal.assumptions.length > 0 ? (
         <View
@@ -173,6 +177,9 @@ export const ReminderDraftCard: React.FC<ReminderDraftCardProps> = ({
 
 const getThemedStyles = (colors: ThemeColors) =>
   StyleSheet.create({
+    detailsBox: {
+      backgroundColor: colors.inputBg,
+    },
     card: {
       backgroundColor: colors.surface,
     },
@@ -214,6 +221,20 @@ const styles = StyleSheet.create({
   action: {
     fontFamily: Fonts.heading,
     fontSize: FontSize.bodyLarge,
+    lineHeight: 24,
+    marginBottom: Spacing.sm,
+  },
+  actionVerb: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.body,
+  },
+  actionTitle: {
+    fontWeight: '700',
+  },
+  detailsBox: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     marginBottom: Spacing.xs,
   },
   line: {

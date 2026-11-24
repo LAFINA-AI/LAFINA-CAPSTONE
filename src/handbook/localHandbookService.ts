@@ -1,10 +1,13 @@
 import RNFS from 'react-native-fs';
 import bundledHandbookPack from './ustpHandbookPack.json';
+import bundledCampusPack from './ustpCdoKnowledgePack.json';
 import {
+  KNOWLEDGE_COLLECTIONS,
   localHandbookStore,
   parseHandbookPack,
   type HandbookFtsHit,
   type HandbookPack,
+  type KnowledgeCollection,
 } from '../storage/localHandbookStore';
 import {
   buildFtsQueries,
@@ -34,6 +37,8 @@ export interface LocalHandbookStatus {
 export interface LocalHandbookSearchOptions {
   limit?: number;
   previousUserQuery?: string | null;
+  /** Search only these corpora (default: the handbook and the campus pack). */
+  collections?: readonly KnowledgeCollection[];
 }
 
 export interface OnlineHandbookContext {
@@ -64,6 +69,41 @@ function overrideFilePath(): string | null {
   return dir ? `${dir}/${OVERRIDE_RELATIVE_PATH}` : null;
 }
 
+/**
+ * The handbook pack plus the bundled USTP CDO knowledge pack, as one index
+ * pack. The handbook keeps its own chunks, ids and order; campus chunks
+ * follow it. The digest names both packs, so either one changing (a new
+ * handbook override, a rebuilt campus pack) re-indexes once, and an
+ * unchanged pair never re-imports.
+ */
+export function withCampusKnowledge(handbook: HandbookPack): HandbookPack {
+  const campus = parseHandbookPack(bundledCampusPack);
+  if (!campus || campus.chunkCount === 0) {
+    return handbook;
+  }
+  const handbookChunks = handbook.chunks.map(chunk => ({
+    ...chunk,
+    collection: 'handbook' as const,
+    meta: null,
+  }));
+  const offset = handbookChunks.reduce((max, c) => Math.max(max, c.seq), 0);
+  const handbookIds = new Set(handbookChunks.map(c => c.id));
+  const campusChunks = campus.chunks
+    .filter(chunk => !handbookIds.has(chunk.id))
+    .map(chunk => ({
+      ...chunk,
+      seq: offset + chunk.seq,
+      collection: 'ustp_cdo' as const,
+    }));
+  const chunks = [...handbookChunks, ...campusChunks];
+  return {
+    ...handbook,
+    sha256: `${handbook.sha256}+${campus.sha256}`,
+    chunkCount: chunks.length,
+    chunks,
+  };
+}
+
 async function loadBestAvailablePack(): Promise<{
   pack: HandbookPack;
   origin: HandbookPackOrigin;
@@ -76,7 +116,7 @@ async function loadBestAvailablePack(): Promise<{
         const rawText = await RNFS.readFile(overridePath, 'utf8');
         const parsedOverride = parseHandbookPack(JSON.parse(rawText));
         if (parsedOverride && parsedOverride.chunkCount > 0) {
-          return {pack: parsedOverride, origin: 'device_file'};
+          return {pack: withCampusKnowledge(parsedOverride), origin: 'device_file'};
         }
       }
     } catch (error) {
@@ -89,9 +129,10 @@ async function loadBestAvailablePack(): Promise<{
 
   const parsedBundled = parseHandbookPack(bundledHandbookPack);
   if (parsedBundled) {
+    const combined = withCampusKnowledge(parsedBundled);
     return {
-      pack: parsedBundled,
-      origin: parsedBundled.chunkCount > 0 ? 'bundled' : 'none',
+      pack: combined,
+      origin: combined.chunkCount > 0 ? 'bundled' : 'none',
     };
   }
 
@@ -131,7 +172,9 @@ function buildStatusFromMeta(
     return {
       ready: true,
       populated: meta.chunkCount > 0,
-      chunkCount: meta.chunkCount,
+      // "Offline USTP Handbook ready (N sections)": Student Handbook
+      // sections, not the campus knowledge passages indexed beside them.
+      chunkCount: localHandbookStore.countChunks('handbook'),
       title: meta.title,
       edition: meta.edition,
       sourceLabel: meta.sourceLabel,
@@ -155,6 +198,7 @@ function buildStatusFromMeta(
 function runFtsCandidates(
   queryText: string,
   limit: number,
+  collections?: readonly KnowledgeCollection[],
 ): {
   built: ReturnType<typeof buildFtsQueries>;
   hits: HandbookFtsHit[];
@@ -167,23 +211,44 @@ function runFtsCandidates(
   const collected: HandbookFtsHit[] = [];
   const fetchLimit = Math.max(limit * 3, 12);
 
-  if (built.strictAndExpr) {
-    try {
-      collected.push(
-        ...localHandbookStore.queryFts(built.strictAndExpr, fetchLimit),
-      );
-    } catch {
-      // Fallback safely to relaxed OR query
+  // Each corpus is asked separately: the handbook has about four times as
+  // many passages, and one shared top-N list let its loosely matching
+  // chunks push every campus passage out ("dean of CITC" found only the
+  // Dean's List). The small campus pack can afford a deeper fetch.
+  const targets: (readonly KnowledgeCollection[])[] =
+    collections && collections.length > 0
+      ? [collections]
+      : KNOWLEDGE_COLLECTIONS.map(c => [c]);
+  for (const target of targets) {
+    const targetLimit =
+      target.length === 1 && target[0] === 'ustp_cdo' ? 25 : fetchLimit;
+    const before = collected.length;
+    if (built.strictAndExpr) {
+      try {
+        collected.push(
+          ...localHandbookStore.queryFts(
+            built.strictAndExpr,
+            targetLimit,
+            target,
+          ),
+        );
+      } catch {
+        // Fallback safely to relaxed OR query
+      }
     }
-  }
 
-  if (collected.length < limit && built.relaxedOrExpr) {
-    try {
-      collected.push(
-        ...localHandbookStore.queryFts(built.relaxedOrExpr, fetchLimit),
-      );
-    } catch {
-      // Leave collected as-is if FTS table unavailable
+    if (collected.length - before < limit && built.relaxedOrExpr) {
+      try {
+        collected.push(
+          ...localHandbookStore.queryFts(
+            built.relaxedOrExpr,
+            targetLimit,
+            target,
+          ),
+        );
+      } catch {
+        // Leave collected as-is if FTS table unavailable
+      }
     }
   }
 
@@ -224,8 +289,9 @@ function unknownFreeTokens(
 function searchOnce(
   queryText: string,
   limit: number,
+  collections?: readonly KnowledgeCollection[],
 ): LocalHandbookSearchResult {
-  const {built, hits} = runFtsCandidates(queryText, limit);
+  const {built, hits} = runFtsCandidates(queryText, limit, collections);
   return rankAndFilterFtsCandidates(queryText, built, hits, limit, {
     unknownTokens: unknownFreeTokens(built),
   });
@@ -308,7 +374,8 @@ export const localHandbookService = {
     }
 
     const limit = options.limit ?? 4;
-    let result = searchOnce(query, limit);
+    const collections = options.collections;
+    let result = searchOnce(query, limit, collections);
 
     // A short follow-up borrows the previous question only when that
     // question was itself answerable from the handbook (audit H2 item 3):
@@ -318,10 +385,10 @@ export const localHandbookService = {
       (result.insufficientEvidence || result.matches.length === 0) &&
       previous &&
       shouldMergeFollowUpQuery(query) &&
-      !searchOnce(previous, 1).insufficientEvidence
+      !searchOnce(previous, 1, collections).insufficientEvidence
     ) {
       const mergedQuery = `${previous} ${query.trim()}`;
-      const mergedResult = searchOnce(mergedQuery, limit);
+      const mergedResult = searchOnce(mergedQuery, limit, collections);
       if (
         !mergedResult.insufficientEvidence &&
         mergedResult.matches.length > 0
@@ -335,11 +402,17 @@ export const localHandbookService = {
 
   async buildOnlineContext(
     query: string,
-    options: {previousUserQuery?: string | null; maxChars?: number} = {},
+    options: {
+      previousUserQuery?: string | null;
+      maxChars?: number;
+      collections?: readonly KnowledgeCollection[];
+      referenceDate?: Date;
+    } = {},
   ): Promise<OnlineHandbookContext | null> {
     const result = await this.search(query, {
       limit: 4,
       previousUserQuery: options.previousUserQuery,
+      collections: options.collections,
     });
     if (result.insufficientEvidence || result.matches.length === 0) {
       return null;
@@ -347,6 +420,7 @@ export const localHandbookService = {
     const contextBlock = buildPromptHandbookContext(
       result.matches,
       options.maxChars ?? 2400,
+      {referenceDate: options.referenceDate},
     );
     if (!contextBlock) {
       return null;
@@ -360,19 +434,22 @@ export const localHandbookService = {
 
   async answerOffline(
     query: string,
-    options: {previousUserQuery?: string | null} = {},
+    options: {previousUserQuery?: string | null; referenceDate?: Date} = {},
   ): Promise<OfflineHandbookAnswer> {
     const result = await this.search(query, {
       limit: 3,
       previousUserQuery: options.previousUserQuery,
     });
     return {
-      reply: formatOfflineHandbookReply(result),
+      reply: formatOfflineHandbookReply(result, {
+        referenceDate: options.referenceDate,
+      }),
       sources: result.sources,
       insufficientEvidence: result.insufficientEvidence,
     };
   },
 
+  /** Ingests exactly the given pack (no campus pack is added). */
   ingestPackForTests(rawPack: unknown): LocalHandbookStatus {
     const parsed = parseHandbookPack(rawPack);
     if (!parsed) {

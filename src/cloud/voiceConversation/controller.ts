@@ -421,6 +421,24 @@ export class VoiceConversationController {
 
   // ── Start ─────────────────────────────────────────────────────────────
 
+  /** Permission, server and transport waits never preserve revoked consent/access. */
+  private checkAdmission(gen: number): boolean {
+    const gates = this.deps.gates;
+    const failure =
+      gates.isGuest() || !gates.isSignedInOwner()
+        ? 'signin_required'
+        : !gates.isOnlineMode()
+        ? 'online_mode_required'
+        : !gates.hasConsent()
+        ? 'consent_required'
+        : null;
+    if (failure) {
+      this.fail(gen, failure);
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Asks the server what it offers before the student taps Call, so the
    * call starts one round trip sooner (an expired sign-in token is renewed
@@ -544,6 +562,7 @@ export class VoiceConversationController {
     }
     if (stale()) return;
     if (!online) return this.fail(gen, 'offline');
+    if (!this.checkAdmission(gen)) return;
     let permitted = false;
     try {
       this.permissionPending = true;
@@ -555,6 +574,7 @@ export class VoiceConversationController {
     }
     if (stale()) return;
     if (!permitted) return this.fail(gen, 'mic_denied');
+    if (!this.checkAdmission(gen)) return;
     if (gates.isForeground?.() === false)
       return this.stopForSystem(
         'The app left the screen before microphone access was ready. Tap Start when you return.',
@@ -570,7 +590,7 @@ export class VoiceConversationController {
       );
     }
     this.update({
-      voiceName: voice?.name ?? 'Server default voice',
+      voiceName: voice?.name ?? 'Default voice',
     });
 
     const controller = new AbortController();
@@ -631,13 +651,9 @@ export class VoiceConversationController {
       );
     }
     // The student may have switched mode or account meanwhile.
-    if (!gates.isOnlineMode()) {
+    if (!this.checkAdmission(gen)) {
       this.timers.clear('api_connect');
-      return this.fail(gen, 'online_mode_required');
-    }
-    if (!gates.isSignedInOwner()) {
-      this.timers.clear('api_connect');
-      return this.fail(gen, 'signin_required');
+      return;
     }
 
     let sessionClosedOnServer = false;
@@ -677,10 +693,18 @@ export class VoiceConversationController {
       return this.fail(gen, 'connect_failed');
     }
     if (!session.ok) return this.failFromApi(gen, session);
+    if (!this.checkAdmission(gen)) {
+      closeLateSession(session.data.sessionId);
+      return;
+    }
     this.abort = null;
     if (this.transportEndingPending) {
       await this.transportEnding.catch(() => undefined);
       if (stale()) {
+        closeLateSession(session.data.sessionId);
+        return;
+      }
+      if (!this.checkAdmission(gen)) {
         closeLateSession(session.data.sessionId);
         return;
       }
@@ -762,6 +786,7 @@ export class VoiceConversationController {
     }
     this.timers.clear('connect');
     if (stale()) return;
+    if (!this.checkAdmission(gen) || !this.live) return;
     // Timings only, for logcat: how long the student waited, and where.
     this.log(
       `connected in ${this.clock.now() - startedAt}ms (server ${
@@ -774,7 +799,7 @@ export class VoiceConversationController {
     this.update({
       phase: 'listening',
       connectedAt: this.clock.now(),
-      voiceName: voice?.name ?? 'Server default voice',
+      voiceName: voice?.name ?? 'Default voice',
       endsAt,
     });
     if (
@@ -987,6 +1012,7 @@ export class VoiceConversationController {
     const live = this.live;
     const trimmed = text.trim().slice(0, this.limits.maxTypedChars);
     if (!live || !trimmed || this.snapshot.phase === 'connecting') return false;
+    if (!this.checkAdmission(this.generation)) return false;
     const sent = await this.deps.transport
       .sendMessage(
         live.key,
@@ -1003,6 +1029,7 @@ export class VoiceConversationController {
     const live = this.live;
     const text = information.trim().slice(0, 4000);
     if (!live || !text || this.snapshot.phase === 'connecting') return false;
+    if (!this.checkAdmission(this.generation)) return false;
     const sent = await this.deps.transport
       .sendMessage(live.key, JSON.stringify({type: 'contextual_update', text}))
       .catch(() => false);

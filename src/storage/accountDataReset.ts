@@ -17,6 +17,15 @@ import {corImportStore} from './corImportStore';
 import {scheduleEntriesStore} from './scheduleEntriesStore';
 import {studentSetupStore} from './studentSetupStore';
 import {materialStore} from './materialStore';
+import {invalidateOwnerWork} from './ownerWorkEpoch';
+import {
+  recordPersonalFileCleanup,
+  runPersonalFileCleanup,
+} from './personalFileCleanup';
+import {
+  hasMeetingSession,
+  stopMeetingSession,
+} from '../ai/native/meetingSession';
 import {
   attachmentCleanupTarget,
   pendingAttachmentCleanup,
@@ -130,6 +139,24 @@ const PLANNER_LEFT = [
   'SELECT COUNT(*) AS n FROM alarms WHERE user_id = ?',
 ];
 
+export const preparePersonalDataReset = (
+  authority: DataResetAuthority | null,
+): boolean | Promise<boolean> => {
+  if (!authority || !stillAdmitted(authority, () => true)) return false;
+  if (!hasMeetingSession(authority.userId)) return true;
+  return stopMeetingSession(authority.userId).then(
+    () => stillAdmitted(authority, () => true),
+    () => false,
+  );
+};
+
+export const finishPersonalFileCleanup = (
+  authority: DataResetAuthority,
+): Promise<{pending: number | null}> =>
+  runPersonalFileCleanup(authority.userId, () =>
+    stillAdmitted(authority, () => true),
+  );
+
 const clearPlanner = (tx: DatabaseTransaction, userId: string): void => {
   for (const note of notesStore.getAllOrThrow(userId, tx))
     notesStore.delete(note.id, tx);
@@ -173,6 +200,7 @@ export const resetPersonalData = (
   if (!authority || !stillAdmitted(authority, isCurrent))
     return {admitted: false};
   const {userId} = authority;
+  invalidateOwnerWork(userId);
 
   let planner: DataResetStep;
   try {
@@ -230,6 +258,16 @@ export const resetPersonalData = (
     try {
       db.transactionSync(tx => {
         // Codex audit A3: saved event defaults are personal scheduling memory.
+        recordPersonalFileCleanup(
+          tx,
+          userId,
+          tx
+            .executeSync('SELECT id FROM recorded_meetings WHERE user_id = ?', [
+              userId,
+            ])
+            .rows.map(row => String(row.id)),
+          readSkillsDocumentPaths(userId, tx, true),
+        );
         personalMemoryStore.clearForDataReset(userId, tx);
         academicProfileStore.clear(userId, tx);
         scheduleEntriesStore.clear(userId, tx);
@@ -313,14 +351,18 @@ export const finishAttachmentCleanup = (
  * guest-folder path after sign-in, so a path in the guest folder is accepted
  * too, but only when this owner's own list names it.
  */
-export const readSkillsDocumentPaths = (userId: string): string[] => {
+export const readSkillsDocumentPaths = (
+  userId: string,
+  executor: Pick<DatabaseTransaction, 'executeSync'> = db,
+  strict = false,
+): string[] => {
   const root = String(RNFS.DocumentDirectoryPath ?? '').replace(/\/+$/, '');
   if (!root) return [];
   const prefixFor = (owner: string) =>
     `${root}/skills_documents/${encodeURIComponent(owner)}/`;
   const allowedPrefixes = [prefixFor(userId), prefixFor(GUEST_USER_ID)];
   try {
-    const row = db.executeSync(
+    const row = executor.executeSync(
       `SELECT value FROM local_settings WHERE user_id = ? AND key = 'skills.files.v1' LIMIT 1`,
       [userId],
     ).rows[0] as {value?: unknown} | undefined;
@@ -343,28 +385,27 @@ export const readSkillsDocumentPaths = (userId: string): string[] => {
       }
     }
     return paths;
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return [];
   }
 };
 
 /**
- * Best-effort cleanup of Skills-generated document files for `authority`'s owner.
- * Stops if the sign-in changed after Clear All Data was authorized.
+ * Compatibility entry point: persist cleanup first and refuse to report success
+ * while any file is still pending. The Profile flow uses the combined queue.
  */
 export const clearSkillsDocumentsForUser = async (
   authority: DataResetAuthority,
   paths: readonly string[],
 ): Promise<void> => {
-  if (!paths.length || !stillAdmitted(authority, () => true)) return;
-  for (const filePath of paths) {
-    if (!stillAdmitted(authority, () => true)) return;
-    try {
-      if (await RNFS.exists(filePath)) {
-        await RNFS.unlink(filePath);
-      }
-    } catch (error) {
-      console.warn('[DataReset] Skills document could not be removed:', error);
-    }
-  }
+  if (!stillAdmitted(authority, () => true)) throw new DataResetRefused();
+  db.transactionSync(tx =>
+    recordPersonalFileCleanup(tx, authority.userId, [], [...paths]),
+  );
+  const result = await finishPersonalFileCleanup(authority);
+  if (result.pending !== 0)
+    throw new Error(
+      'Some recording or document files are still waiting to be deleted.',
+    );
 };

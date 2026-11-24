@@ -105,7 +105,7 @@ describe('Phase 09 — Explicit Personal Memory & Privacy Controls', () => {
 
       // Check disclosure text (P09-09)
       const disclosure = getByTestId('memory-disclosure-text');
-      expect(disclosure.props.children).toContain('Stored on this device only');
+      expect(disclosure.props.children).toContain('Saved on this phone');
     });
 
     it('allows editing draft fact text before tapping Save Memory (P09-06)', () => {
@@ -264,7 +264,7 @@ describe('Phase 09 — Explicit Personal Memory & Privacy Controls', () => {
       );
 
       expect(
-        getByText('Memory is turned off in Profile settings. No memories are saved or shared.'),
+        getByText('Memory is off, so nothing was saved. Turn it on in Profile → What LAFINA remembers.'),
       ).toBeTruthy();
     });
 
@@ -288,7 +288,7 @@ describe('Phase 09 — Explicit Personal Memory & Privacy Controls', () => {
       );
 
       expect(
-        getByText('Memory change undone. Fact removed from local storage.'),
+        getByText('Undone. LAFINA forgot it.'),
       ).toBeTruthy();
     });
   });

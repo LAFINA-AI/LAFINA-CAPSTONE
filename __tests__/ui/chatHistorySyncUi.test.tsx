@@ -147,7 +147,7 @@ describe('Preferences: Chat history', () => {
     await waitFor(() =>
       expect(ui.getByTestId('preferences-chat-sync-unsupported')).toBeTruthy(),
     );
-    expect(ui.getByText(/keeps up to 20 chats/)).toBeTruthy();
+    expect(ui.getByText(/Up to 20 chats per account/)).toBeTruthy();
     expect(ui.getByTestId('preferences-chat-sync-held')).toHaveTextContent(
       /2 chats are saved on this phone only/,
     );

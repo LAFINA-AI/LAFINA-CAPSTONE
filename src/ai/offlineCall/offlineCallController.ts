@@ -178,6 +178,7 @@ export class OfflineCallController implements ConversationController {
   private generation = 0;
   private capture: OfflineSpeechCaptureHandle | null = null;
   private speechToken: number | null = null;
+  private pendingSpeech: object | null = null;
   private stopRequested = false;
   /** endAfterReply: the call ends after LAFINA's next line has been said. */
   private endAfterLine = false;
@@ -192,6 +193,13 @@ export class OfflineCallController implements ConversationController {
   private answering = 0;
   private armTranscribeWatchdog: (() => void) | null = null;
   private startedAt = 0;
+  private deadlineTimer: ReturnType<typeof setTimeout> | null = null;
+  private spokenPending: {
+    gen: number;
+    text: string;
+    inChat: boolean;
+    committed: boolean;
+  } | null = null;
   private disposed = false;
   /** The OS microphone prompt is open; the app is not really leaving. */
   private permissionPending = false;
@@ -332,6 +340,14 @@ export class OfflineCallController implements ConversationController {
     if (gen !== this.generation) return;
 
     this.startedAt = this.now();
+    this.deadlineTimer = setTimeout(() => {
+      if (!this.current(gen)) return;
+      this.finish('ended', null);
+      this.update({
+        notice:
+          'The offline call reached its time limit. Start a new call to continue.',
+      });
+    }, this.limits.maxDurationMs);
     this.update({
       phase: 'listening',
       connectedAt: startedAt,
@@ -562,10 +578,12 @@ export class OfflineCallController implements ConversationController {
       };
     } finally {
       if (watchdog) clearTimeout(watchdog);
-      this.armTranscribeWatchdog = null;
       unsubscribeStart();
       unsubscribeEnd();
-      if (this.capture?.captureId === capture.captureId) this.capture = null;
+      if (this.capture === capture) {
+        this.armTranscribeWatchdog = null;
+        this.capture = null;
+      }
     }
   }
 
@@ -635,6 +653,8 @@ export class OfflineCallController implements ConversationController {
     if (!this.current(gen)) return;
     const id = `offline-assistant-${++this.turnCounter}`;
     this.pushTurn({id, role: 'assistant', text, status: 'final'});
+    const pending = {gen, text, inChat, committed: false};
+    this.spokenPending = pending;
     let heard: 'complete' | 'interrupted' = 'complete';
     if (this.skipNextSpeech) {
       // Stop was pressed while she was thinking: show the line, say nothing.
@@ -645,7 +665,16 @@ export class OfflineCallController implements ConversationController {
       this.stopRequested = false;
       this.update({phase: 'speaking', outputLevel: 0.6, micCapturing: false});
       const speech = this.deps.voice.speak(text);
+      this.pendingSpeech = speech;
+      const completed = speech.result.catch(
+        () => 'failed' as OwnedSpeechOutcome,
+      );
       const token = await speech.token.catch(() => null);
+      if (this.pendingSpeech === speech) this.pendingSpeech = null;
+      if (!this.current(gen)) {
+        if (token !== null) void this.deps.voice.stop(token).catch(() => false);
+        return;
+      }
       if (token !== null) {
         if (this.stopRequested || !this.current(gen)) {
           void this.deps.voice.stop(token).catch(() => false);
@@ -653,9 +682,8 @@ export class OfflineCallController implements ConversationController {
           this.speechToken = token;
         }
       }
-      const outcome = await speech.result.catch(
-        () => 'failed' as OwnedSpeechOutcome,
-      );
+      const outcome = await completed;
+      if (!this.current(gen)) return;
       if (this.speechToken === token) this.speechToken = null;
       if (outcome !== 'failed' && outcome !== 'refused') {
         // Her voice may still be in the room when the microphone opens.
@@ -673,12 +701,24 @@ export class OfflineCallController implements ConversationController {
         });
       }
     }
-    try {
-      if (!inChat) this.deps.persistence?.assistantTurn(text, heard);
-    } catch {
-      // History is best-effort.
-    }
+    if (!this.current(gen)) return;
+    this.commitSpoken(pending, heard);
     if (this.current(gen)) this.update({phase: 'listening', outputLevel: 0});
+  }
+
+  private commitSpoken(
+    pending: NonNullable<OfflineCallController['spokenPending']>,
+    heard: 'complete' | 'interrupted',
+  ): void {
+    if (pending.committed) return;
+    pending.committed = true;
+    try {
+      if (!pending.inChat)
+        this.deps.persistence?.assistantTurn(pending.text, heard);
+    } catch {
+      /* Keep manual chat available. */
+    }
+    if (this.spokenPending === pending) this.spokenPending = null;
   }
 
   // ── Controls ──────────────────────────────────────────────────────────
@@ -742,6 +782,10 @@ export class OfflineCallController implements ConversationController {
     restartReason: string | null,
     failure: {kind: ConversationFailureKind; message: string} | null = null,
   ): void {
+    if (this.deadlineTimer !== null) clearTimeout(this.deadlineTimer);
+    this.deadlineTimer = null;
+    if (this.spokenPending)
+      this.commitSpoken(this.spokenPending, 'interrupted');
     this.generation += 1;
     this.answering += 1;
     this.endAfterLine = false;
@@ -783,10 +827,16 @@ export class OfflineCallController implements ConversationController {
 
   endAndWait = async (): Promise<boolean> => {
     const capture = this.capture;
+    const token = this.speechToken;
+    const pendingSpeech = this.pendingSpeech !== null;
     this.end();
-    if (capture)
-      await this.deps.speech.cancel(capture.captureId).catch(() => false);
-    return true;
+    const released = await Promise.all([
+      capture
+        ? this.deps.speech.cancel(capture.captureId).catch(() => false)
+        : true,
+      token !== null ? this.deps.voice.stop(token).catch(() => false) : true,
+    ]);
+    return !pendingSpeech && released.every(result => result !== false);
   };
 
   stopForSystem = (reason: string): void => {

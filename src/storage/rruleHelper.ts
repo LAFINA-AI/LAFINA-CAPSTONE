@@ -1,8 +1,9 @@
 /**
  * Custom RRULE Helper
- * Implements a lightweight RFC 5545 compliant parser and occurrence expander.
- * Zero external dependencies.
+ * Expands manual rules with LAFINA's established wall-date semantics and
+ * imported RRULE-prefixed rules with the existing rrule library's RFC semantics.
  */
+import {rrulestr} from 'rrule';
 
 export interface ParsedRrule {
   freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
@@ -61,7 +62,19 @@ export const parseRrule = (
     });
 
     if (!rule.freq) return null;
+    if (
+      rule.count !== undefined &&
+      (!Number.isSafeInteger(rule.count) || rule.count < 1)
+    )
+      return null;
+    if (
+      rule.byday?.some(
+        day => !['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'].includes(day),
+      )
+    )
+      return null;
     rule.interval = rule.interval && rule.interval > 0 ? rule.interval : 1;
+    if (!Number.isSafeInteger(rule.interval)) return null;
 
     return rule as ParsedRrule;
   } catch (error) {
@@ -122,6 +135,27 @@ export const getOccurrences = (
 ): string[] => {
   if (!startDateStr) return [];
 
+  // Imported rules keep their RFC semantics (e.g. Jan 31 skips February),
+  // while existing manually created rules retain LAFINA's month-end clamping.
+  if (recurrenceRule?.startsWith('RRULE:')) {
+    const utcDay = (date: Date) =>
+      new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const end = utcDay(rangeEnd);
+    end.setUTCHours(23, 59, 59, 999);
+    const imported = rrulestr(
+      `DTSTART:${startDateStr.replace(/-/g, '')}T000000Z\n${recurrenceRule}`,
+    );
+    return imported
+      .between(utcDay(rangeStart), end, true, (_date, index) => {
+        if (index >= 10000)
+          throw new Error(
+            'The recurrence window is too large. Choose a shorter date range.',
+          );
+        return true;
+      })
+      .map(date => date.toISOString().slice(0, 10));
+  }
+
   const rule = parseRrule(recurrenceRule);
   if (!rule) {
     // If no recurrence, only return the start date if it falls inside the range
@@ -137,212 +171,87 @@ export const getOccurrences = (
   const untilDt = rule.until ? parseLocalDate(rule.until) : null;
   const count = rule.count ?? Infinity;
   const interval = rule.interval;
-
-  let occurrencesCount = 0;
-  const maxSafetyOccurrences = 1000; // Cap to avoid memory/perf issues or infinite loops
-
-  // 1. DAILY Frequency
-  if (rule.freq === 'DAILY') {
-    let current = new Date(startDt);
-    if (count === Infinity && current < rangeStart) {
-      const startDayNum = Math.floor(
-        Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()) /
-          86400000,
+  if (!Number.isFinite(startDt.getTime()) || count <= 0) return [];
+  const dayNumber = (d: Date) =>
+    Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
+  const end = untilDt && untilDt < rangeEnd ? untilDt : rangeEnd;
+  const push = (date: Date) => {
+    if (date < rangeStart || date > end) return;
+    if (occurrences.length >= 10000)
+      throw new Error(
+        'The recurrence window is too large. Choose a shorter date range.',
       );
-      const rangeDayNum = Math.floor(
-        Date.UTC(
-          rangeStart.getFullYear(),
-          rangeStart.getMonth(),
-          rangeStart.getDate(),
-        ) / 86400000,
-      );
-      const diffDays = rangeDayNum - startDayNum;
-      if (diffDays >= interval) {
-        const steps = Math.floor(diffDays / interval);
-        current.setDate(current.getDate() + steps * interval);
+    occurrences.push(formatLocalDate(date));
+  };
+
+  if (rule.freq === 'WEEKLY') {
+    const targetDays = [
+      ...new Set(
+        rule.byday?.length
+          ? rule.byday
+              .map(code => DAY_CODES[code])
+              .filter(day => day !== undefined)
+          : [startDt.getDay()],
+      ),
+    ].sort((a, b) => a - b);
+    if (!targetDays.length) return [];
+    const base = getSunday(startDt);
+    const firstDays = targetDays.filter(day => day >= startDt.getDay());
+    const weeks = Math.max(
+      0,
+      Math.floor((dayNumber(getSunday(rangeStart)) - dayNumber(base)) / 7),
+    );
+    let period = Math.floor(weeks / interval);
+    let used =
+      period === 0 ? 0 : firstDays.length + (period - 1) * targetDays.length;
+    for (;;) {
+      const week = new Date(base);
+      week.setDate(week.getDate() + period * interval * 7);
+      if (week > end || used >= count) break;
+      for (const day of period === 0 ? firstDays : targetDays) {
+        if (used >= count) break;
+        const date = new Date(week);
+        date.setDate(date.getDate() + day);
+        push(date);
+        used += 1;
       }
+      period += 1;
     }
-    while (
-      current <= rangeEnd &&
-      (!untilDt || current <= untilDt) &&
-      occurrencesCount < count &&
-      occurrencesCount < maxSafetyOccurrences
-    ) {
-      if (current >= rangeStart) {
-        occurrences.push(formatLocalDate(current));
-      }
-      occurrencesCount++;
-      // Increment by interval days
-      current.setDate(current.getDate() + interval);
-    }
-  }
-
-  // 2. WEEKLY Frequency
-  else if (rule.freq === 'WEEKLY') {
-    const byday = rule.byday && rule.byday.length > 0 ? rule.byday : null;
-    const targetDays = byday
-      ? byday
-          .map(code => DAY_CODES[code.toUpperCase()])
-          .filter(dayVal => dayVal !== undefined)
-      : [startDt.getDay()];
-
-    // Sort targetDays so we process days within a week in order
-    targetDays.sort((a, b) => a - b);
-
-    const baseSunday = getSunday(startDt);
-    let currentWeekSunday = new Date(baseSunday);
-    if (count === Infinity && currentWeekSunday < rangeStart) {
-      const rangeSunday = getSunday(rangeStart);
-      const baseDayNum = Math.floor(
-        Date.UTC(
-          baseSunday.getFullYear(),
-          baseSunday.getMonth(),
-          baseSunday.getDate(),
-        ) / 86400000,
-      );
-      const rangeSunDayNum = Math.floor(
-        Date.UTC(
-          rangeSunday.getFullYear(),
-          rangeSunday.getMonth(),
-          rangeSunday.getDate(),
-        ) / 86400000,
-      );
-      const totalWeeks = Math.floor((rangeSunDayNum - baseDayNum) / 7);
-      if (totalWeeks >= interval) {
-        const intervalSteps = Math.floor(totalWeeks / interval);
-        currentWeekSunday.setDate(
-          currentWeekSunday.getDate() + intervalSteps * interval * 7,
-        );
-      }
-    }
-
-    while (
-      currentWeekSunday <= rangeEnd &&
-      (!untilDt ||
-        currentWeekSunday <= untilDt ||
-        getSunday(untilDt).getTime() === currentWeekSunday.getTime()) &&
-      occurrencesCount < count &&
-      occurrencesCount < maxSafetyOccurrences
-    ) {
-      // Check if this week is active according to the interval
-      const weekDiff = Math.round(
-        (currentWeekSunday.getTime() - baseSunday.getTime()) /
-          (7 * 24 * 3600 * 1000),
-      );
-      if (weekDiff % interval === 0) {
-        // Evaluate each specified day of the week
-        for (const dayOfWeek of targetDays) {
-          const dayDate = new Date(currentWeekSunday);
-          dayDate.setDate(dayDate.getDate() + dayOfWeek);
-
-          if (dayDate < startDt) continue;
-          if (untilDt && dayDate > untilDt) break;
-          if (dayDate > rangeEnd) break;
-
-          if (dayDate >= rangeStart) {
-            occurrences.push(formatLocalDate(dayDate));
-          }
-          occurrencesCount++;
-          if (occurrencesCount >= count) break;
-        }
-      }
-
-      // Step to next week sunday
-      currentWeekSunday.setDate(currentWeekSunday.getDate() + 7);
-    }
-  }
-
-  // 3. MONTHLY Frequency
-  else if (rule.freq === 'MONTHLY') {
-    const targetDay = startDt.getDate();
-    let current = new Date(startDt);
-    if (count === Infinity && current < rangeStart) {
-      const totalMonths =
-        (rangeStart.getFullYear() - current.getFullYear()) * 12 +
-        (rangeStart.getMonth() - current.getMonth());
-      if (totalMonths >= interval) {
-        const steps = Math.floor(totalMonths / interval);
-        const jumpedMonth = current.getMonth() + steps * interval;
-        const jumpedYear = current.getFullYear() + Math.floor(jumpedMonth / 12);
-        const actualMonth = ((jumpedMonth % 12) + 12) % 12;
-        const daysInMonth = new Date(jumpedYear, actualMonth + 1, 0).getDate();
+  } else {
+    const distance =
+      rule.freq === 'DAILY'
+        ? dayNumber(rangeStart) - dayNumber(startDt)
+        : rule.freq === 'MONTHLY'
+        ? (rangeStart.getFullYear() - startDt.getFullYear()) * 12 +
+          rangeStart.getMonth() -
+          startDt.getMonth()
+        : rangeStart.getFullYear() - startDt.getFullYear();
+    // Jump over historical periods without consuming the output safety budget.
+    let period = Math.max(0, Math.floor(distance / interval));
+    for (; period < count; period += 1) {
+      let current: Date;
+      if (rule.freq === 'DAILY') {
+        current = new Date(startDt);
+        current.setDate(current.getDate() + period * interval);
+      } else {
+        const month =
+          rule.freq === 'MONTHLY'
+            ? startDt.getMonth() + period * interval
+            : startDt.getMonth();
+        const year =
+          startDt.getFullYear() +
+          (rule.freq === 'YEARLY' ? period * interval : Math.floor(month / 12));
+        const actualMonth = ((month % 12) + 12) % 12;
+        const lastDay = new Date(year, actualMonth + 1, 0).getDate();
         current = new Date(
-          jumpedYear,
+          year,
           actualMonth,
-          Math.min(targetDay, daysInMonth),
-          0,
-          0,
-          0,
-          0,
+          Math.min(startDt.getDate(), lastDay),
         );
       }
-    }
-
-    while (
-      current <= rangeEnd &&
-      (!untilDt || current <= untilDt) &&
-      occurrencesCount < count &&
-      occurrencesCount < maxSafetyOccurrences
-    ) {
-      if (current >= rangeStart) {
-        occurrences.push(formatLocalDate(current));
-      }
-      occurrencesCount++;
-
-      // Advance by interval months
-      const nextMonth = current.getMonth() + interval;
-      const nextYear =
-        current.getFullYear() +
-        Math.floor((current.getMonth() + interval) / 12);
-      const actualMonth = ((nextMonth % 12) + 12) % 12;
-
-      // Determine correct end of month day (cap if targetDay is e.g. 31)
-      const daysInNextMonth = new Date(nextYear, actualMonth + 1, 0).getDate();
-      const actualDay = Math.min(targetDay, daysInNextMonth);
-      current = new Date(nextYear, actualMonth, actualDay, 0, 0, 0, 0);
+      if (!Number.isFinite(current.getTime()) || current > end) break;
+      push(current);
     }
   }
-
-  // 4. YEARLY Frequency
-  else if (rule.freq === 'YEARLY') {
-    const targetMonth = startDt.getMonth();
-    const targetDay = startDt.getDate();
-    let current = new Date(startDt);
-    if (count === Infinity && current < rangeStart) {
-      const totalYears = rangeStart.getFullYear() - current.getFullYear();
-      if (totalYears >= interval) {
-        const steps = Math.floor(totalYears / interval);
-        const jumpedYear = current.getFullYear() + steps * interval;
-        const daysInFeb = new Date(jumpedYear, 2, 0).getDate();
-        const actualDay =
-          targetMonth === 1 && targetDay === 29
-            ? Math.min(29, daysInFeb)
-            : targetDay;
-        current = new Date(jumpedYear, targetMonth, actualDay, 0, 0, 0, 0);
-      }
-    }
-
-    while (
-      current <= rangeEnd &&
-      (!untilDt || current <= untilDt) &&
-      occurrencesCount < count &&
-      occurrencesCount < maxSafetyOccurrences
-    ) {
-      if (current >= rangeStart) {
-        occurrences.push(formatLocalDate(current));
-      }
-      occurrencesCount++;
-
-      // Advance by interval years
-      const nextYear = current.getFullYear() + interval;
-      const daysInFeb = new Date(nextYear, 2, 0).getDate();
-      const actualDay =
-        targetMonth === 1 && targetDay === 29
-          ? Math.min(29, daysInFeb)
-          : targetDay;
-      current = new Date(nextYear, targetMonth, actualDay, 0, 0, 0, 0);
-    }
-  }
-
   return occurrences;
 };

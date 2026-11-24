@@ -323,7 +323,7 @@ export const buildLocalConversationReply = (
         '• **Tasks & Study Blocks** — Add deadlines and study sessions',
         '• **Reminders & Alarms** — Call alerts when something is due',
         isUstpSchoolEnabled(userId)
-          ? '• **Notes & USTP Handbook** — Save notes or look up policies'
+          ? '• **Notes & Ask USTP** — Save notes or ask about USTP policies and dates'
           : '• **Notes** — Save notes and checklists',
         '',
         `> Try: *${example.replace(/^"|"$/g, '')}*`,
@@ -372,8 +372,8 @@ export const buildLocalConversationReply = (
       if (options.onlineUnavailable) {
         return pick(
           [
-            'I could not reach DeepSeek just now, so I cannot answer that one yet. Try sending it again in a moment.',
-            'DeepSeek is not responding right now, so I cannot answer that yet. Please try again shortly.',
+            'I could not get an online answer just now. Try sending it again in a moment.',
+            'The online answer is not coming through right now. Please try again shortly.',
           ],
           recent,
           random,
@@ -381,9 +381,9 @@ export const buildLocalConversationReply = (
       }
       const lead = pick(
         [
-          `I need **Online Mode** (DeepSeek) to answer general questions like that.`,
-          `That question needs **Online Mode**, where DeepSeek can answer it.`,
-          `Switch to **Online Mode** in the top bar for general Q&A with DeepSeek.`,
+          `I need **Online Mode** to answer general questions like that.`,
+          `That question needs **Online Mode**.`,
+          `Turn on **Online Mode** in the top bar for general questions.`,
         ],
         recent,
         random,
@@ -401,8 +401,8 @@ export const buildLocalConversationReply = (
 
 /** Shown under an on-device reply when Online Mode is on but DeepSeek failed. */
 export const OFFLINE_REPLY_NOTE =
-  '(Offline reply: DeepSeek is not available right now.)';
+  '(Offline reply: online answers are not available right now.)';
 
 /** Same, when the cloud sign-in ended: renewing failed, so say how to fix it. */
 export const SIGNED_OUT_REPLY_NOTE =
-  '(Offline reply: sign in again in Profile to use DeepSeek and the online voice.)';
+  '(Offline reply: sign in again in Profile to use online answers and the online voice.)';

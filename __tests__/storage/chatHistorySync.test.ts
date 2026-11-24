@@ -918,7 +918,7 @@ describe('audit edge cases', () => {
     expect(chatSyncStore.needsNotice(me)).toBe(false);
   });
 
-  test('a chat deleted while sync was off is deleted in the cloud once it is back on', async () => {
+  test('a chat deleted while sync is off is removed from the cloud without uploading new messages', async () => {
     const me = newUser('offdelete');
     await signInAndSync(me);
     chatStore.addMessage(me, 'user', 'keep');
@@ -927,12 +927,22 @@ describe('audit edge cases', () => {
     await syncWorker.runSyncPass();
 
     chatHistorySync.setEnabled(me, false);
+    chatStore.addMessage(
+      me,
+      'user',
+      'phone only',
+      null,
+      null,
+      ownedChatSessionId(me),
+    );
     chatStore.deleteSession(me, chat);
     await syncWorker.runSyncPass();
-    // Off: nothing about chat is sent, so the cloud still has it.
-    expect(server.live('chat_session').map(row => row.entityId)).toContain(
+    expect(server.live('chat_session').map(row => row.entityId)).not.toContain(
       chat,
     );
+    expect(
+      server.live('chat_message').map(row => row.payload.content),
+    ).not.toContain('phone only');
 
     chatHistorySync.setEnabled(me, true);
     await syncWorker.runSyncPass();
@@ -940,6 +950,9 @@ describe('audit edge cases', () => {
     expect(server.live('chat_session').map(row => row.entityId)).not.toContain(
       chat,
     );
-    expect(localMessages(me).map(row => row.content)).toEqual(['keep']);
+    expect(localMessages(me).map(row => row.content)).toEqual([
+      'keep',
+      'phone only',
+    ]);
   });
 });

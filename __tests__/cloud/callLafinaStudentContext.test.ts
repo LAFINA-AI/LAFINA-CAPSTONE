@@ -2,7 +2,7 @@ import {buildStudentVoiceContext} from '../../src/cloud/voiceConversation/localV
 import {VoiceConversationController} from '../../src/cloud/voiceConversation/controller';
 import type {VoiceConversationDeps} from '../../src/cloud/voiceConversation';
 import type {TransportEvent} from '../../src/cloud/voiceConversation/types';
-import {notesStore} from '../../src/storage/notesStore';
+import {voiceQueryStore} from '../../src/storage/voiceQueryStore';
 import {plannerQueries} from '../../src/storage/plannerQueries';
 import {chatMemoryStore} from '../../src/storage/chatMemoryStore';
 import * as onboardingModule from '../../src/storage/onboardingMemory';
@@ -55,31 +55,38 @@ describe('Call Lafina Student Context Generation', () => {
     });
 
     // Test with rich-text delta JSON body to ensure clean conversion
-    jest.spyOn(notesStore, 'getAll').mockReturnValue([
-      {
-        id: 'n1',
-        userId,
-        title: 'Grocery List',
-        category: 'Personal',
-        body: JSON.stringify([{insert: 'Apples, almond milk, sourdough bread, eggs\n'}]),
-        updatedAt: '2026-11-11T10:00:00Z',
-        createdAt: '2026-11-11T10:00:00Z',
-      } as never,
-      {
-        id: 'n2',
-        userId,
-        title: 'Physics Formulas',
-        category: 'Academic',
-        body: 'F = m * a, E = m * c^2',
-        updatedAt: '2026-11-11T11:00:00Z',
-        createdAt: '2026-11-11T11:00:00Z',
-      } as never,
-    ]);
+    jest.spyOn(voiceQueryStore, 'notes').mockReturnValue({
+      truncated: false,
+      items: [
+        {
+          id: 'n1',
+          userId,
+          title: 'Grocery List',
+          category: 'Personal',
+          body: JSON.stringify([
+            {insert: 'Apples, almond milk, sourdough bread, eggs\n'},
+          ]),
+          updatedAt: '2026-11-11T10:00:00Z',
+          createdAt: '2026-11-11T10:00:00Z',
+        } as never,
+        {
+          id: 'n2',
+          userId,
+          title: 'Physics Formulas',
+          category: 'Academic',
+          body: 'F = m * a, E = m * c^2',
+          updatedAt: '2026-11-11T11:00:00Z',
+          createdAt: '2026-11-11T11:00:00Z',
+        } as never,
+      ],
+    });
 
     jest.spyOn(chatMemoryStore, 'isEnabled').mockReturnValue(true);
-    jest.spyOn(chatMemoryStore, 'list').mockReturnValue([
-      {id: 'm1', text: 'Likes studying in quiet environments'} as never,
-    ]);
+    jest
+      .spyOn(chatMemoryStore, 'list')
+      .mockReturnValue([
+        {id: 'm1', text: 'Likes studying in quiet environments'} as never,
+      ]);
 
     const context = buildStudentVoiceContext(userId);
 
@@ -120,7 +127,9 @@ describe('Call Lafina Student Context Generation', () => {
       tasks: [],
     });
 
-    jest.spyOn(notesStore, 'getAll').mockReturnValue([]);
+    jest
+      .spyOn(voiceQueryStore, 'notes')
+      .mockReturnValue({items: [], truncated: false});
     jest.spyOn(chatMemoryStore, 'isEnabled').mockReturnValue(false);
 
     const context = buildStudentVoiceContext(userId);
@@ -172,7 +181,11 @@ describe('Call Lafina Student Context Generation', () => {
       },
       transport: {
         available: () => true,
-        start: async (options: {sessionKey: string; url: string; initiation: string}) => {
+        start: async (options: {
+          sessionKey: string;
+          url: string;
+          initiation: string;
+        }) => {
           capturedInitiation = options.initiation;
         },
         end: async () => true,
@@ -190,8 +203,12 @@ describe('Call Lafina Student Context Generation', () => {
     await controller.start();
 
     const parsed = JSON.parse(capturedInitiation);
-    expect(parsed.dynamic_variables.student_context).toBe('Student Notes: Grocery List (Apples, milk)');
-    expect(parsed.custom_llm_extra_body.student_context).toBe('Student Notes: Grocery List (Apples, milk)');
+    expect(parsed.dynamic_variables.student_context).toBe(
+      'Student Notes: Grocery List (Apples, milk)',
+    );
+    expect(parsed.custom_llm_extra_body.student_context).toBe(
+      'Student Notes: Grocery List (Apples, milk)',
+    );
     expect(parsed.dynamic_variables.lafina_voice_grant).toBe('fake-grant-abc');
 
     await controller.end();
@@ -214,7 +231,12 @@ describe('Call Lafina Student Context Generation', () => {
       api: {
         capabilities: async () => ({
           ok: true,
-          data: {enabled: true, maxDurationSeconds: 600, maxTurns: 30, sessionsPerDay: 0},
+          data: {
+            enabled: true,
+            maxDurationSeconds: 600,
+            maxTurns: 30,
+            sessionsPerDay: 0,
+          },
         }),
         createSession: async () => ({
           ok: true,

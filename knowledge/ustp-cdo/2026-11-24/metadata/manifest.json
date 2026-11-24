@@ -1,0 +1,242 @@
+{
+  "package": "LAFINA-USTP-CDO-Knowledge",
+  "version": "2026.11.24",
+  "as_of": "2026-11-24",
+  "timezone": "Asia/Manila",
+  "campus": "USTP Cagayan de Oro",
+  "index_pattern": "knowledge/*.md",
+  "do_not_index": [
+    "metadata/*",
+    "reference/*",
+    "README.md",
+    "AGENT_INTEGRATION.md"
+  ],
+  "source_count": 23,
+  "rag_document_count": 14,
+  "calendar_event_count": 111,
+  "known_conflict_count": 9,
+  "files": [
+    {
+      "path": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+      "sha256": "b9f4b92334273408de9e4c6b221e2b88c4cd0aa708fe81f3201c2d56c8936c6f",
+      "bytes": 9218,
+      "source_ids": [
+        "CAL",
+        "CAL_INDEX"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/02_graduate_calendar_2026_2027.md",
+      "sha256": "044820844267e3783a93de51ad4db7feb1b1e4ae656cc6f0903ed1531fb4be84",
+      "bytes": 4189,
+      "source_ids": [
+        "CAL",
+        "CAL_INDEX"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/03_admissions_2027_2028_windows.md",
+      "sha256": "649fd1a6e48a9406ed9115910b4da03d7116b581fd4193e76c07ebb35f63a59b",
+      "bytes": 2466,
+      "source_ids": [
+        "CAL",
+        "ASO",
+        "PORTAL"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/04_admissions_enrollment_and_ustat.md",
+      "sha256": "2ce333d952c2e8477ec8cebd79676b3f315546a7b452b890a6fc276d14173b5a",
+      "bytes": 4095,
+      "source_ids": [
+        "ADMISSIONS",
+        "ASO",
+        "PORTAL",
+        "ENROLL",
+        "FAQ",
+        "TUITION"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/05_programs_cdo_ug_graduate.md",
+      "sha256": "bf353f33a93674bb4f809c75d9e70b0ade5ce0627f53dc985197e05d40cb6ed8",
+      "bytes": 4563,
+      "source_ids": [
+        "CDO",
+        "UG_PROG",
+        "GR_PROG"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/06_offices_directory_and_support.md",
+      "sha256": "ce254fdf969bb64659013cef4fd1ed878ff941bd68a1a2e12028dd2efde25a5d",
+      "bytes": 3961,
+      "source_ids": [
+        "CONTACT",
+        "OFFICIALS",
+        "ASO",
+        "LIB"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/07_library_buildings_services.md",
+      "sha256": "26b1b3fd3b7a38dcacc312445adbfb58ce0c66badc3bfcfe44684a8cd6b80b6d",
+      "bytes": 3119,
+      "source_ids": [
+        "LIB",
+        "LIB_SVC"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/08_scholarships_grants_financial_aid.md",
+      "sha256": "92ed7219e4167a42f869f0eab384ecb62298faacbcbcb9a46907695c7105308e",
+      "bytes": 2557,
+      "source_ids": [
+        "SCHOLAR",
+        "ASO",
+        "ADMISSIONS",
+        "TUITION"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/09_portals_and_digital_tools.md",
+      "sha256": "46fdd8fd311b38fa2494bb309d1cc4f4182bff2c54929ca3d701903b8d3d0511",
+      "bytes": 2585,
+      "source_ids": [
+        "USTEP",
+        "PRISMS",
+        "ECLEAR",
+        "PORTAL",
+        "ENROLL",
+        "CONTACT"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/10_student_life_organizations.md",
+      "sha256": "afed22f5da897154d94266acb8f98a0a5f876eb85d7af3d9453444324559f90f",
+      "bytes": 3117,
+      "source_ids": [
+        "ORG_CUR",
+        "ORG_NON",
+        "CDO"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/11_campus_overview_and_locations.md",
+      "sha256": "e40bf3fefb66671f7af3b871498939b053dc62fffa46fd6718770c7ff5d6c426",
+      "bytes": 2949,
+      "source_ids": [
+        "CAMPUS",
+        "CDO",
+        "CONTACT"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/12_current_officials_snapshot.md",
+      "sha256": "dda29d7fed0285d14d3aa0db7c83edd3169449b566bd6db1eae8ca34dfcd38a9",
+      "bytes": 2362,
+      "source_ids": [
+        "OFFICIALS",
+        "CONTACT"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/13_fast_answers_faq.md",
+      "sha256": "baf817f3b833ff50999bfb4e51fc264cf50b2b398fb79ac83a730fd1d8ec8387",
+      "bytes": 4356,
+      "source_ids": [
+        "CAL",
+        "CONTACT",
+        "ENROLL",
+        "LIB",
+        "ADMISSIONS",
+        "CAMPUS",
+        "UG_PROG"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "knowledge/14_source_conflicts_and_refresh_rules.md",
+      "sha256": "a01bc7e2e894ad4ce3ab8ad26a3fdc2ad44e717e7da0d3a33fbf2559c5e0388b",
+      "bytes": 4859,
+      "source_ids": [
+        "CAL",
+        "CONTACT",
+        "OFFICIALS",
+        "ORG_CUR",
+        "ORG_NON",
+        "UG_PROG"
+      ],
+      "include_in_rag": true,
+      "document_type": "markdown",
+      "as_of": "2026-11-24"
+    },
+    {
+      "path": "metadata/conflicts.json",
+      "sha256": "f81eb86db0d001928b1c6fa5bee4705ef2970fcd7570ca4d38a533d6dbbdd8ea",
+      "bytes": 2203,
+      "include_in_rag": false,
+      "document_type": "metadata"
+    },
+    {
+      "path": "metadata/events.json",
+      "sha256": "a97d318c592d574d3c8205953bec33b9712c8045dcf91d9fd85cf515465be9d4",
+      "bytes": 61389,
+      "include_in_rag": false,
+      "document_type": "metadata"
+    },
+    {
+      "path": "metadata/sources.json",
+      "sha256": "4fba7007e55dcf44e940a04c4e32a10d3777f5b4eba08670793d16de3399641c",
+      "bytes": 6156,
+      "include_in_rag": false,
+      "document_type": "metadata"
+    },
+    {
+      "path": "reference/official_academic_calendar_ay2026_2027.pdf",
+      "sha256": "a020c8d10218cd8207f340470fd3484b63b4cb8175cf5d67054766d19dd3423d",
+      "bytes": 4069935,
+      "include_in_rag": false,
+      "document_type": "reference_pdf",
+      "source_id": "CAL"
+    }
+  ]
+}

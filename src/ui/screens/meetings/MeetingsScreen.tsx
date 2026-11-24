@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   Alert,
   FlatList,
@@ -9,32 +9,26 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Info, Trash2, Upload, Users } from 'lucide-react-native';
-import { STATUS_LABELS, isBusy } from '../../../meetings';
-import type { RecordedMeeting } from '../../../storage';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {Info, Trash2, Upload, Users} from 'lucide-react-native';
+import {STATUS_LABELS, isBusy} from '../../../meetings';
+import type {RecordedMeeting} from '../../../storage';
 import {
   formatWhen,
   ToolScreenHeader,
   ToolSheet,
   useToolBack,
 } from '../../components/tools';
-import type { RegisterToolBack } from '../../components/tools';
-import { useMeetings } from '../../contexts/MeetingsContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useThemedStyles } from '../../theme/createThemedStyles';
-import {
-  Fonts,
-  FontSize,
-  Layout,
-  ModernLayout,
-  Spacing,
-} from '../../theme';
-import { formatDuration } from './meetingCopy';
-import { getMeetingThemedStyles, meetingStyles } from './meetingStyles';
-import { MeetingDetail } from './MeetingDetail';
-import { PrivacyNotice } from './PrivacyNotice';
-import { RecorderCard } from './RecorderCard';
+import type {RegisterToolBack} from '../../components/tools';
+import {useMeetings} from '../../contexts/MeetingsContext';
+import {useTheme} from '../../contexts/ThemeContext';
+import {useThemedStyles} from '../../theme/createThemedStyles';
+import {Fonts, FontSize, Layout, ModernLayout, Spacing} from '../../theme';
+import {formatDuration} from './meetingCopy';
+import {getMeetingThemedStyles, meetingStyles} from './meetingStyles';
+import {MeetingDetail} from './MeetingDetail';
+import {PrivacyNotice} from './PrivacyNotice';
+import {RecorderCard} from './RecorderCard';
 
 interface MeetingsScreenProps {
   onBack: () => void;
@@ -74,7 +68,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
   }, [processingId]);
 
   const open = useMemo(
-    () => meetings.find((meeting) => meeting.id === openId) ?? null,
+    () => meetings.find(meeting => meeting.id === openId) ?? null,
     [meetings, openId],
   );
   useEffect(() => {
@@ -92,13 +86,19 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
       'Delete this recording?',
       `“${meeting.title}”, its recording, transcript and notes will be deleted. Anything already saved into Notes or Tasks is kept.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        {text: 'Cancel', style: 'cancel'},
         {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            void deleteMeeting(meeting.id);
-            setOpenId(null);
+            void deleteMeeting(meeting.id)
+              .then(() => setOpenId(null))
+              .catch(() =>
+                Alert.alert(
+                  'Recording not deleted',
+                  'The recording could not be removed. Please try again.',
+                ),
+              );
           },
         },
       ],
@@ -136,7 +136,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
   if (open) {
     return (
       <View
-        style={[styles.container, { paddingTop: topPadding }]}
+        style={[styles.container, {paddingTop: topPadding}]}
         testID="meeting-detail-screen"
       >
         <StatusBar
@@ -168,12 +168,12 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
   }
 
   const history = meetings.filter(
-    (meeting) => meeting.id !== recorder?.meetingId,
+    meeting => meeting.id !== recorder?.meetingId,
   );
 
   return (
     <View
-      style={[styles.container, { paddingTop: topPadding }]}
+      style={[styles.container, {paddingTop: topPadding}]}
       testID="meetings-screen"
     >
       <StatusBar
@@ -188,7 +188,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
       />
       <FlatList
         data={history}
-        keyExtractor={(meeting) => meeting.id}
+        keyExtractor={meeting => meeting.id}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
@@ -207,7 +207,9 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
               ]}
             >
               <Text style={[meetingStyles.body, themed.textSecondary]}>
-                Recording requires the latest native Android build with meeting recorder support. Reinstall the app with 'npm run android'. Previous transcripts still appear below.
+                Recording requires the latest native Android build with meeting
+                recorder support. Reinstall the app with 'npm run android'.
+                Previous transcripts still appear below.
               </Text>
             </View>
           )
@@ -253,7 +255,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
             </TouchableOpacity>
           </View>
         }
-        renderItem={({ item: meeting }) => {
+        renderItem={({item: meeting}) => {
           const running = processing?.meetingId === meeting.id;
           return (
             <TouchableOpacity

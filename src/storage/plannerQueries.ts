@@ -141,7 +141,9 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
       ): T[] => {
         const from =
           table === 'events'
-            ? `t.*, ${EVENT_TIME_COLUMNS} FROM events t ${VALID_EVENT_TIME_JOIN('t')}`
+            ? `t.*, ${EVENT_TIME_COLUMNS} FROM events t ${VALID_EVENT_TIME_JOIN(
+                't',
+              )}`
             : `t.* FROM ${table} t`;
         return expand(
           rows(
@@ -219,6 +221,39 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
      * no single query loads the whole history. Used only by the explicit
      * export/share action.
      */
+    *exportBatches(
+      owner: string,
+      batchSize = DEFAULT_EXPORT_BATCH,
+    ): Generator<PlannerExport> {
+      const size = Math.min(
+        DEFAULT_EXPORT_BATCH,
+        Math.max(1, Math.floor(batchSize) || 1),
+      );
+      for (const table of ['tasks', 'events', 'time_blocks'] as const) {
+        let lastId = '';
+        const from =
+          table === 'events'
+            ? `t.*, ${EVENT_TIME_COLUMNS} FROM events t ${VALID_EVENT_TIME_JOIN(
+                't',
+              )}`
+            : `t.* FROM ${table} t`;
+        for (;;) {
+          const batch = rows(
+            `SELECT ${from} WHERE t.user_id = ? AND t.deleted_at IS NULL AND t.id > ? ORDER BY t.id LIMIT ?`,
+            [owner, lastId, size],
+          );
+          if (!batch.length) break;
+          yield {
+            tasks: table === 'tasks' ? batch.map(mapRowToTask) : [],
+            events: table === 'events' ? batch.map(mapRowToEvent) : [],
+            blocks: table === 'time_blocks' ? batch.map(mapRowToBlock) : [],
+          };
+          if (batch.length < size) break;
+          lastId = String(batch[batch.length - 1].id);
+        }
+      }
+    },
+
     exportAll(owner: string, batchSize = DEFAULT_EXPORT_BATCH): PlannerExport {
       const size = Math.max(1, Math.floor(batchSize) || 1);
       const readAll = <T>(table: string, map: (row: unknown) => T): T[] => {
@@ -226,7 +261,9 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
         let lastId = '';
         const from =
           table === 'events'
-            ? `t.*, ${EVENT_TIME_COLUMNS} FROM events t ${VALID_EVENT_TIME_JOIN('t')}`
+            ? `t.*, ${EVENT_TIME_COLUMNS} FROM events t ${VALID_EVENT_TIME_JOIN(
+                't',
+              )}`
             : `t.* FROM ${table} t`;
         for (;;) {
           const batch = rows(

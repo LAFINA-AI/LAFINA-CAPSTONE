@@ -1,0 +1,2006 @@
+{
+  "schema": "lafina_ustp_calendar_events_v1",
+  "as_of": "2026-11-24",
+  "timezone": "Asia/Manila",
+  "important": "Published planned dates, not live closures or personal calendar commitments. Never auto-create student reminders without opt-in. Conflicted items require confirmation.",
+  "events": [
+    {
+      "id": "USTP-CAL-001",
+      "title": "Start of early enrollment for incoming freshmen",
+      "start_date": "2026-05-24",
+      "end_date": "2026-05-24",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "Start only; no closing date stated.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-002",
+      "title": "Start of early enrollment for regular upperclassmen without midyear classes",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-15",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "Start only; no closing date stated.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-035",
+      "title": "Enrollment period for graduate level",
+      "start_date": "2026-07-20",
+      "end_date": "2026-08-08",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-003",
+      "title": "Application for petitioned class",
+      "start_date": "2026-07-28",
+      "end_date": "2026-08-01",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-004",
+      "title": "Week of Welcome (WoW)",
+      "start_date": "2026-08-03",
+      "end_date": "2026-08-08",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "campus",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-005",
+      "title": "Adding/dropping of subjects",
+      "start_date": "2026-08-06",
+      "end_date": "2026-08-08",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-006",
+      "title": "ASEAN Day (calendar observance)",
+      "start_date": "2026-08-08",
+      "end_date": "2026-08-08",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "observance",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-007",
+      "title": "Start of classes, all levels; resumption of faculty service",
+      "start_date": "2026-08-10",
+      "end_date": "2026-08-10",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "classes",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-036",
+      "title": "Adding/dropping of subjects",
+      "start_date": "2026-08-10",
+      "end_date": "2026-08-14",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-008",
+      "title": "Faculty assessment, evaluation and CQI curriculum review (2nd semester)",
+      "start_date": "2026-08-11",
+      "end_date": "2026-08-11",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 first semester",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-037",
+      "title": "Graduate Studies Orientation General Assembly",
+      "start_date": "2026-08-15",
+      "end_date": "2026-08-15",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "campus",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-009",
+      "title": "USTP Charter Day",
+      "start_date": "2026-08-16",
+      "end_date": "2026-08-16",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "campus",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-013",
+      "title": "Application for graduation",
+      "start_date": "2026-08-17",
+      "end_date": "2026-10-31",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "graduation",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-038",
+      "title": "Application for graduation",
+      "start_date": "2026-08-17",
+      "end_date": "2026-12-19",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "graduation",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-010",
+      "title": "PRAISE Award",
+      "start_date": "2026-08-20",
+      "end_date": "2026-08-20",
+      "timezone": "Asia/Manila",
+      "scope": "staff",
+      "term": "2026-2027 first semester",
+      "kind": "campus",
+      "source_id": "CAL",
+      "source_pages": [
+        2
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-011",
+      "title": "Ninoy Aquino Day (calendar lists special non-working day)",
+      "start_date": "2026-08-21",
+      "end_date": "2026-08-21",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-012",
+      "title": "National Heroes Day (calendar lists regular holiday)",
+      "start_date": "2026-08-31",
+      "end_date": "2026-08-31",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-014",
+      "title": "Preliminary examinations",
+      "start_date": "2026-09-09",
+      "end_date": "2026-09-12",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-015",
+      "title": "Birthday of Dr. Ricardo E. Rotoras (calendar observance)",
+      "start_date": "2026-09-18",
+      "end_date": "2026-09-18",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "observance",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-016",
+      "title": "Announcement of Dean’s Listers for previous semester",
+      "start_date": "2026-09-21",
+      "end_date": "2026-09-21",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "academic",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-017",
+      "title": "Submission of enrollment list",
+      "start_date": "2026-09-25",
+      "end_date": "2026-09-25",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2026-2027 first semester",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-039",
+      "title": "Submission of enrollment list",
+      "start_date": "2026-09-25",
+      "end_date": "2026-09-25",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-018",
+      "title": "World Teachers Day (calendar observance)",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-05",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "observance",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-019",
+      "title": "Midterm examinations",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-10",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-040",
+      "title": "Midterm examination period",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-10",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-020",
+      "title": "Faculty evaluation",
+      "start_date": "2026-10-19",
+      "end_date": "2026-10-23",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-021",
+      "title": "Deadline for submission of midterm grades",
+      "start_date": "2026-10-24",
+      "end_date": "2026-10-24",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 first semester",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-022",
+      "title": "All Saints Day (calendar lists holiday)",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-01",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-023",
+      "title": "All Souls Day (calendar lists holiday)",
+      "start_date": "2026-11-02",
+      "end_date": "2026-11-02",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-024",
+      "title": "Pre-final examinations",
+      "start_date": "2026-11-09",
+      "end_date": "2026-11-14",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-082",
+      "title": "Admission application for incoming freshmen for AY 2027-2028",
+      "start_date": "2026-11-09",
+      "end_date": "2027-04-30",
+      "timezone": "Asia/Manila",
+      "scope": "prospective UG",
+      "term": "2027-2028 admissions (listed in AY 2026-2027 calendar)",
+      "kind": "admissions",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-025",
+      "title": "Wellness Period (social, sports, mental awareness activities)",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-17",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "campus",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-026",
+      "title": "Final examinations for graduating students",
+      "start_date": "2026-11-23",
+      "end_date": "2026-11-28",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-041",
+      "title": "Final examination period",
+      "start_date": "2026-11-23",
+      "end_date": "2026-11-28",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-027",
+      "title": "Bonifacio Day (calendar lists regular holiday)",
+      "start_date": "2026-11-30",
+      "end_date": "2026-11-30",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-042",
+      "title": "Start of admission application (unspecified level/cycle)",
+      "start_date": "2026-12-01",
+      "end_date": "2026-12-12",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "admissions",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "needs_confirmation",
+      "notes": "The PDF labels Dec 1-12 as Start of Admission Application but does not identify year/program clearly.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-028",
+      "title": "Death anniversary of Dr. Ricardo E. Rotoras",
+      "start_date": "2026-12-02",
+      "end_date": "2026-12-02",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "observance",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-029",
+      "title": "Feast of Immaculate Conception (calendar lists holiday)",
+      "start_date": "2026-12-08",
+      "end_date": "2026-12-08",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-030",
+      "title": "Final examinations for non-graduating students",
+      "start_date": "2026-12-09",
+      "end_date": "2026-12-19",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 first semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-031",
+      "title": "University Year-End Assembly and Fellowship",
+      "start_date": "2026-12-18",
+      "end_date": "2026-12-18",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 first semester",
+      "kind": "campus",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-032",
+      "title": "Deadline for submission of grades of graduating students",
+      "start_date": "2026-12-19",
+      "end_date": "2026-12-19",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 first semester",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-043",
+      "title": "Final examinations particularly Saturday classes",
+      "start_date": "2026-12-19",
+      "end_date": "2026-12-19",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-033",
+      "title": "Start of Christmas break for faculty",
+      "start_date": "2026-12-20",
+      "end_date": "2026-12-20",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 first semester",
+      "kind": "break",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-034",
+      "title": "Deadline for submission of final grades of undergraduate students",
+      "start_date": "2027-01-04",
+      "end_date": "2027-01-04",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 first semester",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        3
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-044",
+      "title": "Deadline for final grades",
+      "start_date": "2027-01-04",
+      "end_date": "2027-01-04",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-048",
+      "title": "Faculty assessment/evaluation and CQI review for first semester",
+      "start_date": "2027-01-04",
+      "end_date": "2027-01-04",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-050",
+      "title": "Application for petitioned class",
+      "start_date": "2027-01-04",
+      "end_date": "2027-01-06",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-047",
+      "title": "Enrollment period",
+      "start_date": "2027-01-04",
+      "end_date": "2027-01-09",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-045",
+      "title": "Resumption of faculty service",
+      "start_date": "2027-01-05",
+      "end_date": "2027-01-05",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-049",
+      "title": "Start of classes for all levels",
+      "start_date": "2027-01-05",
+      "end_date": "2027-01-05",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester",
+      "kind": "classes",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-073",
+      "title": "Start of classes, all levels",
+      "start_date": "2027-01-05",
+      "end_date": "2027-01-05",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "classes",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-072",
+      "title": "Enrollment period for graduate level",
+      "start_date": "2027-01-06",
+      "end_date": "2027-01-09",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-051",
+      "title": "Adding/dropping of subjects",
+      "start_date": "2027-01-11",
+      "end_date": "2027-01-13",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-074",
+      "title": "Adding/dropping of subjects",
+      "start_date": "2027-01-18",
+      "end_date": "2027-01-22",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-052",
+      "title": "Application for graduation",
+      "start_date": "2027-01-18",
+      "end_date": "2027-04-03",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "graduation",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-075",
+      "title": "Application for graduation",
+      "start_date": "2027-01-18",
+      "end_date": "2027-05-15",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "graduation",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-046",
+      "title": "Submission of promotion list",
+      "start_date": "2027-02-02",
+      "end_date": "2027-02-02",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2026-2027 first semester (graduate)",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-053",
+      "title": "Chinese New Year (calendar lists holiday)",
+      "start_date": "2027-02-06",
+      "end_date": "2027-02-06",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-054",
+      "title": "Preliminary examinations",
+      "start_date": "2027-02-08",
+      "end_date": "2027-02-13",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-055",
+      "title": "Submission of enrollment list",
+      "start_date": "2027-02-19",
+      "end_date": "2027-02-19",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2026-2027 second semester",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-056",
+      "title": "Students sports and cultural events (Intramurals)",
+      "start_date": "2027-02-24",
+      "end_date": "2027-02-27",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester",
+      "kind": "campus",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-057",
+      "title": "EDSA People Power Revolution anniversary (calendar lists special working holiday)",
+      "start_date": "2027-02-25",
+      "end_date": "2027-02-25",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester",
+      "kind": "observance",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-076",
+      "title": "World Engineering Day (calendar observance)",
+      "start_date": "2027-03-04",
+      "end_date": "2027-03-04",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "observance",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-058",
+      "title": "Eid al-Fitr (calendar marks date)",
+      "start_date": "2027-03-09",
+      "end_date": "2027-03-09",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "needs_confirmation",
+      "notes": "Lunar calendar/official proclamations determine final holiday; institutional calendar mark is provisional for individual planning.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-059",
+      "title": "Midterm examinations",
+      "start_date": "2027-03-15",
+      "end_date": "2027-03-20",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-077",
+      "title": "Midterm examination period",
+      "start_date": "2027-03-20",
+      "end_date": "2027-03-20",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-060",
+      "title": "Announcement of Dean’s Listers for previous semester",
+      "start_date": "2027-03-22",
+      "end_date": "2027-03-22",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "academic",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-061",
+      "title": "Holy Week: Maundy Thursday, Good Friday, Black Saturday (calendar holidays)",
+      "start_date": "2027-03-25",
+      "end_date": "2027-03-27",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-062",
+      "title": "Faculty evaluation",
+      "start_date": "2027-03-29",
+      "end_date": "2027-04-02",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-063",
+      "title": "Deadline for submission of midterm grades",
+      "start_date": "2027-04-03",
+      "end_date": "2027-04-03",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-064",
+      "title": "Araw ng Kagitingan (calendar lists regular holiday)",
+      "start_date": "2027-04-09",
+      "end_date": "2027-04-09",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2026-2027 second semester",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-083",
+      "title": "Grade 11 SHS admission application for AY 2027-2028",
+      "start_date": "2027-04-12",
+      "end_date": "2027-05-22",
+      "timezone": "Asia/Manila",
+      "scope": "prospective SHS",
+      "term": "2027-2028 admissions (listed in AY 2026-2027 calendar)",
+      "kind": "admissions",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-065",
+      "title": "Pre-final examinations",
+      "start_date": "2027-04-19",
+      "end_date": "2027-04-24",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        4
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-066",
+      "title": "Final examinations for graduating students",
+      "start_date": "2027-04-26",
+      "end_date": "2027-05-03",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-084",
+      "title": "Start of application for transferees and second coursers (PDF prints 1st semester AY 2026-2027)",
+      "start_date": "2027-05-10",
+      "end_date": "2027-05-10",
+      "timezone": "Asia/Manila",
+      "scope": "prospective UG",
+      "term": "2027-2028 admissions (listed in AY 2026-2027 calendar)",
+      "kind": "admissions",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "needs_confirmation",
+      "notes": "Year label in 2027 section says AY 2026-2027; likely error, NOT silently corrected.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-085",
+      "title": "Start of graduate admission application",
+      "start_date": "2027-05-10",
+      "end_date": "2027-05-10",
+      "timezone": "Asia/Manila",
+      "scope": "prospective GR",
+      "term": "2027-2028 admissions (listed in AY 2026-2027 calendar)",
+      "kind": "admissions",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-067",
+      "title": "Final examinations for non-graduating students",
+      "start_date": "2027-05-13",
+      "end_date": "2027-05-20",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2026-2027 second semester",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-078",
+      "title": "Final examinations for non-graduating students",
+      "start_date": "2027-05-13",
+      "end_date": "2027-05-20",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-068",
+      "title": "Deadline for grades of graduating students",
+      "start_date": "2027-05-15",
+      "end_date": "2027-05-15",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-069",
+      "title": "Deadline for final grades of non-graduating students",
+      "start_date": "2027-05-28",
+      "end_date": "2027-05-28",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-079",
+      "title": "Deadline for final grades of non-graduating graduate students",
+      "start_date": "2027-05-28",
+      "end_date": "2027-05-28",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-070",
+      "title": "Last day of faculty service",
+      "start_date": "2027-05-29",
+      "end_date": "2027-05-29",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-080",
+      "title": "Last day of faculty service",
+      "start_date": "2027-05-29",
+      "end_date": "2027-05-29",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-071",
+      "title": "Teacher leave (calendar listing)",
+      "start_date": "2027-05-30",
+      "end_date": "2027-08-08",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester",
+      "kind": "break",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-081",
+      "title": "Teacher leave (calendar listing)",
+      "start_date": "2027-05-30",
+      "end_date": "2027-08-08",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2026-2027 second semester (graduate)",
+      "kind": "break",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-086",
+      "title": "Enrollment period",
+      "start_date": "2027-06-03",
+      "end_date": "2027-06-08",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2027 midyear undergraduate",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-087",
+      "title": "Start of classes (detailed calendar row)",
+      "start_date": "2027-06-05",
+      "end_date": "2027-06-05",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2027 midyear undergraduate",
+      "kind": "classes",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "conflicted",
+      "notes": "Conflict: term summary on PDF page 2 says June 9 start; ask registrar which applies.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-099",
+      "title": "Graduate start of classes (detailed row)",
+      "start_date": "2027-06-05",
+      "end_date": "2027-06-05",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2027 midyear graduate",
+      "kind": "classes",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-088",
+      "title": "Application for petitioned class",
+      "start_date": "2027-06-05",
+      "end_date": "2027-06-08",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2027 midyear undergraduate",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-098",
+      "title": "Graduate enrollment period",
+      "start_date": "2027-06-05",
+      "end_date": "2027-06-11",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2027 midyear graduate",
+      "kind": "enrollment",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-109",
+      "title": "Philippine Independence Day (calendar regular holiday)",
+      "start_date": "2027-06-12",
+      "end_date": "2027-06-12",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2027 midyear",
+      "kind": "holiday",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-091",
+      "title": "Commencement and recognition exercises (as printed)",
+      "start_date": "2027-06-14",
+      "end_date": "2027-06-22",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2027 midyear undergraduate",
+      "kind": "graduation",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "needs_confirmation",
+      "notes": "Calendar lists this date range; exact campus/college ceremony date not supplied.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-089",
+      "title": "Application for graduation",
+      "start_date": "2027-06-24",
+      "end_date": "2027-07-10",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2027 midyear undergraduate",
+      "kind": "graduation",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-100",
+      "title": "Graduate application for graduation",
+      "start_date": "2027-06-24",
+      "end_date": "2027-07-10",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2027 midyear graduate",
+      "kind": "graduation",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-090",
+      "title": "Midterm examinations",
+      "start_date": "2027-06-28",
+      "end_date": "2027-07-03",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2027 midyear undergraduate",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-101",
+      "title": "Graduate midterm examination",
+      "start_date": "2027-07-03",
+      "end_date": "2027-07-03",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2027 midyear graduate",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-110",
+      "title": "Submission of promotional list (listed on page 5)",
+      "start_date": "2027-07-04",
+      "end_date": "2027-07-04",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2027 midyear",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "needs_confirmation",
+      "notes": "Page 5 lists July 4 while page 6 lists Sept 6 for graduate midyear. Could be separate lists/cycles.",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-092",
+      "title": "Submission of list of graduates",
+      "start_date": "2027-07-07",
+      "end_date": "2027-07-07",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2027 midyear undergraduate",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-103",
+      "title": "Submission of list of graduates",
+      "start_date": "2027-07-07",
+      "end_date": "2027-07-07",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2027 midyear graduate",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-093",
+      "title": "Deadline for midterm grades",
+      "start_date": "2027-07-10",
+      "end_date": "2027-07-10",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2027 midyear undergraduate",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-104",
+      "title": "Deadline for submission of midterm grades",
+      "start_date": "2027-07-10",
+      "end_date": "2027-07-10",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2027 midyear graduate",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-094",
+      "title": "Final exams for non-graduating students",
+      "start_date": "2027-07-16",
+      "end_date": "2027-07-22",
+      "timezone": "Asia/Manila",
+      "scope": "UG",
+      "term": "2027 midyear undergraduate",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-102",
+      "title": "Graduate final exams for non-graduating students",
+      "start_date": "2027-07-16",
+      "end_date": "2027-07-22",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2027 midyear graduate",
+      "kind": "exam",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-095",
+      "title": "Submission of enrollment list",
+      "start_date": "2027-07-24",
+      "end_date": "2027-07-24",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2027 midyear undergraduate",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-105",
+      "title": "Submission of enrollment list",
+      "start_date": "2027-07-24",
+      "end_date": "2027-07-24",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2027 midyear graduate",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-096",
+      "title": "Deadline for final grades for non-graduating UG students",
+      "start_date": "2027-07-28",
+      "end_date": "2027-07-28",
+      "timezone": "Asia/Manila",
+      "scope": "faculty",
+      "term": "2027 midyear undergraduate",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-106",
+      "title": "Deadline for non-graduating graduate final grades",
+      "start_date": "2027-07-28",
+      "end_date": "2027-07-28",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2027 midyear graduate",
+      "kind": "grades",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-111",
+      "title": "ASEAN Day (calendar observance)",
+      "start_date": "2027-08-08",
+      "end_date": "2027-08-08",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2027 midyear",
+      "kind": "observance",
+      "source_id": "CAL",
+      "source_pages": [
+        5
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-097",
+      "title": "Resumption of faculty service and start of classes for AY 2027-2028",
+      "start_date": "2027-08-09",
+      "end_date": "2027-08-09",
+      "timezone": "Asia/Manila",
+      "scope": "all",
+      "term": "2027 midyear undergraduate",
+      "kind": "classes",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-107",
+      "title": "Resumption of faculty service and start of AY 2027-2028",
+      "start_date": "2027-08-09",
+      "end_date": "2027-08-09",
+      "timezone": "Asia/Manila",
+      "scope": "GR",
+      "term": "2027 midyear graduate",
+      "kind": "classes",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    },
+    {
+      "id": "USTP-CAL-108",
+      "title": "Submission of promotion list",
+      "start_date": "2027-09-06",
+      "end_date": "2027-09-06",
+      "timezone": "Asia/Manila",
+      "scope": "administrative",
+      "term": "2027 midyear graduate",
+      "kind": "administrative",
+      "source_id": "CAL",
+      "source_pages": [
+        6
+      ],
+      "source_url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+      "status": "published",
+      "notes": "",
+      "as_of": "2026-11-24"
+    }
+  ]
+}

@@ -228,7 +228,8 @@ test('generates xlsx/pdf, condenses a long source so all of it is used, persists
   expect(savedFiles[0].attachment.fileName).not.toContain('..');
   expect(readSkillsDocumentPaths(userId)).toHaveLength(1);
 
-  expect(view.getAllByText(/2 KB/).length).toBeGreaterThan(0);
+  // The fixture contains 9 bytes; ignore the server's inflated 2 KB metadata.
+  expect(view.getAllByText(/9 B/).length).toBeGreaterThan(0);
   expect(
     view.getByText(/condensed your [\d,]+-character source first/i),
   ).toBeTruthy();

@@ -281,7 +281,7 @@ export const PreferencesSettingsScreen: React.FC<
   const handleDeleteCloudChats = () => {
     Alert.alert(
       'Delete chat history from cloud?',
-      'This removes the copy of your chats stored with your LAFINA account and turns off chat sync on this phone. Chats stay on this phone. Your other phones that sync chat history will remove them.',
+      'This deletes your chats from your account and turns off chat sync. They stay on this phone, but your other phones will remove them.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -699,7 +699,7 @@ export const PreferencesSettingsScreen: React.FC<
               {label: 'Deadlines', value: 'deadlines'},
               {label: 'Daily schedule', value: 'schedule'},
               ...(ustpEnabled
-                ? [{label: 'USTP Handbook', value: 'handbook'}]
+                ? [{label: 'Ask USTP', value: 'handbook'}]
                 : []),
               {label: 'No focus set', value: 'none'},
             ]}
@@ -849,11 +849,9 @@ export const PreferencesSettingsScreen: React.FC<
                   {color: colors.textSecondary},
                 ]}
               >
-                When on, your chats are stored with your LAFINA account, so they
-                appear on your other phones and come back after reinstalling.
-                Chats written offline sync when you reconnect. Attached files
-                stay on the phone that has them. An account keeps up to{' '}
-                {MAX_CHATS_PER_ACCOUNT} chats. This setting applies right away.
+                When on, your chats are saved to your account and show up on
+                your other phones. Files stay on this phone. Up to{' '}
+                {MAX_CHATS_PER_ACCOUNT} chats per account.
               </Text>
               {!serverStoresChat ? (
                 <Text

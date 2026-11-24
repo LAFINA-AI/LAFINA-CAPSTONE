@@ -173,25 +173,52 @@ class LafinaMeetingRecorderModule(
 
     @ReactMethod
     fun stopRecording(promise: Promise) {
-        if (LafinaMeetingService.isRunning) {
+        stopRecordingOwned(null, promise)
+    }
+
+    @ReactMethod
+    fun stopRecordingForMeeting(meetingId: String, promise: Promise) {
+        stopRecordingOwned(meetingId, promise)
+    }
+
+    private fun stopRecordingOwned(meetingId: String?, promise: Promise) {
+        val stopToken = if (meetingId != null) java.util.UUID.randomUUID().toString() else null
+        if (stopToken != null) LafinaMeetingService.pendingStops.add(stopToken)
+        if (meetingId != null || LafinaMeetingService.isRunning) {
             try {
                 val stopIntent = Intent(reactContext, LafinaMeetingService::class.java).apply {
                     action = LafinaMeetingService.ACTION_STOP
+                    if (meetingId != null) putExtra(LafinaMeetingService.EXTRA_MEETING_ID, meetingId)
+                    if (stopToken != null) putExtra(LafinaMeetingService.EXTRA_STOP_TOKEN, stopToken)
                 }
                 reactContext.startService(stopIntent)
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                if (stopToken != null) {
+                    LafinaMeetingService.pendingStops.remove(stopToken)
+                    promise.reject("MEETING_STOP_ERROR", error.message, error)
+                    return
+                }
             }
         }
 
         transcribeExecutor.execute {
             try {
                 var waited = 0
-                while (LafinaMeetingService.isRunning && waited < 3500) {
+                val stillStopping = {
+                    (stopToken != null && LafinaMeetingService.pendingStops.contains(stopToken)) ||
+                        (LafinaMeetingService.isRunning && (meetingId == null || LafinaMeetingService.activeMeetingId == meetingId))
+                }
+                while (stillStopping() && waited < 3500) {
                     Thread.sleep(100)
                     waited += 100
                 }
-                val chunks = LafinaMeetingService.snapshotChunks()
-                val durations = LafinaMeetingService.snapshotChunkDurationsMs()
+                if (stillStopping()) {
+                    promise.reject("MEETING_STOP_ERROR", "Recording has not stopped yet. Please try again.")
+                    return@execute
+                }
+                // Shutdown acknowledgements never expose another capture's file paths.
+                val chunks = if (meetingId == null) LafinaMeetingService.snapshotChunks() else emptyList()
+                val durations = if (meetingId == null) LafinaMeetingService.snapshotChunkDurationsMs() else emptyList()
 
                 val filesArr = Arguments.createArray()
                 chunks.forEach { filesArr.pushString(it) }
@@ -200,13 +227,15 @@ class LafinaMeetingRecorderModule(
                 durations.forEach { durationsArr.pushDouble(it.toDouble()) }
 
                 val map = Arguments.createMap().apply {
-                    putString("meetingId", LafinaMeetingService.activeMeetingId ?: "")
+                    putString("meetingId", meetingId ?: LafinaMeetingService.activeMeetingId ?: "")
                     putArray("chunkFiles", filesArr)
                     putArray("chunkDurationsMs", durationsArr)
                 }
                 promise.resolve(map)
             } catch (e: Exception) {
                 promise.reject("MEETING_STOP_ERROR", e.message, e)
+            } finally {
+                if (stopToken != null) LafinaMeetingService.pendingStops.remove(stopToken)
             }
         }
     }
@@ -384,10 +413,10 @@ class LafinaMeetingRecorderModule(
             val safeId = File(meetingId).name
             val dir = File(LafinaMeetingService.meetingsRootDir(reactContext), safeId)
             if (dir.exists() && dir.isDirectory) {
-                dir.listFiles()?.forEach { it.delete() }
-                dir.delete()
+                dir.listFiles()?.forEach { if (!it.delete() && it.exists()) throw java.io.IOException("Could not delete recording") }
+                if (!dir.delete() && dir.exists()) throw java.io.IOException("Could not delete recording directory")
             }
-            promise.resolve(true)
+            promise.resolve(!dir.exists())
         } catch (e: Exception) {
             promise.resolve(false)
         }

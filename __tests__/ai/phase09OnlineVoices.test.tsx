@@ -270,7 +270,7 @@ describe('Voice catalogue loading', () => {
 
   it.each([
     ['a guest', GUEST_USER_ID, true, true, /Sign in/],
-    ['Online Mode off', 'off', false, true, /Enable Online Mode/],
+    ['Online Mode off', 'off', false, true, /Turn on Online in Chat/],
     ['no internet', 'net', true, false, /Connect to the internet/],
   ])('makes no request for %s', async (_label, kind, mode, online, message) => {
     const userId =
@@ -386,7 +386,7 @@ describe('Online speech provider with a selected voice', () => {
     });
     const result = await provider.speakText('Lab report');
     expect(result.source).toBe('native_tts');
-    expect(result.fallbackReason).toMatch(/invalid audio/);
+    expect(result.fallbackReason).toMatch(/could not play/);
     expect(tts.speak).toHaveBeenCalledWith('Lab report');
     voiceId = null;
     await provider.dispose?.();
@@ -785,7 +785,7 @@ describe('Online Voice picker sheet', () => {
     });
     await waitFor(() =>
       expect(screen.getByTestId('online-voice-notice').props.children).toMatch(
-        /ElevenLabs preview finished/,
+        /Sample finished/,
       ),
     );
     const previewBody = ttsBodies(request)[0];
@@ -820,7 +820,7 @@ describe('Online Voice picker sheet', () => {
     });
     await waitFor(() =>
       expect(screen.getByTestId('online-voice-notice').props.children).toMatch(
-        /offline device voice, not ElevenLabs\. ElevenLabs is busy\./,
+        /phone's own voice instead. The online voice is busy./,
       ),
     );
   });
@@ -904,7 +904,7 @@ describe('Online Voice picker sheet', () => {
     );
     await waitFor(() =>
       expect(screen.getByTestId('online-voice-notice').props.children).toMatch(
-        /Enable Online Mode in Chat/,
+        /Turn on Online in Chat/,
       ),
     );
     expect(

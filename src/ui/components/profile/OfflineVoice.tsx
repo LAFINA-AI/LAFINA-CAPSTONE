@@ -218,8 +218,7 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
       }}
     >
       <Text style={[styles.note, themed.muted]}>
-        For speech made on this phone without the internet. Only voices Android reports as
-        installed and offline are listed; nothing is downloaded. Online Voice has separate settings. Kept on this device for this account.
+        The voice LAFINA uses when you're offline. Only voices already on your phone are shown.
       </Text>
 
       <Text style={[styles.section, themed.text]}>Speech engine</Text>

@@ -28,7 +28,7 @@ export const loadOnlineVoices = async (
   if (!isOwner()) throw new Error('Sign in to use online voices.');
   if (!enabled())
     throw new Error(
-      'Enable Online Mode in Chat to load and preview ElevenLabs voices.',
+      'Turn on Online in Chat to load and preview online voices.',
     );
   if (!(await cloudClient.isOnline()))
     throw new Error('Connect to the internet, then tap Reload voices.');

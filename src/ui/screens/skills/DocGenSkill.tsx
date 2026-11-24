@@ -787,9 +787,11 @@ export function DocGenSkill({
         }
 
         if (handbookStatus.populated) {
+          // The "Handbook source" cites the Student Handbook only, not the
+          // campus knowledge pack that shares its index.
           const localCtx = await localHandbookService.buildOnlineContext(
             handbookQuery,
-            {maxChars: 1200},
+            {maxChars: 1200, collections: ['handbook']},
           );
           if (!localCtx) {
             throw new Error(

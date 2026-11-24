@@ -70,20 +70,20 @@ const ANSWER_MODES: ReadonlyArray<{
 }> = [
   {
     value: 'auto_online',
-    label: 'Online AI when available',
-    help: 'Talks with online LAFINA when you are signed in, online and agreed to Call LAFINA; otherwise Offline Voice. No pop-up while it rings.',
+    label: 'Talk online when I can',
+    help: 'Uses the online LAFINA when you are signed in and connected. Otherwise it talks without internet.',
     testID: 'call-settings-mode-auto',
   },
   {
     value: 'offline_voice',
-    label: 'Always Offline Voice',
-    help: 'Uses on-device speech & whisper.cpp without streaming',
+    label: 'Always talk without internet',
+    help: 'Everything stays on this phone.',
     testID: 'call-settings-mode-offline',
   },
   {
     value: 'buttons_only',
-    label: 'Buttons Only (Silent)',
-    help: 'Skips microphone & spoken readout; tap Acknowledge or Snooze',
+    label: 'Buttons only (silent)',
+    help: 'No talking. Just tap Acknowledge or Snooze.',
     testID: 'call-settings-mode-buttons',
   },
 ];
@@ -497,7 +497,7 @@ export const ReminderCallSettings: React.FC<ReminderCallSettingsProps> = ({
               <View style={styles.pickerRowLeft}>
                 <Mic size={16} color={accent} />
                 <Text style={[styles.rowTitle, themed.rowTitle]}>
-                  Offline Voice (TTS speed, pitch &amp; voice)
+                  Voice without internet (speed, pitch, voice)
                 </Text>
               </View>
               <ChevronRight size={16} color={colors.textMuted} />
@@ -514,7 +514,7 @@ export const ReminderCallSettings: React.FC<ReminderCallSettingsProps> = ({
               <View style={styles.pickerRowLeft}>
                 <PhoneCall size={16} color={accent} />
                 <Text style={[styles.rowTitle, themed.rowTitle]}>
-                  Online Voice · ElevenLabs &amp; Call LAFINA
+                  Online voice
                 </Text>
               </View>
               <ChevronRight size={16} color={colors.textMuted} />

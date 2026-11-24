@@ -1,0 +1,88 @@
+{
+  "as_of": "2026-11-24",
+  "conflicts": [
+    {
+      "id": "C1",
+      "severity": "high",
+      "source": "CAL",
+      "pages": [
+        2,
+        5
+      ],
+      "issue": "UG midyear start June 9 versus June 5",
+      "handling": "present both; require confirmation"
+    },
+    {
+      "id": "C2",
+      "severity": "high",
+      "source": "CAL",
+      "pages": [
+        5
+      ],
+      "issue": "Transferee admissions in May 2027 labels academic year 2026-2027",
+      "handling": "quote exactly; no silent year correction"
+    },
+    {
+      "id": "C3",
+      "severity": "medium",
+      "source": "CAL",
+      "pages": [
+        6
+      ],
+      "issue": "Graduate enrollment period overlaps published class start June 5",
+      "handling": "inform; not assume late-enrollment policy"
+    },
+    {
+      "id": "C4",
+      "severity": "medium",
+      "source": "CAL",
+      "pages": [
+        2
+      ],
+      "issue": "Page 2 duplicate undergraduate term summary heading",
+      "handling": "do not assign summary to graduate population without independent source"
+    },
+    {
+      "id": "C5",
+      "severity": "medium",
+      "source": "CONTACT",
+      "pages": [],
+      "issue": "Official campus main telephone 8571738 vs 8561738 on another official page",
+      "handling": "list both, avoid guaranteed reachability"
+    },
+    {
+      "id": "C6",
+      "severity": "medium",
+      "source": "OFFICIALS",
+      "pages": [],
+      "issue": "Short and long office extensions vary",
+      "handling": "do not auto-normalize"
+    },
+    {
+      "id": "C7",
+      "severity": "medium",
+      "source": "ORG_CUR",
+      "pages": [],
+      "issue": "Organization directory is labeled 2021 WoW",
+      "handling": "historic names only"
+    },
+    {
+      "id": "C8",
+      "severity": "high",
+      "source": "CAL",
+      "pages": [],
+      "issue": "Other USTP pages still show 2025-2026 calendar",
+      "handling": "choose matching academic year PDF"
+    },
+    {
+      "id": "C9",
+      "severity": "medium",
+      "source": "CAL",
+      "pages": [
+        4
+      ],
+      "issue": "Eid al-Fitr date requires proclamation confirmation",
+      "handling": "mark provisional"
+    }
+  ]
+}

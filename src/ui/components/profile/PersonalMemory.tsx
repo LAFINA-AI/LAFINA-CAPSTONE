@@ -137,10 +137,7 @@ export const PersonalMemory: React.FC<PersonalMemoryProps> = ({
       }}
     >
       <Text style={[styles.note, themed.muted]}>
-        Optional start time and length offered when you create a new event. LAFINA does not learn
-        them from your chats, notes or reminders. An offer changes the draft only when you tap
-        Apply, and you still save the event. Saved events never change. Kept on this device for
-        this account only.
+        A start time and length LAFINA can fill in when you add a new event. You can still change it before saving.
       </Text>
 
       <View style={styles.toggleRow}>

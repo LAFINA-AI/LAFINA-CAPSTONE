@@ -51,10 +51,8 @@ export const CommandGuide: React.FC<CommandGuideProps> = ({
       ))}
       <View style={styles.footnote}>
         <Text style={[styles.explanation, themed.secondary]}>
-          Schedule questions and planner changes work offline. Turn on Online
-          for general questions and document generation. USTP Handbook answers
-          are for USTP students after COR setup. Calendar, Notes and the
-          recorder stay available from their own screens.
+          Your schedule and planner work offline. Turn on Online for general
+          questions and documents.
         </Text>
       </View>
     </ToolSheet>

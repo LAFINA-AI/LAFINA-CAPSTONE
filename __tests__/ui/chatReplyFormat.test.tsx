@@ -350,17 +350,17 @@ describe('Profile setting', () => {
         <ProfileScreen userId={userId} refreshTrigger={0} onRefresh={jest.fn()} onLogout={jest.fn()} />
       </ThemeProvider>,
     );
-    const toggle = screen.getByLabelText('Markdown Chat Replies');
+    const toggle = screen.getByLabelText('Neat answer formatting');
     expect(toggle.props.value).toBe(true);
 
     act(() => {
       fireEvent(toggle, 'valueChange', false);
     });
     expect(chatReplyFormatStore.read(userId)).toBe('plain');
-    expect(screen.getByLabelText('Markdown Chat Replies').props.value).toBe(false);
+    expect(screen.getByLabelText('Neat answer formatting').props.value).toBe(false);
 
     act(() => {
-      fireEvent(screen.getByLabelText('Markdown Chat Replies'), 'valueChange', true);
+      fireEvent(screen.getByLabelText('Neat answer formatting'), 'valueChange', true);
     });
     expect(chatReplyFormatStore.read(userId)).toBe('markdown');
     screen.unmount();

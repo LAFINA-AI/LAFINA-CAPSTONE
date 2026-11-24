@@ -144,9 +144,7 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
         <Text style={themed.muted}>Checking…</Text>
       )}
       <Text style={[styles.note, themed.muted]}>
-        Access lets Android deliver reminders; it does not show that one rang. Without exact
-        alarms a reminder can be late. Full-screen calls also depend on Android and the lock
-        screen.
+        Allowed means your phone can deliver reminders. It does not show that one rang. Without exact alarms, reminders can be late.
       </Text>
 
       <Text style={[styles.section, themed.text]}>Reminders on this device</Text>

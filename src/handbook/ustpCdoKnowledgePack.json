@@ -1,0 +1,3710 @@
+{
+  "version": 1,
+  "collection": "ustp_cdo",
+  "title": "USTP Cagayan de Oro knowledge",
+  "edition": "Research snapshot 2026-11-24 (LAFINA-USTP-CDO-Knowledge 2026.11.24)",
+  "sourceLabel": "USTP CDO official sources",
+  "asOf": "2026-11-24",
+  "timezone": "Asia/Manila",
+  "campus": "USTP Cagayan de Oro",
+  "sha256": "8104b8d001ca91222cfb73351c031c071a96265955145ab4b1924da562fde77e",
+  "chunkCount": 88,
+  "generatedAt": "2026-11-24T00:00:00Z",
+  "documents": [
+    {
+      "path": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+      "title": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "sha256": "b9f4b92334273408de9e4c6b221e2b88c4cd0aa708fe81f3201c2d56c8936c6f",
+      "category": "calendar",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CAL",
+        "CAL_INDEX"
+      ]
+    },
+    {
+      "path": "knowledge/02_graduate_calendar_2026_2027.md",
+      "title": "Graduate Student Calendar AY 2026-2027",
+      "sha256": "044820844267e3783a93de51ad4db7feb1b1e4ae656cc6f0903ed1531fb4be84",
+      "category": "calendar",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CAL",
+        "CAL_INDEX"
+      ]
+    },
+    {
+      "path": "knowledge/03_admissions_2027_2028_windows.md",
+      "title": "Admission Dates for AY 2027-2028 Announced in Calendar",
+      "sha256": "649fd1a6e48a9406ed9115910b4da03d7116b581fd4193e76c07ebb35f63a59b",
+      "category": "admissions",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CAL",
+        "ASO",
+        "PORTAL"
+      ]
+    },
+    {
+      "path": "knowledge/04_admissions_enrollment_and_ustat.md",
+      "title": "Admissions, Enrollment, USTAT and Student Registration",
+      "sha256": "2ce333d952c2e8477ec8cebd79676b3f315546a7b452b890a6fc276d14173b5a",
+      "category": "admissions",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "ADMISSIONS",
+        "ASO",
+        "PORTAL",
+        "ENROLL",
+        "FAQ",
+        "TUITION"
+      ]
+    },
+    {
+      "path": "knowledge/05_programs_cdo_ug_graduate.md",
+      "title": "USTP CDO Colleges and Degree Programs",
+      "sha256": "bf353f33a93674bb4f809c75d9e70b0ade5ce0627f53dc985197e05d40cb6ed8",
+      "category": "academics",
+      "volatility": "medium",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CDO",
+        "UG_PROG",
+        "GR_PROG"
+      ]
+    },
+    {
+      "path": "knowledge/06_offices_directory_and_support.md",
+      "title": "USTP CDO Offices, Contacts and Where to Ask",
+      "sha256": "ce254fdf969bb64659013cef4fd1ed878ff941bd68a1a2e12028dd2efde25a5d",
+      "category": "student_services",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CONTACT",
+        "OFFICIALS",
+        "ASO",
+        "LIB"
+      ]
+    },
+    {
+      "path": "knowledge/07_library_buildings_services.md",
+      "title": "USTP CDO Library, Resource Centers and Study Facilities",
+      "sha256": "26b1b3fd3b7a38dcacc312445adbfb58ce0c66badc3bfcfe44684a8cd6b80b6d",
+      "category": "facilities",
+      "volatility": "medium",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "LIB",
+        "LIB_SVC"
+      ]
+    },
+    {
+      "path": "knowledge/08_scholarships_grants_financial_aid.md",
+      "title": "USTP CDO Scholarships and Financial Assistance",
+      "sha256": "92ed7219e4167a42f869f0eab384ecb62298faacbcbcb9a46907695c7105308e",
+      "category": "scholarships",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "SCHOLAR",
+        "ASO",
+        "ADMISSIONS",
+        "TUITION"
+      ]
+    },
+    {
+      "path": "knowledge/09_portals_and_digital_tools.md",
+      "title": "USTP Student Portals and Digital Services",
+      "sha256": "46fdd8fd311b38fa2494bb309d1cc4f4182bff2c54929ca3d701903b8d3d0511",
+      "category": "digital_services",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "USTEP",
+        "PRISMS",
+        "ECLEAR",
+        "PORTAL",
+        "ENROLL",
+        "CONTACT"
+      ]
+    },
+    {
+      "path": "knowledge/10_student_life_organizations.md",
+      "title": "USTP CDO Student Organizations and Campus Life",
+      "sha256": "afed22f5da897154d94266acb8f98a0a5f876eb85d7af3d9453444324559f90f",
+      "category": "student_life",
+      "volatility": "medium",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "ORG_CUR",
+        "ORG_NON",
+        "CDO"
+      ]
+    },
+    {
+      "path": "knowledge/11_campus_overview_and_locations.md",
+      "title": "USTP CDO Overview, Campus Geography and History",
+      "sha256": "e40bf3fefb66671f7af3b871498939b053dc62fffa46fd6718770c7ff5d6c426",
+      "category": "campus",
+      "volatility": "low",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CAMPUS",
+        "CDO",
+        "CONTACT"
+      ]
+    },
+    {
+      "path": "knowledge/12_current_officials_snapshot.md",
+      "title": "USTP CDO Officials and Key Staff - Public Snapshot",
+      "sha256": "dda29d7fed0285d14d3aa0db7c83edd3169449b566bd6db1eae8ca34dfcd38a9",
+      "category": "directory",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "OFFICIALS",
+        "CONTACT"
+      ]
+    },
+    {
+      "path": "knowledge/13_fast_answers_faq.md",
+      "title": "USTP CDO Fast Verified Student Answers",
+      "sha256": "baf817f3b833ff50999bfb4e51fc264cf50b2b398fb79ac83a730fd1d8ec8387",
+      "category": "faq",
+      "volatility": "medium",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CAL",
+        "CONTACT",
+        "ENROLL",
+        "LIB",
+        "ADMISSIONS",
+        "CAMPUS",
+        "UG_PROG"
+      ]
+    },
+    {
+      "path": "knowledge/14_source_conflicts_and_refresh_rules.md",
+      "title": "Conflicts, Caveats and Refresh Rules",
+      "sha256": "a01bc7e2e894ad4ce3ab8ad26a3fdc2ad44e717e7da0d3a33fbf2559c5e0388b",
+      "category": "qa",
+      "volatility": "high",
+      "asOf": "2026-11-24",
+      "sourceIds": [
+        "CAL",
+        "CONTACT",
+        "OFFICIALS",
+        "ORG_CUR",
+        "ORG_NON",
+        "UG_PROG"
+      ]
+    }
+  ],
+  "chunks": [
+    {
+      "id": "cdo-175fc76ec045",
+      "seq": 1,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "Authoritative term summary",
+      "pageLabel": "PDF p. 2",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG calendar CHED summary academic starts ends instructional days semester dates ched",
+      "content": "- First semester - Starts: August 10, 2026; Ends: December 19, 2026; Instructional days per PDF summary: 109\n- Second semester - Starts: January 5, 2027; Ends: May 20, 2027; Instructional days per PDF summary: 110\n- Midyear - Starts: June 9, 2027; Ends: July 22, 2027; Instructional days per PDF summary: 37\nThese are the dates printed in the summary table on PDF page 2. They cover USTP Cagayan de Oro (the CHED endorsement on page 1 includes this campus). Academic-calendar dates and individual faculty/section exam arrangements are not identical. Sources: CHED-noted USTP Academic Calendar AY 2026-2027, USTP University Calendars.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": "UG",
+        "pdfPages": [
+          2
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C1",
+            "text": "The AY 2026-2027 calendar prints two different undergraduate midyear start dates: June 9, 2027 (term summary, PDF p. 2) and June 5, 2027 (detailed schedule, PDF p. 5). Confirm with the USTP CDO Registrar before planning around either date."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-59d9112e71fd",
+      "seq": 2,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "First semester AY 2026-2027",
+      "pageLabel": "PDF pp. 2, 3",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG first semester calendar wow ASEAN CQI PRAISE august day start faculty early enrollment classes academic",
+      "content": "- May 24, 2026: Start of early enrollment for incoming freshmen (UG, PDF p. 2)\n- June 15, 2026: Start of early enrollment for regular upperclassmen without midyear classes (UG, PDF p. 2)\n- July 28 - August 1, 2026: Application for petitioned class (UG, PDF p. 2)\n- August 3-8, 2026: Week of Welcome (WoW) (UG, PDF p. 2)\n- August 6-8, 2026: Adding/dropping of subjects (UG, PDF p. 2)\n- August 8, 2026: ASEAN Day (calendar observance) (all, PDF p. 2)\n- August 10, 2026: Start of classes, all levels; resumption of faculty service (all, PDF p. 2)\n- August 11, 2026: Faculty assessment, evaluation and CQI curriculum review (2nd semester) (faculty, PDF p. 2)\n- August 16, 2026: USTP Charter Day (all, PDF p. 2)\n- August 20, 2026: PRAISE Award (staff, PDF p. 2)\n- August 21, 2026: Ninoy Aquino Day (calendar lists special non-working day) (all, PDF p. 3)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "first",
+        "scope": "UG",
+        "pdfPages": [
+          2,
+          3
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2,
+              3
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-bdccc06a6ee8",
+      "seq": 3,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "First semester AY 2026-2027",
+      "pageLabel": "PDF p. 3",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG first semester calendar october day september lists holiday august examinations observance submission",
+      "content": "- August 31, 2026: National Heroes Day (calendar lists regular holiday) (all, PDF p. 3)\n- August 17 - October 31, 2026: Application for graduation (UG, PDF p. 3)\n- September 9-12, 2026: Preliminary examinations (UG, PDF p. 3)\n- September 18, 2026: Birthday of Dr. Ricardo E. Rotoras (calendar observance) (all, PDF p. 3)\n- September 21, 2026: Announcement of Dean’s Listers for previous semester (UG, PDF p. 3)\n- September 25, 2026: Submission of enrollment list (administrative, PDF p. 3)\n- October 5, 2026: World Teachers Day (calendar observance) (all, PDF p. 3)\n- October 5-10, 2026: Midterm examinations (UG, PDF p. 3)\n- October 19-23, 2026: Faculty evaluation (UG, PDF p. 3)\n- October 24, 2026: Deadline for submission of midterm grades (faculty, PDF p. 3)\n- November 1, 2026: All Saints Day (calendar lists holiday) (all, PDF p. 3)\n- November 2, 2026: All Souls Day (calendar lists holiday) (all, PDF p. 3)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "first",
+        "scope": "UG",
+        "pdfPages": [
+          3
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              3
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-bba8e14b6e20",
+      "seq": 4,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "First semester AY 2026-2027",
+      "pageLabel": "PDF p. 3",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG first semester calendar december november final examinations graduating faculty lists holiday academic",
+      "content": "- November 9-14, 2026: Pre-final examinations (UG, PDF p. 3)\n- November 16-17, 2026: Wellness Period (social, sports, mental awareness activities) (all, PDF p. 3)\n- November 23-28, 2026: Final examinations for graduating students (UG, PDF p. 3)\n- November 30, 2026: Bonifacio Day (calendar lists regular holiday) (all, PDF p. 3)\n- December 2, 2026: Death anniversary of Dr. Ricardo E. Rotoras (all, PDF p. 3)\n- December 8, 2026: Feast of Immaculate Conception (calendar lists holiday) (all, PDF p. 3)\n- December 9-19, 2026: Final examinations for non-graduating students (UG, PDF p. 3)\n- December 18, 2026: University Year-End Assembly and Fellowship (all, PDF p. 3)\n- December 19, 2026: Deadline for submission of grades of graduating students (faculty, PDF p. 3)\n- December 20, 2026: Start of Christmas break for faculty (faculty, PDF p. 3)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "first",
+        "scope": "UG",
+        "pdfPages": [
+          3
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              3
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-70c8a636a66f",
+      "seq": 5,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "First semester AY 2026-2027",
+      "pageLabel": "PDF p. 3",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG first semester calendar academic january deadline submission final grades faculty",
+      "content": "- January 4, 2027: Deadline for submission of final grades of undergraduate students (faculty, PDF p. 3)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "first",
+        "scope": "UG",
+        "pdfPages": [
+          3
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              3
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-e8e420b4ed8d",
+      "seq": 6,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "Second semester AY 2026-2027",
+      "pageLabel": "PDF p. 4",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG second semester calendar CQI EDSA january february enrollment faculty application lists holiday academic",
+      "content": "- January 4-9, 2027: Enrollment period (UG, PDF p. 4)\n- January 4, 2027: Faculty assessment/evaluation and CQI review for first semester (faculty, PDF p. 4)\n- January 5, 2027: Start of classes for all levels (all, PDF p. 4)\n- January 4-6, 2027: Application for petitioned class (UG, PDF p. 4)\n- January 11-13, 2027: Adding/dropping of subjects (UG, PDF p. 4)\n- January 18 - April 3, 2027: Application for graduation (UG, PDF p. 4)\n- February 6, 2027: Chinese New Year (calendar lists holiday) (all, PDF p. 4)\n- February 8-13, 2027: Preliminary examinations (UG, PDF p. 4)\n- February 19, 2027: Submission of enrollment list (administrative, PDF p. 4)\n- February 24-27, 2027: Students sports and cultural events (Intramurals) (all, PDF p. 4)\n- February 25, 2027: EDSA People Power Revolution anniversary (calendar lists special working holiday) (all, PDF p. 4)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "second",
+        "scope": "UG",
+        "pdfPages": [
+          4
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              4
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-7a62a6a736c6",
+      "seq": 7,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "Second semester AY 2026-2027",
+      "pageLabel": "PDF pp. 4, 5",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG second semester calendar march april examinations faculty final graduating midterm deadline grades",
+      "content": "- March 9, 2027: Eid al-Fitr (calendar marks date) (needs confirmation) (all, PDF p. 4)\n- March 15-20, 2027: Midterm examinations (UG, PDF p. 4)\n- March 22, 2027: Announcement of Dean’s Listers for previous semester (UG, PDF p. 4)\n- March 25-27, 2027: Holy Week: Maundy Thursday, Good Friday, Black Saturday (calendar holidays) (all, PDF p. 4)\n- March 29 - April 2, 2027: Faculty evaluation (UG, PDF p. 4)\n- April 3, 2027: Deadline for submission of midterm grades (faculty, PDF p. 4)\n- April 9, 2027: Araw ng Kagitingan (calendar lists regular holiday) (all, PDF p. 4)\n- April 19-24, 2027: Pre-final examinations (UG, PDF p. 4)\n- April 26 - May 3, 2027: Final examinations for graduating students (UG, PDF p. 5)\n- May 13-20, 2027: Final examinations for non-graduating students (UG, PDF p. 5)\n- May 15, 2027: Deadline for grades of graduating students (faculty, PDF p. 5)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "second",
+        "scope": "UG",
+        "pdfPages": [
+          4,
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              4,
+              5
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C9",
+            "text": "Eid al-Fitr is marked March 9, 2027 in the calendar; the actual holiday depends on the official proclamation."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-e2076e8d9ec2",
+      "seq": 8,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "Second semester AY 2026-2027",
+      "pageLabel": "PDF p. 5",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG second semester calendar faculty academic deadline final grades non graduating",
+      "content": "- May 28, 2027: Deadline for final grades of non-graduating students (faculty, PDF p. 5)\n- May 29, 2027: Last day of faculty service (faculty, PDF p. 5)\n- May 30 - August 8, 2027: Teacher leave (calendar listing) (faculty, PDF p. 5)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "second",
+        "scope": "UG",
+        "pdfPages": [
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              5
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-958faf320209",
+      "seq": 9,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "Midyear 2027 - undergraduate",
+      "pageLabel": "PDF pp. 5, 6",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG midyear calendar july june enrollment confirmation application midterm submission administrative deadline",
+      "content": "- June 3-8, 2027: Enrollment period (UG, PDF p. 5)\n- June 5, 2027: Start of classes (detailed calendar row) (needs confirmation) (UG, PDF p. 5)\n- June 5-8, 2027: Application for petitioned class (UG, PDF p. 5)\n- June 24 - July 10, 2027: Application for graduation (UG, PDF p. 6)\n- June 28 - July 3, 2027: Midterm examinations (UG, PDF p. 6)\n- June 14-22, 2027: Commencement and recognition exercises (as printed) (needs confirmation) (all, PDF p. 6)\n- July 7, 2027: Submission of list of graduates (administrative, PDF p. 6)\n- July 10, 2027: Deadline for midterm grades (faculty, PDF p. 6)\n- July 16-22, 2027: Final exams for non-graduating students (UG, PDF p. 6)\n- July 24, 2027: Submission of enrollment list (administrative, PDF p. 6)\n- July 28, 2027: Deadline for final grades for non-graduating UG students (faculty, PDF p. 6)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "midyear",
+        "scope": "UG",
+        "pdfPages": [
+          5,
+          6
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              5,
+              6
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C1",
+            "text": "The AY 2026-2027 calendar prints two different undergraduate midyear start dates: June 9, 2027 (term summary, PDF p. 2) and June 5, 2027 (detailed schedule, PDF p. 5). Confirm with the USTP CDO Registrar before planning around either date."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-096e766b1647",
+      "seq": 10,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "Midyear 2027 - undergraduate",
+      "pageLabel": "PDF pp. 5, 6",
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG midyear calendar ASEAN august day academic resumption faculty service start classes",
+      "content": "- August 9, 2027: Resumption of faculty service and start of classes for AY 2027-2028 (all, PDF p. 6)\n- June 12, 2027: Philippine Independence Day (calendar regular holiday) (all, PDF p. 5)\n- July 4, 2027: Submission of promotional list (listed on page 5) (needs confirmation) (administrative, PDF p. 5)\n- August 8, 2027: ASEAN Day (calendar observance) (all, PDF p. 5)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "midyear",
+        "scope": "UG",
+        "pdfPages": [
+          5,
+          6
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              5,
+              6
+            ]
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C1",
+            "text": "The AY 2026-2027 calendar prints two different undergraduate midyear start dates: June 9, 2027 (term summary, PDF p. 2) and June 5, 2027 (detailed schedule, PDF p. 5). Confirm with the USTP CDO Registrar before planning around either date."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-353e7194f5b4",
+      "seq": 11,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "IMPORTANT: inconsistent midyear start",
+      "pageLabel": null,
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG midyear calendar START CLASSES LAFINA start june schedule date academic important inconsistent summary",
+      "content": "- PDF page 2: UG summary gives June 9, 2027 as start of midyear term.\n- PDF page 5: detailed UG midyear schedule says June 5, 2027 for START OF CLASSES, while the June 3-8 enrollment period is still in progress.\n- These statements cannot both be treated as an unqualified single start date. LAFINA should say \"The calendar has conflicting June 5 and June 9 start dates; please confirm with the Registrar/department.\" Avoid autonomous schedule creation based on this date.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "midyear",
+        "scope": "UG",
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C1",
+            "text": "The AY 2026-2027 calendar prints two different undergraduate midyear start dates: June 9, 2027 (term summary, PDF p. 2) and June 5, 2027 (detailed schedule, PDF p. 5). Confirm with the USTP CDO Registrar before planning around either date."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-2dc996e17977",
+      "seq": 12,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "How to answer common calendar questions",
+      "pageLabel": null,
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG calendar when academic sem graduating march holiday how answer common",
+      "content": "- \"When are the 1st sem finals?\" The undergraduate non-graduating final examination period is December 9-19, 2026. Graduating students: November 23-28, 2026. Section-level schedules may differ.\n- \"When are 2nd sem midterms?\" March 15-20, 2027 for undergraduate students.\n- \"Is Nov 30 a holiday?\" It is marked as Bonifacio Day/regular holiday in the USTP academic calendar, but consult university advisories and official proclamations for changes.\n- \"When is my dean's list?\" Calendar lists previous-semester announcements on September 21, 2026 and March 22, 2027; it does not guarantee an individual student appears on the list.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": "UG",
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-3088b95c7740",
+      "seq": 13,
+      "chapter": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "section": "Source limits",
+      "pageLabel": null,
+      "sourceLabel": "Academic Calendar AY 2026-2027 - Undergraduate",
+      "keywords": "undergraduate UG calendar exam academic limits planned prove given lecturer timetable final",
+      "content": "This is a university-planned calendar. It does not prove a given lecturer's timetable, final room assignments, exam time of day, adjusted holiday proclamations, weather-related class suspensions, or individual student enrollment. Live notices supersede when confirmed. Do not conflate published exam windows with personally scheduled exam appointments.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/01_academic_calendar_undergraduate_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": "UG",
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          },
+          {
+            "id": "CAL_INDEX",
+            "title": "USTP University Calendars",
+            "url": "https://www.ustp.edu.ph/university-calendars/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-95239ce9ab26",
+      "seq": 14,
+      "chapter": "Graduate Student Calendar AY 2026-2027",
+      "section": "Graduate (Gr) events in official PDF",
+      "pageLabel": "PDF p. 2",
+      "sourceLabel": "Graduate Student Calendar AY 2026-2027",
+      "keywords": "graduate GR masters doctoral calendar BSIT undergraduate events side term summary contains calendars important apply",
+      "content": "The source contains side-by-side undergraduate and graduate calendars. It is important not to apply graduate events to a BSIT or other undergraduate student. The PDF page 2 term summary is repeated with an \"UNDERGRADUATE (UG)\" heading, so do not confidently claim a separate graduate term summary is specified. Use the dated graduate event rows below instead.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/02_graduate_calendar_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": "GR",
+        "pdfPages": [
+          2
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2
+            ]
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C4",
+            "text": "The term summary on PDF p. 2 is labelled undergraduate; the calendar does not give a separate graduate term summary."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-f348f97e47cc",
+      "seq": 15,
+      "chapter": "Graduate Student Calendar AY 2026-2027",
+      "section": "First semester graduate studies",
+      "pageLabel": "PDF pp. 3, 4",
+      "sourceLabel": "Graduate Student Calendar AY 2026-2027",
+      "keywords": "graduate GR masters doctoral first semester calendar august period december final studies enrollment level application submission",
+      "content": "- July 20 - August 8, 2026: Enrollment period for graduate level (GR, PDF p. 3)\n- August 10-14, 2026: Adding/dropping of subjects (GR, PDF p. 4)\n- August 15, 2026: Graduate Studies Orientation General Assembly (GR, PDF p. 4)\n- August 17 - December 19, 2026: Application for graduation (GR, PDF p. 4)\n- September 25, 2026: Submission of enrollment list (GR, PDF p. 4)\n- October 10, 2026: Midterm examination period (GR, PDF p. 4)\n- November 23-28, 2026: Final examination period (GR, PDF p. 4)\n- December 1-12, 2026: Start of admission application (unspecified level/cycle) (needs confirmation) (GR, PDF p. 4)\n- December 19, 2026: Final examinations particularly Saturday classes (GR, PDF p. 4)\n- January 4, 2027: Deadline for final grades (GR, PDF p. 4)\n- January 5, 2027: Resumption of faculty service (faculty, PDF p. 4)\n- February 2, 2027: Submission of promotion list (administrative, PDF p. 4)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/02_graduate_calendar_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "first",
+        "scope": "GR",
+        "pdfPages": [
+          3,
+          4
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              3,
+              4
+            ]
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-0138ca5a631b",
+      "seq": 16,
+      "chapter": "Graduate Student Calendar AY 2026-2027",
+      "section": "Second semester graduate studies",
+      "pageLabel": "PDF p. 5",
+      "sourceLabel": "Graduate Student Calendar AY 2026-2027",
+      "keywords": "graduate GR masters doctoral second semester calendar january faculty period march day final non graduating",
+      "content": "- January 6-9, 2027: Enrollment period for graduate level (GR, PDF p. 5)\n- January 5, 2027: Start of classes, all levels (GR, PDF p. 5)\n- January 18-22, 2027: Adding/dropping of subjects (GR, PDF p. 5)\n- January 18 - May 15, 2027: Application for graduation (GR, PDF p. 5)\n- March 4, 2027: World Engineering Day (calendar observance) (all, PDF p. 5)\n- March 20, 2027: Midterm examination period (GR, PDF p. 5)\n- May 13-20, 2027: Final examinations for non-graduating students (GR, PDF p. 5)\n- May 28, 2027: Deadline for final grades of non-graduating graduate students (GR, PDF p. 5)\n- May 29, 2027: Last day of faculty service (faculty, PDF p. 5)\n- May 30 - August 8, 2027: Teacher leave (calendar listing) (faculty, PDF p. 5)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/02_graduate_calendar_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "second",
+        "scope": "GR",
+        "pdfPages": [
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              5
+            ]
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-5af48a026b98",
+      "seq": 17,
+      "chapter": "Graduate Student Calendar AY 2026-2027",
+      "section": "Midyear graduate studies",
+      "pageLabel": "PDF p. 6",
+      "sourceLabel": "Graduate Student Calendar AY 2026-2027",
+      "keywords": "graduate GR masters doctoral midyear calendar july submission june administrative enrollment start midterm final non",
+      "content": "- June 5-11, 2027: Graduate enrollment period (GR, PDF p. 6)\n- June 5, 2027: Graduate start of classes (detailed row) (GR, PDF p. 6)\n- June 24 - July 10, 2027: Graduate application for graduation (GR, PDF p. 6)\n- July 3, 2027: Graduate midterm examination (GR, PDF p. 6)\n- July 16-22, 2027: Graduate final exams for non-graduating students (GR, PDF p. 6)\n- July 7, 2027: Submission of list of graduates (administrative, PDF p. 6)\n- July 10, 2027: Deadline for submission of midterm grades (faculty, PDF p. 6)\n- July 24, 2027: Submission of enrollment list (administrative, PDF p. 6)\n- July 28, 2027: Deadline for non-graduating graduate final grades (GR, PDF p. 6)\n- August 9, 2027: Resumption of faculty service and start of AY 2027-2028 (GR, PDF p. 6)\n- September 6, 2027: Submission of promotion list (administrative, PDF p. 6)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/02_graduate_calendar_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "midyear",
+        "scope": "GR",
+        "pdfPages": [
+          6
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              6
+            ]
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C3",
+            "text": "The graduate midyear schedule (PDF p. 6) gives June 5, 2027 as both the start of classes and the first day of the June 5-11 enrollment period. Ask the Graduate School or Registrar about your program."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-b1ff5a4747d0",
+      "seq": 18,
+      "chapter": "Graduate Student Calendar AY 2026-2027",
+      "section": "Midyear graduate studies",
+      "pageLabel": "PDF pp. 3, 4, 5, 6",
+      "sourceLabel": "Graduate Student Calendar AY 2026-2027",
+      "keywords": "graduate GR masters doctoral midyear calendar CHED june class studies table lists start enrollment overlap",
+      "content": "The graduate midyear table lists June 5, 2027 as class start and June 5-11 as enrollment, which overlap. Avoid assuming this is impossible: refer questions about a personal program to the Graduate School or Registrar.\nSource: CHED-noted USTP Academic Calendar AY 2026-2027 PDF pages 3-6. The calendar does not provide a student's individual class section schedule.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/02_graduate_calendar_2026_2027.md",
+        "category": "calendar",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "midyear",
+        "scope": "GR",
+        "pdfPages": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              3,
+              4,
+              5,
+              6
+            ]
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C3",
+            "text": "The graduate midyear schedule (PDF p. 6) gives June 5, 2027 as both the start of classes and the first day of the June 5-11 enrollment period. Ask the Graduate School or Registrar about your program."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-73b9cb200adb",
+      "seq": 19,
+      "chapter": "Admission Dates for AY 2027-2028 Announced in Calendar",
+      "section": "Upcoming admission cycles included in the AY 2026-2027 PDF",
+      "pageLabel": "PDF pp. 3, 5",
+      "sourceLabel": "Admission Dates for AY 2027-2028 Announced in Calendar",
+      "keywords": "admissions SHS admission application prospective dates april shs start announced upcoming cycles",
+      "content": "These dates were published in the supplied calendar, not validated as open application forms on the day of answering. USTP may revise intake schedules. All times/date ranges in local Philippine time.\n- November 9, 2026 - April 30, 2027: Admission application for incoming freshmen for AY 2027-2028 (prospective UG, PDF p. 3)\n- April 12 - May 22, 2027: Grade 11 SHS admission application for AY 2027-2028 (prospective SHS, PDF p. 5)\n- May 10, 2027: Start of application for transferees and second coursers (PDF prints 1st semester AY 2026-2027) (needs confirmation) (prospective UG, PDF p. 5)\n- May 10, 2027: Start of graduate admission application (prospective GR, PDF p. 5)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/03_admissions_2027_2028_windows.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2027-2028",
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [
+          3,
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              3,
+              5
+            ]
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          },
+          {
+            "id": "PORTAL",
+            "title": "USTP Online Admissions Portal",
+            "url": "https://prisms.ustp.edu.ph/padmission"
+          },
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C2",
+            "text": "PDF p. 5 labels the May 10, 2027 transferee and second-courser application as \"1st Semester AY 2026-2027\", which does not match its 2027 placement. It is quoted as printed; check with the Admission and Scholarship Office."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-2ab03409ff57",
+      "seq": 20,
+      "chapter": "Admission Dates for AY 2027-2028 Announced in Calendar",
+      "section": "High-priority correction guard",
+      "pageLabel": "PDF p. 5",
+      "sourceLabel": "Admission Dates for AY 2027-2028 Announced in Calendar",
+      "keywords": "admissions admission dates announced high priority correction guard reads start application ASO",
+      "content": "The PDF page 5 reads: \"May 10 [2027] - Start of Admission Application for Transferees and Second Coursers for 1st Semester AY 2026-2027\". That cycle name conflicts with its 2027 placement. Do not silently rewrite it to AY 2027-2028. When asked, report it as printed and recommend checking the Admission and Scholarship Office.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/03_admissions_2027_2028_windows.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2027-2028",
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              5
+            ]
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C2",
+            "text": "PDF p. 5 labels the May 10, 2027 transferee and second-courser application as \"1st Semester AY 2026-2027\", which does not match its 2027 placement. It is quoted as printed; check with the Admission and Scholarship Office."
+          }
+        ],
+        "aliases": {
+          "ASO": "Admission and Scholarship Office"
+        }
+      }
+    },
+    {
+      "id": "cdo-61498fe8bbb7",
+      "seq": 21,
+      "chapter": "Admission Dates for AY 2027-2028 Announced in Calendar",
+      "section": "Where applicants should check",
+      "pageLabel": null,
+      "sourceLabel": "Admission Dates for AY 2027-2028 Announced in Calendar",
+      "keywords": "admissions ASO USTAT CHED admission scholarship office application date dates announced where applicants",
+      "content": "- Official USTP admissions information: https://www.ustp.edu.ph/admissions/\n- CDO admissions and scholarship office: https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/\n- Online application form: https://prisms.ustp.edu.ph/padmission\n- Schedule and testing PDFs are linked from the ASO site. Their contents can change and are not included in this verified snapshot.\nDo not invent a 2027 USTAT test date, admission result date, acceptance count, application fee, or program-specific cutoff. CHED-noted USTP Academic Calendar AY 2026-2027 pages 3 and 5.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/03_admissions_2027_2028_windows.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2027-2028",
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          },
+          {
+            "id": "PORTAL",
+            "title": "USTP Online Admissions Portal",
+            "url": "https://prisms.ustp.edu.ph/padmission"
+          },
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-00c26cdf95d7",
+      "seq": 22,
+      "chapter": "Admissions, Enrollment, USTAT and Student Registration",
+      "section": "Where to apply and ask questions",
+      "pageLabel": null,
+      "sourceLabel": "Admissions, Enrollment, USTAT and Student Registration",
+      "keywords": "admissions USTAT ASO FAQ admission scholarship aso office faq local number testing documents",
+      "content": "- University admissions page: https://www.ustp.edu.ph/admissions/\n- Cagayan de Oro Admission and Scholarship Office (ASO): https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/\n- Online admissions portal: https://prisms.ustp.edu.ph/padmission\n- University admission FAQ: https://www.ustp.edu.ph/admission-faq/\n- CDO ASO published telephone: (088) 856-1738 local 125. The campus contacts page also shows (088) 857-1738 local 125; call routing or older number styles vary across official pages. Do not assert one number is the only valid line.\n- CDO ASO lists admission/testing/scholarship resources (application procedure; exam guidelines, including home-based; results; testing schedules; scholarship sponsors) with external downloadable documents on its page. Not all linked documents were individually checked for freshness.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/04_admissions_enrollment_and_ustat.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          },
+          {
+            "id": "PORTAL",
+            "title": "USTP Online Admissions Portal",
+            "url": "https://prisms.ustp.edu.ph/padmission"
+          },
+          {
+            "id": "FAQ",
+            "title": "USTP Admission FAQ",
+            "url": "https://www.ustp.edu.ph/admission-faq/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C5",
+            "text": "Official USTP pages show two main campus numbers, (088) 857-1738 and (088) 856-1738. Confirm with the switchboard when calling."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-f7846c3aec44",
+      "seq": 23,
+      "chapter": "Admissions, Enrollment, USTAT and Student Registration",
+      "section": "USTAT",
+      "pageLabel": null,
+      "sourceLabel": "Admissions, Enrollment, USTAT and Student Registration",
+      "keywords": "admissions USTAT ASO ustat test enrollment registration science technology admission aso website",
+      "content": "USTAT is the *University of Science and Technology Admission Test*. USTP CDO's ASO website describes both home-based and onsite USTAT activities. Details of which options are available in a particular cycle must be checked in current admissions announcements. No exact 2027 test date is established in this knowledge pack.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/04_admissions_enrollment_and_ustat.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-1428ee1901cf",
+      "seq": 24,
+      "chapter": "Admissions, Enrollment, USTAT and Student Registration",
+      "section": "Pre-enrollment / PRISMS guide as described on USTP's official site",
+      "pageLabel": null,
+      "sourceLabel": "Admissions, Enrollment, USTAT and Student Registration",
+      "keywords": "admissions preenrollment USTAT PRISMS enrollment prisms email pre temporary portal subjects confirmation ustat",
+      "content": "- After receiving a USTP application email, verify your email through the official verification link.\n- Use the student number/username and temporary credentials provided by the university to access PRISMS; change the temporary password.\n- Open the Enrollment area in PRISMS.\n- Complete missing profile information if the portal prompts you.\n- If the portal reports outstanding liabilities, follow the official eClearance route: https://clearance.ustp.edu.ph/.\n- Select the offered class section; subjects associated with it will appear. Tick the desired subjects, register them, and proceed to confirmation.\n- Review the enrollment details, save/continue, and print the pre-assessment for validation; USTP says a confirmation email may be sent.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/04_admissions_enrollment_and_ustat.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ENROLL",
+            "title": "USTP Enrollment Flow",
+            "url": "https://www.ustp.edu.ph/enrollment-flow/"
+          },
+          {
+            "id": "ECLEAR",
+            "title": "USTP eClearance",
+            "url": "https://clearance.ustp.edu.ph/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-7d379fadcd71",
+      "seq": 25,
+      "chapter": "Admissions, Enrollment, USTAT and Student Registration",
+      "section": "Pre-enrollment / PRISMS guide as described on USTP's official site",
+      "pageLabel": null,
+      "sourceLabel": "Admissions, Enrollment, USTAT and Student Registration",
+      "keywords": "admissions preenrollment USTAT PRISMS enrollment pre prisms guide ustat registration described site instructions",
+      "content": "- The official instructions distinguish online pre-enrollment from full validation/enrollment. Do not claim pre-enrollment alone makes a student officially enrolled.\nSource: https://www.ustp.edu.ph/enrollment-flow/ (official guide; steps may change with PRISMS updates).",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/04_admissions_enrollment_and_ustat.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ENROLL",
+            "title": "USTP Enrollment Flow",
+            "url": "https://www.ustp.edu.ph/enrollment-flow/"
+          },
+          {
+            "id": "ECLEAR",
+            "title": "USTP eClearance",
+            "url": "https://clearance.ustp.edu.ph/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-5fc209aedf9f",
+      "seq": 26,
+      "chapter": "Admissions, Enrollment, USTAT and Student Registration",
+      "section": "Tuition/RA 10931",
+      "pageLabel": null,
+      "sourceLabel": "Admissions, Enrollment, USTAT and Student Registration",
+      "keywords": "admissions USTAT ASO every fee tuition eligible act enrollment ustat registration states",
+      "content": "The official university admissions page states eligible/qualified undergraduate students benefit from public funding under Republic Act 10931 (Universal Access to Quality Tertiary Education Act). It does not follow that every student is automatically eligible or that every fee for every level/circumstance is waived. Refer individual eligibility and charges to ASO/Registrar/cashier. A fee information page exists at https://www.ustp.edu.ph/tuition-fees/ but exact amounts in a linked external fee sheet were not verified here.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/04_admissions_enrollment_and_ustat.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "TUITION",
+            "title": "USTP Tuition and Other School Fees",
+            "url": "https://www.ustp.edu.ph/tuition-fees/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-cfceb2f1e230",
+      "seq": 27,
+      "chapter": "Admissions, Enrollment, USTAT and Student Registration",
+      "section": "Scope and cautions",
+      "pageLabel": null,
+      "sourceLabel": "Admissions, Enrollment, USTAT and Student Registration",
+      "keywords": "admissions USTAT OTP ustat admission enrollment registration scope cautions claim slots open",
+      "content": "Do not claim admission slots are open simply because a general admissions portal loads. Do not fabricate passing scores, cutoffs, eligibility exceptions, program-specific requirements, document checklists, application deadlines, current fees, or 'USTAT guaranteed admission'. Do not solicit a student's temporary password, OTP or account recovery tokens. The older official USTAT results page mixes past school years and is unsuitable for live 2027 schedules.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/04_admissions_enrollment_and_ustat.md",
+        "category": "admissions",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-bf4a44830d49",
+      "seq": 28,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Colleges and academic units identified by the CDO campus",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics CEA CITC CSM CSTE COT COM college colleges technology science con appears institute degree programs academic",
+      "content": "- College of Engineering and Architecture (CEA)\n- College of Information Technology and Computing (CITC)\n- College of Science and Mathematics (CSM)\n- College of Science and Technology Education (CSTE)\n- College of Technology (COT)\n- College of Medicine (COM)\n- College of Nursing (CON) appears in the current university office/contact directory.\n- Senior High School\n- Institute of Governance, Innovations and Sustainability\nThe first six colleges, SHS, and institute appear on the official CDO landing page. CON appears in the official contacts and officials pages. Websites may update organizational boundaries before static guides are refreshed.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CDO",
+            "title": "USTP Cagayan de Oro",
+            "url": "https://www.ustp.edu.ph/cdeo/"
+          },
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          },
+          {
+            "id": "GR_PROG",
+            "title": "USTP Graduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/graduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-aa3b0f63d17a",
+      "seq": 29,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Computing, ICT, communication and data",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics ICT BSIT BSCS communication data technology computer science engineering colleges degree programs computing",
+      "content": "- BS Information Technology (BSIT)\n- BS Computer Science (BSCS)\n- BS Data Science\n- BS Technology Communication Management\n- BS Computer Engineering (also an engineering program)",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-dfe74c06e973",
+      "seq": 30,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Engineering and architecture",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics engineering architecture colleges degree programs civil electronics electrical mechanical computer",
+      "content": "- BS Architecture\n- BS Civil Engineering\n- BS Electronics Engineering\n- BS Electrical Engineering\n- BS Mechanical Engineering\n- BS Computer Engineering\n- BS Geodetic Engineering",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-ec15608cbe7a",
+      "seq": 31,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Science and applied mathematics",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics applied science mathematics environmental management technology colleges degree programs physics",
+      "content": "- BS Applied Physics\n- BS Applied Mathematics\n- BS Chemistry\n- BS Environmental Science, majors in Environmental Management and Technology; Natural Resource Management\n- BS Food Technology",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-3fb8131bfed1",
+      "seq": 32,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Technology and industrial disciplines",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics technology majors industrial electronics systems system management design mechanical colleges",
+      "content": "- BS Autotronics\n- BS Electronics Technology, majors in Electronics Systems; Multimedia System Technology; Telecommunications and Networks\n- BS Energy Systems and Management, majors in Electrical Machines Control and Maintenance; Power System Distribution with Eco-Design\n- BS Electro-Mechanical Technology, majors in Mechatronics and Robotics; Industrial Automation\n- BS Manufacturing Engineering Technology, major in Mechanical Design and Fabrication\n- Bachelor of Technology, Operations, and Management",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-15b568b60bea",
+      "seq": 33,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Education",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics programs education bachelor majors undergraduate colleges degree technology livelihood home",
+      "content": "- Bachelor in Technology and Livelihood Education, majors in Home Economics and Industrial Arts\n- Bachelor in Technical-Vocational Teacher Education, majors in Computer System Servicing, Fashion and Garments, Food Service Management\n- Bachelor of Secondary Education, majors in Science and Mathematics\n- Post-baccalaureate Certificate of Teaching (separate qualification)\nThis list reflects USTP's undergraduate programs webpage, not a verified catalog of currently open 2027 intake slots, accreditation status, capacity or curriculum unit requirements. Some programs may move campuses or be renamed. Source: https://www.ustp.edu.ph/academics/undergraduate-programs/.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-3a28aa941002",
+      "seq": 34,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Graduate programs publicly listed for CDO",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics MPSI education technology science master engineering phd mathematics programs applied chemistry",
+      "content": "- PhD in Applied Mathematics\n- PhD in Mathematics Education\n- Doctor of Technology Education\n- PhD in Science Education (Chemistry)\n- Master in Industrial Technology and Operations\n- Master of Engineering (Civil, Electrical, Electronics and Mechanical Engineering)\n- MS Electrical Engineering\n- MS Sustainable Development, major in Urban Planning and Sustainable Development\n- Master in Information Technology\n- Master in Technical and Technology Education\n- MA in Teaching English as a Second Language\n- MA in Teaching Special Education\n- MS Environmental Science and Technology, major in Natural Science\n- MS Applied Mathematical Sciences\n- MS Mathematics Education\n- MS Science Education (Chemistry)\n- MS Science Education (Physics)\n- MS Technology Communication Management\n- Master in Public Sector Innovations (MPSI)\n- Professional Science Masters in Power Systems Engineering and Management",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "GR_PROG",
+            "title": "USTP Graduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/graduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-2f81b9c2eedf",
+      "seq": 35,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Graduate programs publicly listed for CDO",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics programs graduate colleges degree publicly informational promise active admissions",
+      "content": "Source: https://www.ustp.edu.ph/academics/graduate-programs/. This list is informational and not a promise of an active admissions cycle.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "GR_PROG",
+            "title": "USTP Graduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/graduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-40b9f0882f41",
+      "seq": 36,
+      "chapter": "USTP CDO Colleges and Degree Programs",
+      "section": "Answer boundaries",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Colleges and Degree Programs",
+      "keywords": "academics ASO programs program colleges degree answer boundaries public website proof available",
+      "content": "A program listed on the public website is not proof of available seats. For what programs accept applicants this semester, prerequisite units, fees, changes in curriculum or room assignments, ask the program/ASO and consult the latest published department announcement.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/05_programs_cdo_ug_graduate.md",
+        "category": "academics",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-0d3007115961",
+      "seq": 37,
+      "chapter": "USTP CDO Offices, Contacts and Where to Ask",
+      "section": "USTP CDO main campus contact",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Offices, Contacts and Where to Ask",
+      "keywords": "student services contact main campus telephone published facebook offices contacts where ask",
+      "content": "- Address: Claro M. Recto Avenue, Lapasan, Cagayan de Oro City, Misamis Oriental 9000, Philippines.\n- Official campus contact page: https://www.ustp.edu.ph/contact-us/\n- Main telephone published on the contact page: +63 (088) 857-1738.\n- Alternative main campus telephone published on the CDO landing page: +63 (088) 856-1738.\n- Official CDO Facebook account linked from contact page: https://www.facebook.com/USTPcagayan/\n*Important:* Two official pages show different main telephone numbers (857-1738 versus 856-1738). Do not treat one as conclusively more current. Local extensions also appear in short vs four-digit formats. Confirm when calling.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/06_offices_directory_and_support.md",
+        "category": "student_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C5",
+            "text": "Official USTP pages show two main campus numbers, (088) 857-1738 and (088) 856-1738. Confirm with the switchboard when calling."
+          },
+          {
+            "id": "C6",
+            "text": "Office extensions appear in short (for example 154) and long (for example 1154) forms on different official pages; confirm with the switchboard."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-e3a0a4cf6a4f",
+      "seq": 38,
+      "chapter": "USTP CDO Offices, Contacts and Where to Ask",
+      "section": "Where to ask (officially listed offices)",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Offices, Contacts and Where to Ask",
+      "keywords": "student services USTAT ASO CONTACT ICTS contact office routing public main line local offices where ask",
+      "content": "- Admission, USTAT, scholarships - Office / contact routing: Admissions and Scholarship Office (ASO); published main line local 125; Public source: CONTACT, ASO\n- Enrollment status, grades, academic records, registrar policies - Office / contact routing: Registrar's Office; main line local 137 on contact page; Public source: CONTACT\n- General student activities / student support - Office / contact routing: Student Affairs Office; main line local 114; Public source: CONTACT\n- School email, system access or university IT issue - Office / contact routing: Information and Communication Technology Services (ICTS); main line local 101 on contact page; Public source: CONTACT\n- Degree/curriculum advising - Office / contact routing: Relevant college / department academic adviser; Public source: CONTACT, CDO",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/06_offices_directory_and_support.md",
+        "category": "student_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-8037dde7f649",
+      "seq": 39,
+      "chapter": "USTP CDO Offices, Contacts and Where to Ask",
+      "section": "Where to ask (officially listed offices)",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Offices, Contacts and Where to Ask",
+      "keywords": "student services elibrary LIB campus office contact routing local public officials library services director",
+      "content": "- Library, books, electronic resources - Office / contact routing: Main Library: main line local 134; e-Library local 112; Graduate Library local 155; Public source: LIB\n- Career and internships - Office / contact routing: Career Center and Industrial Relations, campus director listed in university officials directory; Public source: OFFICIALS\n- Guidance and counseling - Office / contact routing: Guidance and Counseling Services, campus director listed in directory, local 1130; Public source: OFFICIALS\n- Campus health services - Office / contact routing: Health Services, campus director listed in directory, local 1136; Public source: OFFICIALS\n- Residence / campus housing inquiry - Office / contact routing: Campus Residences Services; Public source: OFFICIALS",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/06_offices_directory_and_support.md",
+        "category": "student_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          },
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          },
+          {
+            "id": "LIB",
+            "title": "USTP CDO Library",
+            "url": "https://www.ustp.edu.ph/cdeo/library/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-763bbcf030fc",
+      "seq": 40,
+      "chapter": "USTP CDO Offices, Contacts and Where to Ask",
+      "section": "Where to ask (officially listed offices)",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Offices, Contacts and Where to Ask",
+      "keywords": "student services offices where ask sports services contacts officially athlete office contact",
+      "content": "- Student-athlete sports services - Office / contact routing: Sports Services; university official directory local 1217; Public source: OFFICIALS",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/06_offices_directory_and_support.md",
+        "category": "student_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          },
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-7310c7d263dc",
+      "seq": 41,
+      "chapter": "USTP CDO Offices, Contacts and Where to Ask",
+      "section": "College contact extensions on official contact page",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Offices, Contacts and Where to Ask",
+      "keywords": "student services CITC CSTE CEA CSM COT COM contact college extension printed extensions technology ask citc science offices",
+      "content": "- College of Information Technology and Computing (CITC) - Extension as printed on official contact page: 154\n- College of Science and Technology Education (CSTE) - Extension as printed on official contact page: 105\n- College of Engineering and Architecture (CEA) - Extension as printed on official contact page: 159\n- College of Science and Mathematics (CSM) - Extension as printed on official contact page: 127\n- College of Technology (COT) - Extension as printed on official contact page: 151\n- College of Medicine (COM) - Extension as printed on official contact page: 1135\n- College of Nursing (CON) - Extension as printed on official contact page: 1259\nThe longer extension equivalents in the officials directory sometimes appear with a prefix `1` (for example CITC 1154). Do not automatically rewrite short extensions into long extensions; ask the switchboard if required.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/06_offices_directory_and_support.md",
+        "category": "student_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          },
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C6",
+            "text": "Office extensions appear in short (for example 154) and long (for example 1154) forms on different official pages; confirm with the switchboard."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-54f13fc4ebb1",
+      "seq": 42,
+      "chapter": "USTP CDO Offices, Contacts and Where to Ask",
+      "section": "Privacy and reliability",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Offices, Contacts and Where to Ask",
+      "keywords": "student services LAFINA office room campus emergency offices contacts where ask privacy reliability",
+      "content": "No confirmed room-by-room campus directory, internal office operating hours, queue wait times, individual clinical advice, or emergency-service phone protocol is provided in these official pages. For emergencies, do not imply a campus office email is an emergency hotline. For academic records, LAFINA should explain the likely office but never request or expose personal grades, student numbers, IDs or login details in an untrusted public chat.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/06_offices_directory_and_support.md",
+        "category": "student_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-17c3f9eb526b",
+      "seq": 43,
+      "chapter": "USTP CDO Library, Resource Centers and Study Facilities",
+      "section": "Library locations in CDO campus",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Library, Resource Centers and Study Facilities",
+      "keywords": "facilities elibrary LRC CEA COT floor library wing published lrc faculty college engineering technology resource",
+      "content": "- Main Library - Published floor / wing: 3rd floor, Learning Resource Center (LRC) Building; For: General collections, Filipiniana, reserved books and other materials\n- Graduate Library - Published floor / wing: 2nd floor, right wing of LRC; For: Graduate students and faculty\n- Electronic Library (e-Library) - Published floor / wing: 2nd floor, left wing of LRC; For: Educational/professional research using electronic resources\n- College of Engineering and Architecture (CEA) Library - Published floor / wing: 2nd floor, Engineering Complex; For: Engineering and architecture students/faculty\n- College of Technology (COT) Library - Published floor / wing: 3rd floor, right wing, College of Technology building; For: Technology students/faculty",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/07_library_buildings_services.md",
+        "category": "facilities",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB",
+            "title": "USTP CDO Library",
+            "url": "https://www.ustp.edu.ph/cdeo/library/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-e17c5831e7b3",
+      "seq": 44,
+      "chapter": "USTP CDO Library, Resource Centers and Study Facilities",
+      "section": "Library locations in CDO campus",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Library, Resource Centers and Study Facilities",
+      "keywords": "facilities library locations resource centers study campus cdeo these documented",
+      "content": "Source: https://www.ustp.edu.ph/cdeo/library/. These are documented indoor locations, not a georeferenced walking route. For access changes, ask the library.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/07_library_buildings_services.md",
+        "category": "facilities",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB",
+            "title": "USTP CDO Library",
+            "url": "https://www.ustp.edu.ph/cdeo/library/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-07438e4c40d4",
+      "seq": 45,
+      "chapter": "USTP CDO Library, Resource Centers and Study Facilities",
+      "section": "Library catalog and main services",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Library, Resource Centers and Study Facilities",
+      "keywords": "facilities OPAC PHP library services catalog books circulation reserve special seven day published",
+      "content": "- OPAC (Online Public Access Catalog) is described as a way to locate books, check listed availability and identify call numbers.\n- Reader services include circulation, reference, reserve, periodicals, Filipiniana and special collections.\n- Undergraduate students may borrow up to three circulation books for seven days with a listed seven-day renewal period, according to the published Library Services page. Verify current lending restrictions before depending on these terms.\n- Official page lists PHP 5 per day penalty for overdue general borrowing and a separate PHP 5 per hour for overdue special overnight reserve loans. These are website-published policies, not a live debt assessment.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/07_library_buildings_services.md",
+        "category": "facilities",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB_SVC",
+            "title": "USTP CDO Library Services",
+            "url": "https://www.ustp.edu.ph/cdeo/library/services/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-b6653f85c277",
+      "seq": 46,
+      "chapter": "USTP CDO Library, Resource Centers and Study Facilities",
+      "section": "Library catalog and main services",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Library, Resource Centers and Study Facilities",
+      "keywords": "facilities AVR library main reservation form resource centers study catalog services",
+      "content": "- Reservation of a campus audio-visual room is described as: check availability; request an AVR reservation form at Main Library; obtain departmental/instructor endorsement; return completed form.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/07_library_buildings_services.md",
+        "category": "facilities",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB_SVC",
+            "title": "USTP CDO Library Services",
+            "url": "https://www.ustp.edu.ph/cdeo/library/services/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-18f93c093719",
+      "seq": 47,
+      "chapter": "USTP CDO Library, Resource Centers and Study Facilities",
+      "section": "Audio-visual rooms (published locations)",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Library, Resource Centers and Study Facilities",
+      "keywords": "facilities AVR ITB ICT avr floor library rooms locations resource centers study audio",
+      "content": "- AVR 1: Ground floor, ITB Phase 2.\n- AVR 2: 4th floor, ICT Building.\n- AVR 3: 6th floor, Engineering Complex.\nThese locations and the reservation outline appear on the official Library Services page. Don't promise the rooms are free at a specified date/time.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/07_library_buildings_services.md",
+        "category": "facilities",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB_SVC",
+            "title": "USTP CDO Library Services",
+            "url": "https://www.ustp.edu.ph/cdeo/library/services/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-7b3d6217136a",
+      "seq": 48,
+      "chapter": "USTP CDO Library, Resource Centers and Study Facilities",
+      "section": "Main library contact extensions",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Library, Resource Centers and Study Facilities",
+      "keywords": "facilities elibrary PAT ICT AVR ITB URL library hours main avr resource centers study contact extensions",
+      "content": "- Main Library: 134\n- Graduate Library: 155\n- e-Library: 112\n- PAT & ICT AVR: 184\n- ITB AVR: 152\nFor current opening times, holiday hours, full catalog URL, seat availability or remote database passwords, refer to the library's official page. Historical handbook hours should not be represented as verified November 2026 operating hours.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/07_library_buildings_services.md",
+        "category": "facilities",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB",
+            "title": "USTP CDO Library",
+            "url": "https://www.ustp.edu.ph/cdeo/library/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-959b06c70475",
+      "seq": 49,
+      "chapter": "USTP CDO Scholarships and Financial Assistance",
+      "section": "Scholarship types listed on USTP CDO site",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Scholarships and Financial Assistance",
+      "keywords": "scholarships BOR ARCU NSTP ROTC CHED DOST scholarship types including grant financial assistance site campus names",
+      "content": "The campus scholarship page names institutionally funded awards associated with BOR Resolution No. 97, series 2019, including:\n- Entrance Scholarship\n- Academic Excellence\n- Leadership Scholarship\n- Grant-in-Aid for Minority\n- ARCU Scholarship\n- Athletic Scholarship\n- NSTP-ROTC Scholarship\nThe page also mentions third-party programs and providers, including CHED grant-in-aids, DOST-SEI, CEPALCO, ICTSI, NAPOLCOM, government insurance and industry/private foundations. This is an overview of scholarship types and named partners, not a current application list.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/08_scholarships_grants_financial_aid.md",
+        "category": "scholarships",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "SCHOLAR",
+            "title": "USTP CDO Scholarship Grants and Financial Aid",
+            "url": "https://www.ustp.edu.ph/cdeo/scholarship-grants-financial-aid/"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          },
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          },
+          {
+            "id": "TUITION",
+            "title": "USTP Tuition and Other School Fees",
+            "url": "https://www.ustp.edu.ph/tuition-fees/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-dc490cff1f8a",
+      "seq": 50,
+      "chapter": "USTP CDO Scholarships and Financial Assistance",
+      "section": "What LAFINA should and should not say",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Scholarships and Financial Assistance",
+      "keywords": "scholarships LAFINA ASO CHED TES scholarship should say can other financial assistance what lafina",
+      "content": "- Can say: \"USTP CDO lists entrance, academic excellence, leadership, athletic and other scholarships on its official scholarship page. You can contact ASO to check which applications are accepting students now.\"\n- Cannot claim without further verification: that a particular program is active in November 2026, the current stipend or award amount, income qualification, grade threshold, application documents, slot availability, release date, or that every student receives an allowance.\n- Do not conflate: RA 10931's eligibility-based free tuition support with CHED TES (Tertiary Education Subsidy) or other scholarship grants.\nUseful links:\n- USTP CDO scholarships\n- USTP CDO Admission and Scholarship Office",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/08_scholarships_grants_financial_aid.md",
+        "category": "scholarships",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "SCHOLAR",
+            "title": "USTP CDO Scholarship Grants and Financial Aid",
+            "url": "https://www.ustp.edu.ph/cdeo/scholarship-grants-financial-aid/"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          },
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          },
+          {
+            "id": "TUITION",
+            "title": "USTP Tuition and Other School Fees",
+            "url": "https://www.ustp.edu.ph/tuition-fees/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-6d7bc4f5fdb0",
+      "seq": 51,
+      "chapter": "USTP CDO Scholarships and Financial Assistance",
+      "section": "What LAFINA should and should not say",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Scholarships and Financial Assistance",
+      "keywords": "scholarships LAFINA ASO PRISMS should tuition other scholarship financial assistance what lafina say",
+      "content": "- USTP general admissions and tuition discussion\n- Tuition and other school fees\nThe ASO site describes PRISMS Scholarship Module, Scholarship Application and Sponsors and other linked documents but their current contents may change. Check specific program announcements rather than deriving eligibility from generic names.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/08_scholarships_grants_financial_aid.md",
+        "category": "scholarships",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "SCHOLAR",
+            "title": "USTP CDO Scholarship Grants and Financial Aid",
+            "url": "https://www.ustp.edu.ph/cdeo/scholarship-grants-financial-aid/"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          },
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          },
+          {
+            "id": "TUITION",
+            "title": "USTP Tuition and Other School Fees",
+            "url": "https://www.ustp.edu.ph/tuition-fees/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-5384d7063899",
+      "seq": 52,
+      "chapter": "USTP Student Portals and Digital Services",
+      "section": "Verified official entry points",
+      "pageLabel": null,
+      "sourceLabel": "USTP Student Portals and Digital Services",
+      "keywords": "digital services URL PRISMS HRIS HIMS verified url what prisms ustep login admissions entry exists enrollment",
+      "content": "- USTeP - Verified URL: https://ustep.ustp.edu.ph/; What is verified: University learning-platform login exists (USTEPv4.5 login seen)\n- PRISMS - Verified URL: https://prisms.ustp.edu.ph/; What is verified: University student information system login exists; official enrollment guide uses PRISMS\n- Admissions portal - Verified URL: https://prisms.ustp.edu.ph/padmission; What is verified: Public online admissions entry point\n- eClearance - Verified URL: https://clearance.ustp.edu.ph/; What is verified: Official clearance portal; linked from enrollment guidance for unresolved liabilities\n- University homepage - Verified URL: https://www.ustp.edu.ph/; What is verified: Links to USTeP, PRISMS, Admissions, HRIS, eClearance, HIMS, iPerform and Helpdesk",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/09_portals_and_digital_tools.md",
+        "category": "digital_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "USTEP",
+            "title": "USTeP Login",
+            "url": "https://ustep.ustp.edu.ph/"
+          },
+          {
+            "id": "PRISMS",
+            "title": "PRISMS Login",
+            "url": "https://prisms.ustp.edu.ph/"
+          },
+          {
+            "id": "ECLEAR",
+            "title": "USTP eClearance",
+            "url": "https://clearance.ustp.edu.ph/"
+          },
+          {
+            "id": "PORTAL",
+            "title": "USTP Online Admissions Portal",
+            "url": "https://prisms.ustp.edu.ph/padmission"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-7b5d08d5c4e1",
+      "seq": 53,
+      "chapter": "USTP Student Portals and Digital Services",
+      "section": "Typical navigation questions",
+      "pageLabel": null,
+      "sourceLabel": "USTP Student Portals and Digital Services",
+      "keywords": "digital services PRISMS LAFINA ICTS OTP enrollment can access password prisms lafina public liabilities links course",
+      "content": "Where can I see my enrollment? The official USTP enrollment guide refers students to the Enrollment tab/tile within PRISMS. Only the student can view their personal record after authentication. LAFINA's public knowledge data has no private enrollment access.\nWhat if PRISMS says I have liabilities? University guidance links students to eClearance. Exact liabilities require account access or office assistance.\nCan I check my professor's course materials? The university links to USTeP as its learning platform. Course availability depends on instructor enrollment and access; the public source does not confirm individual classes.\nHow can I reset a portal password? Use the portal's own official password-reset/recovery route or contact ICTS. LAFINA must never ask for the student password, verification code, or OTP.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/09_portals_and_digital_tools.md",
+        "category": "digital_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ENROLL",
+            "title": "USTP Enrollment Flow",
+            "url": "https://www.ustp.edu.ph/enrollment-flow/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-efc537e8630d",
+      "seq": 54,
+      "chapter": "USTP Student Portals and Digital Services",
+      "section": "Security and limitations",
+      "pageLabel": null,
+      "sourceLabel": "USTP Student Portals and Digital Services",
+      "keywords": "digital services LAFINA PRISMS API portals digital services security limitations these verified links apis permission",
+      "content": "These are verified links, not APIs or permission to scrape accounts. Never imply LAFINA has connected to PRISMS/USTeP or read a user's courses, grades, transcripts, penalties, balance or messages. Campus systems can be offline or revised, and public pages do not reveal an API contract.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/09_portals_and_digital_tools.md",
+        "category": "digital_services",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "USTEP",
+            "title": "USTeP Login",
+            "url": "https://ustep.ustp.edu.ph/"
+          },
+          {
+            "id": "PRISMS",
+            "title": "PRISMS Login",
+            "url": "https://prisms.ustp.edu.ph/"
+          },
+          {
+            "id": "ECLEAR",
+            "title": "USTP eClearance",
+            "url": "https://clearance.ustp.edu.ph/"
+          },
+          {
+            "id": "PORTAL",
+            "title": "USTP Online Admissions Portal",
+            "url": "https://prisms.ustp.edu.ph/padmission"
+          },
+          {
+            "id": "ENROLL",
+            "title": "USTP Enrollment Flow",
+            "url": "https://www.ustp.edu.ph/enrollment-flow/"
+          },
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-df9fda34884b",
+      "seq": 55,
+      "chapter": "USTP CDO Student Organizations and Campus Life",
+      "section": "USTP CDO Student Organizations and Campus Life",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Student Organizations and Campus Life",
+      "keywords": "student life organizations campus life legacy organization directory content explicitly historical current",
+      "content": "Legacy organization directory content is explicitly historical, not a current membership registry.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/10_student_life_organizations.md",
+        "category": "student_life",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ORG_CUR",
+            "title": "USTP CDO Curricular Student Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-curricular/"
+          },
+          {
+            "id": "ORG_NON",
+            "title": "USTP CDO Noncurricular Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-non-curricular/"
+          },
+          {
+            "id": "CDO",
+            "title": "USTP Cagayan de Oro",
+            "url": "https://www.ustp.edu.ph/cdeo/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C7",
+            "text": "This organization list comes from the 2021 Virtual Week of Welcome directory. It is historical and does not confirm current activity, membership or officers."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-a7d4f9190655",
+      "seq": 56,
+      "chapter": "USTP CDO Student Organizations and Campus Life",
+      "section": "Campus life",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Student Organizations and Campus Life",
+      "keywords": "student life wow campus organizations life week welcome site has curricular groups cagayan",
+      "content": "USTP Cagayan de Oro maintains student organizations, councils, campus activities and student support services. The official Week of Welcome site has a historical directory of curricular and non-curricular groups. Its footer identifies the site as Virtual Week of Welcome 2021, so the names here establish groups that the university has publicly listed, not verified active membership or officers in AY 2026-2027.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/10_student_life_organizations.md",
+        "category": "student_life",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ORG_CUR",
+            "title": "USTP CDO Curricular Student Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-curricular/"
+          },
+          {
+            "id": "ORG_NON",
+            "title": "USTP CDO Noncurricular Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-non-curricular/"
+          },
+          {
+            "id": "CDO",
+            "title": "USTP Cagayan de Oro",
+            "url": "https://www.ustp.edu.ph/cdeo/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C7",
+            "text": "This organization list comes from the 2021 Virtual Week of Welcome directory. It is historical and does not confirm current activity, membership or officers."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-84ac49e41b6c",
+      "seq": 57,
+      "chapter": "USTP CDO Student Organizations and Campus Life",
+      "section": "Selected curricular organizations in the historic directory",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Student Organizations and Campus Life",
+      "keywords": "student life SCITC CITC SITE council technology organizations society junior engineers curricular information computing engineering",
+      "content": "- Student Council of Information Technology and Computing (SCITC): student council of CITC.\n- Society of Information Technology Enthusiasts (SITE): listed among computing organizations.\n- Guild of Junior Data Scientists.\n- State University Technology Communication Management Society.\n- Student Council of Engineering and Architecture.\n- Student Council of Science and Mathematics.\n- Student Council of Science and Technology Education.\n- Student Council of Technology.\n- Institute of Computer Engineers of the Philippines student organization.\n- Junior Philippine Institute of Civil Engineers, Junior Philippine Society of Mechanical Engineers, and other engineering groups.\nSource: https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-curricular/.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/10_student_life_organizations.md",
+        "category": "student_life",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ORG_CUR",
+            "title": "USTP CDO Curricular Student Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-curricular/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C7",
+            "text": "This organization list comes from the 2021 Virtual Week of Welcome directory. It is historical and does not confirm current activity, membership or officers."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-a67f20ce99a1",
+      "seq": 58,
+      "chapter": "USTP CDO Student Organizations and Campus Life",
+      "section": "Selected noncurricular organizations in the historic directory",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Student Organizations and Campus Life",
+      "keywords": "student life ASO DOST SEI CHED TES organizations scholars historical site publication campus life selected noncurricular historic",
+      "content": "- USTP Scholars' Society: historical site says this is a federated student organization for scholarship grantees and a link to ASO.\n- USTP DOST-SEI Scholars Guild and Association of CHED-TES Scholars (named by site).\n- The Trailblazer Publication: described as the official student publication of USTP CDO.\n- USTP Chess Enthusiasts.\n- Sanghimig Chorale, Playmakers, Gintong Amihan Dance Troupe and other arts/culture groups.\n- Google Developer Student Clubs USTP, the name displayed on this historical page; do not imply this remains the current chapter brand.\nSource: https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-non-curricular/.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/10_student_life_organizations.md",
+        "category": "student_life",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ORG_NON",
+            "title": "USTP CDO Noncurricular Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-non-curricular/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C7",
+            "text": "This organization list comes from the 2021 Virtual Week of Welcome directory. It is historical and does not confirm current activity, membership or officers."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-2ffc0110077d",
+      "seq": 59,
+      "chapter": "USTP CDO Student Organizations and Campus Life",
+      "section": "Practical guidance",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Student Organizations and Campus Life",
+      "keywords": "student life SITE SCITC organizations campus current life practical guidance recognized open registration officer",
+      "content": "For current recognized organizations, open registration, officer rosters, organization rooms, events and the current SITE/SCITC leadership, ask the Student Affairs Office and check official 2026 campus announcements. Do not use historic signup forms from the virtual WoW page as the default join link.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/10_student_life_organizations.md",
+        "category": "student_life",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ORG_CUR",
+            "title": "USTP CDO Curricular Student Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-curricular/"
+          },
+          {
+            "id": "ORG_NON",
+            "title": "USTP CDO Noncurricular Organizations",
+            "url": "https://www.ustp.edu.ph/week-of-welcome/organizations/cagayan-de-oro/cdo-non-curricular/"
+          },
+          {
+            "id": "CDO",
+            "title": "USTP Cagayan de Oro",
+            "url": "https://www.ustp.edu.ph/cdeo/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C7",
+            "text": "This organization list comes from the 2021 Virtual Week of Welcome directory. It is historical and does not confirm current activity, membership or officers."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-77220b56ceb9",
+      "seq": 60,
+      "chapter": "USTP CDO Overview, Campus Geography and History",
+      "section": "What is USTP?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Overview, Campus Geography and History",
+      "keywords": "campus MUST MOSCAT technology history science state overview geography what southern philippines",
+      "content": "The University of Science and Technology of Southern Philippines (USTP) is a Philippine public/state university system. The university website states it was established August 16, 2016, under Republic Act 10919, by amalgamating the former Mindanao University of Science and Technology (MUST) in Cagayan de Oro and Misamis Oriental State College of Agriculture and Technology (MOSCAT) in Claveria.\nOfficial general history: https://www.ustp.edu.ph/.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/11_campus_overview_and_locations.md",
+        "category": "campus",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "low",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAMPUS",
+            "title": "USTP Campuses",
+            "url": "https://www.ustp.edu.ph/campuses/"
+          },
+          {
+            "id": "CDO",
+            "title": "USTP Cagayan de Oro",
+            "url": "https://www.ustp.edu.ph/cdeo/"
+          },
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-f45c12635889",
+      "seq": 61,
+      "chapter": "USTP CDO Overview, Campus Geography and History",
+      "section": "USTP Cagayan de Oro campus",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Overview, Campus Geography and History",
+      "keywords": "campus CHED GPS cagayan oro profile cdeo site states ched overview geography",
+      "content": "- Known as USTP Cagayan de Oro, USTP CDO, or USTP CdeO.\n- Address: Claro M. Recto Avenue, Lapasan, Cagayan de Oro City 9000, Philippines.\n- Classified as a major campus of the USTP system, not the same site as USTP Balubal or USTP Alubijid.\n- Official campus profile states an approximate land area of 9 hectares.\n- University states CDO was CHED-recognized Center of Excellence in Information Technology and Centers of Development in Electrical Engineering and Mathematics. These are historical/recognition descriptions on the university profile; confirm current status with CHED when time-sensitive.\n- USTP's site features an official 360-degree virtual tour link on its campus profile, but this knowledge pack contains no verified GPS coordinates for individual indoor rooms.\nSource: https://www.ustp.edu.ph/campuses/ and https://www.ustp.edu.ph/cdeo/.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/11_campus_overview_and_locations.md",
+        "category": "campus",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "low",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAMPUS",
+            "title": "USTP Campuses",
+            "url": "https://www.ustp.edu.ph/campuses/"
+          },
+          {
+            "id": "CDO",
+            "title": "USTP Cagayan de Oro",
+            "url": "https://www.ustp.edu.ph/cdeo/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-254fadedfe06",
+      "seq": 62,
+      "chapter": "USTP CDO Overview, Campus Geography and History",
+      "section": "Do not confuse campuses",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Overview, Campus Geography and History",
+      "keywords": "campus CHED cagayan oro campuses alubijid claveria major also villanueva balubal",
+      "content": "The USTP campus page identifies Alubijid as the university's main campus. Cagayan de Oro and Claveria are major campuses; the same page also calls Villanueva a major campus. Balubal, while within Cagayan de Oro City, is a distinct USTP campus and not interchangeable with the C.M. Recto campus. Jasaan, Oroquieta and Panaon are also distinct. Programs, offices and calendars may apply differently per campus.\nThe CHED calendar letter covers Alubijid, Balubal, Cagayan de Oro, Claveria, Jasaan, Oroquieta, Panaon, Villanueva. Its campus coverage does not mean every program or service operates identically on all sites.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/11_campus_overview_and_locations.md",
+        "category": "campus",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "low",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAMPUS",
+            "title": "USTP Campuses",
+            "url": "https://www.ustp.edu.ph/campuses/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-3ed5366eb866",
+      "seq": 63,
+      "chapter": "USTP CDO Overview, Campus Geography and History",
+      "section": "Location answer rule",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Overview, Campus Geography and History",
+      "keywords": "campus when asked where room overview geography history location answer",
+      "content": "When asked \"Where is USTP CDO?\", give C.M. Recto Avenue, Lapasan, Cagayan de Oro City 9000 and official campus website. When asked \"Where is my classroom?\", there is no reliable room-level map or timetable in this package. Refer to student's personal class schedule or the assigned department; never invent a room, floor or walking route.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/11_campus_overview_and_locations.md",
+        "category": "campus",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "low",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAMPUS",
+            "title": "USTP Campuses",
+            "url": "https://www.ustp.edu.ph/campuses/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-1ec2a86b015d",
+      "seq": 64,
+      "chapter": "USTP CDO Officials and Key Staff - Public Snapshot",
+      "section": "Publicly listed office holders (snapshot only)",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Officials and Key Staff - Public Snapshot",
+      "keywords": "directory SHS responsibility dean college extension technology officials snapshot science key CEA CITC CSM CSTE",
+      "content": "The following are roles/names printed in the university's officials directory accessed November 24, 2026. These are volatile and must be rechecked before presenting as \"currently serving\" to a student.\n- Dr. Junar A. Landicho - Listed responsibility: Dean, College of Information Technology and Computing; Directory extension: 1154\n- Dr. Rojien C. Morcilla - Listed responsibility: Dean, College of Engineering and Architecture; Directory extension: 1159\n- Dr. RJ Krista Raye Y. Leocadio - Listed responsibility: Dean, College of Science and Mathematics; Directory extension: 1127\n- Dr. Ruvel J. Cuasito Sr. - Listed responsibility: Dean, College of Technology; Directory extension: 1151\n- Dr. Grace S. Pimentel - Listed responsibility: Dean, College of Science and Technology Education; SHS Principal; Directory extension: 1105",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/12_current_officials_snapshot.md",
+        "category": "directory",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C6",
+            "text": "Office extensions appear in short (for example 154) and long (for example 1154) forms on different official pages; confirm with the switchboard."
+          }
+        ],
+        "aliases": {
+          "CEA": "College of Engineering and Architecture",
+          "CITC": "College of Information Technology and Computing",
+          "CSM": "College of Science and Mathematics",
+          "CSTE": "College of Science and Technology Education"
+        }
+      }
+    },
+    {
+      "id": "cdo-213e958b3c27",
+      "seq": 65,
+      "chapter": "USTP CDO Officials and Key Staff - Public Snapshot",
+      "section": "Publicly listed office holders (snapshot only)",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Officials and Key Staff - Public Snapshot",
+      "keywords": "directory MAN responsibility extension director services snapshot dean college officials key",
+      "content": "- Dr. Joanne Mae N. Antolin - Listed responsibility: Dean, College of Medicine; Directory extension: 1135\n- Mr. Jan Michael R. Remolado, RN, MAN - Listed responsibility: Dean, College of Nursing; Directory extension: 1259\n- Ms. Jonalin T. Lagrada - Listed responsibility: University Registrar, USTP CDO; Directory extension: 1137\n- Engr. Erich P. Abad - Listed responsibility: Director, Admission and Scholarship; Director, Student Affairs and Services; Directory extension: 1114, 1125\n- Ms. Lovely M. Apostol - Listed responsibility: Director, Guidance and Counseling Services; Directory extension: 1130\n- Dr. Reeo Elir C. Masigan - Listed responsibility: Director, Health Services; Directory extension: 1136\n- Dr. Remedios B. Janier - Listed responsibility: Director, Library Services; Directory extension: 1223",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/12_current_officials_snapshot.md",
+        "category": "directory",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C6",
+            "text": "Office extensions appear in short (for example 154) and long (for example 1154) forms on different official pages; confirm with the switchboard."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-1443a089975b",
+      "seq": 66,
+      "chapter": "USTP CDO Officials and Key Staff - Public Snapshot",
+      "section": "Publicly listed office holders (snapshot only)",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Officials and Key Staff - Public Snapshot",
+      "keywords": "directory snapshot extension officials staff office responsibility director name key ICTS",
+      "content": "- Engr. Mary Ann E. Telen - Listed responsibility: Director, Information and Communication Technology Services; Directory extension: 1195\n- Ms. April Marie Allexes B. Rosales-Jumadla - Listed responsibility: Director, Career Center and Industrial Relations; Directory extension: 1107\nAll facts above originate from https://www.ustp.edu.ph/administration-directory/ustp-officials/. Service does not guarantee a person is on duty, reachable at that extension, or holding the role on a later date.\nFor names/roles likely to change, the safer response is to name the office and link the current directory, rather than relying on a snapshot or greeting staff by name.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/12_current_officials_snapshot.md",
+        "category": "directory",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C6",
+            "text": "Office extensions appear in short (for example 154) and long (for example 1154) forms on different official pages; confirm with the switchboard."
+          }
+        ],
+        "aliases": {
+          "ICTS": "Information and Communication Technology Services"
+        }
+      }
+    },
+    {
+      "id": "cdo-61e5036541ab",
+      "seq": 67,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "When does first semester AY 2026-2027 end?",
+      "pageLabel": "PDF pp. 2, 3",
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "first semester faq when end december undergraduate fast verified answers according",
+      "content": "Q: When does first semester AY 2026-2027 end?\nA: December 19, 2026 according to the undergraduate term summary in the official calendar (PDF page 2). The non-graduating undergraduate final exam window is December 9-19 (PDF page 3).",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "first",
+        "scope": null,
+        "pdfPages": [
+          2,
+          3
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2,
+              3
+            ]
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-055d6beb3cf9",
+      "seq": 68,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "When does second semester start?",
+      "pageLabel": "PDF pp. 2, 4",
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "second semester faq start when fast verified answers january class published",
+      "content": "Q: When does second semester start?\nA: January 5, 2027 is the second-semester class start in the published university calendar (PDF pages 2 and 4).",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "second",
+        "scope": null,
+        "pdfPages": [
+          2,
+          4
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2,
+              4
+            ]
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-d52ecb7609f9",
+      "seq": 69,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "When do I enroll for the second semester?",
+      "pageLabel": "PDF pp. 4, 5",
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "second semester faq PRISMS when enroll january enrollment fast verified answers lists",
+      "content": "Q: When do I enroll for the second semester?\nA: The calendar lists January 4-9, 2027 for undergraduate enrollment and January 6-9 for graduate enrollment (PDF pages 4-5). Actual section opening and PRISMS access may vary.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "second",
+        "scope": null,
+        "pdfPages": [
+          4,
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              4,
+              5
+            ]
+          },
+          {
+            "id": "ENROLL",
+            "title": "USTP Enrollment Flow",
+            "url": "https://www.ustp.edu.ph/enrollment-flow/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-241f0321e85d",
+      "seq": 70,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "When are undergraduate midterms?",
+      "pageLabel": "PDF pp. 3, 4",
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq when undergraduate midterms semester fast verified answers october first march",
+      "content": "Q: When are undergraduate midterms?\nA: October 5-10, 2026 for first semester; March 15-20, 2027 for second semester (PDF pages 3-4).",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [
+          3,
+          4
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              3,
+              4
+            ]
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-174bca4519f0",
+      "seq": 71,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "When is USTP Week of Welcome?",
+      "pageLabel": "PDF p. 2",
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq wow when week welcome fast verified answers august",
+      "content": "Q: When is USTP Week of Welcome?\nA: August 3-8, 2026 is listed for AY 2026-2027 (PDF page 2).",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [
+          2
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2
+            ]
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-9e518f36e8c6",
+      "seq": 72,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "When is our midyear start?",
+      "pageLabel": "PDF pp. 2, 5",
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "midyear faq when our start undergraduate says june fast verified answers",
+      "content": "Q: When is our midyear start?\nA: The official 2027 PDF is inconsistent: its undergraduate term summary says June 9, but the detailed undergraduate row says June 5. Confirm with USTP CDO Registrar before planning travel or schedules (PDF pp. 2, 5).",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": "midyear",
+        "scope": null,
+        "pdfPages": [
+          2,
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2,
+              5
+            ]
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C1",
+            "text": "The AY 2026-2027 calendar prints two different undergraduate midyear start dates: June 9, 2027 (term summary, PDF p. 2) and June 5, 2027 (detailed schedule, PDF p. 5). Confirm with the USTP CDO Registrar before planning around either date."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-3151b3de3736",
+      "seq": 73,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Where can I check PRISMS?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq PRISMS LAFINA prisms where can check fast verified answers system lafina cannot",
+      "content": "Q: Where can I check PRISMS?\nA: https://prisms.ustp.edu.ph/ (university student system); LAFINA cannot see individual student grades/enrollment without an authorized integration.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "PRISMS",
+            "title": "PRISMS Login",
+            "url": "https://prisms.ustp.edu.ph/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-f43b628787ac",
+      "seq": 74,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Where do I upload admissions info?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq ASO LAFINA admissions where upload info fast verified answers use portal prisms",
+      "content": "Q: Where do I upload admissions info?\nA: Use the official admissions portal https://prisms.ustp.edu.ph/padmission and current ASO information. Never put login credentials into LAFINA chat.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "PORTAL",
+            "title": "USTP Online Admissions Portal",
+            "url": "https://prisms.ustp.edu.ph/padmission"
+          },
+          {
+            "id": "ASO",
+            "title": "USTP CDO Admission and Scholarship Office",
+            "url": "https://www.ustp.edu.ph/cdeo/admission-and-scholarship-office/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-78d6e4282119",
+      "seq": 75,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Is tuition free?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq tuition free covered fast verified answers qualified under described guarantee",
+      "content": "Q: Is tuition free?\nA: Qualified students may be covered under RA 10931 as described by the university. This does not guarantee every fee or student is covered. Verify eligibility with admissions/cashier.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ADMISSIONS",
+            "title": "USTP Admissions",
+            "url": "https://www.ustp.edu.ph/admissions/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-cc73099798e4",
+      "seq": 76,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Where is the Main Library?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq LRC library where main fast verified answers floor learning resource center",
+      "content": "Q: Where is the Main Library?\nA: 3rd floor of the Learning Resource Center (LRC) building according to the CDO Library page.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB",
+            "title": "USTP CDO Library",
+            "url": "https://www.ustp.edu.ph/cdeo/library/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-72d0a7defd7b",
+      "seq": 77,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Where is the e-Library?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq elibrary LRC library where fast verified answers floor left wing lrc building",
+      "content": "Q: Where is the e-Library?\nA: 2nd floor, left wing, LRC building, per official CDO Library page.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "LIB",
+            "title": "USTP CDO Library",
+            "url": "https://www.ustp.edu.ph/cdeo/library/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-9109cb316e66",
+      "seq": 78,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "How can I ask about transcripts or enrollment records?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq verified how can ask about transcripts enrollment records fast answers",
+      "content": "Q: How can I ask about transcripts or enrollment records?\nA: Contact the Registrar's Office using the published CDO main-line extension 137 on the official contacts page. Exact processing fees and timelines are not verified here.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          },
+          {
+            "id": "ENROLL",
+            "title": "USTP Enrollment Flow",
+            "url": "https://www.ustp.edu.ph/enrollment-flow/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-fb3caa3821a6",
+      "seq": 79,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Does USTP CDO offer BSIT or BSCS?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq BSIT BSCS offer bsit bscs program fast verified answers both appear undergraduate",
+      "content": "Q: Does USTP CDO offer BSIT or BSCS?\nA: Both appear in the official CDO undergraduate program list, but the list alone cannot confirm the program is taking applications this cycle.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-a7282cbf2a69",
+      "seq": 80,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Can you tell me my GPA, enrollment subjects, class section or clearance?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq GPA can you tell gpa enrollment subjects class section clearance fast",
+      "content": "Q: Can you tell me my GPA, enrollment subjects, class section or clearance?\nA: Not from public USTP data. Personal information requires separate authenticated and authorized access.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "ENROLL",
+            "title": "USTP Enrollment Flow",
+            "url": "https://www.ustp.edu.ph/enrollment-flow/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-85cfdb6125cd",
+      "seq": 81,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "When will exams be cancelled due to typhoon?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq when will exams cancelled due typhoon fast verified answers dated",
+      "content": "Q: When will exams be cancelled due to typhoon?\nA: A dated university advisory or local authority announcement is required. The archived annual calendar does not itself establish live suspensions.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-2a1d394423bd",
+      "seq": 82,
+      "chapter": "USTP CDO Fast Verified Student Answers",
+      "section": "Can you make a reminder for me?",
+      "pageLabel": null,
+      "sourceLabel": "USTP CDO Fast Verified Student Answers",
+      "keywords": "faq verified can you make reminder dates fast answers only after",
+      "content": "Q: Can you make a reminder for me?\nA: Only after the student requests it. Calendar dates are from the published university calendar and must be labeled as scheduled, not guaranteed; conflicted midyear dates should be verified first.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/13_fast_answers_faq.md",
+        "category": "faq",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "medium",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          }
+        ],
+        "caveats": [
+          {
+            "id": "C1",
+            "text": "The AY 2026-2027 calendar prints two different undergraduate midyear start dates: June 9, 2027 (term summary, PDF p. 2) and June 5, 2027 (detailed schedule, PDF p. 5). Confirm with the USTP CDO Registrar before planning around either date."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cdo-8b9c726a9ef0",
+      "seq": 83,
+      "chapter": "Conflicts, Caveats and Refresh Rules",
+      "section": "Known source inconsistencies. Preserve them.",
+      "pageLabel": "PDF pp. 2, 5",
+      "sourceLabel": "Conflicts, Caveats and Refresh Rules",
+      "keywords": "qa HIGH MEDIUM issue june start severity correct agent handling term says midyear",
+      "content": "- C1 - Issue: UG midyear 2027 term summary says June 9 start on PDF p. 2; detail says June 5 start on p. 5; Severity: HIGH; Correct agent handling: Give both with source/page; ask for confirmation; no auto-reminder\n- C2 - Issue: 2027 May 10 transferee/second-course row still names AY 2026-2027 on PDF p. 5; Severity: HIGH; Correct agent handling: Quote year exactly and flag mismatch, do not silently \"fix\"\n- C3 - Issue: Graduate midyear detailed row says start of classes June 5, but enrollment June 5-11 on p. 6; Severity: MEDIUM; Correct agent handling: Report overlap; do not assume a specific student's start/late enrollment policy\n- C4 - Issue: PDF page 2 repeats UNDERGRADUATE (UG) term summary heading twice beside UG/GR calendars; Severity: MEDIUM; Correct agent handling: Don't invent unambiguously named GR term dates from duplicate heading",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/14_source_conflicts_and_refresh_rules.md",
+        "category": "qa",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [
+          2,
+          5
+        ],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing",
+            "pages": [
+              2,
+              5
+            ]
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-695bd6487c92",
+      "seq": 84,
+      "chapter": "Conflicts, Caveats and Refresh Rules",
+      "section": "Known source inconsistencies. Preserve them.",
+      "pageLabel": null,
+      "sourceLabel": "Conflicts, Caveats and Refresh Rules",
+      "keywords": "qa wow MEDIUM HIGH CHED issue severity correct agent handling medium digit both pages some",
+      "content": "- C5 - Issue: CDO official main number shown as both 856-1738 and 857-1738 on official pages; Severity: MEDIUM; Correct agent handling: Cite both numbers and verify switchboard\n- C6 - Issue: Official contact page gives some three-digit locals; officials directory has some four-digit locals; Severity: MEDIUM; Correct agent handling: Do not generate four-digit extension mechanically\n- C7 - Issue: Legacy CDO student organization directory appears under 2021 Virtual Week of Welcome; Severity: MEDIUM; Correct agent handling: Treat listed organizations as historical; don't promise 2026 activity\n- C8 - Issue: Other USTP pages still embed AY 2025-2026 calendar content; Severity: HIGH; Correct agent handling: Prefer uploaded 2026-2027 CHED-noted PDF for AY 2026-27 questions",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/14_source_conflicts_and_refresh_rules.md",
+        "category": "qa",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          },
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          },
+          {
+            "id": "OFFICIALS",
+            "title": "USTP Officials",
+            "url": "https://www.ustp.edu.ph/administration-directory/ustp-officials/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-30a44ae3c411",
+      "seq": 85,
+      "chapter": "Conflicts, Caveats and Refresh Rules",
+      "section": "Known source inconsistencies. Preserve them.",
+      "pageLabel": null,
+      "sourceLabel": "Conflicts, Caveats and Refresh Rules",
+      "keywords": "qa MEDIUM C10 C11 LOW issue severity correct agent handling time proclamation medium current conflicts",
+      "content": "- C9 - Issue: 2027 Eid al-Fitr is calendar-marked March 9; lunar/proclamation holiday may change; Severity: MEDIUM; Correct agent handling: Cite as listed, verify current proclamation before advising no classes\n- C10 - Issue: Detailed undergraduate and graduate course offerings vary across webpages and over time; Severity: MEDIUM; Correct agent handling: A listing is not evidence of an open slot or current approved curriculum\n- C11 - Issue: May 2027 deadlines/celebrations have no time-of-day or college-level specific location; Severity: LOW; Correct agent handling: Never invent venue/time; refer to official campus announcement",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/14_source_conflicts_and_refresh_rules.md",
+        "category": "qa",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-3ed85ba468e6",
+      "seq": 86,
+      "chapter": "Conflicts, Caveats and Refresh Rules",
+      "section": "Priority / conflict hierarchy",
+      "pageLabel": null,
+      "sourceLabel": "Conflicts, Caveats and Refresh Rules",
+      "keywords": "qa CHED ASO conflicts announcement new revision campus academic scope but caveats refresh",
+      "content": "- Authenticated live university announcement / new official calendar revision relevant to campus + academic year and date.\n- CHED-noted University Academic Calendar AY 2026-2027 (this package, PDF source reference).\n- Current official USTP campus/university website, when it gives the same AY and scope.\n- Older USTP public pages clearly dated, labeled historical.\n- 2023 student handbook for *policy* questions, but not as source for AY 2026-27 event dates.\n- Never use student gossip, unofficial third-party posts or unspecified search snippets as institutional directives.\nIf a new announcement conflicts with the PDF but you cannot verify scope/revision, explain both and ask the student to check Registrar/ASO.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/14_source_conflicts_and_refresh_rules.md",
+        "category": "qa",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-3ec4dcadd085",
+      "seq": 87,
+      "chapter": "Conflicts, Caveats and Refresh Rules",
+      "section": "Refresh cadences and TTLs",
+      "pageLabel": null,
+      "sourceLabel": "Conflicts, Caveats and Refresh Rules",
+      "keywords": "qa refresh active before every conflicts caveats rules cadences ttls admissions",
+      "content": "- Active admissions, exam changes, scholarships and suspensions: before every time-sensitive answer; old snapshot alone is insufficient.\n- Official roles, local extensions, current organizations: monthly while active, or before a direct referral.\n- Undergraduate/graduate program lists and library policies: every semester.\n- Published academic calendar: at minimum at the start of a term and when the university posts amended dates.\n- Campus address and institutional history: annually.",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/14_source_conflicts_and_refresh_rules.md",
+        "category": "qa",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          },
+          {
+            "id": "CONTACT",
+            "title": "USTP Contact Us",
+            "url": "https://www.ustp.edu.ph/contact-us/"
+          },
+          {
+            "id": "UG_PROG",
+            "title": "USTP Undergraduate Programs",
+            "url": "https://www.ustp.edu.ph/academics/undergraduate-programs/"
+          }
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "id": "cdo-63eed59d71de",
+      "seq": 88,
+      "chapter": "Conflicts, Caveats and Refresh Rules",
+      "section": "Negative knowledge (not obtained in public research)",
+      "pageLabel": null,
+      "sourceLabel": "Conflicts, Caveats and Refresh Rules",
+      "keywords": "qa GPS API LAFINA research class portal current conflicts caveats refresh rules negative knowledge",
+      "content": "This research does not verify: actual class/section timetables, course syllabus PDFs, real-time facilities/rooms, campus-wide indoor GPS map, student portal API, student personal grades, class cancellations, current Wi-Fi details or credentials, library live opening hours, individual scholarship eligibility, university-shuttle times, individualized fees, or current graduate admission deadlines beyond the dates in the calendar.\nA useful LAFINA response for missing data: \"I couldn't verify that from official USTP CDO information. Please check [named official office/portal].\"",
+      "collection": "ustp_cdo",
+      "meta": {
+        "doc": "knowledge/14_source_conflicts_and_refresh_rules.md",
+        "category": "qa",
+        "audience": "student",
+        "campus": "USTP Cagayan de Oro",
+        "volatility": "high",
+        "status": "verified_with_caveats",
+        "asOf": "2026-11-24",
+        "academicYears": [
+          "2026-2027"
+        ],
+        "term": null,
+        "scope": null,
+        "pdfPages": [],
+        "sources": [
+          {
+            "id": "CAL",
+            "title": "CHED-noted USTP Academic Calendar AY 2026-2027",
+            "url": "https://drive.google.com/file/d/1ijghm2zH9S203nn58Qxe8Ln8wchVWw3h/view?usp=sharing"
+          }
+        ],
+        "caveats": []
+      }
+    }
+  ]
+}

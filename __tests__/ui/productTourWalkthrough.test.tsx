@@ -92,27 +92,25 @@ describe('Walkthrough (ProductTour, Steps, Anchors & Choreography)', () => {
       'Calendar Groups',
       'Philippine Holidays',
       '.ics',
-      'Whisper',
       'Confirm before save',
       'Offline & Online AI',
-      'USTP Handbook',
+      'Ask USTP',
       'Temporary Chat',
       'Call LAFINA',
       'Call me vs Notify only',
-      'AlarmManager',
       'Morning Briefing',
       'From Notes',
       'AI Assist',
       'Floating LAFINA',
       'Quick Chat',
       'Cloud Sync',
-      'ElevenLabs',
-      'Alarm & Reminder Health',
-      '6 Color Themes',
-      '5 AI Orb Designs',
+      'Check my reminders work',
+      'what LAFINA remembers',
     ]) {
       expect(fullCopy).toContain(term);
     }
+    // Students never see engine or vendor names.
+    expect(fullCopy).not.toMatch(/DeepSeek|ElevenLabs|Whisper|AlarmManager/);
 
     // No forbidden or unmounted features mentioned
     for (const forbidden of [
@@ -150,7 +148,7 @@ describe('Walkthrough (ProductTour, Steps, Anchors & Choreography)', () => {
     const handbookText = (steps: TourStep[]) =>
       steps
         .find(s => s.id === 'ai-engine-handbook')
-        ?.highlights?.find(h => h.label === 'USTP Handbook')?.detail ?? '';
+        ?.highlights?.find(h => h.label === 'Ask USTP')?.detail ?? '';
 
     expect(handbookText(confirmed)).toContain('chapter and page citations');
     expect(handbookText(pending)).toContain('confirm your USTP COR');
@@ -430,7 +428,7 @@ describe('Walkthrough (ProductTour, Steps, Anchors & Choreography)', () => {
       </SafeAreaProvider>,
     );
 
-    expect(profileUi.getByText('All features')).toBeTruthy();
+    expect(profileUi.getByText('A quick tour of every tab')).toBeTruthy();
     fireEvent.press(profileUi.getByText('Show the walkthrough again'));
     expect(onReplayTour).toHaveBeenCalledTimes(1);
     profileUi.unmount();

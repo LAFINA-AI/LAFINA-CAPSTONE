@@ -271,11 +271,9 @@ export const ClearAllDataModal: React.FC<ClearAllDataModalProps> = ({
                 },
               ]}
             >
-              This will delete all your notes, tasks, events, reminders,
-              calendar blocks, chat history and saved event defaults. Device
-              settings such as the offline voice, theme and time format are
-              kept; Offline Voice has its own Reset. This action cannot be
-              undone.
+              This deletes your notes, tasks, events, reminders, chats and saved
+              event defaults. Your theme and offline voice are kept. This action
+              cannot be undone.
             </Text>
 
             <View style={styles.breakdownStack}>

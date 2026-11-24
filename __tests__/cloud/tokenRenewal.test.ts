@@ -163,7 +163,10 @@ it('never attaches renewed tokens to an account that changed meanwhile', async (
     return reply(401);
   });
   const result = await cloudClient.request('/v1/ai/chat');
-  expect(result.status).toBe('auth_required');
+  expect(result).toMatchObject({
+    status: 'server_unavailable',
+    error: expect.stringMatching(/sign-in changed/),
+  });
   expect(cloudClient.establishSession).not.toHaveBeenCalled();
   expect(calls('/v1/ai/chat')).toHaveLength(1);
 });
@@ -237,7 +240,9 @@ it('says the sign-in ended only when the refresh token is gone or rejected', asy
   expect((await cloudClient.request('/v1/ai/chat')).sessionEnded).toBe(true);
 
   route(url =>
-    url.endsWith('/v1/auth/refresh') ? reply(503, {detail: 'busy'}) : reply(401),
+    url.endsWith('/v1/auth/refresh')
+      ? reply(503, {detail: 'busy'})
+      : reply(401),
   );
   const passing = await cloudClient.request('/v1/ai/chat');
   expect(passing.status).toBe('auth_required');

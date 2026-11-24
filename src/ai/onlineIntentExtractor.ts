@@ -40,10 +40,31 @@ const HANDBOOK_POLICY_CUE_RE =
 const PERSONAL_PLANNER_RE =
   /^(?:please\s+)?(?:add|remind|schedule|create|make|set|book|put|take\s+(?:a\s+)?note|note|jot|save|mark|move|delete|cancel|update|edit|rename)\b|\b(?:do\s+i\s+(?:still\s+)?have(?:\s+left)?|i\s+have\s+left|have\s+i\s+(?:got|used)|my\s+(?:schedule|calendar|tasks?|to-?dos?|notes?|reminders?|alarms?|classes|goal|goals|plan|plans|day|week|grades?|gwa|gpa|absences?|units|balance)|(?:goal|target)\s+note)\b/i;
 
+/**
+ * USTP Cagayan de Oro information in the local knowledge pack: university
+ * calendar dates, portals, offices and services. These name the institution's
+ * own things; a student's personal schedule stays with the planner below.
+ */
+const CAMPUS_STRONG_CUE_RE =
+  /\b(?:academic\s+calendar|university\s+calendar|ustp\s+calendar|week\s+of\s+welcome|prisms|ustep|e-?\s?clearance|ustat|e-?\s?library|main\s+library|graduate\s+library|registrar['’]?s?(?:\s+office)?|admission\s+and\s+scholarship\s+office|admissions?\s+(?:portal|office|test)|enrollment\s+(?:period|flow|steps?)|(?:dean|director)\s+of\s+(?:the\s+)?(?:citc|cea|csm|cste|cot|college|library|guidance|health|admissions?|student\s+affairs)|(?:ustp|cdo|cagayan\s+de\s+oro)\s+(?:campus|address|programs?|courses|offices?|contact|phone|hotline|library|organi[sz]ations?|orgs?|scholarships?|holidays?)|(?:programs?|courses)\s+(?:(?:are\s+)?offered|does\s+ustp))\b/i;
+
+/** The Admission and Scholarship Office, written as its acronym (not "aso", dog). */
+const CAMPUS_OFFICE_ACRONYM_RE = /\b(?:ASO|ICTS)\b/;
+
+/** A term of the university calendar ("2nd sem", "midyear")... */
+const CAMPUS_TERM_RE =
+  /\b(?:first|second|1st|2nd)\s+sem(?:ester)?\b|\bmid-?\s?year\b|\bsemester\b/i;
+/** ...together with a calendar event asks for a published date. */
+const CAMPUS_CALENDAR_EVENT_RE =
+  /\b(?:starts?|begins?|ends?|break|finals?|midterms?|prelim(?:inary|s)?|pre-?\s?finals?|exams?|examinations?|enrol(?:l)?(?:ment)?|classes|holidays?|deadline|dean['’]?s\s+list(?:ers)?)\b/i;
+
 /** True when the text asks about a handbook policy anywhere in it. */
 export const hasHandbookSignal = (text: string): boolean =>
   HANDBOOK_STRONG_CUE_RE.test(text) ||
-  (HANDBOOK_TOPIC_RE.test(text) && HANDBOOK_POLICY_CUE_RE.test(text));
+  (HANDBOOK_TOPIC_RE.test(text) && HANDBOOK_POLICY_CUE_RE.test(text)) ||
+  CAMPUS_STRONG_CUE_RE.test(text) ||
+  CAMPUS_OFFICE_ACRONYM_RE.test(text) ||
+  (CAMPUS_TERM_RE.test(text) && CAMPUS_CALENDAR_EVENT_RE.test(text));
 
 /**
  * Detects USTP Student Handbook / academic policy questions for local FTS5 or

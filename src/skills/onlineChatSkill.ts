@@ -6,6 +6,11 @@ import { localSettingsStore, userStore } from '../storage';
 import { isUstpSchoolEnabled } from '../storage/ustpEligibility';
 import {directProviderTestEnabled, directTestChat} from '../cloud/directProviderTest';
 import type {RequestTrace} from '../ai/benchmark/requestTrace';
+import {campusSourceNote} from '../handbook/knowledgeCitations';
+import type {
+  KnowledgeCollection,
+  KnowledgeSourceRef,
+} from '../storage/localHandbookStore';
 
 /** A model id the server chose to report, if any; never guessed. */
 const reportedModel = (value: unknown): string | undefined =>
@@ -21,7 +26,35 @@ export interface HandbookSource {
   section?: string | null;
   page?: number | null;
   snippet?: string | null;
+  /** 'ustp_cdo' for a passage from the USTP CDO knowledge pack. */
+  collection?: KnowledgeCollection;
+  /** Official pages that passage cites (https only). */
+  links?: KnowledgeSourceRef[];
+  asOf?: string | null;
+  pageLabel?: string | null;
+  /** The on-device passage this came from (absent for backend sources). */
+  passageId?: string;
 }
+
+/** At most this many passages are kept with one reply. */
+export const MAX_SOURCE_PASSAGES = 12;
+
+/**
+ * The on-device passages a reply's note cites, in order, without repeats, so
+ * "See passages" can show the exact text later. Backend handbook sources
+ * have no on-device passage and are left out.
+ */
+export const handbookPassageIds = (
+  sources: readonly HandbookSource[] | null | undefined,
+): string[] => {
+  const ids: string[] = [];
+  for (const source of sources ?? []) {
+    const id = source.passageId;
+    if (typeof id === 'string' && id && !ids.includes(id)) ids.push(id);
+    if (ids.length >= MAX_SOURCE_PASSAGES) break;
+  }
+  return ids;
+};
 
 export interface OnlineChatReply {
   reply: string;
@@ -98,10 +131,7 @@ export const handbookPreference = {
   },
 };
 
-export const handbookSourceLabel = (
-  sources: HandbookSource[],
-): string | null => {
-  if (!sources.length) return null;
+const studentHandbookLabel = (sources: HandbookSource[]): string => {
   const pages = Array.from(
     new Set(
       sources
@@ -117,6 +147,24 @@ export const handbookSourceLabel = (
     return `Referenced USTP Student Handbook (${pages.slice(0, 4).join(', ')})`;
   }
   return 'Referenced USTP Student Handbook';
+};
+
+/**
+ * The citation note under a reply. Student Handbook passages give
+ * "Referenced USTP Student Handbook (p. 12)"; USTP CDO knowledge passages add
+ * a line of tappable official links with the snapshot date. The note is
+ * Markdown-inline text, stored and synced as before (`handbookNote`).
+ */
+export const handbookSourceLabel = (
+  sources: HandbookSource[],
+): string | null => {
+  if (!sources.length) return null;
+  const handbook = sources.filter((s) => s.collection !== 'ustp_cdo');
+  const lines: string[] = [];
+  if (handbook.length > 0) lines.push(studentHandbookLabel(handbook));
+  const campus = campusSourceNote(sources);
+  if (campus) lines.push(campus);
+  return lines.length > 0 ? lines.join('\n') : null;
 };
 
 interface BackendChatSource {

@@ -1,4 +1,11 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Animated,
   Keyboard,
@@ -144,6 +151,48 @@ const useEnterAnimation = (key: string) => {
   };
 };
 
+/**
+ * A short side-to-side shake that draws the eye to something that needs
+ * fixing. It plays each time `trigger` goes up (0 never plays) and stays
+ * still when the phone asks for reduced motion.
+ */
+export const useShake = (trigger: number) => {
+  const reduced = useReducedMotion();
+  const value = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!trigger || reduced) return;
+    value.setValue(0);
+    const step = (toValue: number) =>
+      Animated.timing(value, {toValue, duration: 55, useNativeDriver: true});
+    const animation = Animated.sequence([
+      step(1),
+      step(-1),
+      step(0.7),
+      step(-0.7),
+      step(0.3),
+      step(0),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [trigger, reduced, value]);
+  return {
+    transform: [
+      {
+        translateX: value.interpolate({
+          inputRange: [-1, 1],
+          outputRange: [-9, 9],
+        }),
+      },
+    ],
+  };
+};
+
+/** Lets a page scroll a field into view, e.g. after a failed Confirm. */
+export interface OnboardingPageHandle {
+  /** `y` is the field's offset inside the page's fields area. */
+  scrollToFieldY: (y: number) => void;
+}
+
 export interface PageAction {
   label: string;
   onPress: () => void;
@@ -168,9 +217,43 @@ export interface OnboardingPageProps {
   secondary?: PageAction;
   scrollable?: boolean;
   testID?: string;
+  /**
+   * Show `error` just above the bottom buttons instead of after the fields,
+   * so it is on screen on a long page. It shakes each time `errorShake` goes up.
+   */
+  errorNearActions?: boolean;
+  errorShake?: number;
 }
 
-export const OnboardingPage: React.FC<OnboardingPageProps> = ({
+const ErrorBox: React.FC<{
+  error: string;
+  shake: number;
+  compact?: boolean;
+}> = ({error, shake, compact}) => {
+  const t = useOnboardingTokens();
+  const shakeStyle = useShake(shake);
+  return (
+    <Animated.View
+      style={[
+        styles.error,
+        compact && styles.errorNearActions,
+        {backgroundColor: t.dangerSoft, borderColor: t.danger},
+        shakeStyle,
+      ]}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      testID="onboarding-error"
+    >
+      <Text style={[styles.errorText, {color: t.danger}]}>{error}</Text>
+    </Animated.View>
+  );
+};
+
+export const OnboardingPage = forwardRef<
+  OnboardingPageHandle,
+  OnboardingPageProps
+>(function OnboardingPageView(
+  {
   pageKey,
   headLabel,
   onBack,
@@ -186,9 +269,28 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({
   secondary,
   scrollable,
   testID,
-}) => {
+  errorNearActions = false,
+  errorShake = 0,
+  },
+  ref,
+) {
   const t = useOnboardingTokens();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const mainY = useRef(0);
+  const fieldsY = useRef(0);
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToFieldY: (y: number) => {
+        scrollRef.current?.scrollTo?.({
+          y: Math.max(0, mainY.current + fieldsY.current + y - 16),
+          animated: true,
+        });
+      },
+    }),
+    [],
+  );
   const keyboardOpen = useKeyboardOpen();
   const fallback = useAccessibleFallback();
   const enter = useEnterAnimation(pageKey);
@@ -196,6 +298,7 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({
   const Body: React.ComponentType<any> = useScroll ? ScrollView : View;
   const bodyProps = useScroll
     ? {
+        ref: scrollRef,
         contentContainerStyle: styles.bodyScrollContent,
         keyboardShouldPersistTaps: 'handled',
         showsVerticalScrollIndicator: true,
@@ -276,6 +379,9 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({
       <Body {...bodyProps}>
         <Animated.View
           style={[styles.main, useScroll && styles.mainScroll, enter]}
+          onLayout={event => {
+            mainY.current = event.nativeEvent.layout.y;
+          }}
         >
           <Text
             style={[
@@ -290,22 +396,15 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({
           {copy && !keyboardOpen ? (
             <Text style={[styles.copy, {color: t.muted}]}>{copy}</Text>
           ) : null}
-          <View style={styles.fields}>
+          <View
+            style={styles.fields}
+            onLayout={event => {
+              fieldsY.current = event.nativeEvent.layout.y;
+            }}
+          >
             {children}
-            {error ? (
-              <View
-                style={[
-                  styles.error,
-                  {backgroundColor: t.dangerSoft, borderColor: t.danger},
-                ]}
-                accessibilityRole="alert"
-                accessibilityLiveRegion="polite"
-                testID="onboarding-error"
-              >
-                <Text style={[styles.errorText, {color: t.danger}]}>
-                  {error}
-                </Text>
-              </View>
+            {error && !errorNearActions ? (
+              <ErrorBox error={error} shake={errorShake} />
             ) : null}
           </View>
           {note && !keyboardOpen ? (
@@ -317,12 +416,15 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({
         </Animated.View>
       </Body>
       <View style={[styles.footer, keyboardOpen && styles.footerCompact]}>
+        {error && errorNearActions ? (
+          <ErrorBox error={error} shake={errorShake} compact />
+        ) : null}
         <PrimaryButton action={primary} />
         {secondary && !keyboardOpen ? <LinkButton action={secondary} /> : null}
       </View>
     </View>
   );
-};
+});
 
 export const PrimaryButton: React.FC<{
   action: PageAction;
@@ -601,29 +703,65 @@ export const SlimRow: React.FC<{
   value: string;
   onPress?: () => void;
   testID?: string;
-}> = ({label, value, onPress, testID}) => {
+  /** Marks the row as needing a value, with a short reason under it. */
+  invalid?: boolean;
+  hint?: string;
+  /** The row shakes each time this goes up. */
+  shake?: number;
+}> = ({label, value, onPress, testID, invalid = false, hint, shake = 0}) => {
   const t = useOnboardingTokens();
+  const shakeStyle = useShake(invalid ? shake : 0);
   const content = (
     <>
-      <Text style={[styles.slimLabel, {color: t.ink}]} numberOfLines={2}>
+      <Text
+        style={[
+          styles.slimLabel,
+          {color: invalid ? t.danger : t.ink},
+          invalid && styles.slimLabelInvalid,
+        ]}
+        numberOfLines={2}
+      >
         {label}
       </Text>
-      <Text style={[styles.slimValue, {color: t.muted}]} numberOfLines={2}>
+      <Text
+        style={[
+          styles.slimValue,
+          {color: invalid ? t.danger : t.muted},
+          invalid && styles.slimLabelInvalid,
+        ]}
+        numberOfLines={2}
+      >
         {value}
         {onPress ? ' ↗' : ''}
       </Text>
     </>
   );
   return onPress ? (
-    <TouchableOpacity
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}. Edit`}
-      style={[styles.slimRow, {borderColor: t.line}]}
-      testID={testID}
-    >
-      {content}
-    </TouchableOpacity>
+    <Animated.View style={shakeStyle}>
+      <TouchableOpacity
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${value}. ${
+          invalid && hint ? `${hint} ` : ''
+        }Edit`}
+        style={[
+          styles.slimRow,
+          {borderColor: invalid ? t.danger : t.line},
+          invalid && [styles.slimRowInvalid, {backgroundColor: t.dangerSoft}],
+        ]}
+        testID={testID}
+      >
+        {content}
+      </TouchableOpacity>
+      {invalid && hint ? (
+        <Text
+          style={[styles.slimHint, {color: t.danger}]}
+          testID={testID ? `${testID}-hint` : undefined}
+        >
+          {hint}
+        </Text>
+      ) : null}
+    </Animated.View>
   ) : (
     <View
       style={[styles.slimRow, {borderColor: t.line}]}
@@ -780,6 +918,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   errorText: {fontFamily: Fonts.body, fontSize: 13, lineHeight: 18},
+  errorNearActions: {marginBottom: 8},
   note: {flexDirection: 'row', gap: 8, marginTop: 12},
   noteMark: {fontSize: 12, lineHeight: 18},
   noteText: {flex: 1, fontFamily: Fonts.body, fontSize: 12, lineHeight: 18},
@@ -907,6 +1046,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   slimLabel: {flex: 1, fontFamily: Fonts.body, fontSize: 14},
+  slimLabelInvalid: {fontWeight: '700'},
+  slimRowInvalid: {
+    borderWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginTop: 4,
+  },
+  slimHint: {
+    fontFamily: Fonts.body,
+    fontSize: 12.5,
+    marginTop: 4,
+    marginLeft: 4,
+  },
   slimValue: {
     flexShrink: 1,
     maxWidth: '55%',

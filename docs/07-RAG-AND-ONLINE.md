@@ -86,3 +86,21 @@ Errors the app turns into actions: 401 → sign in again; 403 → account cannot
 - **Two sources (audit L9).** Chat answers handbook questions from the **local 2023 pack**: offline with BM25 search, and online by sending local excerpts as `<handbook_excerpts>`. **Call Lafina** sends `useHandbook` to the backend, which searches its **server-side index**. If the two indexes are built from different editions or chunkings, they can cite different pages for the same question. Rebuild both from the same PDF, or say in the UI which source a call used.
 - **Fail-closed search (audit H1/M5).** The local search answers only when a domain concept (INC, LOA, shifting, dress code…) or enough free words match, and when words absent from the pack's vocabulary do not outweigh the matches. Otherwise it returns `insufficientEvidence` and the app shows the no-evidence reply. Regression list: `__tests__/ai/appStatusAudit20261116.test.ts`.
 - **No FTS5 (audit H5).** On a build where SQLite has no FTS5 module, schema v28 still applies: the FTS table and triggers are skipped inside a savepoint, and the handbook reports *not available* instead of failing database init.
+
+## USTP Cagayan de Oro knowledge pack (ADR-044, 2026-11-24)
+
+- **Second collection.** The reviewed pack in `knowledge/ustp-cdo/2026-11-24/` is built by `python -I scripts/build_campus_knowledge_pack.py` into `src/handbook/ustpCdoKnowledgePack.json`. It covers 14 documents and 88 passages, and is indexed beside the Student Handbook in `handbook_chunks` (`collection = 'ustp_cdo'`, schema v32). Run the builder with `--check` before a release; it fails when the committed pack is out of date or a knowledge file no longer matches its manifest SHA-256.
+- **Which source answers.**
+  - Standing policies (grades, offenses, dress code, LOA) come from the 2023 handbook.
+  - Dates, offices, portals, programs, the library and organizations come from the campus pack.
+  - Mixed questions can cite both.
+- **Scoping.**
+  - Semester, academic year and UG/GR are read from the question.
+  - A question about another academic year is refused, with links to the official calendar.
+  - Graduate rows appear only when the question asks about graduate studies.
+- **Conflicts.** Passages affected by C1–C7 and C9 carry a caveat. It is shown offline as a note and sent online as `Caveat:`. The midyear start always shows both June 5 and June 9.
+- **Citations.** The note under a reply adds official https links with PDF pages and the snapshot date, and each link is tappable. Links come only from the pack's source registry.
+- **Freshness.** After the volatility window (45, 120 or 365 days), replies say the snapshot may have changed.
+- **Not covered.** Call Lafina still uses the backend index (see the "Two sources" note above), so it does not know the campus pack. Document generation is limited to the handbook. `events.json` is not used.
+- **Regression tests.** `__tests__/ai/ustpCdoKnowledge.test.ts` and `__tests__/ui/sourceNoteText.test.tsx`.
+- **Ask USTP and the sources library (ADR-045).** The chat mode is named Ask USTP. Each answer saves the passage ids its note cites, on the phone only (never synced). **See passages** opens those passages. The **USTP sources** library, opened from the sidebar or the empty state, shows every passage both sources hold, with pages, scope, conflict notes, official links and a plain search. Tests: `__tests__/ui/ustpSourcesLibrary.test.tsx`.

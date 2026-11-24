@@ -250,6 +250,7 @@ export const syncOutboxStore = {
     scopeId: string = localUserId,
     executor?: DatabaseTransaction,
     entityTypes?: readonly SyncEntityType[],
+    operation?: SyncOperation,
   ): OutboxItem[] => {
     if (db.isFallback()) return [];
     if (entityTypes && entityTypes.length === 0) return [];
@@ -258,9 +259,18 @@ export const syncOutboxStore = {
       : '';
     const result = executorFor(executor).executeSync(
       `SELECT * FROM sync_outbox
-       WHERE user_id = ? AND scope_type = ? AND scope_id = ? AND status = 'pending'${typeFilter}
+       WHERE user_id = ? AND scope_type = ? AND scope_id = ? AND status = 'pending'${typeFilter}${
+        operation ? ' AND operation = ?' : ''
+      }
        ORDER BY created_at ASC, rowid ASC LIMIT ?`,
-      [localUserId, scopeType, scopeId, ...(entityTypes ?? []), limit],
+      [
+        localUserId,
+        scopeType,
+        scopeId,
+        ...(entityTypes ?? []),
+        ...(operation ? [operation] : []),
+        limit,
+      ],
     );
 
     return (result.rows ?? []).map(row => ({

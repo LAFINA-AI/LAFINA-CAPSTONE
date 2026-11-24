@@ -1,6 +1,7 @@
 import {ScreenOverlays} from '../../navigation/RetainedTab';
 import {resolveCallTarget} from '../../navigation/resolveCallTarget';
 import React, {useState, useEffect, useRef} from 'react';
+import {reminderDescriptionText} from '../../../utils/reminderDescription';
 import {
   View,
   Text,
@@ -416,7 +417,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
       else if (resolved?.kind === 'reminder')
         Alert.alert(
           resolved.item.task,
-          `${resolved.item.description || ''}\n${
+          `${reminderDescriptionText(resolved.item.description)}\n${
             resolved.item.triggerAt
           }\nStatus: ${resolved.item.status}`,
         );

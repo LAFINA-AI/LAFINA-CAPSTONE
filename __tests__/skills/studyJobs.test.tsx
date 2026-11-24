@@ -1,4 +1,6 @@
 import {act, renderHook} from '@testing-library/react-native';
+import {noteSessionChange} from '../../src/storage/sessionEpoch';
+import {invalidateOwnerWork} from '../../src/storage/ownerWorkEpoch';
 import {
   resetStudyJobsForTests,
   useStudyJob,
@@ -7,6 +9,50 @@ import {
 
 beforeEach(() => {
   resetStudyJobsForTests();
+});
+
+test.each(['signout', 'reset'] as const)(
+  '%s cancels pending skill work and discards late results',
+  async reason => {
+    const hook = renderHook(() => useStudyJob<string>('owner-a', 'pending'));
+    let finish!: (value: string) => void;
+    let context!: StudyJobContext;
+    let running!: Promise<void>;
+    act(() => {
+      running = hook.result.current.run(ctx => {
+        context = ctx;
+        return new Promise(resolve => {
+          finish = resolve;
+        });
+      });
+    });
+    act(() =>
+      reason === 'signout'
+        ? noteSessionChange()
+        : invalidateOwnerWork('owner-a'),
+    );
+    expect(context.signal.aborted).toBe(true);
+    expect(context.isCancelled()).toBe(true);
+    expect(hook.result.current.busy).toBe(false);
+    await act(async () => {
+      finish('private result');
+      await running;
+    });
+    expect(hook.result.current.result).toBeNull();
+    expect(hook.result.current.error).toBe('');
+  },
+);
+
+test('resetting another owner leaves the active job intact', async () => {
+  const hook = renderHook(() => useStudyJob<string>('owner-a', 'isolated'));
+  await act(async () => {
+    await hook.result.current.run(async ctx => {
+      invalidateOwnerWork('owner-b');
+      expect(ctx.isCancelled()).toBe(false);
+      return 'retained';
+    });
+  });
+  expect(hook.result.current.result).toBe('retained');
 });
 
 test('a job survives page navigation, preserves progress, and consumes its result once', async () => {

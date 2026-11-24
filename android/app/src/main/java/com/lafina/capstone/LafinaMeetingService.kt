@@ -54,6 +54,8 @@ class LafinaMeetingService : Service() {
 
         const val EXTRA_MEETING_ID = "meeting_id"
         const val EXTRA_MEETING_TITLE = "meeting_title"
+        const val EXTRA_STOP_TOKEN = "stop_token"
+        val pendingStops: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
 
         private const val SAMPLE_RATE = 16000
         private const val CHUNK_SECONDS = 30
@@ -195,9 +197,16 @@ class LafinaMeetingService : Service() {
                 }
             }
             ACTION_STOP -> {
-                requestStopRecording()
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+                val token = intent.getStringExtra(EXTRA_STOP_TOKEN)
+                val expectedId = intent.getStringExtra(EXTRA_MEETING_ID)
+                try {
+                    if (expectedId != null && expectedId != activeMeetingId) return START_NOT_STICKY
+                    requestStopRecording()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                } finally {
+                    if (token != null) pendingStops.remove(token)
+                }
             }
         }
         return START_NOT_STICKY

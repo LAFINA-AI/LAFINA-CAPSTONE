@@ -36,6 +36,7 @@ import {
   editMeeting,
   editStudentName,
   editTerm,
+  fillMissingTermDates,
   formatDisplayDate,
   formatIsoDate,
   isIsoDate,
@@ -45,8 +46,8 @@ import {
   meetingSummary,
   parseIsoDate,
   removeMeeting,
-  semesterTermDates,
   setCourseIncluded,
+  suggestedTermDates,
   termProblems,
 } from '../../../ai/vision/corReviewModel';
 import type {
@@ -76,6 +77,7 @@ import {
   onboardingStyles,
   useOnboardingTokens,
 } from './onboardingUi';
+import type {OnboardingPageHandle} from './onboardingUi';
 
 /**
  * Simplified 1-screen COR verification (used by onboarding, Profile and Schedule).
@@ -148,6 +150,14 @@ const meetingStatusLabel = (meeting: CorDraftMeeting): string => {
   return parts.length ? parts.join(' · ') : 'Edit';
 };
 
+/** The part of the review a failed Confirm points at. */
+type ReviewTarget =
+  | 'student'
+  | 'term'
+  | 'subjects'
+  | 'conflicts'
+  | `course:${string}`;
+
 export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
   userId,
   onClose,
@@ -164,6 +174,12 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
   const [notice, setNotice] = useState<string | null>(null);
   const [saveWarning, setSaveWarning] = useState(false);
   const [picker, setPicker] = useState<'start' | 'end' | null>(null);
+  /** Set by a failed Confirm: which part of the review to point at. */
+  const [problemTarget, setProblemTarget] = useState<ReviewTarget | null>(null);
+  /** Goes up on every failed Confirm, so the error and the field shake. */
+  const [shakeCount, setShakeCount] = useState(0);
+  const pageRef = useRef<OnboardingPageHandle>(null);
+  const sectionY = useRef<Record<string, number>>({});
   const runRef = useRef(0);
   const mounted = useRef(true);
   useEffect(
@@ -176,6 +192,7 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
 
   const go = useCallback((next: Screen) => {
     setError(null);
+    setProblemTarget(null);
     setNotice(null);
     setPicker(null);
     setScreen(next);
@@ -324,57 +341,108 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
     }
   };
 
-  const firstReviewError = (current: CorDraft): string | null => {
+  const firstReviewError = (
+    current: CorDraft,
+  ): {message: string; target: ReviewTarget} | null => {
     if (!current.studentName.trim()) {
-      return 'Enter your name as it appears on the COR.';
+      return {
+        message: 'Enter your name as it appears on the COR.',
+        target: 'student',
+      };
     }
     if (!current.campus.trim()) {
-      return 'Campus was not detected. Replace the COR with a clearer copy.';
+      return {
+        message:
+          'Campus was not detected. Replace the COR with a clearer copy.',
+        target: 'student',
+      };
     }
     if (!current.program.trim()) {
-      return 'Program was not detected. Replace the COR with a clearer copy.';
+      return {
+        message:
+          'Program was not detected. Replace the COR with a clearer copy.',
+        target: 'student',
+      };
     }
     if (!current.yearLevel.trim()) {
-      return 'Enter your year level.';
+      return {message: 'Enter your year level.', target: 'student'};
     }
-    const termErr = termProblems(current)[0];
-    if (termErr) return termErr;
+    const termErrors = termProblems(current);
+    if (termErrors.length > 0) {
+      const missingStart = !isIsoDate(current.startDate);
+      const missingEnd = !isIsoDate(current.endDate);
+      const message =
+        missingStart && missingEnd
+          ? 'Choose your first and last class dates (marked in red above).'
+          : missingStart
+          ? 'Choose your first class date (marked in red above).'
+          : missingEnd
+          ? 'Choose your last class date (marked in red above).'
+          : termErrors[0];
+      return {message, target: 'term'};
+    }
     const included = current.courses.filter(c => c.included);
     if (included.length === 0) {
-      return 'Include at least one subject.';
+      return {message: 'Include at least one subject.', target: 'subjects'};
     }
     for (const course of included) {
       const problem = courseNeedsAttention(course);
       if (problem) {
-        return `${course.code || 'Subject'}: ${problem}`;
+        return {
+          message: `${course.code || 'Subject'}: ${problem}`,
+          target: `course:${course.id}`,
+        };
       }
     }
     const ready = draftReadiness(confirmAllValidItems(current));
     if (ready.duplicateSubjects.length > 0) {
       const dup = ready.duplicateSubjects[0];
-      return `${dup.code} appears more than once. Exclude or edit one above.`;
+      return {
+        message: `${dup.code} appears more than once. Exclude or edit one above.`,
+        target: 'conflicts',
+      };
     }
     if (ready.duplicateMeetings.length > 0) {
       const dup = ready.duplicateMeetings[0];
-      return `${dup.course.code} has a repeated class time. Remove the repeat above.`;
+      return {
+        message: `${dup.course.code} has a repeated class time. Remove the repeat above.`,
+        target: 'conflicts',
+      };
     }
     if (ready.overlaps.length > 0) {
       const ov = ready.overlaps[0];
-      return `${ov.first.course.code || 'Two classes'} and ${
-        ov.second.course.code || 'another class'
-      } overlap. Tap Keep both or edit above.`;
+      return {
+        message: `${ov.first.course.code || 'Two classes'} and ${
+          ov.second.course.code || 'another class'
+        } overlap. Tap Keep both or edit above.`,
+        target: 'conflicts',
+      };
     }
     return null;
   };
+
+  /** Scrolls the review to a section measured by `rememberSection`. */
+  const scrollToTarget = (target: ReviewTarget) => {
+    const y = sectionY.current[target];
+    if (y !== undefined) pageRef.current?.scrollToFieldY(y);
+  };
+  const rememberSection =
+    (key: string) => (event: {nativeEvent: {layout: {y: number}}}) => {
+      sectionY.current[key] = event.nativeEvent.layout.y;
+    };
 
   const commit = () => {
     if (!draft) return;
     setError(null);
     const validationError = firstReviewError(draft);
     if (validationError) {
-      setError(validationError);
+      setError(validationError.message);
+      setProblemTarget(validationError.target);
+      setShakeCount(count => count + 1);
+      scrollToTarget(validationError.target);
       return;
     }
+    setProblemTarget(null);
     const confirmed = confirmAllValidItems(draft);
     setDraftState(confirmed);
     corImportStore.saveDraft(userId, confirmed);
@@ -813,23 +881,36 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
     const weeks = termValid
       ? countWeeklyOccurrences(draft.startDate, draft.endDate)
       : 0;
+    const suggestion = suggestedTermDates(draft);
+    const pickerDefault = suggestion
+      ? parseIsoDate(
+          picker === 'end' ? suggestion.endDate : suggestion.startDate,
+        )
+      : new Date();
     const pickerValue =
       picker && isIsoDate(picker === 'start' ? draft.startDate : draft.endDate)
         ? parseIsoDate(picker === 'start' ? draft.startDate : draft.endDate)
-        : new Date();
+        : pickerDefault;
+    const flagTerm = problemTarget === 'term';
+    const startMissing = flagTerm && !isIsoDate(draft.startDate);
+    const endMissing = flagTerm && !isIsoDate(draft.endDate);
+    const termLabelMissing = flagTerm && !draft.term.trim();
+    const quickLabel = suggestion
+      ? `Use ${formatDisplayDate(suggestion.startDate).replace(
+          /, \d{4}$/,
+          '',
+        )} – ${formatDisplayDate(suggestion.endDate)}`
+      : isIsoDate(draft.startDate) && !isIsoDate(draft.endDate)
+      ? 'Set end date (+18 weeks)'
+      : 'Use 18-week semester (starts today)';
     const attentionCount = courses.filter(
       c => c.included && courseNeedsAttention(c) !== null,
     ).length;
 
     const applyQuickSemester = () => {
-      if (isIsoDate(draft.startDate) && !isIsoDate(draft.endDate)) {
-        const dates = semesterTermDates(parseIsoDate(draft.startDate));
-        update(d => editTerm(d, {endDate: dates.endDate}));
-      } else {
-        const dates = semesterTermDates(new Date());
-        update(d => editTerm(d, dates));
-      }
+      update(d => editTerm(d, fillMissingTermDates(d)));
       setError(null);
+      setProblemTarget(null);
     };
 
     return (
@@ -850,6 +931,9 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
             : 'Check the detected details below, then add to your schedule.'
         }
         error={screen.name === 'saveFailed' ? screen.message : error ?? warning}
+        errorNearActions
+        errorShake={shakeCount}
+        ref={pageRef}
         primary={{
           label:
             screen.name === 'saveFailed'
@@ -882,192 +966,250 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
         {draft.accuracy ? <CorAccuracyCard accuracy={draft.accuracy} /> : null}
 
         {/* Student & Program */}
-        <Card testID="cor-student-card">
-          <Text style={[styles.sectionTitle, {color: t.ink}]}>
-            Student & program
-          </Text>
-          <Field
-            label="Name on COR"
-            value={draft.studentName}
-            onChangeText={value => update(d => editStudentName(d, value))}
-            maxLength={120}
-            autoCapitalize="words"
-            testID="cor-student-name"
-          />
-          <ReadonlyValue
-            label="Campus"
-            value={draft.campus}
-            testID="cor-campus"
-          />
-          <ReadonlyValue
-            label="Program"
-            value={draft.program}
-            testID="cor-program"
-          />
-          <View style={onboardingStyles.rowGap}>
-            <View style={onboardingStyles.flex1}>
-              <Field
-                label="Year level"
-                value={draft.yearLevel}
-                onChangeText={value =>
-                  update(d => editAcademic(d, {yearLevel: value}))
-                }
-                maxLength={60}
-                testID="cor-year"
-              />
+        <View onLayout={rememberSection('student')}>
+          <Card testID="cor-student-card">
+            <Text style={[styles.sectionTitle, {color: t.ink}]}>
+              Student & program
+            </Text>
+            <Field
+              label="Name on COR"
+              value={draft.studentName}
+              onChangeText={value => update(d => editStudentName(d, value))}
+              maxLength={120}
+              autoCapitalize="words"
+              testID="cor-student-name"
+            />
+            <ReadonlyValue
+              label="Campus"
+              value={draft.campus}
+              testID="cor-campus"
+            />
+            <ReadonlyValue
+              label="Program"
+              value={draft.program}
+              testID="cor-program"
+            />
+            <View style={onboardingStyles.rowGap}>
+              <View style={onboardingStyles.flex1}>
+                <Field
+                  label="Year level"
+                  value={draft.yearLevel}
+                  onChangeText={value =>
+                    update(d => editAcademic(d, {yearLevel: value}))
+                  }
+                  maxLength={60}
+                  testID="cor-year"
+                />
+              </View>
+              <View style={onboardingStyles.flex1}>
+                <Field
+                  label="Section"
+                  value={draft.section}
+                  onChangeText={value =>
+                    update(d => editAcademic(d, {section: value}))
+                  }
+                  maxLength={40}
+                  autoCapitalize="characters"
+                  testID="cor-section"
+                />
+              </View>
             </View>
-            <View style={onboardingStyles.flex1}>
-              <Field
-                label="Section"
-                value={draft.section}
-                onChangeText={value =>
-                  update(d => editAcademic(d, {section: value}))
-                }
-                maxLength={40}
-                autoCapitalize="characters"
-                testID="cor-section"
-              />
-            </View>
-          </View>
-        </Card>
+          </Card>
+        </View>
 
         {/* Term & Dates */}
-        <Card testID="cor-term-card">
-          <Text style={[styles.sectionTitle, {color: t.ink}]}>
-            Term & class dates
-          </Text>
-          <Field
-            label="Term"
-            value={draft.term}
-            onChangeText={value => update(d => editTerm(d, {term: value}))}
-            maxLength={80}
-            placeholder="e.g. 1st Semester AY 2026-2027"
-            testID="cor-term-label"
-          />
-          <SlimRow
-            label="First class date"
-            value={formatDisplayDate(draft.startDate)}
-            onPress={() => setPicker('start')}
-            testID="cor-start-date"
-          />
-          <SlimRow
-            label="Last class date"
-            value={formatDisplayDate(draft.endDate)}
-            onPress={() => setPicker('end')}
-            testID="cor-end-date"
-          />
-          {!termValid ? (
-            <SecondaryButton
-              label={
-                isIsoDate(draft.startDate) && !isIsoDate(draft.endDate)
-                  ? 'Set end date (+18 weeks)'
-                  : 'Use 18-week semester (starts today)'
-              }
-              onPress={applyQuickSemester}
-              testID="cor-quick-term-dates"
-              style={styles.smallButton}
-            />
-          ) : (
-            <Text
-              style={[onboardingStyles.small, {color: t.muted}]}
-              testID="cor-recurrence-preview"
-            >
-              Repeats weekly from {formatDisplayDate(draft.startDate)} to{' '}
-              {formatDisplayDate(draft.endDate)} (up to {weeks} weeks).
+        <View onLayout={rememberSection('term')}>
+          <Card testID="cor-term-card">
+            <Text style={[styles.sectionTitle, {color: t.ink}]}>
+              Term & class dates
             </Text>
-          )}
-          {picker ? (
-            <DateTimePicker
-              value={pickerValue}
-              mode="date"
-              display="default"
-              onChange={(event, date) => {
-                const which = picker;
-                setPicker(null);
-                if (event.type === 'dismissed' || !date) return;
-                update(d =>
-                  editTerm(
-                    d,
-                    which === 'start'
-                      ? {startDate: formatIsoDate(date)}
-                      : {endDate: formatIsoDate(date)},
-                  ),
-                );
-              }}
+            <Text style={[onboardingStyles.small, {color: t.muted}]}>
+              Your classes repeat every week between these two dates.
+            </Text>
+            <Field
+              label="Term"
+              value={draft.term}
+              onChangeText={value => update(d => editTerm(d, {term: value}))}
+              maxLength={80}
+              placeholder="e.g. 1st Semester AY 2026-2027"
+              testID="cor-term-label"
             />
-          ) : null}
-        </Card>
+            {termLabelMissing ? (
+              <Text
+                style={[styles.fieldHint, {color: t.danger}]}
+                testID="cor-term-label-hint"
+              >
+                Required. Type the term, e.g. 1st Semester AY 2026-2027.
+              </Text>
+            ) : null}
+            <SlimRow
+              label="First class date"
+              value={
+                isIsoDate(draft.startDate)
+                  ? formatDisplayDate(draft.startDate)
+                  : 'Tap to choose'
+              }
+              onPress={() => setPicker('start')}
+              testID="cor-start-date"
+              invalid={startMissing}
+              hint="Required. Choose the first day of classes."
+              shake={shakeCount}
+            />
+            <SlimRow
+              label="Last class date"
+              value={
+                isIsoDate(draft.endDate)
+                  ? formatDisplayDate(draft.endDate)
+                  : 'Tap to choose'
+              }
+              onPress={() => setPicker('end')}
+              testID="cor-end-date"
+              invalid={endMissing}
+              hint="Required. Choose the last day of classes."
+              shake={shakeCount}
+            />
+            {!termValid ? (
+              <View
+                style={[
+                  styles.suggestBox,
+                  {backgroundColor: t.accentSoft, borderColor: t.line},
+                ]}
+                testID="cor-suggested-dates"
+              >
+                {suggestion ? (
+                  <Text style={[onboardingStyles.small, {color: t.ink}]}>
+                    <Text style={onboardingStyles.strong}>Suggested: </Text>
+                    {suggestion.label} runs{' '}
+                    <Text style={onboardingStyles.strong}>
+                      {formatDisplayDate(suggestion.startDate)}
+                    </Text>{' '}
+                    to{' '}
+                    <Text style={onboardingStyles.strong}>
+                      {formatDisplayDate(suggestion.endDate)}
+                    </Text>
+                    . You can change them after.
+                  </Text>
+                ) : null}
+                <SecondaryButton
+                  label={quickLabel}
+                  onPress={applyQuickSemester}
+                  testID="cor-quick-term-dates"
+                  style={styles.smallButton}
+                />
+              </View>
+            ) : (
+              <Text
+                style={[onboardingStyles.small, {color: t.muted}]}
+                testID="cor-recurrence-preview"
+              >
+                Repeats weekly from {formatDisplayDate(draft.startDate)} to{' '}
+                {formatDisplayDate(draft.endDate)} (up to {weeks} weeks).
+              </Text>
+            )}
+            {picker ? (
+              <DateTimePicker
+                value={pickerValue}
+                mode="date"
+                display="default"
+                onChange={(event, date) => {
+                  const which = picker;
+                  setPicker(null);
+                  if (event.type === 'dismissed' || !date) return;
+                  update(d =>
+                    editTerm(
+                      d,
+                      which === 'start'
+                        ? {startDate: formatIsoDate(date)}
+                        : {endDate: formatIsoDate(date)},
+                    ),
+                  );
+                  setError(null);
+                }}
+              />
+            ) : null}
+          </Card>
+        </View>
 
         {/* Conflicts (only shown when present) */}
         {conflictCount > 0 ? (
-          <Card testID="cor-conflicts-card">
-            <Text style={[styles.sectionTitle, {color: t.danger}]}>
-              Resolve before adding ({conflictCount})
-            </Text>
-            {readiness.duplicateSubjects.map(dup => (
-              <View key={`dup-s-${dup.id}`} style={styles.conflictItem}>
-                <Text style={[onboardingStyles.small, {color: t.ink}]}>
-                  {dup.code} appears more than once ({dup.title}).
-                </Text>
-                <SecondaryButton
-                  label={`Exclude duplicate ${dup.code}`}
-                  onPress={() =>
-                    update(d => setCourseIncluded(d, dup.id, false))
-                  }
-                  testID="cor-dup-subject-exclude"
-                  style={styles.smallButton}
-                />
-              </View>
-            ))}
-            {readiness.duplicateMeetings.map(dup => (
-              <View key={`dup-m-${dup.meeting.id}`} style={styles.conflictItem}>
-                <Text style={[onboardingStyles.small, {color: t.ink}]}>
-                  {dup.course.code} repeats {meetingSummary(dup.meeting)}.
-                </Text>
-                <SecondaryButton
-                  label="Remove repeat"
-                  onPress={() =>
-                    update(d => removeMeeting(d, dup.course.id, dup.meeting.id))
-                  }
-                  testID="cor-dup-meeting-remove"
-                  style={styles.smallButton}
-                />
-              </View>
-            ))}
-            {readiness.overlaps.map(ov => (
-              <View key={`ov-${ov.key}`} style={styles.conflictItem}>
-                <Text style={[onboardingStyles.small, {color: t.ink}]}>
-                  {ov.first.course.code} ({meetingSummary(ov.first.meeting)})
-                  overlaps {ov.second.course.code} (
-                  {meetingSummary(ov.second.meeting)}).
-                </Text>
-                <InlineActions>
+          <View onLayout={rememberSection('conflicts')}>
+            <Card testID="cor-conflicts-card">
+              <Text style={[styles.sectionTitle, {color: t.danger}]}>
+                Resolve before adding ({conflictCount})
+              </Text>
+              {readiness.duplicateSubjects.map(dup => (
+                <View key={`dup-s-${dup.id}`} style={styles.conflictItem}>
+                  <Text style={[onboardingStyles.small, {color: t.ink}]}>
+                    {dup.code} appears more than once ({dup.title}).
+                  </Text>
                   <SecondaryButton
-                    label="Keep both"
-                    onPress={() => update(d => acknowledgeOverlap(d, ov.key))}
-                    testID="cor-overlap-keep"
-                    style={styles.smallButton}
-                  />
-                  <SecondaryButton
-                    label={`Edit ${ov.second.course.code || 'class'}`}
+                    label={`Exclude duplicate ${dup.code}`}
                     onPress={() =>
-                      go({
-                        name: 'meetingWhen',
-                        courseId: ov.second.course.id,
-                        meetingId: ov.second.meeting.id,
-                      })
+                      update(d => setCourseIncluded(d, dup.id, false))
                     }
-                    testID="cor-overlap-edit"
+                    testID="cor-dup-subject-exclude"
                     style={styles.smallButton}
                   />
-                </InlineActions>
-              </View>
-            ))}
-          </Card>
+                </View>
+              ))}
+              {readiness.duplicateMeetings.map(dup => (
+                <View
+                  key={`dup-m-${dup.meeting.id}`}
+                  style={styles.conflictItem}
+                >
+                  <Text style={[onboardingStyles.small, {color: t.ink}]}>
+                    {dup.course.code} repeats {meetingSummary(dup.meeting)}.
+                  </Text>
+                  <SecondaryButton
+                    label="Remove repeat"
+                    onPress={() =>
+                      update(d =>
+                        removeMeeting(d, dup.course.id, dup.meeting.id),
+                      )
+                    }
+                    testID="cor-dup-meeting-remove"
+                    style={styles.smallButton}
+                  />
+                </View>
+              ))}
+              {readiness.overlaps.map(ov => (
+                <View key={`ov-${ov.key}`} style={styles.conflictItem}>
+                  <Text style={[onboardingStyles.small, {color: t.ink}]}>
+                    {ov.first.course.code} ({meetingSummary(ov.first.meeting)})
+                    overlaps {ov.second.course.code} (
+                    {meetingSummary(ov.second.meeting)}).
+                  </Text>
+                  <InlineActions>
+                    <SecondaryButton
+                      label="Keep both"
+                      onPress={() => update(d => acknowledgeOverlap(d, ov.key))}
+                      testID="cor-overlap-keep"
+                      style={styles.smallButton}
+                    />
+                    <SecondaryButton
+                      label={`Edit ${ov.second.course.code || 'class'}`}
+                      onPress={() =>
+                        go({
+                          name: 'meetingWhen',
+                          courseId: ov.second.course.id,
+                          meetingId: ov.second.meeting.id,
+                        })
+                      }
+                      testID="cor-overlap-edit"
+                      style={styles.smallButton}
+                    />
+                  </InlineActions>
+                </View>
+              ))}
+            </Card>
+          </View>
         ) : null}
 
         {/* Subjects (all on 1 screen) */}
-        <View style={styles.sectionHeader}>
+        <View
+          style={styles.sectionHeader}
+          onLayout={rememberSection('subjects')}
+        >
           <Text style={[styles.sectionTitle, {color: t.ink}]}>
             Subjects ({courses.length})
           </Text>
@@ -1104,226 +1246,237 @@ export const CorReviewFlow: React.FC<CorReviewFlowProps> = ({
             const tag = courseTag(course, committed);
             const problem = courseNeedsAttention(course);
             return (
-              <Card key={course.id} testID={`cor-subject-card-${index}`}>
-                <View style={styles.subjectHeader}>
-                  <View style={onboardingStyles.flex1}>
-                    <Text style={[onboardingStyles.strong, {color: t.ink}]}>
-                      {course.code || 'New subject'}
-                      {course.units ? ` · ${course.units}u` : ''}
-                    </Text>
-                    <Text
-                      style={[onboardingStyles.small, {color: t.muted}]}
-                      numberOfLines={2}
-                    >
-                      {course.title || 'Title needed'}
-                    </Text>
-                  </View>
-                  <Tag label={tag.label} tone={tag.tone} />
-                </View>
-
-                {course.included ? (
-                  course.meetings.length > 0 ? (
-                    <View style={styles.meetingsList}>
-                      {course.meetings.map(meeting => {
-                        const needsStartPeriod =
-                          meeting.start.hour !== null &&
-                          meeting.start.period === null;
-                        const needsEndPeriod =
-                          meeting.end.hour !== null &&
-                          meeting.end.period === null;
-                        return (
-                          <View key={meeting.id}>
-                            <SlimRow
-                              label={meetingSummary(meeting)}
-                              value={meetingStatusLabel(meeting)}
-                              onPress={() =>
-                                go({
-                                  name: 'meetingWhen',
-                                  courseId: course.id,
-                                  meetingId: meeting.id,
-                                })
-                              }
-                              testID={`cor-meeting-${meeting.id}`}
-                            />
-                            {needsStartPeriod || needsEndPeriod ? (
-                              <View style={styles.inlinePeriodWrap}>
-                                {needsStartPeriod ? (
-                                  <View style={styles.inlinePeriodGroup}>
-                                    <Text
-                                      style={[
-                                        onboardingStyles.small,
-                                        {color: t.danger},
-                                      ]}
-                                    >
-                                      Start {meeting.start.hour}:
-                                      {String(
-                                        meeting.start.minute ?? 0,
-                                      ).padStart(2, '0')}
-                                      :
-                                    </Text>
-                                    <ChoiceButton
-                                      label="AM"
-                                      selected={false}
-                                      onPress={() =>
-                                        update(d =>
-                                          editMeeting(
-                                            d,
-                                            course.id,
-                                            meeting.id,
-                                            {
-                                              start: {
-                                                ...meeting.start,
-                                                period: 'AM',
-                                              },
-                                            },
-                                          ),
-                                        )
-                                      }
-                                      testID={`cor-inline-start-am-${meeting.id}`}
-                                      style={styles.pillButton}
-                                    />
-                                    <ChoiceButton
-                                      label="PM"
-                                      selected={false}
-                                      onPress={() =>
-                                        update(d =>
-                                          editMeeting(
-                                            d,
-                                            course.id,
-                                            meeting.id,
-                                            {
-                                              start: {
-                                                ...meeting.start,
-                                                period: 'PM',
-                                              },
-                                            },
-                                          ),
-                                        )
-                                      }
-                                      testID={`cor-inline-start-pm-${meeting.id}`}
-                                      style={styles.pillButton}
-                                    />
-                                  </View>
-                                ) : null}
-                                {needsEndPeriod ? (
-                                  <View style={styles.inlinePeriodGroup}>
-                                    <Text
-                                      style={[
-                                        onboardingStyles.small,
-                                        {color: t.danger},
-                                      ]}
-                                    >
-                                      End {meeting.end.hour}:
-                                      {String(meeting.end.minute ?? 0).padStart(
-                                        2,
-                                        '0',
-                                      )}
-                                      :
-                                    </Text>
-                                    <ChoiceButton
-                                      label="AM"
-                                      selected={false}
-                                      onPress={() =>
-                                        update(d =>
-                                          editMeeting(
-                                            d,
-                                            course.id,
-                                            meeting.id,
-                                            {
-                                              end: {
-                                                ...meeting.end,
-                                                period: 'AM',
-                                              },
-                                            },
-                                          ),
-                                        )
-                                      }
-                                      testID={`cor-inline-end-am-${meeting.id}`}
-                                      style={styles.pillButton}
-                                    />
-                                    <ChoiceButton
-                                      label="PM"
-                                      selected={false}
-                                      onPress={() =>
-                                        update(d =>
-                                          editMeeting(
-                                            d,
-                                            course.id,
-                                            meeting.id,
-                                            {
-                                              end: {
-                                                ...meeting.end,
-                                                period: 'PM',
-                                              },
-                                            },
-                                          ),
-                                        )
-                                      }
-                                      testID={`cor-inline-end-pm-${meeting.id}`}
-                                      style={styles.pillButton}
-                                    />
-                                  </View>
-                                ) : null}
-                              </View>
-                            ) : null}
-                          </View>
-                        );
-                      })}
+              <View
+                key={course.id}
+                onLayout={rememberSection(`course:${course.id}`)}
+              >
+                <Card
+                  testID={`cor-subject-card-${index}`}
+                  style={
+                    problemTarget === `course:${course.id}`
+                      ? {borderColor: t.danger, borderWidth: 1.5}
+                      : undefined
+                  }
+                >
+                  <View style={styles.subjectHeader}>
+                    <View style={onboardingStyles.flex1}>
+                      <Text style={[onboardingStyles.strong, {color: t.ink}]}>
+                        {course.code || 'New subject'}
+                        {course.units ? ` · ${course.units}u` : ''}
+                      </Text>
+                      <Text
+                        style={[onboardingStyles.small, {color: t.muted}]}
+                        numberOfLines={2}
+                      >
+                        {course.title || 'Title needed'}
+                      </Text>
                     </View>
+                    <Tag label={tag.label} tone={tag.tone} />
+                  </View>
+
+                  {course.included ? (
+                    course.meetings.length > 0 ? (
+                      <View style={styles.meetingsList}>
+                        {course.meetings.map(meeting => {
+                          const needsStartPeriod =
+                            meeting.start.hour !== null &&
+                            meeting.start.period === null;
+                          const needsEndPeriod =
+                            meeting.end.hour !== null &&
+                            meeting.end.period === null;
+                          return (
+                            <View key={meeting.id}>
+                              <SlimRow
+                                label={meetingSummary(meeting)}
+                                value={meetingStatusLabel(meeting)}
+                                onPress={() =>
+                                  go({
+                                    name: 'meetingWhen',
+                                    courseId: course.id,
+                                    meetingId: meeting.id,
+                                  })
+                                }
+                                testID={`cor-meeting-${meeting.id}`}
+                              />
+                              {needsStartPeriod || needsEndPeriod ? (
+                                <View style={styles.inlinePeriodWrap}>
+                                  {needsStartPeriod ? (
+                                    <View style={styles.inlinePeriodGroup}>
+                                      <Text
+                                        style={[
+                                          onboardingStyles.small,
+                                          {color: t.danger},
+                                        ]}
+                                      >
+                                        Start {meeting.start.hour}:
+                                        {String(
+                                          meeting.start.minute ?? 0,
+                                        ).padStart(2, '0')}
+                                        :
+                                      </Text>
+                                      <ChoiceButton
+                                        label="AM"
+                                        selected={false}
+                                        onPress={() =>
+                                          update(d =>
+                                            editMeeting(
+                                              d,
+                                              course.id,
+                                              meeting.id,
+                                              {
+                                                start: {
+                                                  ...meeting.start,
+                                                  period: 'AM',
+                                                },
+                                              },
+                                            ),
+                                          )
+                                        }
+                                        testID={`cor-inline-start-am-${meeting.id}`}
+                                        style={styles.pillButton}
+                                      />
+                                      <ChoiceButton
+                                        label="PM"
+                                        selected={false}
+                                        onPress={() =>
+                                          update(d =>
+                                            editMeeting(
+                                              d,
+                                              course.id,
+                                              meeting.id,
+                                              {
+                                                start: {
+                                                  ...meeting.start,
+                                                  period: 'PM',
+                                                },
+                                              },
+                                            ),
+                                          )
+                                        }
+                                        testID={`cor-inline-start-pm-${meeting.id}`}
+                                        style={styles.pillButton}
+                                      />
+                                    </View>
+                                  ) : null}
+                                  {needsEndPeriod ? (
+                                    <View style={styles.inlinePeriodGroup}>
+                                      <Text
+                                        style={[
+                                          onboardingStyles.small,
+                                          {color: t.danger},
+                                        ]}
+                                      >
+                                        End {meeting.end.hour}:
+                                        {String(
+                                          meeting.end.minute ?? 0,
+                                        ).padStart(2, '0')}
+                                        :
+                                      </Text>
+                                      <ChoiceButton
+                                        label="AM"
+                                        selected={false}
+                                        onPress={() =>
+                                          update(d =>
+                                            editMeeting(
+                                              d,
+                                              course.id,
+                                              meeting.id,
+                                              {
+                                                end: {
+                                                  ...meeting.end,
+                                                  period: 'AM',
+                                                },
+                                              },
+                                            ),
+                                          )
+                                        }
+                                        testID={`cor-inline-end-am-${meeting.id}`}
+                                        style={styles.pillButton}
+                                      />
+                                      <ChoiceButton
+                                        label="PM"
+                                        selected={false}
+                                        onPress={() =>
+                                          update(d =>
+                                            editMeeting(
+                                              d,
+                                              course.id,
+                                              meeting.id,
+                                              {
+                                                end: {
+                                                  ...meeting.end,
+                                                  period: 'PM',
+                                                },
+                                              },
+                                            ),
+                                          )
+                                        }
+                                        testID={`cor-inline-end-pm-${meeting.id}`}
+                                        style={styles.pillButton}
+                                      />
+                                    </View>
+                                  ) : null}
+                                </View>
+                              ) : null}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ) : (
+                      <Text style={[onboardingStyles.small, {color: t.muted}]}>
+                        No fixed class time (TBA / flexible).
+                      </Text>
+                    )
                   ) : (
                     <Text style={[onboardingStyles.small, {color: t.muted}]}>
-                      No fixed class time (TBA / flexible).
+                      Excluded — will not be added to your schedule.
                     </Text>
-                  )
-                ) : (
-                  <Text style={[onboardingStyles.small, {color: t.muted}]}>
-                    Excluded — will not be added to your schedule.
-                  </Text>
-                )}
+                  )}
 
-                {problem && course.included ? (
-                  <Text style={[onboardingStyles.small, {color: t.danger}]}>
-                    {problem}
-                  </Text>
-                ) : null}
+                  {problem && course.included ? (
+                    <Text style={[onboardingStyles.small, {color: t.danger}]}>
+                      {problem}
+                    </Text>
+                  ) : null}
 
-                <InlineActions>
-                  <SecondaryButton
-                    label="Edit"
-                    onPress={() =>
-                      go({name: 'subjectEdit', courseId: course.id})
-                    }
-                    testID={`cor-edit-subject-${index}`}
-                    style={styles.smallButton}
-                  />
-                  {course.included ? (
+                  <InlineActions>
                     <SecondaryButton
-                      label="Add time"
-                      onPress={() => {
-                        const added = addMeeting(draft, course.id);
-                        update(() => added.draft);
-                        go({
-                          name: 'meetingWhen',
-                          courseId: course.id,
-                          meetingId: added.meetingId,
-                        });
-                      }}
-                      testID={`cor-add-meeting-${index}`}
+                      label="Edit"
+                      onPress={() =>
+                        go({name: 'subjectEdit', courseId: course.id})
+                      }
+                      testID={`cor-edit-subject-${index}`}
                       style={styles.smallButton}
                     />
-                  ) : null}
-                  <SecondaryButton
-                    label={course.included ? 'Exclude' : 'Include'}
-                    onPress={() =>
-                      update(d =>
-                        setCourseIncluded(d, course.id, !course.included),
-                      )
-                    }
-                    testID={`cor-toggle-subject-${index}`}
-                    style={styles.smallButton}
-                  />
-                </InlineActions>
-              </Card>
+                    {course.included ? (
+                      <SecondaryButton
+                        label="Add time"
+                        onPress={() => {
+                          const added = addMeeting(draft, course.id);
+                          update(() => added.draft);
+                          go({
+                            name: 'meetingWhen',
+                            courseId: course.id,
+                            meetingId: added.meetingId,
+                          });
+                        }}
+                        testID={`cor-add-meeting-${index}`}
+                        style={styles.smallButton}
+                      />
+                    ) : null}
+                    <SecondaryButton
+                      label={course.included ? 'Exclude' : 'Include'}
+                      onPress={() =>
+                        update(d =>
+                          setCourseIncluded(d, course.id, !course.included),
+                        )
+                      }
+                      testID={`cor-toggle-subject-${index}`}
+                      style={styles.smallButton}
+                    />
+                  </InlineActions>
+                </Card>
+              </View>
             );
           })
         )}
@@ -1532,5 +1685,18 @@ const styles = StyleSheet.create({
   },
   colon: {fontSize: 18, fontFamily: Fonts.heading},
   smallButton: {minHeight: 38, paddingVertical: 5, flexGrow: 1},
+  suggestBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+    marginTop: 6,
+  },
+  fieldHint: {
+    fontFamily: Fonts.body,
+    fontSize: 12.5,
+    marginTop: -4,
+    marginLeft: 4,
+  },
   unitsField: {width: 88},
 });

@@ -452,9 +452,9 @@ export const FloatingAssistantSettings: React.FC<
               style={[styles.note, {color: colors.textSecondary}]}
               testID="floating-help-blocked"
             >
-              This phone stopped the button from opening Quick Chat once. Use
-              Open in the LAFINA notification, or look in your phone’s settings
-              for LAFINA’s pop-up or background options (names differ by brand).
+              Your phone blocked Quick Chat from opening. Tap Open in the LAFINA
+              notification, or allow pop-ups for LAFINA in your phone's
+              settings.
             </Text>
           ) : null}
           <TouchableOpacity

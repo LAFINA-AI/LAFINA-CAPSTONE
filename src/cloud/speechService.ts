@@ -6,6 +6,7 @@ import {userStore} from '../storage/userStore';
 import {localSettingsStore} from '../storage/localSettingsStore';
 import {onlineVoiceSettingsStore} from '../storage/onlineVoiceSettingsStore';
 import {GUEST_USER_ID} from '../constants';
+import {hideVendorNames} from '../utils/vendorNames';
 import {
   playSpeechFile,
   speakTextWithTts,
@@ -20,7 +21,7 @@ import type {
 const PLAYBACK_REQUEST_TIMEOUT_MS = 17_000;
 const PREPARATION_REQUEST_TIMEOUT_MS = 22_000;
 const TIMEOUT_REASON =
-  'ElevenLabs took too long to respond, so the device voice was used.';
+  "The online voice took too long, so the phone's voice was used.";
 
 interface TtsApiResponse {
   provider: 'elevenlabs';
@@ -226,7 +227,7 @@ export const createCallSpeechProvider = (
     outcome: RequestOutcome,
   ): CallSpeechResult =>
     result.source === 'native_tts' && outcome.reason
-      ? {...result, fallbackReason: outcome.reason}
+      ? {...result, fallbackReason: hideVendorNames(outcome.reason)}
       : result;
   let cloudLinkAttempted = false;
 
@@ -343,7 +344,7 @@ export const createCallSpeechProvider = (
         capabilityChecked = elevenlabsAvailable;
         if (!elevenlabsAvailable)
           outcome.reason =
-            capability.error || 'ElevenLabs is unavailable on the server.';
+            capability.error || 'The online voice is not available right now.';
       }
       // Never invoke the retired Gemini endpoint on an old/unmigrated server.
       if (!elevenlabsAvailable || !stillWanted()) return null;
@@ -390,7 +391,7 @@ export const createCallSpeechProvider = (
         outcome.reason =
           result.status !== 'success' && result.error
             ? result.error
-            : 'ElevenLabs returned invalid audio.';
+            : 'The online voice sent audio that could not play.';
         return null;
       }
 

@@ -11,6 +11,8 @@ import {NativeModules, PermissionsAndroid, Platform} from 'react-native';
 import {readSkillState, writeSkillState} from './skillsState';
 import {newPomodoro, reconcilePomodoro} from './studyLogic';
 import type {PomodoroState} from './studyLogic';
+import {captureOwnerWork} from '../storage/ownerWorkEpoch';
+const changes = new Map<string, number>();
 
 interface FocusNative {
   schedule: (
@@ -70,6 +72,10 @@ export const applyPomodoro = async (
   draft: PomodoroState,
   options: {starting?: boolean} = {},
 ): Promise<PomodoroApplyResult> => {
+  const change = (changes.get(owner) ?? 0) + 1;
+  changes.set(owner, change);
+  const ownerCurrent = captureOwnerWork(owner);
+  const current = () => ownerCurrent() && changes.get(owner) === change;
   let next = draft;
   writeSkillState(owner, 'pomodoro', next);
   let savedLocal = true;
@@ -83,6 +89,10 @@ export const applyPomodoro = async (
         if (granted !== PermissionsAndroid.RESULTS.GRANTED)
           notice = 'Notifications are off. The visual timer still works.';
       }
+      if (!current())
+        throw new Error(
+          'The timer or active account changed. Please try again.',
+        );
       if (options.starting) {
         savedLocal = false;
         next = {
@@ -112,6 +122,7 @@ export const applyPomodoro = async (
     notify(owner);
     return {state: next, ...(notice ? {notice} : {})};
   } catch (e) {
+    if (!current()) throw e;
     if (!savedLocal) throw e;
     notify(owner);
     return {
@@ -126,7 +137,10 @@ export const pausePomodoro = async (
   owner: string,
 ): Promise<PomodoroState | null> => {
   const current = readPomodoro(owner);
-  if (!current.deadline) return null;
+  if (!current.deadline) {
+    changes.set(owner, (changes.get(owner) ?? 0) + 1);
+    return null;
+  }
   const result = await applyPomodoro(owner, {...current, deadline: null});
   return result.state;
 };

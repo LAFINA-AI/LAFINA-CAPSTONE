@@ -53,7 +53,10 @@ export const DOCUMENT_FORMAT_ORDER: readonly DocumentFormat[] = [
 ];
 
 export const isDocumentFormat = (value: unknown): value is DocumentFormat =>
-  typeof value === 'string' && value in DOCUMENT_FORMATS;
+  typeof value === 'string' &&
+  Object.prototype.hasOwnProperty.call(DOCUMENT_FORMATS, value);
+
+export const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 
 export interface GeneratedDocument {
   format: DocumentFormat;
@@ -276,11 +279,23 @@ export const documentSkill = {
         : typeof raw?.content_base64 === 'string'
         ? raw.content_base64
         : '';
-    const contentBase64 = rawBase64.trim();
+    const contentBase64 = rawBase64.replace(/\s/g, '');
     if (!contentBase64) {
       return {
         status: 'server_error',
         error: 'The server returned an empty document.',
+      };
+    }
+    if (
+      contentBase64.length > Math.ceil(MAX_DOCUMENT_BYTES / 3) * 4 ||
+      contentBase64.length % 4 !== 0 ||
+      !/^[A-Za-z0-9+/]+={0,2}$/.test(contentBase64) ||
+      estimateBase64Bytes(contentBase64) > MAX_DOCUMENT_BYTES
+    ) {
+      return {
+        status: 'server_error',
+        error:
+          'The server returned a damaged or oversized document. Please try again with a smaller request.',
       };
     }
 
@@ -318,16 +333,7 @@ export const documentSkill = {
       warnings.length > 0
         ? `${baseSummary}\n\nNote: ${warnings.join(' ')}`
         : baseSummary;
-    const sizeBytes =
-      typeof raw?.sizeBytes === 'number' &&
-      Number.isFinite(raw.sizeBytes) &&
-      raw.sizeBytes > 0
-        ? raw.sizeBytes
-        : typeof raw?.size_bytes === 'number' &&
-          Number.isFinite(raw.size_bytes) &&
-          raw.size_bytes > 0
-        ? raw.size_bytes
-        : estimateBase64Bytes(contentBase64);
+    const sizeBytes = estimateBase64Bytes(contentBase64);
 
     return {
       status: 'success',

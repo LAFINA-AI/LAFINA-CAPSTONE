@@ -164,7 +164,7 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
 
       expect(getByTestId('multi-action-card')).toBeTruthy();
       expect(getByTestId('multi-action-card-scroll')).toBeTruthy();
-      expect(getByText('Grouped Actions (2)')).toBeTruthy();
+      expect(getByText('2 items to save')).toBeTruthy();
 
       expect(getByTestId('multi-item-title-input-0')).toBeTruthy();
       expect(getByTestId('multi-item-title-input-1')).toBeTruthy();

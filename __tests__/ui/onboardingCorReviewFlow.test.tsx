@@ -182,10 +182,20 @@ test('1-screen COR review: all subjects on one screen, no per-subject stepping, 
 
   // Term dates are required before committing.
   fireEvent.press(ui.getByTestId('cor-commit'));
-  expect(ui.getByText('Choose the first class date.')).toBeTruthy();
+  // The error sits by the Confirm button and both date rows are marked.
+  expect(ui.getByTestId('onboarding-error')).toHaveTextContent(
+    /Choose your first and last class dates/,
+  );
+  expect(ui.getByTestId('cor-start-date-hint')).toHaveTextContent(/Required/);
+  expect(ui.getByTestId('cor-end-date-hint')).toHaveTextContent(/Required/);
+  expect(ui.getByTestId('cor-suggested-dates')).toBeTruthy();
+  expect(timeBlocksStore.getAll(user)).toHaveLength(0);
 
   fireEvent.press(ui.getByTestId('cor-start-date'));
   setPickedDate(ui, new Date(2026, 7, 10, 12));
+  // The first date is set, so only the last one is still marked.
+  expect(ui.queryByTestId('cor-start-date-hint')).toBeNull();
+  expect(ui.getByTestId('cor-end-date-hint')).toBeTruthy();
   fireEvent.press(ui.getByTestId('cor-end-date'));
   setPickedDate(ui, new Date(2026, 11, 18, 12));
   expect(
