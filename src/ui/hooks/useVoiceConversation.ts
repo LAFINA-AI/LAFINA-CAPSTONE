@@ -95,6 +95,11 @@ export const useVoiceConversation = (
     extraContext?: string;
     /** Hide and silence the agent's fixed opening line (the app already spoke). */
     quietOpening?: boolean;
+    /**
+     * Waited for after the server session is ready, before audio opens (a
+     * reminder call connects while its greeting is still being read).
+     */
+    beforeAudio?: () => Promise<void>;
     /** Tests inject fakes here. */
     deps?: (userId: string) => VoiceConversationDeps;
   } = {},
@@ -116,6 +121,9 @@ export const useVoiceConversation = (
   const depsFactory = useRef(options.deps ?? defaultVoiceConversationDeps);
   const extraContext = useRef(options.extraContext?.trim() ?? '');
   const quietOpening = useRef(options.quietOpening === true);
+  const beforeAudioRef = useRef(options.beforeAudio);
+  beforeAudioRef.current = options.beforeAudio;
+  const hasBeforeAudio = useRef(Boolean(options.beforeAudio));
 
   useEffect(() => {
     const deps = depsFactory.current(userId);
@@ -135,6 +143,11 @@ export const useVoiceConversation = (
       suppressAgentResponse: () => suppressRef.current?.() ?? false,
       appOwnedAudio: appOwnedAudio.current,
       quietOpening: quietOpening.current,
+      ...(hasBeforeAudio.current
+        ? {
+            beforeAudio: () => beforeAudioRef.current?.() ?? Promise.resolve(),
+          }
+        : {}),
       onClientTool: (name, parameters, isCurrent) =>
         toolRef.current
           ? toolRef.current(name, parameters, isCurrent)

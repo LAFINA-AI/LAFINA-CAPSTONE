@@ -100,7 +100,7 @@ describe('Modern Color Themes', () => {
       expect(getThemeColors('classic', true, 'rose')).toBe(classicDarkColors);
     });
 
-    test('provides 6 distinct themes with readable contrast in both Light and Dark modes', () => {
+    test('provides 12 distinct themes (including true-black OLED) with readable contrast in both Light and Dark modes', () => {
       expect(MODERN_THEMES.map(t => t.id)).toEqual([...MODERN_THEME_IDS]);
       expect(MODERN_THEME_IDS).toEqual([
         'violet',
@@ -109,7 +109,19 @@ describe('Modern Color Themes', () => {
         'rose',
         'sunset',
         'slate',
+        'oled',
+        'midnight',
+        'cyber',
+        'amber',
+        'sakura',
+        'matcha',
       ]);
+
+      // OLED dark mode uses true pitch-black canvas and chat backdrop stops
+      const oledDark = getModernPalette(true, 'oled');
+      const oledDarkExtras = getModernThemeExtras(true, 'oled');
+      expect(oledDark.bg).toBe('#000000');
+      expect(oledDarkExtras.chatBgStops[2]).toBe('#000000');
 
       const lightAccents = new Set<string>();
       const darkAccents = new Set<string>();
@@ -142,6 +154,9 @@ describe('Modern Color Themes', () => {
         expect(contrastRatio('#FFFFFF', light.accent)).toBeGreaterThanOrEqual(
           4.5,
         );
+        expect(
+          contrastRatio(light.accentDeep, '#FFFFFF'),
+        ).toBeGreaterThanOrEqual(5.5);
         expect(contrastRatio('#FFFFFF', light.darkInkBtn)).toBeGreaterThan(
           10.0,
         );
@@ -154,6 +169,9 @@ describe('Modern Color Themes', () => {
         expect(contrastRatio('#FFFFFF', dark.accent)).toBeGreaterThanOrEqual(
           3.8,
         );
+        expect(
+          contrastRatio(dark.heroCardSecondary, '#FFFFFF'),
+        ).toBeGreaterThanOrEqual(5.5);
         expect(
           contrastRatio('#FFFFFF', dark.darkInkBtn),
         ).toBeGreaterThanOrEqual(5.4);
@@ -223,6 +241,13 @@ describe('Modern Color Themes', () => {
         'eclipse_dial',
         'prism_lens',
         'acoustic_core',
+        'neural_mesh',
+        'pulse_wave',
+        'orbital_rings',
+        'aurora_breathe',
+        'equalizer_live',
+        'celestial_spin',
+        'quantum_sweep',
       ]);
       expect(normalizeModernAiButtonDesign(null)).toBe('synth_orb');
       expect(normalizeModernAiButtonDesign('unknown')).toBe('synth_orb');
@@ -329,7 +354,7 @@ describe('Modern Color Themes', () => {
       expect(controls.modernTheme).toBe('forest');
     });
 
-    test('ProfileScreen exposes Color Theme selector in Appearance for normal users and switches themes live', () => {
+    test('ProfileScreen exposes compact Color Theme quick-picks and More themes modal with all 12 themes', () => {
       const uid = makeStudent('profile');
       const onRefresh = jest.fn();
 
@@ -352,31 +377,42 @@ describe('Modern Color Themes', () => {
       expect(
         within(ui.getByTestId('modern-theme-active-badge')).getByText('Violet'),
       ).toBeTruthy();
-      expect(ui.getByText('Forest')).toBeTruthy();
-      expect(ui.getByText('Ocean')).toBeTruthy();
-      expect(ui.getByText('Rose')).toBeTruthy();
-      expect(ui.getByText('Sunset')).toBeTruthy();
-      expect(ui.getByText('Slate')).toBeTruthy();
+      // Compact preview shows 4 featured themes instead of crowding Profile
+      expect(ui.getByTestId('modern-theme-violet')).toBeTruthy();
+      expect(ui.getByTestId('modern-theme-oled')).toBeTruthy();
+      expect(ui.getByTestId('modern-theme-forest')).toBeTruthy();
+      expect(ui.getByTestId('modern-theme-ocean')).toBeTruthy();
+      expect(ui.queryByTestId('modern-theme-rose')).toBeNull();
 
       expect(
         ui.getByTestId('modern-theme-violet').props.accessibilityState,
       ).toEqual({checked: true, selected: true});
 
-      fireEvent.press(ui.getByTestId('modern-theme-rose'));
+      // Open Appearance Studio via "More themes" button to access all 12 themes
+      fireEvent.press(ui.getByTestId('modern-theme-more-button'));
+      expect(ui.getByTestId('appearance-picker-modal')).toBeTruthy();
+      for (const themeId of MODERN_THEME_IDS) {
+        expect(ui.getByTestId(`appearance-modal-theme-${themeId}`)).toBeTruthy();
+      }
 
+      fireEvent.press(ui.getByTestId('appearance-modal-theme-rose'));
       expect(
         within(ui.getByTestId('modern-theme-active-badge')).getByText('Rose'),
       ).toBeTruthy();
+      expect(getSavedModernTheme(uid)).toBe('rose');
+
+      // Close modal: active theme Rose is now surfaced in the compact Profile grid
+      fireEvent.press(ui.getByTestId('appearance-picker-close'));
+      expect(ui.queryByTestId('appearance-picker-modal')).toBeNull();
       expect(
         ui.getByTestId('modern-theme-rose').props.accessibilityState,
       ).toEqual({checked: true, selected: true});
       expect(
         ui.getByTestId('modern-theme-violet').props.accessibilityState,
       ).toEqual({checked: false, selected: false});
-      expect(getSavedModernTheme(uid)).toBe('rose');
     });
 
-    test('ProfileScreen exposes AI Button Design selector under Appearance, switches live, and persists selection', () => {
+    test('ProfileScreen exposes compact AI Button quick-picks and More designs modal with static and animated designs', () => {
       const uid = makeStudent('ai-design-profile');
       const ui = render(
         <ThemeProvider
@@ -400,36 +436,46 @@ describe('Modern Color Themes', () => {
         ),
       ).toBeTruthy();
 
-      expect(ui.getByText('Liquid Pearl')).toBeTruthy();
-      expect(ui.getByText('Eclipse Dial')).toBeTruthy();
-      expect(ui.getByText('Prism Lens')).toBeTruthy();
-      expect(ui.getByText('Acoustic Core')).toBeTruthy();
-
-      for (const designId of MODERN_AI_BUTTON_DESIGN_IDS) {
-        expect(
-          ui.getByTestId(`modern-ai-button-preview-${designId}`),
-        ).toBeTruthy();
-      }
+      // Compact quick-picks include static + animated designs
+      expect(ui.getByTestId('modern-ai-button-synth_orb')).toBeTruthy();
+      expect(ui.getByTestId('modern-ai-button-pulse_wave')).toBeTruthy();
+      expect(ui.getByTestId('modern-ai-button-orbital_rings')).toBeTruthy();
+      expect(ui.getByTestId('modern-ai-button-liquid_pearl')).toBeTruthy();
+      expect(ui.queryByTestId('modern-ai-button-eclipse_dial')).toBeNull();
 
       expect(
         ui.getByTestId('modern-ai-button-synth_orb').props.accessibilityState,
       ).toEqual({checked: true, selected: true});
 
-      fireEvent.press(ui.getByTestId('modern-ai-button-eclipse_dial'));
+      // Open Appearance Studio directly on the AI Button tab
+      fireEvent.press(ui.getByTestId('modern-ai-button-more-button'));
+      expect(ui.getByTestId('appearance-picker-modal')).toBeTruthy();
+      expect(ui.getByTestId('appearance-modal-orb-stage')).toBeTruthy();
+      for (const designId of MODERN_AI_BUTTON_DESIGN_IDS) {
+        expect(
+          ui.getByTestId(`appearance-modal-ai-button-${designId}`),
+        ).toBeTruthy();
+        expect(
+          ui.getByTestId(`appearance-modal-ai-button-preview-${designId}`),
+        ).toBeTruthy();
+      }
 
+      fireEvent.press(ui.getByTestId('appearance-modal-ai-button-quantum_sweep'));
       expect(
         within(ui.getByTestId('modern-ai-button-active-badge')).getByText(
-          'Eclipse Dial',
+          'Quantum Sweep',
         ),
       ).toBeTruthy();
+      expect(getSavedModernAiButtonDesign(uid)).toBe('quantum_sweep');
+
+      fireEvent.press(ui.getByTestId('appearance-picker-close'));
       expect(
-        ui.getByTestId('modern-ai-button-eclipse_dial').props
+        ui.getByTestId('modern-ai-button-quantum_sweep').props
           .accessibilityState,
       ).toEqual({checked: true, selected: true});
       expect(
         ui.getByTestId('modern-ai-button-synth_orb').props.accessibilityState,
       ).toEqual({checked: false, selected: false});
-      expect(getSavedModernAiButtonDesign(uid)).toBe('eclipse_dial');
     });
 
     test('ProfileScreen hides Modern Color Theme selector when Classic interface is active', () => {
@@ -483,9 +529,13 @@ describe('Modern Color Themes', () => {
       const ctaStyle = StyleSheet.flatten(
         homeUi.getByTestId('dashboard-hero-cta').props.style,
       );
+      const ctaTextStyle = StyleSheet.flatten(
+        homeUi.getByTestId('dashboard-hero-cta-text').props.style,
+      );
       expect(heroStyle.backgroundColor).toBe(forestExtras.heroBgColor);
       expect(heroStyle.shadowColor).toBe(forestExtras.shadowColor);
-      expect(ctaStyle.backgroundColor).toBe(forestPalette.darkInkBtn);
+      expect(ctaStyle.backgroundColor).toBe('#FFFFFF');
+      expect(ctaTextStyle.color).toBe(forestPalette.accentDeep);
 
       const tabUi = render(
         <ThemeProvider

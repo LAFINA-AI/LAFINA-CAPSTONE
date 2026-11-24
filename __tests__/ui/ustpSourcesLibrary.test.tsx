@@ -255,6 +255,7 @@ describe('UstpSourcesSheet', () => {
     );
     expect(screen.getByText('Sources for this answer')).toBeTruthy();
     expect(screen.getByText(/2nd floor, left wing/)).toBeTruthy();
+    expect(screen.getByTestId('ustp-sources-redirect-warning')).toBeTruthy();
     const links = screen.getAllByTestId('chat-source-link');
     fireEvent.press(links[0]);
     expect(open.mock.calls[0][0]).toMatch(/^https:\/\//);
@@ -285,6 +286,7 @@ describe('UstpSourcesSheet', () => {
       expect(screen.getByTestId('ustp-sources-intro')).toBeTruthy(),
     );
     expect(screen.getByTestId('ustp-sources-official-pages')).toBeTruthy();
+    expect(screen.getByTestId('ustp-sources-redirect-warning')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('ustp-sources-open-ustp_cdo'));
     expect(screen.getAllByTestId('ustp-sources-chapter')).toHaveLength(14);
@@ -336,5 +338,22 @@ describe('UstpSourcesSheet', () => {
     expect(view.citation).toMatch(
       /USTP Student Handbook 2023 Edition, p\. \d+/,
     );
+  });
+
+  test('does not show redirect warning for offline handbook passages without links', async () => {
+    const [handbookPassage] =
+      localHandbookStore.searchPassages('grade completion');
+    const screen = render(
+      wrap(
+        <UstpSourcesSheet
+          target={{kind: 'used', passageIds: [handbookPassage.id]}}
+          onClose={jest.fn()}
+        />,
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId('ustp-source-passage')).toHaveLength(1),
+    );
+    expect(screen.queryByTestId('ustp-sources-redirect-warning')).toBeNull();
   });
 });

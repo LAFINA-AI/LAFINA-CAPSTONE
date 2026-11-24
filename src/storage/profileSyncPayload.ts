@@ -11,13 +11,30 @@ import {
 import { db, DatabaseTransaction } from './database';
 import { SyncPayload } from './syncTypes';
 
+export const AVATAR_SEED_MAX_LENGTH = 128;
+
+const AVATAR_SEED_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+/**
+ * Validates a character avatar seed before storing or syncing it.
+ * Only opaque seed tokens are allowed; file paths, URIs, and data URLs are
+ * rejected so device-local photos can never enter cloud sync.
+ */
+export const normalizeAvatarSeed = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const clean = value.trim();
+  if (!clean || clean.length > AVATAR_SEED_MAX_LENGTH) return null;
+  if (clean.includes('..') || !AVATAR_SEED_PATTERN.test(clean)) return null;
+  return clean;
+};
+
 /** Builds the complete backend profile payload using stored values and safe defaults. */
 export const buildProfileSyncPayload = (
   localUserId: string,
   executor: DatabaseTransaction = db,
 ): SyncPayload => {
   const user = executor.executeSync(
-    `SELECT username, time_format_24h, week_starts_monday, dark_mode
+    `SELECT username, time_format_24h, week_starts_monday, dark_mode, avatar_seed
      FROM users WHERE id = ?`,
     [localUserId],
   ).rows?.[0];
@@ -66,5 +83,6 @@ export const buildProfileSyncPayload = (
     time_format_24h: false,
     week_starts_monday: user?.week_starts_monday === 1,
     dark_mode: user?.dark_mode === 1,
+    avatar_seed: normalizeAvatarSeed(user?.avatar_seed),
   };
 };

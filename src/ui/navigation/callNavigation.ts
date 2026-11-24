@@ -10,6 +10,7 @@ export interface CallNavigationTarget {
   ownerId: string;
   screen: 'notes' | 'calendar' | 'chat';
   notesTab?: 'alarms' | 'notes' | 'todo';
+  chatMode?: 'general' | 'ustp';
   entityId?: string;
   entityKind?: 'note' | 'task' | 'event' | 'block' | 'reminder';
   date?: string;

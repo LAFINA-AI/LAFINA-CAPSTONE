@@ -936,6 +936,17 @@ function AppContent({
     [userId],
   );
 
+  const handleOpenAskUstpFromDashboard = useCallback(() => {
+    if (!userId) return;
+    setCallNavigation({
+      ownerId: userId,
+      screen: 'chat',
+      chatMode: 'ustp',
+      requestId: generateId('dash-ustp'),
+    });
+    setActiveTab('chat');
+  }, [userId]);
+
   const openCallLafina = useCallback(() => setCallLafinaVisible(true), []);
   const closeCallLafina = useCallback(() => {
     setCallLafinaVisible(false);
@@ -1035,6 +1046,13 @@ function AppContent({
             onRefresh={triggerRefresh}
             onCallLafina={openCallLafina}
             onOpenSkill={openSkillFromChat}
+            onOpenRequestHandled={finishOpenRequest}
+            openRequest={
+              callNavigation?.ownerId === userId &&
+              callNavigation.screen === 'chat'
+                ? callNavigation
+                : undefined
+            }
           />
         );
       case 'calendar':
@@ -1247,6 +1265,8 @@ function AppContent({
                 onOpenCalendarTab={handleOpenCalendarFromDashboard}
                 onOpenNotesTab={handleOpenNotesFromDashboard}
                 onOpenChatTab={handleOpenChatFromDashboard}
+                onOpenAskUstp={handleOpenAskUstpFromDashboard}
+                onOpenSkill={openSkillFromChat}
               />
             </View>
           ) : null}

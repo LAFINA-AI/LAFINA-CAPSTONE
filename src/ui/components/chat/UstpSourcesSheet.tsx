@@ -12,6 +12,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
   Landmark,
   Search,
 } from 'lucide-react-native';
@@ -355,6 +356,7 @@ function HomePage({
               <Text style={[styles.sectionTitle, {color: palette.text}]}>
                 {`All ${officialPages.length} official pages behind the USTP CDO answers`}
               </Text>
+              <SourceRedirectWarningCard palette={palette} />
               {officialPages.map(source => (
                 <SourceNoteText
                   key={source.url}
@@ -413,6 +415,59 @@ function ChaptersPage({
   );
 }
 
+export interface SourceRedirectWarningCardProps {
+  palette: Pick<Palette, 'warnBg' | 'warnInk' | 'border' | 'card'>;
+  title?: string;
+  message?: string;
+  testID?: string;
+}
+
+export function SourceRedirectWarningCard({
+  palette,
+  title = 'External source links',
+  message = 'Tapping a source link will redirect you outside LAFINA to the official webpage in your browser.',
+  testID = 'ustp-sources-redirect-warning',
+}: SourceRedirectWarningCardProps) {
+  return (
+    <View
+      style={[
+        styles.redirectWarningCard,
+        {
+          backgroundColor: palette.warnBg,
+          borderColor: palette.border,
+          borderLeftColor: palette.warnInk,
+        },
+      ]}
+      accessibilityRole="text"
+      testID={testID}
+    >
+      <View
+        style={[
+          styles.redirectWarningIconWrap,
+          {backgroundColor: palette.card, borderColor: palette.border},
+        ]}
+      >
+        <AlertTriangle size={16} color={palette.warnInk} />
+      </View>
+      <View style={styles.redirectWarningContent}>
+        <View style={styles.redirectWarningHeader}>
+          <Text
+            style={[styles.redirectWarningTitle, {color: palette.warnInk}]}
+          >
+            {title}
+          </Text>
+          <ExternalLink size={13} color={palette.warnInk} />
+        </View>
+        <Text style={[styles.redirectWarningBody, {color: palette.warnInk}]}>
+          {message}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const EXTERNAL_LINK_RE = /https?:\/\//i;
+
 function PassageList({
   passages,
   palette,
@@ -424,8 +479,20 @@ function PassageList({
     () => passages.map(hit => toPassageView(hit)),
     [passages],
   );
+  const hasExternalLinks = useMemo(
+    () =>
+      views.some(
+        view =>
+          EXTERNAL_LINK_RE.test(view.citation ?? '') ||
+          (view.collection === 'ustp_cdo' && EXTERNAL_LINK_RE.test(view.body)),
+      ),
+    [views],
+  );
   return (
     <View>
+      {hasExternalLinks ? (
+        <SourceRedirectWarningCard palette={palette} />
+      ) : null}
       {views.map(view => (
         <PassageCard key={view.id} view={view} palette={palette} />
       ))}
@@ -586,6 +653,50 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: Spacing.sm,
     marginTop: Spacing.sm,
+  },
+  redirectWarningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  redirectWarningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  redirectWarningContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  redirectWarningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  redirectWarningTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.body,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  redirectWarningBody: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    lineHeight: 18,
+    marginTop: 3,
+    opacity: 0.92,
   },
   citation: {marginTop: Spacing.sm},
   browseButton: {

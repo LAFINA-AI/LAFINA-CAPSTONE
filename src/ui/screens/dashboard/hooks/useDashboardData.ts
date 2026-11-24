@@ -54,6 +54,7 @@ import {getDefaultUserPreferences} from '../../../../storage/preferencesStore';
 import {Colors} from '../../../theme';
 import {registerCustomCategoryColor} from '../../../theme/categoryColors';
 import {useTimeBlockModal} from '../../calendar/hooks/useTimeBlockModal';
+import {useScheduleItemModal} from '../../calendar/hooks/useScheduleItemModal';
 import {
   addDaysToDate,
   baseEntityId,
@@ -87,7 +88,7 @@ interface RawSnapshot {
   greetingName: string;
   academicBadge: string | null;
   avatarUri: string | null;
-  avatarSeed: string;
+  avatarSeed: string | null;
   ustpSchoolEnabled: boolean;
   readError: string | null;
 }
@@ -138,11 +139,11 @@ const readDashboardSnapshot = (userId: string, refDate: Date): RawSnapshot => {
     user = null;
   }
 
-  let avatarSeed = userId || 'student';
+  let avatarSeed: string | null = null;
   try {
-    avatarSeed = avatarSeedStore.get(userId) || userId || 'student';
+    avatarSeed = avatarSeedStore.get(userId);
   } catch {
-    avatarSeed = userId || 'student';
+    avatarSeed = null;
   }
 
   let ustpSchoolEnabled = false;
@@ -427,10 +428,20 @@ export const useDashboardData = ({
   }, [isActive, refresh, loadRawData]);
 
   const todayDate = useMemo(() => new Date(now), [now]);
+  const onModalSaved = useCallback(
+    () => loadRawData(new Date()),
+    [loadRawData],
+  );
   const blockModal = useTimeBlockModal({
     userId,
     selectedDate: todayDate,
-    onSaved: () => loadRawData(new Date()),
+    onSaved: onModalSaved,
+    onRefresh,
+  });
+  const taskModal = useScheduleItemModal({
+    userId,
+    selectedDate: todayDate,
+    onSaved: onModalSaved,
     onRefresh,
   });
 
@@ -666,8 +677,8 @@ export const useDashboardData = ({
     [loadRawData, onRefresh],
   );
 
-  // Read through a ref: the modal hook returns a new object each render, and
-  // a stable handler lets Home's memoized widgets skip re-rendering.
+  // Read through a ref: the modal hooks return new objects each render, and
+  // stable handlers let Home's memoized widgets skip re-rendering.
   const blockModalRef = useRef(blockModal);
   blockModalRef.current = blockModal;
   const openStudyBlockSlot = useCallback((slot: FreeStudyBlock) => {
@@ -687,6 +698,12 @@ export const useDashboardData = ({
     }
   }, []);
 
+  const taskModalRef = useRef(taskModal);
+  taskModalRef.current = taskModal;
+  const openAddTaskModal = useCallback(() => {
+    taskModalRef.current.openNew('task');
+  }, []);
+
   const actions: DashboardActions = useMemo(
     () => ({
       config,
@@ -699,6 +716,7 @@ export const useDashboardData = ({
       setScheduleFilter,
       toggleTaskComplete,
       openStudyBlockSlot,
+      openAddTaskModal,
       refresh,
     }),
     [
@@ -712,6 +730,7 @@ export const useDashboardData = ({
       setScheduleFilter,
       toggleTaskComplete,
       openStudyBlockSlot,
+      openAddTaskModal,
       refresh,
     ],
   );
@@ -721,5 +740,6 @@ export const useDashboardData = ({
     data,
     actions,
     blockModal,
+    taskModal,
   };
 };

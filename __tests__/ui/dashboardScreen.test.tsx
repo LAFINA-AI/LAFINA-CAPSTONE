@@ -3,6 +3,7 @@ import RNFS from 'react-native-fs';
 import {fireEvent, render, waitFor} from '@testing-library/react-native';
 import {
   ALL_DASHBOARD_WIDGET_IDS,
+  alarmsStore,
   calendarVisibilityStore,
   dashboardConfigStore,
   db,
@@ -15,6 +16,8 @@ import {
   timeBlocksStore,
   userStore,
 } from '../../src/storage';
+import {academicProfileStore} from '../../src/storage/academicProfileStore';
+import {studentSetupStore} from '../../src/storage/studentSetupStore';
 import type {Event, TimeBlock} from '../../src/storage';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {DashboardScreen} from '../../src/ui/screens/dashboard';
@@ -322,9 +325,17 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
         </ThemeProvider>,
       );
 
-      // All default widgets render with live data
+      // All default widgets render with live data (countdown ring, no search bar, no bell icon)
       expect(utils.getByTestId('dashboard-widget-up-next')).toBeTruthy();
-      expect(utils.getByTestId('dashboard-hero-mascot')).toBeTruthy();
+      expect(utils.getByTestId('dashboard-hero-ring')).toBeTruthy();
+      expect(utils.queryByTestId('dashboard-hero-mascot')).toBeNull();
+      expect(utils.queryByLabelText('Open alarms')).toBeNull();
+      expect(utils.queryByPlaceholderText('Search classes, notes...')).toBeNull();
+      expect(utils.getByTestId('home-greeting-title').props.children).toEqual([
+        'Good morning',
+        ', ',
+        'Juan',
+      ]);
       expect(
         utils.getByTestId('dashboard-widget-free-study-blocks'),
       ).toBeTruthy();
@@ -547,6 +558,153 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
         expect(firstRenderTitles[firstRenderTitles.length - 1]).toBe(
           'Newly Added Earlier Class',
         );
+      });
+    });
+
+    test('renders redesigned Today timeline (past check, live Free time + Focus, upcoming) and wires all 4 Quick Actions', async () => {
+      const fixedNow = new Date(2026, 10, 24, 18, 2, 0); // Tue Nov 24, 6:02 PM
+      jest.useFakeTimers().setSystemTime(fixedNow);
+
+      const uid = makeUser('redesign');
+      const todayStr = formatLocalDateStr(fixedNow);
+
+      // Confirm USTP COR so Ask USTP quick action appears
+      studentSetupStore.update(uid, {
+        affiliation: 'ustp',
+        corStatus: 'confirmed',
+        confirmedImportId: 'imp-redesign-1',
+      });
+      academicProfileStore.save(
+        uid,
+        {
+          isUstpStudent: true,
+          campus: 'CDO',
+          registrationNo: '',
+          studentNo: '',
+          fullName: 'John Doe',
+          formattedName: 'John',
+          preferredName: 'John',
+          gender: '',
+          age: null,
+          nationality: '',
+          college: '',
+          collegeShort: '',
+          program: 'BSIT',
+          major: '',
+          yearLevel: '4th Year',
+          yearLevelShort: '4th Yr',
+          curriculum: '',
+          academicTerm: '',
+          academicYearTerm: '',
+          section: 'IT4R11',
+          primarySection: 'IT4R11',
+          totalUnits: '',
+          totalLecUnits: null,
+          totalLabUnits: null,
+          totalCreditUnits: null,
+          courses: [],
+          provenance: null,
+        },
+        undefined,
+        {
+          provenance: {
+            source: 'cor_review',
+            importId: 'imp-redesign-1',
+            reviewedAt: fixedNow.toISOString(),
+          },
+        },
+      );
+
+      timeBlocksStore.insert({
+        id: 'cls-past-1',
+        userId: uid,
+        title: 'IT413 · Social and Professional Issues',
+        date: todayStr,
+        startTime: '11:30',
+        endTime: '13:00',
+        color: '#2563EB',
+        category: 'Class',
+        notes: 'Room: 51-204',
+      });
+      timeBlocksStore.insert({
+        id: 'cls-next-1',
+        userId: uid,
+        title: 'Capstone Review',
+        date: todayStr,
+        startTime: '19:00',
+        endTime: '20:00',
+        color: '#C24B14',
+        category: 'Class',
+        notes: 'Room: Lab 3',
+      });
+
+      const onRefresh = jest.fn();
+      const onOpenCalendarTab = jest.fn();
+      const onOpenNotesTab = jest.fn();
+      const onOpenChatTab = jest.fn();
+      const onOpenAskUstp = jest.fn();
+      const onOpenSkill = jest.fn();
+
+      const utils = render(
+        <ThemeProvider userId={uid} initialModernTheme="sunset">
+          <DashboardScreen
+            userId={uid}
+            refreshTrigger={0}
+            onRefresh={onRefresh}
+            onOpenCalendarTab={onOpenCalendarTab}
+            onOpenNotesTab={onOpenNotesTab}
+            onOpenChatTab={onOpenChatTab}
+            onOpenAskUstp={onOpenAskUstp}
+            onOpenSkill={onOpenSkill}
+          />
+        </ThemeProvider>,
+      );
+
+      // Greeting + countdown ring + timeline states
+      expect(utils.getByText('Good evening, John')).toBeTruthy();
+      expect(utils.getByText('58')).toBeTruthy();
+      expect(utils.getByText('min to go')).toBeTruthy();
+      expect(utils.getByTestId('home-timeline-done-cls-past-1')).toBeTruthy();
+      expect(utils.getByTestId('home-timeline-free-now')).toBeTruthy();
+      expect(utils.getByText('Free time · 58 min')).toBeTruthy();
+      expect(utils.getByText('Until 7:00 PM')).toBeTruthy();
+
+      // Quick Action: Focus -> launches Pomodoro skill
+      fireEvent.press(utils.getByTestId('home-quick-focus'));
+      expect(onOpenSkill).toHaveBeenCalledWith({
+        skill: 'pomodoro',
+        action: 'open',
+      });
+
+      // Timeline Focus CTA -> launches Pomodoro skill
+      fireEvent.press(utils.getByTestId('home-timeline-focus-btn'));
+      expect(onOpenSkill).toHaveBeenCalledTimes(2);
+
+      // Quick Action: Ask USTP -> launches USTP handbook chat
+      fireEvent.press(utils.getByTestId('home-quick-ask-ustp'));
+      expect(onOpenAskUstp).toHaveBeenCalledTimes(1);
+
+      // Quick Action: Add task -> opens AddTaskEventModal and persists real SQLite task
+      fireEvent.press(utils.getByTestId('home-quick-add-task'));
+      const titleInput = utils.getByPlaceholderText(
+        'Buy groceries, Finish report...',
+      );
+      fireEvent.changeText(titleInput, 'Prepare Capstone Slides');
+      fireEvent.press(utils.getByText('Save'));
+      await waitFor(() => {
+        expect(
+          tasksStore
+            .getAllTasks(uid)
+            .some(t => t.title === 'Prepare Capstone Slides'),
+        ).toBe(true);
+      });
+
+      // Quick Action: Set alarm -> opens AlarmEditorModal and creates real SQLite alarm
+      fireEvent.press(utils.getByTestId('home-quick-set-alarm'));
+      const saveAlarmBtn = utils.getByTestId('alarm-save-button');
+      fireEvent.press(saveAlarmBtn);
+      await waitFor(() => {
+        expect(alarmsStore.list(uid).length).toBeGreaterThanOrEqual(1);
       });
     });
   });

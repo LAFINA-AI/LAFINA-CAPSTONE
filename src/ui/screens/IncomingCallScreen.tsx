@@ -52,6 +52,12 @@ import type {
 import {CALL_RESULT_DELAY_MS} from '../../constants';
 import {chatOrchestrator} from '../../ai/chatOrchestrator';
 import {parseIntentFastPath} from '../../ai/nlu/fastPathParser';
+import {parseRingingReminderChange} from '../../ai/nlu/ringingReminderChange';
+import {
+  latestPendingReview,
+  prepareReviewedCommand,
+} from '../../ai/nlu/commandReview';
+import type {CommandProposal, PrepareResult} from '../../ai/nlu/commandReview';
 import {Fonts, ModernLayout, Shadows} from '../theme';
 import {useTheme} from '../contexts/ThemeContext';
 import {createCallSpeechProvider} from '../../cloud/speechService';
@@ -119,8 +125,53 @@ const CARD_DENIAL_RE =
   /\b(?:no|not|never|without|cannot|can['’]?t|couldn['’]?t|didn['’]?t|wasn['’]?t|isn['’]?t)\b[^.?!]*\b(?:card|draft)\b/i;
 /** How long a card may still arrive after LAFINA mentions it. */
 const CARD_CLAIM_GRACE_MS = 600;
-const NO_CARD_NOTE =
-  'No card was prepared, so nothing was changed. Say the change again, for example “add a task to review notes tomorrow at 5 PM”.';
+const NO_CARD_NOTE = 'No card is on screen, so nothing was changed.';
+/** What the agent hears when it mentioned a card the screen does not show. */
+const NO_CARD_CONTEXT =
+  'No review card is on screen and nothing was changed. Do not say a card is shown unless a tool answer or app update says so. Do not ask the student to repeat what they already said; if a detail such as the time is missing, ask only for that detail.';
+
+/** How long the agent's planner tool waits for the device's reading of a turn. */
+const TURN_READ_WAIT_MS = 8000;
+/** Longest the online audio waits for the reminder reading to finish. */
+const GREETING_GATE_MAX_MS = 20_000;
+
+/** What the device made of one student turn, for the agent's planner tools. */
+type TurnOutcome =
+  | {kind: 'card'; proposal: CommandProposal}
+  | {kind: 'saved' | 'cancelled' | 'settled'; reply: string}
+  /** No card. `unresolved`: the planner needs a detail or refused. */
+  | {kind: 'note'; reply: string; unresolved?: boolean}
+  | {kind: 'none'};
+
+interface TurnReading {
+  text: string;
+  done: Promise<TurnOutcome>;
+}
+
+/** One line telling the agent which card is on screen, never asking again. */
+export const describeCallCard = (proposal: CommandProposal): string =>
+  `Review card is now on screen: ${proposal.heading} "${proposal.title}"${
+    proposal.details.length ? ` (${proposal.details.join(' ')})` : ''
+  }. Nothing is saved until the student says confirm or taps Confirm. Tell them briefly what the card does and ask them to confirm; do not ask them to repeat the change.`;
+
+const plainReply = (text: string): string =>
+  text
+    .replace(/\*\*/g, '')
+    .replace(/^[>•*]\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const RESCHEDULE_INTENT_BASE = {
+  title: null,
+  endTime: null,
+  durationMinutes: null,
+  category: 'Academic',
+  details: null,
+  snoozeMinutes: null,
+  confidence: 1,
+  source: 'fast_path' as const,
+  isValid: true,
+};
 
 const callVibrationArray = (
   enabled: boolean,
@@ -208,9 +259,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const [expectOnline, setExpectOnline] = useState(false);
   const alertPrefs = useMemo<AlertPreferences>(
     () =>
-      visible
-        ? alertPreferencesStore.read(userId)
-        : DEFAULT_ALERT_PREFERENCES,
+      visible ? alertPreferencesStore.read(userId) : DEFAULT_ALERT_PREFERENCES,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [visible, userId, reminderId],
   );
@@ -245,6 +294,21 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const transitioningRef = useRef(false);
   const snoozeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warnedRef = useRef(false);
+  /** The device's reading of the student's latest turn (one per turn). */
+  const turnRef = useRef<TurnReading | null>(null);
+  /** The last card decision, for an agent confirm_draft that comes late. */
+  const lastDecisionRef = useRef<{
+    kind: 'saved' | 'cancelled';
+    reply: string;
+  } | null>(null);
+  /**
+   * Held while the app reads the reminder aloud. The online conversation
+   * connects meanwhile and opens the microphone only once this resolves.
+   */
+  const greetingGateRef = useRef<{
+    promise: Promise<void>;
+    resolve: () => void;
+  } | null>(null);
 
   const clearResultTimeout = useCallback((): void => {
     if (resultTimeoutRef.current) {
@@ -268,6 +332,10 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     attemptRef.current += 1;
     answeringRef.current = false;
     transitioningRef.current = false;
+    greetingGateRef.current?.resolve();
+    greetingGateRef.current = null;
+    turnRef.current = null;
+    lastDecisionRef.current = null;
     setAnswering(false);
     setOnlineCall(false);
     setOnlineView(false);
@@ -300,6 +368,31 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     const current = onlineRef.current;
     if (current) await current.endAndWait();
     setOnlineCall(false);
+  }, []);
+
+  const openGreetingGate = useCallback((): void => {
+    greetingGateRef.current?.resolve();
+    let resolve: () => void = () => undefined;
+    const promise = new Promise<void>(done => {
+      resolve = done;
+    });
+    greetingGateRef.current = {promise, resolve};
+  }, []);
+  const releaseGreetingGate = useCallback((): void => {
+    greetingGateRef.current?.resolve();
+  }, []);
+  const waitForGreeting = useCallback((): Promise<void> => {
+    const gate = greetingGateRef.current;
+    if (!gate) return Promise.resolve();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    return Promise.race([
+      gate.promise,
+      new Promise<void>(done => {
+        timer = setTimeout(done, GREETING_GATE_MAX_MS);
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
   }, []);
 
   const closeCallScreen = useCallback((): void => {
@@ -603,6 +696,14 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     // No connection, no consent or no microphone: this is an offline call and
     // keeps its Acknowledge and Snooze buttons.
     if (!(useOnline && microphoneGranted)) setOnlineView(false);
+    const goOnline = useOnline && microphoneGranted;
+    if (goOnline) {
+      // Connect while the reminder is read aloud, not after: the server
+      // session is made now and the microphone opens when the reading ends.
+      openGreetingGate();
+      setOnlineView(true);
+      setOnlineCall(true);
+    }
 
     try {
       const speechProvider =
@@ -630,18 +731,15 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       if (!accepted) {
         // A button settled the call while the reminder was being read: the
         // result is on screen and closes it; do not cut it short.
+        if (goOnline) void stopOnline();
         if (!resolvedRef.current && !pendingActionRef.current)
           closeCallScreen();
         return;
       }
-      if (useOnline && microphoneGranted) {
-        if (AppState.currentState === 'active') {
-          setOnlineView(true);
-          setOnlineCall(true);
-        } else {
-          setOnlineView(false);
-          setReply('The app left the screen. Use Acknowledge or Snooze below.');
-        }
+      if (goOnline && AppState.currentState !== 'active') {
+        void stopOnline();
+        setOnlineView(false);
+        setReply('The app left the screen. Use Acknowledge or Snooze below.');
       }
       if (!microphoneGranted) {
         setReply(
@@ -660,15 +758,27 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       }
     } catch (error) {
       console.error('[CallScreen] Could not answer reminder call:', error);
+      if (goOnline) void stopOnline();
       setOnlineView(false);
       setReply('LAFINA could not start the voice call. Use the buttons below.');
     } finally {
+      // The reminder has been read (or the answer failed): audio may open.
+      releaseGreetingGate();
       if (attempt === attemptRef.current) {
         answeringRef.current = false;
         setAnswering(false);
       }
     }
-  }, [closeCallScreen, deliveryGeneration, reminderId, setOnlineView, userId]);
+  }, [
+    closeCallScreen,
+    deliveryGeneration,
+    openGreetingGate,
+    releaseGreetingGate,
+    reminderId,
+    setOnlineView,
+    stopOnline,
+    userId,
+  ]);
 
   const handleDecline = useCallback(async (): Promise<void> => {
     Vibration.cancel();
@@ -708,18 +818,28 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     }
   }, [closeCallScreen, deliveryGeneration, reminderId, stopOnline, userId]);
 
-  const handleReviewConfirm = useCallback(async (): Promise<void> => {
+  const handleReviewConfirm = useCallback(async (): Promise<string | null> => {
     const decision = await reviewRef.current.confirm({speakReply: false});
-    if (!decision || closingRef.current) return;
+    if (!decision || closingRef.current) return null;
     setReply(decision.reply);
+    lastDecisionRef.current = {
+      kind: 'saved',
+      reply: plainReply(decision.reply),
+    };
     void onlineRef.current?.sendContext(`Planner update: ${decision.reply}`);
+    return plainReply(decision.reply);
   }, []);
 
-  const handleReviewCancel = useCallback((): void => {
+  const handleReviewCancel = useCallback((): string | null => {
     const decision = reviewRef.current.cancel();
-    if (!decision || closingRef.current) return;
+    if (!decision || closingRef.current) return null;
     setReply(decision.reply);
+    lastDecisionRef.current = {
+      kind: 'cancelled',
+      reply: plainReply(decision.reply),
+    };
     void onlineRef.current?.sendContext(`Planner update: ${decision.reply}`);
+    return plainReply(decision.reply);
   }, []);
 
   /**
@@ -810,21 +930,136 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     [deliveryGeneration, reminderId, settle, userId],
   );
 
+  /**
+   * Shows what the device made of the student's words and tells the agent
+   * the same thing, so it never asks for a change it already heard.
+   */
+  const showPlannerResult = useCallback(
+    (
+      planned: PrepareResult | null | undefined,
+      message: string,
+    ): TurnOutcome => {
+      if (closingRef.current) return {kind: 'none'};
+      reviewRef.current.present(planned);
+      setReply(message);
+      if (planned?.status === 'proposal') {
+        setNotice('');
+        void onlineRef.current?.sendContext(
+          `Planner update: ${describeCallCard(planned.proposal)}`,
+        );
+        return {kind: 'card', proposal: planned.proposal};
+      }
+      // The conversation keeps replacing the reply line; a result that made
+      // no card stays readable as a note until the next turn.
+      setNotice(message);
+      const plain = plainReply(message);
+      const stillOpen =
+        reviewRef.current.proposal && !reviewRef.current.expired
+          ? reviewRef.current.proposal
+          : null;
+      void onlineRef.current?.sendContext(
+        stillOpen
+          ? `Planner update: ${plain} ${describeCallCard(stillOpen)}`
+          : `Planner update: ${plain} No review card is on screen. If a detail is missing, ask only for that detail; do not ask the student to repeat the change.`,
+      );
+      return {
+        kind: 'note',
+        reply: plain,
+        unresolved:
+          planned?.status === 'clarify' || planned?.status === 'invalid',
+      };
+    },
+    [],
+  );
+
+  /** The general planner on the student's own words, scoped to this call. */
+  const runPlanner = useCallback(
+    async (prompt: string): Promise<TurnOutcome> => {
+      plannerInFlightRef.current += 1;
+      try {
+        const result = await chatOrchestrator.processMessage(userId, prompt, {
+          onlineMode: true,
+          ringingCall: {
+            reminderId,
+            generation: deliveryGeneration ?? 1,
+          },
+          reviewSurface: 'voice',
+          // OnlineReminderConversation already persists turns to Chat History;
+          // keep planner command evaluation out of SQLite chat history so turns
+          // are never duplicated and the 20-chat limit cannot block call actions.
+          temporaryChat: true,
+        });
+        return showPlannerResult(result.review, result.reply);
+      } catch (error) {
+        console.warn('[IncomingCallScreen] Online planner turn failed:', error);
+        if (closingRef.current) return {kind: 'none'};
+        const message =
+          'Could not prepare that planner action right now. Nothing was changed.';
+        setNotice(message);
+        return {kind: 'note', reply: message};
+      } finally {
+        plannerInFlightRef.current = Math.max(
+          0,
+          plannerInFlightRef.current - 1,
+        );
+      }
+    },
+    [deliveryGeneration, reminderId, showPlannerResult, userId],
+  );
+
+  /** Moves exactly the ringing reminder (a review card; nothing saved yet). */
+  const prepareMove = useCallback(
+    (date: string | null, time: string | null, words: string): TurnOutcome => {
+      const prepared = prepareReviewedCommand(
+        userId,
+        {
+          ...RESCHEDULE_INTENT_BASE,
+          intent: 'reschedule',
+          date,
+          time,
+          rawTranscript: words,
+        },
+        {
+          surface: 'voice',
+          ringingCall: {reminderId, generation: deliveryGeneration ?? 1},
+        },
+      );
+      return showPlannerResult(prepared, prepared.reply);
+    },
+    [deliveryGeneration, reminderId, showPlannerResult, userId],
+  );
+
   const handleOnlineTurn = useCallback(
     (text: string): void => {
       const trimmed = text.trim();
       if (!trimmed) return;
       studentSpokeRef.current = true;
       setNotice('');
+      // One reading per turn; the agent's planner tool waits for it.
+      let finish: (outcome: TurnOutcome) => void = () => undefined;
+      const reading: TurnReading = {
+        text: trimmed,
+        done: new Promise<TurnOutcome>(resolve => {
+          finish = resolve;
+        }),
+      };
+      turnRef.current = reading;
+      const none = (): void => finish({kind: 'none'});
+
       // A spoken "confirm" / "cancel" answers the card on screen.
       if (reviewRef.current.proposal && !reviewRef.current.expired) {
         // "Okay, save it, Lafina." reads as a save, not as talk.
         if (SPOKEN_CONFIRM_RE.test(trimmed) || isExplicitSaveCommand(trimmed)) {
-          void handleReviewConfirm();
+          void handleReviewConfirm().then(saved =>
+            finish(saved ? {kind: 'saved', reply: saved} : {kind: 'none'}),
+          );
           return;
         }
         if (SPOKEN_CANCEL_RE.test(trimmed)) {
-          handleReviewCancel();
+          const cancelled = handleReviewCancel();
+          finish(
+            cancelled ? {kind: 'cancelled', reply: cancelled} : {kind: 'none'},
+          );
           return;
         }
       }
@@ -835,6 +1070,35 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       if (command) {
         if (command.intent === 'acknowledge') void handleManualAcknowledge();
         else void handleManualSnooze(command.minutes ?? snoozeMinutes);
+        finish({
+          kind: 'settled',
+          reply:
+            command.intent === 'acknowledge'
+              ? 'The reminder is acknowledged and the call is ending.'
+              : `The reminder rings again in ${
+                  command.minutes ?? snoozeMinutes
+                } minutes and the call is ending.`,
+        });
+        return;
+      }
+
+      // "Move it to 7 PM", "call me back at 8": this reminder, not a new task.
+      const change = parseRingingReminderChange(trimmed);
+      if (change?.kind === 'snooze') {
+        void handleManualSnooze(change.minutes);
+        finish({
+          kind: 'settled',
+          reply: `The reminder rings again in ${change.minutes} minutes and the call is ending.`,
+        });
+        return;
+      }
+      if (change?.kind === 'reschedule') {
+        finish(prepareMove(change.date, change.time, trimmed));
+        return;
+      }
+      if (change?.kind === 'ask_time') {
+        // No usable time: the planner asks for exactly that, nothing else.
+        finish(prepareMove(null, null, trimmed));
         return;
       }
 
@@ -844,6 +1108,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           trimmed,
         )
       ) {
+        none();
         return;
       }
       if (
@@ -851,6 +1116,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           trimmed,
         )
       ) {
+        none();
         return;
       }
 
@@ -860,7 +1126,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         );
       const isPlannerActionCommand =
         isDoneCommand ||
-        /^(?:please\s+)?(?:(?:can|could|will)\s+you\s+(?:please\s+)?)?(?:reschedule\s+(?:it|this|the\s+reminder)|move\s+(?:it|this|the\s+reminder)\s+to|postpone\s+(?:it|this)|push\s+(?:it|this)\s+back|add\s+(?:a\s+)?(?:task|todo|to-?do|note|reminder|event)|schedule\s+|create\s+(?:a\s+)?(?:task|todo|to-?do|note|reminder|event)|pin\s+|unpin\s+)/i.test(
+        /^(?:please\s+)?(?:(?:can|could|will)\s+you\s+(?:please\s+)?)?(?:add\s+(?:a\s+)?(?:task|todo|to-?do|note|reminder|event)|schedule\s+|create\s+(?:a\s+)?(?:task|todo|to-?do|note|reminder|event)|pin\s+|unpin\s+)/i.test(
           trimmed,
         );
 
@@ -878,74 +1144,123 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             trimmed,
           ));
 
-      if (!isPlannerActionCommand && !isSpokenPlannerRequest) return;
+      if (!isPlannerActionCommand && !isSpokenPlannerRequest) {
+        none();
+        return;
+      }
 
       const routedPrompt =
         isDoneCommand && task ? `Mark task "${task}" as done` : trimmed;
-      plannerInFlightRef.current += 1;
-      void chatOrchestrator
-        .processMessage(userId, routedPrompt, {
-          onlineMode: true,
-          ringingCall: {
-            reminderId,
-            generation: deliveryGeneration ?? 1,
-          },
-          reviewSurface: 'voice',
-          // OnlineReminderConversation already persists turns to Chat History;
-          // keep planner command evaluation out of SQLite chat history so turns
-          // are never duplicated and the 20-chat limit cannot block call actions.
-          temporaryChat: true,
-        })
-        .then(result => {
-          if (closingRef.current) return;
-          reviewRef.current.present(result.review);
-          setReply(result.reply);
-          // The conversation keeps replacing the reply line; a result that
-          // made no card stays readable as a note until the next turn.
-          setNotice(result.review?.status === 'proposal' ? '' : result.reply);
-          const cardShown = result.review?.status === 'proposal';
-          const unresolvedReview =
-            result.review?.status === 'clarify' ||
-            result.review?.status === 'invalid';
-          // The agent hears exactly what the screen shows, so it never
-          // announces a card that is not there.
-          void onlineRef.current?.sendContext(
-            cardShown
-              ? `Planner update: a review card is now shown on screen: ${result.reply} Nothing is saved until the student says confirm or taps Confirm.`
-              : `Planner update: ${result.reply} No review card is on screen.`,
-          );
-          // Ending the call discards an unanswered card or hides a clarification,
-          // so "I finished it" acknowledges only when nothing is waiting.
-          if (isDoneCommand && !cardShown && !unresolvedReview) {
-            void handleManualAcknowledge();
-          }
-        })
-        .catch(error => {
-          console.warn('[IncomingCallScreen] Online planner turn failed:', error);
-          if (!closingRef.current) {
-            setNotice(
-              'Could not prepare that planner action right now. Please try again.',
-            );
-          }
-        })
-        .finally(() => {
-          plannerInFlightRef.current = Math.max(
-            0,
-            plannerInFlightRef.current - 1,
-          );
-        });
+      void runPlanner(routedPrompt).then(outcome => {
+        finish(outcome);
+        // Ending the call discards an unanswered card or hides a clarification,
+        // so "I finished it" acknowledges only when nothing is waiting.
+        if (
+          isDoneCommand &&
+          outcome.kind === 'note' &&
+          !outcome.unresolved &&
+          !closingRef.current
+        )
+          void handleManualAcknowledge();
+      });
     },
     [
-      deliveryGeneration,
       handleManualAcknowledge,
       handleManualSnooze,
       handleReviewCancel,
       handleReviewConfirm,
-      reminderId,
+      prepareMove,
+      runPlanner,
       snoozeMinutes,
       task,
-      userId,
     ],
+  );
+
+  /**
+   * The agent's planner tools. They are answered from the device's reading
+   * of the student's own words (the same words the agent heard), so a card
+   * the student asked for appears once and the agent is told exactly what
+   * is on screen. The model's own arguments never write anything.
+   */
+  const handlePlannerTool = useCallback(
+    async (
+      name: string,
+      _parameters: Record<string, unknown>,
+      isCurrent: () => boolean,
+    ): Promise<string> => {
+      const reading = turnRef.current;
+      let outcome: TurnOutcome = {kind: 'none'};
+      if (reading) {
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        outcome = await Promise.race([
+          reading.done,
+          new Promise<TurnOutcome>(resolve => {
+            timer = setTimeout(
+              () => resolve({kind: 'none'}),
+              TURN_READ_WAIT_MS,
+            );
+          }),
+        ]);
+        if (timer) clearTimeout(timer);
+      }
+      if (!isCurrent() || closingRef.current)
+        throw new Error(
+          'Request cancelled because conversational turn updated.',
+        );
+      const open = latestPendingReview(userId, 'voice');
+
+      if (name === 'confirm_draft') {
+        if (outcome.kind === 'saved') return `Saved: ${outcome.reply}`;
+        if (open)
+          return 'Not saved yet: the student has not said to save this card. Ask whether to save it; when they say confirm or tap Confirm, the app saves it and tells you.';
+        const last = lastDecisionRef.current;
+        if (last)
+          return last.kind === 'saved'
+            ? `Already saved: ${last.reply}`
+            : `The card was cancelled: ${last.reply}`;
+        return 'No card is open, so nothing was saved.';
+      }
+      if (name === 'cancel_draft') {
+        if (outcome.kind === 'cancelled') return `Cancelled: ${outcome.reply}`;
+        if (open)
+          return 'The card is still on screen. The app cancels it when the student says cancel or taps Cancel. Nothing was saved.';
+        return 'No card is open. Nothing was saved.';
+      }
+
+      switch (outcome.kind) {
+        case 'card':
+          return describeCallCard(outcome.proposal);
+        case 'saved':
+          return `Already saved: ${outcome.reply} Do not prepare it again.`;
+        case 'cancelled':
+          return `The student cancelled the card: ${outcome.reply}`;
+        case 'settled':
+          return `${outcome.reply} Say nothing more.`;
+        case 'note':
+          return `${outcome.reply} No review card is on screen. If a detail is missing, ask only for that detail; do not ask the student to repeat the change.`;
+        default:
+          break;
+      }
+      if (open && name !== 'revise_draft') return describeCallCard(open);
+      // The device saw no planner request in these words, but the agent did
+      // (including a revision to an open card): read the same words once more
+      // with the planner (a card at most).
+      if (reading?.text) {
+        const fresh = await runPlanner(reading.text);
+        if (!isCurrent() || closingRef.current)
+          throw new Error(
+            'Request cancelled because conversational turn updated.',
+          );
+        if (fresh.kind === 'card') return describeCallCard(fresh.proposal);
+        if (fresh.kind === 'note') {
+          if (open) return describeCallCard(open);
+          return `${fresh.reply} No review card is on screen. If a detail is missing, ask only for that detail; do not ask the student to repeat the change.`;
+        }
+      }
+      if (open) return describeCallCard(open);
+      return 'No planner change was found in what the student said, so nothing was changed. Ask what they would like to change.';
+    },
+    [runPlanner, userId],
   );
 
   const handleOnlineSnapshot = useCallback(
@@ -981,9 +1296,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           }
           if (reviewRef.current.proposal) return;
           setNotice(NO_CARD_NOTE);
-          void onlineRef.current?.sendContext(
-            'No review card is on screen and nothing was changed. Do not say a card is shown unless an app update says so. Ask the student to say the change again with a title, and a day and time if it needs one.',
-          );
+          void onlineRef.current?.sendContext(NO_CARD_CONTEXT);
         };
         check.timer = setTimeout(verify, CARD_CLAIM_GRACE_MS);
       }
@@ -1020,10 +1333,15 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         }`;
         setNotice(fallbackMessage);
         setReply(fallbackMessage);
-        if (canFallBack) resumeOfflineCall(reminderId, userId);
+        if (!canFallBack) return;
+        // The connection can fail while the reminder is still being read
+        // (it connects meanwhile): offline voice starts after the reading.
+        await waitForGreeting();
+        if (closingRef.current || attempt !== attemptRef.current) return;
+        resumeOfflineCall(reminderId, userId);
       })();
     },
-    [reminderId, setOnlineView, stopOnline, userId],
+    [reminderId, setOnlineView, stopOnline, userId, waitForGreeting],
   );
 
   const handleToggleMute = useCallback((): void => {
@@ -1357,6 +1675,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             onMeter={setOnlineMeter}
             onSpokenTurn={handleOnlineTurn}
             onSnooze={handleAgentSnooze}
+            onPlannerTool={handlePlannerTool}
+            beforeAudio={waitForGreeting}
           />
         ) : null}
       </SafeAreaView>

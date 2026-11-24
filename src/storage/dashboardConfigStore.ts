@@ -33,9 +33,9 @@ export interface DashboardWidgetMeta {
 
 export const ALL_DASHBOARD_WIDGET_IDS: readonly DashboardWidgetId[] = [
   'up_next',
-  'free_study_blocks',
   'today_schedule',
   'tasks_due',
+  'free_study_blocks',
   'upcoming_reminders',
   'pinned_notes',
 ] as const;
@@ -98,11 +98,11 @@ export const DASHBOARD_PRESETS: Record<DashboardPresetId, DashboardPreset> = {
     id: 'class_focus',
     label: 'Class & Free Time',
     description:
-      'Focus on live classes, open study blocks, and today’s schedule',
+      'Focus on live classes, today’s schedule, and open study blocks',
     widgetOrder: [
       'up_next',
-      'free_study_blocks',
       'today_schedule',
+      'free_study_blocks',
       'tasks_due',
       'upcoming_reminders',
       'pinned_notes',

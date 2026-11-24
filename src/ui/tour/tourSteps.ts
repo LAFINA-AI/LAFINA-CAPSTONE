@@ -121,19 +121,19 @@ export const buildWalkthroughSteps = ({
     body: 'Home brings live schedules, due tasks, alarms and pinned notes together — saved on this phone first so it works offline.',
     highlights: [
       {
-        label: 'Live Up Next hero',
+        label: 'Up Next countdown card',
         detail:
-          'Shows what class, event, alarm or task is live or next, with time remaining and room.',
+          'Shows what class, event, alarm or task is live or next with a live countdown ring and time remaining.',
       },
       {
-        label: 'Search & Ask bar',
+        label: 'Quick Actions',
         detail:
-          'Filter classes, tasks and notes right here, or tap Ask to jump straight into AI chat.',
+          'Add a task, set an alarm, jump into a Focus session, or open Ask USTP directly from Home.',
       },
       {
-        label: 'Filters & quick check-off',
+        label: 'Live Today timeline',
         detail:
-          'Switch All, Tasks, Alarms or Docs, tick off tasks directly, or tap the bell for Alarms.',
+          'Tracks finished sessions, live free-time gaps with one-tap Focus, and what is coming up next.',
       },
     ],
     anchor: 'tab-dashboard',

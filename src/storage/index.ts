@@ -171,6 +171,7 @@ export type {ModernAiButtonDesignId, ModernThemeId} from './modernThemeStore';
 export {
   avatarSeedStore,
   generateAvatarSeed,
+  normalizeAvatarSeed,
   PROFILE_AVATAR_SEED_KEY,
 } from './avatarSeedStore';
 export {

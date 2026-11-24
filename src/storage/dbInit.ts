@@ -194,6 +194,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       migrateKnowledgeCollections(tx);
     },
   },
+  {
+    version: 33,
+    description:
+      'Synced character avatar seed on users (null = default neutral profile person; device photos stay local-only)',
+    up: tx => {
+      addColumnIfMissing(tx, 'users', 'avatar_seed', 'TEXT');
+    },
+  },
 ];
 
 const targetVersionOf = (migrations: readonly SchemaMigration[]): number =>

@@ -4,9 +4,18 @@ import {OnlineReminderConversation} from '../../src/ui/components/call/OnlineRem
 import {useVoiceConversation} from '../../src/ui/hooks/useVoiceConversation';
 import {createCallMeter} from '../../src/ui/hooks/callMeter';
 
-jest.mock('../../src/ui/hooks/useVoiceConversation', () => ({useVoiceConversation: jest.fn()}));
+jest.mock('../../src/ui/hooks/useVoiceConversation', () => ({
+  useVoiceConversation: jest.fn(),
+}));
 jest.mock('../../src/ui/contexts/ThemeContext', () => ({
-  useTheme: () => ({colors: {primary: 'red', textPrimary: 'black', textSecondary: 'gray', border: 'gray'}}),
+  useTheme: () => ({
+    colors: {
+      primary: 'red',
+      textPrimary: 'black',
+      textSecondary: 'gray',
+      border: 'gray',
+    },
+  }),
 }));
 
 it('starts after mounting with the reminder in the start-of-call context and ends on unmount', async () => {
@@ -16,24 +25,36 @@ it('starts after mounting with the reminder in the start-of-call context and end
   let phase = 'connecting';
   const meter = createCallMeter();
   (useVoiceConversation as jest.Mock).mockImplementation(() => ({
-    start, end, endAndWait: async () => undefined, setMuted: jest.fn(),
-    sendContext, snapshot: {phase, muted: false, turns: []}, meter,
+    start,
+    end,
+    endAndWait: async () => undefined,
+    setMuted: jest.fn(),
+    sendContext,
+    snapshot: {phase, muted: false, turns: []},
+    meter,
   }));
-  const props = {userId: 'student', task: 'Review math', onSnapshot: jest.fn(), onSpokenTurn: jest.fn()};
+  const props = {
+    userId: 'student',
+    task: 'Review math',
+    onSnapshot: jest.fn(),
+    onSpokenTurn: jest.fn(),
+  };
   const screen = render(<OnlineReminderConversation {...props} />);
   expect(start).toHaveBeenCalledTimes(1);
   const options = (useVoiceConversation as jest.Mock).mock.calls[0][1];
   expect(options.extraContext).toContain('"Review math"');
   expect(options.extraContext).toMatch(/do not announce or repeat it/);
   phase = 'listening';
-  await act(async () => { screen.rerender(<OnlineReminderConversation {...props} />); });
+  await act(async () => {
+    screen.rerender(<OnlineReminderConversation {...props} />);
+  });
   // Nothing is sent mid-call: the server would drop a contextual update.
   expect(sendContext).not.toHaveBeenCalled();
   screen.unmount();
   expect(end).toHaveBeenCalledTimes(1);
 });
 
-it('lets the agent read and snooze during a reminder call, but not change the planner', async () => {
+it('lets the agent read and snooze, and hands planner tools to the call screen', async () => {
   const {actionService} = require('../../src/ai/voiceActions/actionService');
   const {
     REMINDER_CALL_WRITE_NOTE,
@@ -52,6 +73,7 @@ it('lets the agent read and snooze during a reminder call, but not change the pl
     .spyOn(actionService, 'executeTool')
     .mockResolvedValue('Snoozing this reminder for 15 minutes.');
   const onSnooze = jest.fn(async () => 'Snoozing');
+  const onPlannerTool = jest.fn(async (name: string) => `screen:${name}`);
   const screen = render(
     <OnlineReminderConversation
       userId="student"
@@ -59,18 +81,27 @@ it('lets the agent read and snooze during a reminder call, but not change the pl
       onSnapshot={jest.fn()}
       onSpokenTurn={jest.fn()}
       onSnooze={onSnooze}
+      onPlannerTool={onPlannerTool}
     />,
   );
   const {onClientTool} = (useVoiceConversation as jest.Mock).mock.calls[0][1];
-  // Planner changes come from the student's own words on the call screen.
+  // Planner tools are answered by the call screen from the student's own
+  // words; the model's arguments never reach the action service.
   for (const name of [
     'prepare_lafina_action',
     'confirm_draft',
     'prepare_multi_action',
   ])
-    expect(await onClientTool(name, {}, () => true)).toBe(
-      REMINDER_CALL_WRITE_NOTE,
+    expect(await onClientTool(name, {title: 'x'}, () => true)).toBe(
+      `screen:${name}`,
     );
+  // Other writes are refused without asking the student to repeat anything.
+  expect(await onClientTool('save_lafina_memory', {}, () => true)).toBe(
+    REMINDER_CALL_WRITE_NOTE,
+  );
+  expect(REMINDER_CALL_WRITE_NOTE).not.toMatch(
+    /say (?:the|it|that) (?:change )?again/i,
+  );
   expect(execute).not.toHaveBeenCalled();
   expect(await onClientTool('snooze_reminder', {minutes: 15}, () => true)).toBe(
     'Snoozing this reminder for 15 minutes.',

@@ -283,7 +283,11 @@ export const guestMigration = {
         removeAcademicMemories(cloudUserId, tx);
       }
       dashboardConfigStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
-      avatarSeedStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
+      const guestAvatarSeedApplied = avatarSeedStore.transferFromGuest(
+        tx,
+        GUEST_USER_ID,
+        cloudUserId,
+      );
       // Merge guest flashcard decks with any existing cloud decks before generic skills.* re-key.
       if (cloudUserId !== GUEST_USER_ID) {
         const guestDecksRow = tx.executeSync(
@@ -566,7 +570,11 @@ export const guestMigration = {
          LIMIT 1`,
         [cloudUserId, cloudUserId],
       ).rows?.[0];
-      if (!existingProfileMeta || guestUsernameApplied) {
+      if (
+        !existingProfileMeta ||
+        guestUsernameApplied ||
+        guestAvatarSeedApplied
+      ) {
         syncOutboxStore.enqueueMutation(
           cloudUserId,
           'profile',

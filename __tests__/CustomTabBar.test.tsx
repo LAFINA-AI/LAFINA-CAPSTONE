@@ -201,13 +201,20 @@ describe('CustomTabBar (Phase 03 Modern Curved SVG + Classic Pill)', () => {
     darkActiveUi.unmount();
   });
 
-  test('renders all 5 selectable AI button designs with distinct SVG structures and theme-scoped IDs', () => {
+  test('renders all 12 selectable AI button designs (static & animated) with distinct SVG structures and theme-scoped IDs', () => {
     const expectedPathCounts: Record<ModernAiButtonDesignId, number> = {
       synth_orb: 8,
       liquid_pearl: 1,
       eclipse_dial: 2,
       prism_lens: 4,
       acoustic_core: 6,
+      neural_mesh: 3,
+      pulse_wave: 6,
+      orbital_rings: 3,
+      aurora_breathe: 2,
+      equalizer_live: 1,
+      celestial_spin: 3,
+      quantum_sweep: 4,
     };
 
     expect(MODERN_AI_BUTTON_DESIGNS.map(d => d.id)).toEqual([

@@ -241,6 +241,8 @@ describe('schema migrations', () => {
           ? ['generation']
           : table === 'remember_me'
           ? ['password']
+          : table === 'users'
+          ? ['avatar_seed']
           : [],
       ]);
     }

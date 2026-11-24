@@ -63,12 +63,15 @@ export const minutesToHHMM = (minutes: number): string => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-export const formatTimeLabel = (hhmm: string): string => {
+export const formatTimeLabel = (hhmm: string, use24h = false): string => {
   const mins = parseTimeMinutes(hhmm);
   if (mins === null) return hhmm;
   const normalized = mins % 1440;
   const h = Math.floor(normalized / 60);
   const m = normalized % 60;
+  if (use24h) {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
   const ampm = h >= 12 ? 'PM' : 'AM';
   const displayHour = h % 12 === 0 ? 12 : h % 12;
   return `${displayHour}:${String(m).padStart(2, '0')} ${ampm}`;

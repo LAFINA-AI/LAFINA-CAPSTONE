@@ -8,7 +8,10 @@ import {
 } from './authUtils';
 import {GUEST_USER_ID, GUEST_USERNAME} from '../constants';
 import {syncOutboxStore} from './syncOutboxStore';
-import {buildProfileSyncPayload} from './profileSyncPayload';
+import {
+  buildProfileSyncPayload,
+  normalizeAvatarSeed,
+} from './profileSyncPayload';
 import {noteSessionChange} from './sessionEpoch';
 
 export interface User {
@@ -24,6 +27,7 @@ export interface User {
   isCloudLinked: boolean;
   cloudLinkedAt: string | null;
   avatarUri: string | null;
+  avatarSeed?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +54,7 @@ const mapStoredUser = (row: StoredUserRow): User => ({
     typeof row.avatar_uri === 'string' && row.avatar_uri
       ? row.avatar_uri
       : null,
+  avatarSeed: normalizeAvatarSeed(row.avatar_seed),
   createdAt: String(row.created_at),
   updatedAt: String(row.updated_at),
 });
@@ -115,6 +120,7 @@ export const userStore = {
       role: 'guest',
       isNewUser: true,
       avatarUri: null,
+      avatarSeed: null,
       timeFormat24h: false,
       weekStartsMonday: false,
       darkModeEnabled: false,
@@ -542,6 +548,7 @@ export const userStore = {
     }
   },
 
+  /** Device-local only: chosen photos stay on this phone and are never synced. */
   setAvatarUri: (userId: string, uri: string | null): void => {
     const now = new Date().toISOString();
     try {

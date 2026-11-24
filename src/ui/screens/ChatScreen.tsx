@@ -1,4 +1,6 @@
+import {ChatSyncNotice} from '../components/chat/ChatSyncNotice';
 import {ScreenOverlays} from '../navigation/RetainedTab';
+import type {CallNavigationRequest} from '../navigation/callNavigation';
 import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {
   View,
@@ -424,6 +426,8 @@ export interface ChatScreenProps {
   onCallLafina?: () => void;
   /** Opens a skill the student asked for in Chat (ADR-041), on their tap. */
   onOpenSkill?: (launch: SkillLaunch) => void;
+  openRequest?: CallNavigationRequest;
+  onOpenRequestHandled?: (requestId: string) => void;
 }
 
 export const ChatScreen = React.memo(function ChatScreenView({
@@ -432,6 +436,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
   onRefresh,
   onCallLafina,
   onOpenSkill,
+  openRequest,
+  onOpenRequestHandled,
 }: ChatScreenProps) {
   const [initialPage] = useState(() => {
     try {
@@ -2173,6 +2179,22 @@ export const ChatScreen = React.memo(function ChatScreenView({
   handleSendRef.current = handleSend;
   const handleStartUstpChatRef = useRef(handleStartUstpChat);
   handleStartUstpChatRef.current = handleStartUstpChat;
+  const openRequestHandledRef = useRef(onOpenRequestHandled);
+  openRequestHandledRef.current = onOpenRequestHandled;
+  const lastHandledChatRequestIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!openRequest || openRequest.ownerId !== userId) return;
+    if (lastHandledChatRequestIdRef.current === openRequest.requestId) return;
+    lastHandledChatRequestIdRef.current = openRequest.requestId;
+    if (openRequest.chatMode === 'ustp') {
+      const alreadyInUstp =
+        !isTemporaryChatRef.current && isUstpSessionId(shownChatIdRef.current);
+      if (!alreadyInUstp) {
+        handleStartUstpChatRef.current();
+      }
+    }
+    openRequestHandledRef.current?.(openRequest.requestId);
+  }, [openRequest, userId]);
   const handleLeaveBlockedUstpChatRef = useRef(handleLeaveBlockedUstpChat);
   handleLeaveBlockedUstpChatRef.current = handleLeaveBlockedUstpChat;
   const handleToggleOnlineRef = useRef(handleToggleOnline);
@@ -2234,42 +2256,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
     () => (
       <View>
         {chatSyncNoticeVisible && !isTemporaryChat ? (
-          <View
-            style={[
-              styles.noticeCard,
-              themed.headerButton,
-              isModern && styles.modernNoticeCard,
-            ]}
-            testID="chat-sync-notice"
-          >
-            <Text style={[styles.noticeText, themed.emptySubtitle]}>
-              Your chats are now saved to your account, so they show up on your
-              other phones. Attached files stay on this phone. You can change
-              this in Preferences.
-            </Text>
-            <View style={styles.noticeActions}>
-              <TouchableOpacity
-                onPress={() => acknowledgeChatSyncRef.current(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Keep syncing chat history"
-                testID="chat-sync-notice-keep"
-              >
-                <Text style={[styles.noticeAction, {color: colors.primary}]}>
-                  Got it
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => acknowledgeChatSyncRef.current(false)}
-                accessibilityRole="button"
-                accessibilityLabel="Keep chat history on this phone only"
-                testID="chat-sync-notice-off"
-              >
-                <Text style={[styles.noticeAction, {color: colors.primary}]}>
-                  Keep on this phone only
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <ChatSyncNotice
+            onChoice={keepSyncing => acknowledgeChatSyncRef.current(keepSyncing)}
+          />
         ) : null}
         {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
           <View
@@ -3331,11 +3320,6 @@ const styles = StyleSheet.create({
   noticeAction: {
     fontFamily: Fonts.heading,
     fontSize: FontSize.small,
-  },
-  noticeActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 20,
   },
   loadEarlierButton: {
     alignSelf: 'center',

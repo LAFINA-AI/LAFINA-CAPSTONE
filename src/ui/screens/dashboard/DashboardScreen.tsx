@@ -10,12 +10,19 @@ import {
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {AlertCircle, RefreshCw} from 'lucide-react-native';
-import {userStore, type DashboardWidgetId} from '../../../storage';
+import {
+  alarmsStore,
+  userStore,
+  type AlarmInput,
+  type DashboardWidgetId,
+} from '../../../storage';
 import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import {Fonts, FontSize, Layout, ModernLayout, Spacing} from '../../theme';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import {AddBlockModal} from '../calendar/components/AddBlockModal';
+import {AddTaskEventModal} from '../calendar/components/AddTaskEventModal';
+import {AlarmEditorModal} from '../calendar/components/AlarmEditorModal';
 import {
   CustomizeDashboardModal,
   DashboardHeader,
@@ -60,6 +67,8 @@ export const DashboardScreen = React.memo(function Dashboard({
   onOpenCalendarTab,
   onOpenNotesTab,
   onOpenChatTab,
+  onOpenAskUstp,
+  onOpenSkill,
 }: DashboardScreenProps) {
   const scrollRef = useRef<ScrollView>(null);
 
@@ -78,7 +87,7 @@ export const DashboardScreen = React.memo(function Dashboard({
       ? ModernLayout.navbarContentHeight + 36
       : Layout.navbarHeight + 28);
 
-  const {now, data, actions, blockModal} = useDashboardData({
+  const {now, data, actions, blockModal, taskModal} = useDashboardData({
     userId,
     refreshTrigger,
     isActive,
@@ -86,6 +95,7 @@ export const DashboardScreen = React.memo(function Dashboard({
   });
 
   const [customizeVisible, setCustomizeVisible] = useState(false);
+  const [alarmModalVisible, setAlarmModalVisible] = useState(false);
   const [scheduleFilter, setScheduleFilter] = useState(
     actions.config.scheduleFilterDefault,
   );
@@ -169,12 +179,45 @@ export const DashboardScreen = React.memo(function Dashboard({
   const openAllNotes = useCallback(() => onOpenNotesTab(), [onOpenNotesTab]);
   const openCustomize = useCallback(() => setCustomizeVisible(true), []);
   const closeCustomize = useCallback(() => setCustomizeVisible(false), []);
+  const openSetAlarm = useCallback(() => setAlarmModalVisible(true), []);
+  const closeSetAlarm = useCallback(() => setAlarmModalVisible(false), []);
+  const clearScheduleFilter = useCallback(() => setScheduleFilter('all'), []);
+  const openFocus = useCallback(() => {
+    if (onOpenSkill) {
+      onOpenSkill({skill: 'pomodoro', action: 'open'});
+      return;
+    }
+    onOpenNotesTab();
+  }, [onOpenSkill, onOpenNotesTab]);
+  const openAskUstp = useCallback(() => {
+    if (onOpenAskUstp) {
+      onOpenAskUstp();
+      return;
+    }
+    onOpenChatTab();
+  }, [onOpenAskUstp, onOpenChatTab]);
   const askLafina = useCallback(
     () =>
       onOpenChatTab("What's on my schedule today and when am I free to study?"),
     [onOpenChatTab],
   );
   const refreshData = actions.refresh;
+  const handleSaveAlarm = useCallback(
+    (input: AlarmInput): string | null => {
+      try {
+        alarmsStore.create(userId, input);
+        setAlarmModalVisible(false);
+        refreshData();
+        onRefresh();
+        return null;
+      } catch (err) {
+        return err instanceof Error
+          ? err.message
+          : 'Could not save this alarm right now.';
+      }
+    },
+    [userId, refreshData, onRefresh],
+  );
   const pullToRefresh = useCallback(() => {
     refreshData();
     onRefresh();
@@ -280,12 +323,18 @@ export const DashboardScreen = React.memo(function Dashboard({
             timeFormat24h={timeFormat24h}
             data={data}
             visibleWidgets={visibleWidgets}
+            scheduleFilter={scheduleFilter}
+            onClearScheduleFilter={clearScheduleFilter}
             onToggleTask={actions.toggleTaskComplete}
             onPressTask={pressTask}
             onPressScheduleItem={handleOpenScheduleItem}
             onPressReminder={pressReminder}
             onPressNote={pressNote}
             onAddStudyBlock={actions.openStudyBlockSlot}
+            onOpenAddTask={actions.openAddTaskModal}
+            onOpenSetAlarm={openSetAlarm}
+            onOpenFocus={openFocus}
+            onOpenAskUstp={openAskUstp}
             onOpenCalendarTab={onOpenCalendarTab}
             onOpenNotesTab={onOpenNotesTab}
             onOpenChatTab={onOpenChatTab}
@@ -347,6 +396,20 @@ export const DashboardScreen = React.memo(function Dashboard({
 
       {blockModal.visible && (
         <AddBlockModal state={blockModal} timeFormat24h={timeFormat24h} />
+      )}
+
+      {taskModal.visible && (
+        <AddTaskEventModal state={taskModal} timeFormat24h={timeFormat24h} />
+      )}
+
+      {alarmModalVisible && (
+        <AlarmEditorModal
+          visible={alarmModalVisible}
+          alarm={null}
+          use24h={timeFormat24h}
+          onSave={handleSaveAlarm}
+          onClose={closeSetAlarm}
+        />
       )}
 
       {customizeVisible && (

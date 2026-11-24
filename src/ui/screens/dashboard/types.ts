@@ -8,6 +8,7 @@ import type {
   Reminder,
   Task,
 } from '../../../storage';
+import type {SkillLaunch} from '../../../skills/skillLaunch';
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
 import type {TourAnchor} from '../../tour/tourSteps';
 
@@ -22,6 +23,8 @@ export interface DashboardScreenProps {
   ) => void;
   onOpenNotesTab: (noteId?: string) => void;
   onOpenChatTab: (prefillPrompt?: string) => void;
+  onOpenAskUstp?: () => void;
+  onOpenSkill?: (launch: SkillLaunch) => void;
 }
 
 export interface DashboardScheduleItem {
@@ -93,6 +96,7 @@ export interface DashboardActions {
   setScheduleFilter: (filter: DashboardScheduleFilter) => void;
   toggleTaskComplete: (task: Task) => void;
   openStudyBlockSlot: (slot: FreeStudyBlock) => void;
+  openAddTaskModal: () => void;
   refresh: () => void;
 }
 
@@ -102,7 +106,7 @@ export interface DashboardLoadedData {
   greetingName: string;
   academicBadge: string | null;
   avatarUri?: string | null;
-  avatarSeed?: string;
+  avatarSeed?: string | null;
   ustpSchoolEnabled?: boolean;
   todayItems: DashboardScheduleItem[];
   upNext: UpNextSummary;

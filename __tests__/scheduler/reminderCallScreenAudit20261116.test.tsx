@@ -265,7 +265,7 @@ describe('online reminder call: what LAFINA says matches the screen', () => {
       /Buy Milk/i,
     );
     expect(mockSendContext).toHaveBeenCalledWith(
-      expect.stringMatching(/review card is now shown on screen/i),
+      expect.stringMatching(/review card is now on screen/i),
     );
   });
 
@@ -297,7 +297,7 @@ describe('online reminder call: what LAFINA says matches the screen', () => {
 
     await waitFor(() =>
       expect(screen.getByTestId('reminder-call-notice')).toHaveTextContent(
-        /No card was prepared/,
+        /No card is on screen/,
       ),
     );
     expect(mockSendContext).toHaveBeenCalledWith(

@@ -8,7 +8,13 @@ export type ModernThemeId =
   | 'ocean'
   | 'rose'
   | 'sunset'
-  | 'slate';
+  | 'slate'
+  | 'oled'
+  | 'midnight'
+  | 'cyber'
+  | 'amber'
+  | 'sakura'
+  | 'matcha';
 
 export const MODERN_THEME_IDS: readonly ModernThemeId[] = [
   'violet',
@@ -17,6 +23,12 @@ export const MODERN_THEME_IDS: readonly ModernThemeId[] = [
   'rose',
   'sunset',
   'slate',
+  'oled',
+  'midnight',
+  'cyber',
+  'amber',
+  'sakura',
+  'matcha',
 ] as const;
 
 export const MODERN_THEME_SETTING_KEY = 'modern_theme';
@@ -36,7 +48,14 @@ export type ModernAiButtonDesignId =
   | 'liquid_pearl'
   | 'eclipse_dial'
   | 'prism_lens'
-  | 'acoustic_core';
+  | 'acoustic_core'
+  | 'neural_mesh'
+  | 'pulse_wave'
+  | 'orbital_rings'
+  | 'aurora_breathe'
+  | 'equalizer_live'
+  | 'celestial_spin'
+  | 'quantum_sweep';
 
 export const MODERN_AI_BUTTON_DESIGN_IDS: readonly ModernAiButtonDesignId[] = [
   'synth_orb',
@@ -44,6 +63,13 @@ export const MODERN_AI_BUTTON_DESIGN_IDS: readonly ModernAiButtonDesignId[] = [
   'eclipse_dial',
   'prism_lens',
   'acoustic_core',
+  'neural_mesh',
+  'pulse_wave',
+  'orbital_rings',
+  'aurora_breathe',
+  'equalizer_live',
+  'celestial_spin',
+  'quantum_sweep',
 ] as const;
 
 export const MODERN_AI_BUTTON_DESIGN_SETTING_KEY = 'modern_ai_button_design';

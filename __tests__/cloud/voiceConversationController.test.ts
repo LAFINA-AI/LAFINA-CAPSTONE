@@ -1604,3 +1604,39 @@ test('turning Online Mode off during connectivity checking does not request micr
   expect(calls.capabilities).toBe(0);
   controller.dispose();
 });
+
+describe('reminder call: connect while the reminder is read aloud', () => {
+  it('creates the server session at once but opens audio only after beforeAudio', async () => {
+    const {controller, calls, deps} = setup();
+    const greeting = deferred<void>();
+    deps.beforeAudio = () => greeting.promise;
+    const started = controller.start();
+    // Let the capability and session requests run.
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+    expect(calls.createSession).toHaveLength(1);
+    expect(calls.transportStart).toHaveLength(0);
+    greeting.resolve();
+    await started;
+    expect(calls.transportStart).toHaveLength(1);
+  });
+
+  it('ending during the reading closes the server session and never opens audio', async () => {
+    const {controller, calls, deps} = setup();
+    const greeting = deferred<void>();
+    deps.beforeAudio = () => greeting.promise;
+    const started = controller.start();
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+    controller.end();
+    greeting.resolve();
+    await started;
+    expect(calls.transportStart).toHaveLength(0);
+    expect(calls.end).toHaveLength(1);
+  });
+
+  it('tells the agent that "it" is this reminder and never to ask for a repeat', () => {
+    const text = reminderCallContext('Review math');
+    expect(text).toMatch(/"it", "this" and "the reminder" mean this reminder/);
+    expect(text).toMatch(/prepare_lafina_action/);
+    expect(text).toMatch(/never ask the student to say a change again/i);
+  });
+});

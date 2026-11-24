@@ -108,6 +108,12 @@ export interface VoiceConversationDeps {
    */
   quietOpening?: boolean;
   /**
+   * Waited for after the server session is ready and before the microphone
+   * and speaker are opened. A reminder call sets up the session while its
+   * greeting is still being read aloud, then starts audio when it ends.
+   */
+  beforeAudio?(): Promise<void>;
+  /**
    * LAFINA's opening line for this call (tone, name, time of day). Used only
    * when the server reports `openingLine`; otherwise the agent's own line.
    */
@@ -249,7 +255,7 @@ export const reminderCallContext = (
     snoozeDefault
       ? `, or ${snoozeDefault} minutes (their usual snooze) if they name none`
       : ''
-  }. A planner change appears as a card only when an app update says a card is shown; never say a card is on screen otherwise.`;
+  }. In this call "it", "this" and "the reminder" mean this reminder: to move it to another time or day, call prepare_lafina_action once with what the student said. The app reads the student's own words and the tool answer tells you exactly what is on screen; repeat that, and never ask the student to say a change again that they already said. If the answer says a detail is missing, ask only for that detail. Never say a card is on screen unless a tool answer or app update says so.`;
 };
 
 /** A capabilities answer fetched by `prepare()` is reused this long. */
@@ -698,6 +704,17 @@ export class VoiceConversationController {
       return;
     }
     this.abort = null;
+    if (this.deps.beforeAudio) {
+      await this.deps.beforeAudio().catch(() => undefined);
+      if (stale()) {
+        closeLateSession(session.data.sessionId);
+        return;
+      }
+      if (!this.checkAdmission(gen)) {
+        closeLateSession(session.data.sessionId);
+        return;
+      }
+    }
     if (this.transportEndingPending) {
       await this.transportEnding.catch(() => undefined);
       if (stale()) {

@@ -4,6 +4,7 @@ import {reconcileReminderDelivery} from '../scheduler';
 import {runAttachmentCleanup} from '../storage/attachmentCleanup';
 import {CHAT_LIMIT_REASON, chatSyncStore} from '../storage/chatSyncStore';
 import {db, DatabaseTransaction} from '../storage/database';
+import {normalizeAvatarSeed} from '../storage/profileSyncPayload';
 import {syncConflictStore} from '../storage/syncConflictStore';
 import {syncMetadataStore} from '../storage/syncMetadataStore';
 import {OutboxItem, syncOutboxStore} from '../storage/syncOutboxStore';
@@ -14,6 +15,7 @@ import type {
   SyncPayload,
 } from '../storage/syncTypes';
 import {userStore} from '../storage/userStore';
+import {generateId} from '../utils';
 import {emitChatRemoteChanged} from './chatSyncEvents';
 import {
   authoritativeSyncEntityTypes,
@@ -111,6 +113,38 @@ interface AppliedChange {
 }
 
 const ACCOUNT_SCOPE = 'account';
+const serversWithoutProfileAvatarSeed = new Set<string>();
+const pendingAvatarSeedCompatRetries = new Map<string, string>();
+
+const activeSyncServerKey = (): string => cloudClient.getBaseUrl();
+
+const stripAvatarSeed = (payload: SyncPayload): SyncPayload => {
+  if (!Object.prototype.hasOwnProperty.call(payload, 'avatar_seed')) {
+    return payload;
+  }
+  const copy: SyncPayload = {...payload};
+  delete copy.avatar_seed;
+  return copy;
+};
+
+const isProfileAvatarSeedValidationRejection = (
+  result: MutationResult,
+  sent: OutboundMutation,
+): boolean => {
+  if (result.entityType !== 'profile') return false;
+  if (!Object.prototype.hasOwnProperty.call(sent.payload, 'avatar_seed')) {
+    return false;
+  }
+  const reason = (result.reason ?? '').toLowerCase();
+  if (!reason || reason.includes('conflict')) return false;
+  return (
+    reason.includes('invalid_payload') ||
+    reason.includes('validation') ||
+    reason.includes('extra') ||
+    reason.includes('avatar_seed') ||
+    reason.includes('schema')
+  );
+};
 const OUTBOX_BATCH_SIZE = 100;
 const MAX_SYNC_REQUESTS = 100;
 const MAX_BATCH_BYTES = 768 * 1024;
@@ -332,20 +366,43 @@ const applyProfile = (
     'longest_class_gap',
     '1 hour',
   );
-  const userUpdate = tx.executeSync(
-    `UPDATE users
-     SET username = ?, time_format_24h = ?, week_starts_monday = ?,
-         dark_mode = ?, updated_at = ?
-     WHERE id = ?`,
-    [
-      username,
-      0,
-      booleanOrDefault(payload, 'week_starts_monday', false) ? 1 : 0,
-      booleanOrDefault(payload, 'dark_mode', false) ? 1 : 0,
-      change.updatedAt,
-      localUserId,
-    ],
+  const hasAvatarSeedField = Object.prototype.hasOwnProperty.call(
+    payload,
+    'avatar_seed',
   );
+  const incomingAvatarSeed = hasAvatarSeedField
+    ? normalizeAvatarSeed(nullableString(payload, 'avatar_seed'))
+    : undefined;
+  const userUpdate = hasAvatarSeedField
+    ? tx.executeSync(
+        `UPDATE users
+         SET username = ?, time_format_24h = ?, week_starts_monday = ?,
+             dark_mode = ?, avatar_seed = ?, updated_at = ?
+         WHERE id = ?`,
+        [
+          username,
+          0,
+          booleanOrDefault(payload, 'week_starts_monday', false) ? 1 : 0,
+          booleanOrDefault(payload, 'dark_mode', false) ? 1 : 0,
+          incomingAvatarSeed ?? null,
+          change.updatedAt,
+          localUserId,
+        ],
+      )
+    : tx.executeSync(
+        `UPDATE users
+         SET username = ?, time_format_24h = ?, week_starts_monday = ?,
+             dark_mode = ?, updated_at = ?
+         WHERE id = ?`,
+        [
+          username,
+          0,
+          booleanOrDefault(payload, 'week_starts_monday', false) ? 1 : 0,
+          booleanOrDefault(payload, 'dark_mode', false) ? 1 : 0,
+          change.updatedAt,
+          localUserId,
+        ],
+      );
   if (userUpdate.rowsAffected !== 1) {
     throw new Error('The active local user disappeared during sync.');
   }
@@ -789,13 +846,18 @@ const formatMutation = (
         item.scopeType,
         item.scopeId,
       );
+  const outboundPayload =
+    item.entityType === 'profile' &&
+    serversWithoutProfileAvatarSeed.has(activeSyncServerKey())
+      ? stripAvatarSeed(item.payload)
+      : item.payload;
   return {
     mutationId: item.id,
     entityType: item.entityType,
     entityId: item.entityId,
     operation: item.operation,
     clientUpdatedAt: item.updatedAt,
-    payload: item.payload,
+    payload: outboundPayload,
     ...(resolvedBaseVersion === null ? {} : {baseVersion: resolvedBaseVersion}),
   };
 };
@@ -1204,6 +1266,9 @@ const persistMutationResults = (
   // Chats the server refused because the account has its most chats stay on
   // this phone; they are not conflicts and do not mark the sync as failed.
   const heldForLimit = new Set<string>();
+  // Older servers that do not yet accept profile.avatar_seed: strip the field
+  // and retry seamlessly so the rest of the profile still syncs without errors.
+  const deferredCompatRetries = new Set<string>();
   for (const result of response.rejected) {
     const sent = sentById.get(result.mutationId);
     if (!sent) {
@@ -1225,6 +1290,33 @@ const persistMutationResults = (
       heldForLimit.add(result.mutationId);
       continue;
     }
+    if (isProfileAvatarSeedValidationRejection(result, sent)) {
+      const retryId = generateId('mut');
+      const serverKey = activeSyncServerKey();
+      const reasonLower = (result.reason ?? '').toLowerCase();
+      if (reasonLower.includes('avatar_seed')) {
+        serversWithoutProfileAvatarSeed.add(serverKey);
+      } else {
+        pendingAvatarSeedCompatRetries.set(retryId, serverKey);
+      }
+      tx.executeSync(
+        `UPDATE sync_outbox
+         SET id = ?, payload = ?, status = 'pending', attempts = 0, updated_at = ?
+         WHERE id = ? AND user_id = ?`,
+        [
+          retryId,
+          JSON.stringify(stripAvatarSeed(sent.payload)),
+          new Date().toISOString(),
+          result.mutationId,
+          localUserId,
+        ],
+      );
+      deferredCompatRetries.add(result.mutationId);
+      continue;
+    }
+    // If a stripped retry still failed validation, the error was unrelated to
+    // avatar_seed; do not mark this server as incompatible.
+    pendingAvatarSeedCompatRetries.delete(result.mutationId);
     syncConflictStore.record(
       localUserId,
       {
@@ -1243,6 +1335,13 @@ const persistMutationResults = (
       tx,
     );
   }
+  for (const item of response.accepted) {
+    const compatServer = pendingAvatarSeedCompatRetries.get(item.mutationId);
+    if (compatServer) {
+      serversWithoutProfileAvatarSeed.add(compatServer);
+      pendingAvatarSeedCompatRetries.delete(item.mutationId);
+    }
+  }
   syncOutboxStore.acknowledgeMutations(
     localUserId,
     response.accepted.map(item => item.mutationId),
@@ -1254,12 +1353,20 @@ const persistMutationResults = (
     localUserId,
     response.rejected
       .map(item => item.mutationId)
-      .filter(mutationId => !heldForLimit.has(mutationId)),
+      .filter(
+        mutationId =>
+          !heldForLimit.has(mutationId) &&
+          !deferredCompatRetries.has(mutationId),
+      ),
     ACCOUNT_SCOPE,
     localUserId,
     tx,
   );
-  return response.rejected.length - heldForLimit.size;
+  return (
+    response.rejected.length -
+    heldForLimit.size -
+    deferredCompatRetries.size
+  );
 };
 
 const applyPage = (
@@ -1505,6 +1612,11 @@ const prepareOutboxBatch = (
 
 export const syncWorker = {
   getRetryAttempt: (): number => retryAttempt,
+
+  resetServerCompatibility: (): void => {
+    serversWithoutProfileAvatarSeed.clear();
+    pendingAvatarSeedCompatRetries.clear();
+  },
 
   onRemoteChanges: (listener: RemoteChangeListener): (() => void) => {
     remoteChangeListeners.add(listener);
