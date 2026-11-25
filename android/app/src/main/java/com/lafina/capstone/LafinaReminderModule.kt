@@ -586,6 +586,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     const val CALL_NOTIFICATION_ID = 7302
     /** Notify-only reminders; same per-reminder tag, so each reminder has its own notification. */
     const val REMINDER_NOTIFICATION_ID = 7303
+    private const val LOCK_SCREEN_CALL_REQUEST_CODE = 7305
 
     /** One lock per process for registry, cutover and claims (receiver vs. bridge threads). */
     private val DELIVERY_LOCK = Any()
@@ -790,7 +791,11 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         pending.put(row)
         scheduleCallDeadline(context, identity, row.getLong("deadlineMs"))
       }
-      val fullScreenIntent = callActivityPendingIntent(context, registration, ACTION_CALL)
+      // Tapping the notification opens LAFINA (after unlock). The full-screen intent
+      // targets the lock-screen call activity: MainActivity must not show over the
+      // keyguard, so aiming the full-screen intent at it only woke the screen.
+      val contentIntent = callActivityPendingIntent(context, registration, ACTION_CALL)
+      val fullScreenIntent = lockScreenCallPendingIntent(context, registration)
       val ringtoneUri = resolveChannelSoundUri(prefs.callRingtoneUri, RingtoneManager.TYPE_RINGTONE)
       val callWave =
         if (prefs.callVibrate) AlertPreferencesContract.callWaveform(prefs.callVibrationPattern)
@@ -807,7 +812,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
           .setAutoCancel(false)
           .setSound(ringtoneUri)
           .setVibrate(callWave ?: longArrayOf(0L))
-          .setContentIntent(fullScreenIntent)
+          .setContentIntent(contentIntent)
           .setFullScreenIntent(fullScreenIntent, true)
       val notification = builder.build()
       notification.flags = notification.flags or Notification.FLAG_INSISTENT
@@ -1142,27 +1147,69 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       }
     }
 
-    private fun callActivityPendingIntent(
-        context: Context,
-        registration: DeliveryRegistration,
-        action: String
-    ): PendingIntent {
-      val identity = registration.identity
-      val intent = Intent(context, MainActivity::class.java).apply {
+    /** The MainActivity intent that hands one call identity to JS (notification tap or lock-screen Answer). */
+    fun mainCallIntent(context: Context, identity: DeliveryIdentity, task: String, action: String): Intent =
+      Intent(context, MainActivity::class.java).apply {
         data = Uri.parse(identity.uri(action))
         putExtra("reminderId", identity.reminderId)
-        putExtra("task", registration.task)
+        putExtra("task", task)
         putExtra("action", action)
         putExtra(EXTRA_OWNER_ID, identity.ownerId)
         putExtra(EXTRA_GENERATION, identity.generation)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
       }
-      return PendingIntent.getActivity(
+
+    private fun callActivityPendingIntent(
+        context: Context,
+        registration: DeliveryRegistration,
+        action: String
+    ): PendingIntent =
+      PendingIntent.getActivity(
           context,
           IDENTITY_REQUEST_CODE,
+          mainCallIntent(context, registration.identity, registration.task, action),
+          PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+      )
+
+    private fun lockScreenCallPendingIntent(context: Context, registration: DeliveryRegistration): PendingIntent {
+      val identity = registration.identity
+      val intent = Intent(context, ReminderCallActivity::class.java).apply {
+        data = Uri.parse(identity.uri(ACTION_CALL) + "/lockscreen")
+        putExtra("reminderId", identity.reminderId)
+        putExtra("task", registration.task)
+        putExtra(EXTRA_OWNER_ID, identity.ownerId)
+        putExtra(EXTRA_GENERATION, identity.generation)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+      }
+      return PendingIntent.getActivity(
+          context,
+          LOCK_SCREEN_CALL_REQUEST_CODE,
           intent,
           PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
       )
+    }
+
+    /** True while this exact call generation is still ringing (not answered, declined or timed out). */
+    fun isRingingCall(context: Context, identity: DeliveryIdentity): Boolean = synchronized(DELIVERY_LOCK) {
+      val row = PendingReminderCalls(context).get(identity.ownerId, identity.reminderId, identity.generation)
+          ?: return@synchronized false
+      row.optString("action") == ACTION_CALL && !row.optBoolean("silenced") &&
+          row.optLong("deadlineMs", Long.MAX_VALUE) > System.currentTimeMillis()
+    }
+
+    /**
+     * Decline from the lock screen, without unlocking or JS: the ring ends now
+     * and follows the same native path as an unanswered ring (auto-snooze per
+     * the reminder's policy). JS adopts it on the next app open.
+     */
+    fun declineFromLockScreen(context: Context, identity: DeliveryIdentity) = synchronized(DELIVERY_LOCK) {
+      val pending = PendingReminderCalls(context)
+      val row = pending.get(identity.ownerId, identity.reminderId, identity.generation) ?: return@synchronized
+      if (row.optString("action") != ACTION_CALL || row.optBoolean("silenced")) return@synchronized
+      cancelCallDeadline(context, identity)
+      row.put("deadlineMs", System.currentTimeMillis())
+      pending.put(row)
+      handleCallDeadline(context, deadlineIntent(context, identity))
     }
 
     private fun resolveChannelSoundUri(configuredUri: String?, defaultType: Int): Uri? {

@@ -4,6 +4,7 @@ import android.content.ComponentName
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -18,5 +19,14 @@ class CallPrivacyTest {
     // https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/content/pm/ActivityInfo.java
     assertEquals(0, info.flags and 0x800000) // FLAG_SHOW_WHEN_LOCKED
     assertEquals(0, info.flags and 0x1000000) // FLAG_TURN_SCREEN_ON
+  }
+
+  @Test fun lockScreenCallActivityIsPrivateAndShowsWhenLocked() {
+    val context = InstrumentationRegistry.getInstrumentation().targetContext
+    @Suppress("DEPRECATION")
+    val info = context.packageManager.getActivityInfo(ComponentName(context, ReminderCallActivity::class.java), 0)
+    assertFalse(info.exported)
+    assertEquals(0x800000, info.flags and 0x800000) // FLAG_SHOW_WHEN_LOCKED
+    assertEquals(0x1000000, info.flags and 0x1000000) // FLAG_TURN_SCREEN_ON
   }
 }
