@@ -76,6 +76,14 @@ class ReminderCallActivity : Activity() {
     bind(intent)
   }
 
+  override fun onResume() {
+    super.onResume()
+    if (!waitingForUnlock && identity != null) {
+      handler.removeCallbacks(watcher)
+      handler.post(watcher)
+    }
+  }
+
   @Deprecated("Deprecated in Java")
   override fun onBackPressed() = Unit
 
@@ -127,6 +135,7 @@ class ReminderCallActivity : Activity() {
   }
 
   private fun answer() {
+    if (waitingForUnlock || isFinishing || isDestroyed) return
     val keyguard = getSystemService(KeyguardManager::class.java)
     if (keyguard?.isKeyguardLocked != true) {
       openInApp(LafinaReminderModule.ACTION_ANSWER)
@@ -136,6 +145,12 @@ class ReminderCallActivity : Activity() {
     keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
       override fun onDismissSucceeded() {
         waitingForUnlock = false
+        if (isFinishing || isDestroyed) return
+        val current = identity
+        if (current == null || !LafinaReminderModule.isRingingCall(this@ReminderCallActivity, current)) {
+          finish()
+          return
+        }
         openInApp(LafinaReminderModule.ACTION_ANSWER)
       }
       override fun onDismissCancelled() = resumeWatching()
