@@ -106,6 +106,18 @@
         android:turnScreenOn="true"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
 
+      <!-- Reminder call over the lock screen (ADR-037 amendment 2026-11-25): only the
+           incoming call, never the private app. Answer unlocks before opening LAFINA. -->
+      <activity
+        android:name=".ReminderCallActivity"
+        android:exported="false"
+        android:excludeFromRecents="true"
+        android:launchMode="singleTop"
+        android:taskAffinity="com.lafina.capstone.remindercall"
+        android:showWhenLocked="true"
+        android:turnScreenOn="true"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
       <service
         android:name=".LafinaReminderService"
         android:enabled="true"
