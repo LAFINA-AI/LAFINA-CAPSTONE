@@ -95,7 +95,9 @@ jobs:
           LAFINA_UPDATE_KEY_PEM: ${{ secrets.LAFINA_UPDATE_KEY_PEM }}
           LAFINA_GRADLE_ARGS: --no-daemon --max-workers=2
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/release-update.mjs --publish
+        run: |
+          chmod +x android/gradlew
+          node scripts/release-update.mjs --publish
       - name: Remove signing material
         if: always()
         run: rm -rf "$RUNNER_TEMP/lafina-signing"

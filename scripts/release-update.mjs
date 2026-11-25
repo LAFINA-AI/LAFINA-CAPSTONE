@@ -407,6 +407,7 @@ const main = async () => {
       [':app:assembleRelease', `-PreactNativeArchitectures=${RELEASE_ABI}`, '--console=plain', ...extra],
       { cwd: androidDir, stdio: 'inherit', shell: process.platform === 'win32' },
     );
+    if (result.error) fail(`Could not run Gradle (${result.error.message}).`);
     if (result.status !== 0) fail('The build failed. Fix the error above and run this again.');
   }
 
