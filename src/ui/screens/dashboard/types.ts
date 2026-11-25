@@ -3,10 +3,14 @@ import type {
   DashboardPresetId,
   DashboardScheduleFilter,
   DashboardWidgetId,
+  HomeDensityMode,
+  HomeQuickActionId,
   MinFreeGapMinutes,
   NoteSnapshot,
   Reminder,
   Task,
+  UpNextCardStyleId,
+  UpNextCardToneId,
 } from '../../../storage';
 import type {SkillLaunch} from '../../../skills/skillLaunch';
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
@@ -94,6 +98,12 @@ export interface DashboardActions {
   toggleWidgetVisibility: (id: DashboardWidgetId) => void;
   setMinFreeGapMinutes: (minutes: MinFreeGapMinutes) => void;
   setScheduleFilter: (filter: DashboardScheduleFilter) => void;
+  setUpNextStyle: (style: UpNextCardStyleId) => void;
+  setUpNextTone: (tone: UpNextCardToneId) => void;
+  setShowQuickActions: (show: boolean) => void;
+  toggleQuickAction: (actionId: HomeQuickActionId) => void;
+  setHomeDensity: (density: HomeDensityMode) => void;
+  setShowGreetingAvatar: (show: boolean) => void;
   toggleTaskComplete: (task: Task) => void;
   openStudyBlockSlot: (slot: FreeStudyBlock) => void;
   openAddTaskModal: () => void;

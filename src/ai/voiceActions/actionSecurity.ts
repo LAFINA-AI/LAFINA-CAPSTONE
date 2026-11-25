@@ -62,5 +62,6 @@ export function isToolExecutionPermitted(userId: string): ToolPermissionResult {
 
 export {
   containsPromptInjection,
+  containsSensitiveSecret,
   sanitizeUntrustedContext,
 } from './promptSanitizer';

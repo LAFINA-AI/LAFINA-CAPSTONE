@@ -119,9 +119,9 @@ export const readOnboardingIdentity = (userId: string): OnboardingIdentity => {
       return memories.find(m => m.id === entry?.id)?.text ?? '';
     };
     const name =
-      fact('name').match(/^Prefers to be called (.{1,60})\.$/)?.[1] || '';
+      fact('name').match(/^Prefers to be called (.{1,60})\.$/i)?.[1] || '';
     const tone = fact('tone').match(
-      /^Prefers a (casual|professional) conversational tone\.$/,
+      /^Prefers a (casual|professional) conversational tone\.$/i,
     )?.[1];
     return {
       preferredName: name,
@@ -151,6 +151,24 @@ export const memoriesForPrompt = (
   userId: string,
 ): {id: string; text: string}[] => {
   const memories = chatMemoryStore.forPrompt(userId);
+  if (isUstpSchoolEnabled(userId)) return memories;
+  const academic = academicMemoryIds(userId);
+  return memories.filter(
+    memory =>
+      !academic.has(memory.id) && !LEGACY_ACADEMIC_TEXT.test(memory.text),
+  );
+};
+
+/**
+ * Full active memory list for local recall queries (up to MAX_STORED_MEMORIES),
+ * still hiding USTP academic facts when school features are off.
+ */
+export const memoriesForRecall = (
+  userId: string,
+): {id: string; text: string}[] => {
+  const memories = chatMemoryStore
+    .list(userId)
+    .map(m => ({id: m.id, text: m.text}));
   if (isUstpSchoolEnabled(userId)) return memories;
   const academic = academicMemoryIds(userId);
   return memories.filter(
@@ -586,6 +604,188 @@ export const reconcileDeletedMemory = (
     studentSetupStore.update(userId, {
       explicit: setup.explicit.filter(k => k !== 'study'),
     });
+  }
+};
+
+const matchGoalFromFact = (text: string): MainGoal | null => {
+  const lower = text.trim().toLowerCase();
+  for (const [goal, fact] of Object.entries(GOAL_FACTS)) {
+    if (fact.toLowerCase() === lower) return goal as MainGoal;
+  }
+  return null;
+};
+
+/** Keeps `onboarding.memory.v1` and `studentSetupStore` aligned when chat/voice updates an onboarding slot. */
+export const syncChatUpdatedOnboardingSlot = (
+  userId: string,
+  memoryId: string,
+  slotKey: string | null | undefined,
+  text: string,
+): void => {
+  if (!slotKey || !memoryId) return;
+  try {
+    if (slotKey === 'onboarding:name') {
+      const match = text.match(/^Prefers to be called (.{1,60})\.$/i);
+      if (!match) return;
+      const name = match[1].trim();
+      const previous = readStored(userId);
+      const entries = {...(previous.entries ?? {})};
+      entries.name = {id: memoryId};
+      localSettingsStore.set(userId, KEY, JSON.stringify({entries}));
+      const setup = studentSetupStore.get(userId);
+      const explicit = setup.explicit.includes('name')
+        ? setup.explicit
+        : [...setup.explicit, 'name' as const];
+      studentSetupStore.update(userId, {preferredName: name, explicit});
+    } else if (slotKey === 'onboarding:study') {
+      const previous = readStored(userId);
+      const entries = {...(previous.entries ?? {})};
+      entries.study = {id: memoryId};
+      localSettingsStore.set(userId, KEY, JSON.stringify({entries}));
+    }
+  } catch {
+    // Best-effort alignment with onboarding metadata.
+  }
+};
+
+/** Keeps `studentSetupStore` consistent when the student edits an onboarding-owned memory in Profile. */
+export const reconcileEditedMemory = (
+  userId: string,
+  memory: {id: string; text: string; slotKey?: string | null},
+): void => {
+  try {
+    const previous = readStored(userId);
+    const entries = {...(previous.entries ?? {})};
+    let key: string | null = null;
+    if (memory.slotKey?.startsWith('onboarding:')) {
+      key = memory.slotKey.slice('onboarding:'.length);
+    } else {
+      for (const [k, entry] of Object.entries(entries)) {
+        if (entry?.id === memory.id) {
+          key = k;
+          break;
+        }
+      }
+    }
+    if (!key) return;
+    const setup = studentSetupStore.get(userId);
+    if (key === 'name') {
+      const parsed =
+        memory.text.match(/^Prefers to be called (.{1,60})\.$/i)?.[1]?.trim() ??
+        '';
+      studentSetupStore.update(userId, {
+        preferredName: parsed,
+        explicit: parsed
+          ? setup.explicit.includes('name')
+            ? setup.explicit
+            : [...setup.explicit, 'name' as const]
+          : setup.explicit.filter(k => k !== 'name'),
+      });
+    } else if (key === 'tone') {
+      const tone = memory.text
+        .match(/^Prefers a (casual|professional) conversational tone\.$/i)?.[1]
+        ?.toLowerCase();
+      const validTone =
+        tone === 'casual' || tone === 'professional' ? tone : null;
+      studentSetupStore.update(userId, {
+        tone: validTone,
+        explicit: validTone
+          ? setup.explicit.includes('tone')
+            ? setup.explicit
+            : [...setup.explicit, 'tone' as const]
+          : setup.explicit.filter(k => k !== 'tone'),
+      });
+    } else if (key === 'goal') {
+      const goal = matchGoalFromFact(memory.text);
+      studentSetupStore.update(userId, {
+        goal,
+        explicit: goal
+          ? setup.explicit.includes('goal')
+            ? setup.explicit
+            : [...setup.explicit, 'goal' as const]
+          : setup.explicit.filter(k => k !== 'goal'),
+      });
+    }
+  } catch {
+    // Best-effort alignment on Profile edit.
+  }
+};
+
+/** Re-links onboarding metadata when an Undo restores previously removed onboarding memories. */
+export const reconcileRestoredMemories = (
+  userId: string,
+  restored: ReadonlyArray<{id: string; text: string; slotKey?: string | null}>,
+): void => {
+  if (!restored.length) return;
+  try {
+    const previous = readStored(userId);
+    const entries = {...(previous.entries ?? {})};
+    let entriesChanged = false;
+    const setup = studentSetupStore.get(userId);
+    const nextSetup: Partial<typeof setup> = {};
+    const explicit = new Set(setup.explicit);
+    let explicitChanged = false;
+    for (const item of restored) {
+      const slot = item.slotKey ?? null;
+      if (
+        slot === 'onboarding:name' ||
+        /^Prefers to be called (.{1,60})\.$/i.test(item.text)
+      ) {
+        const name = item.text.match(/^Prefers to be called (.{1,60})\.$/i)?.[1];
+        if (name) {
+          entries.name = {id: item.id};
+          entriesChanged = true;
+          nextSetup.preferredName = name;
+          if (!explicit.has('name')) explicitChanged = true;
+          explicit.add('name');
+        }
+      } else if (
+        slot === 'onboarding:tone' ||
+        /^Prefers a (casual|professional) conversational tone\.$/i.test(
+          item.text,
+        )
+      ) {
+        const tone = item.text
+          .match(/^Prefers a (casual|professional) conversational tone\.$/i)?.[1]
+          ?.toLowerCase();
+        if (tone === 'casual' || tone === 'professional') {
+          entries.tone = {id: item.id};
+          entriesChanged = true;
+          nextSetup.tone = tone;
+          if (!explicit.has('tone')) explicitChanged = true;
+          explicit.add('tone');
+        }
+      } else if (slot === 'onboarding:goal' || matchGoalFromFact(item.text)) {
+        const goal = matchGoalFromFact(item.text);
+        if (goal) {
+          entries.goal = {id: item.id};
+          entriesChanged = true;
+          nextSetup.goal = goal;
+          if (!explicit.has('goal')) explicitChanged = true;
+          explicit.add('goal');
+        }
+      } else if (slot === 'onboarding:study') {
+        entries.study = {id: item.id};
+        entriesChanged = true;
+        if (!explicit.has('study')) explicitChanged = true;
+        explicit.add('study');
+      } else if (slot?.startsWith('onboarding:cor_')) {
+        const key = slot.slice('onboarding:'.length);
+        entries[key] = {id: item.id};
+        entriesChanged = true;
+      }
+    }
+    if (entriesChanged) {
+      localSettingsStore.set(userId, KEY, JSON.stringify({entries}));
+    }
+    if (Object.keys(nextSetup).length > 0 || explicitChanged) {
+      studentSetupStore.update(userId, {
+        ...nextSetup,
+        explicit: Array.from(explicit),
+      });
+    }
+  } catch {
+    // Best-effort alignment after Undo.
   }
 };
 

@@ -7,10 +7,13 @@ import {
   type ChatReviewResolutionStatus,
 } from '../storage/chatStore';
 import {chatReplyFormatStore} from '../storage/chatReplyFormatStore';
-import {chatMemoryStore} from '../storage/chatMemoryStore';
+import {chatMemoryStore, type ChatMemoryChanges} from '../storage/chatMemoryStore';
 import {
   memoriesForPrompt,
+  memoriesForRecall,
   reconcileClearedMemories,
+  reconcileDeletedMemory,
+  syncChatUpdatedOnboardingSlot,
 } from '../storage/onboardingMemory';
 import {
   captureUstpEligibility,
@@ -23,9 +26,18 @@ import {
   chatMemoryService,
 } from '../cloud/chatMemoryService';
 import {directProviderTestEnabled} from '../cloud/directProviderTest';
-import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
-import {studyPreference} from './studyPreference';
-import {explicitMemory} from './explicitMemory';
+import {
+  extractForgetSpecificMemoryQuery,
+  extractMemoryRecallTopic,
+  findMatchingMemories,
+  formatMemoryRecallReply,
+  isForgetAllMemoriesRequest,
+  isMemoryRecallQuery,
+} from './chatMemoryCommands';
+import {
+  extractEmbeddedMemory,
+  extractExplicitMemory,
+} from './explicitMemory';
 import {db} from '../storage/database';
 import {plannerQueries} from '../storage/plannerQueries';
 import type {PlannerWindow} from '../storage/plannerQueries';
@@ -612,19 +624,117 @@ export class ChatOrchestrator {
   ): Promise<SpokenTurnReview> {
     const trimmed = (text || '').trim();
     if (!trimmed) return {kind: 'none'};
-    const fact = explicitMemory(trimmed);
-    if (fact) {
+    const memoryMatch = extractExplicitMemory(trimmed);
+    if (memoryMatch) {
       if (!chatMemoryStore.isEnabled(userId))
         return {
           kind: 'memory',
           reply: 'Memory is turned off, so I did not save that.',
         };
-      const saved = chatMemoryStore.add(userId, fact);
+      const changes = chatMemoryStore.applyChanges(
+        userId,
+        {
+          add: [
+            {
+              text: memoryMatch.text,
+              tier: memoryMatch.tier,
+              category: memoryMatch.category,
+              ...(memoryMatch.slotKey ? {slotKey: memoryMatch.slotKey} : {}),
+              ...(memoryMatch.isPinned ? {isPinned: true} : {}),
+            },
+          ],
+          remove: [],
+        },
+        null,
+      );
+      const saved = changes.added[0] ?? null;
+      if (saved && memoryMatch.slotKey) {
+        syncChatUpdatedOnboardingSlot(
+          userId,
+          saved.id,
+          memoryMatch.slotKey,
+          saved.text,
+        );
+      }
+      if (changes.added.length || changes.removed.length) {
+        DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+          userId,
+          messageId: 'voice-turn',
+          changes,
+        });
+      }
       return {
         kind: 'memory',
         reply: saved
           ? 'I saved that in your memory.'
           : 'That is already in your memory.',
+      };
+    }
+    if (isMemoryRecallQuery(trimmed)) {
+      const enabled = chatMemoryStore.isEnabled(userId);
+      const memories = enabled ? memoriesForRecall(userId) : [];
+      return {
+        kind: 'local_answer',
+        reply: formatMemoryRecallReply(
+          memories,
+          enabled,
+          extractMemoryRecallTopic(trimmed),
+        ),
+      };
+    }
+    if (isForgetAllMemoriesRequest(trimmed)) {
+      const changes = chatMemoryStore.applyChanges(
+        userId,
+        {add: [], remove: [], clearAll: true},
+        null,
+      );
+      reconcileClearedMemories(userId);
+      if (changes.removed.length) {
+        DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+          userId,
+          messageId: 'voice-turn',
+          changes,
+        });
+      }
+      return {
+        kind: 'memory',
+        reply:
+          "I've forgotten all saved memories on this phone. Your chats are kept.",
+      };
+    }
+    const spokenForgetTarget = extractForgetSpecificMemoryQuery(trimmed);
+    if (spokenForgetTarget) {
+      const matched = findMatchingMemories(
+        chatMemoryStore.list(userId),
+        spokenForgetTarget,
+      );
+      if (matched.length === 0) {
+        return {
+          kind: 'memory',
+          reply: `I couldn't find a saved memory matching "${spokenForgetTarget}".`,
+        };
+      }
+      const changes = chatMemoryStore.applyChanges(
+        userId,
+        {add: [], remove: matched.map(m => m.id)},
+        null,
+      );
+      for (const removed of changes.removed) {
+        reconcileDeletedMemory(userId, removed.id);
+      }
+      if (changes.removed.length) {
+        DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+          userId,
+          messageId: 'voice-turn',
+          changes,
+        });
+      }
+      return {
+        kind: 'memory',
+        reply:
+          changes.removed.length === 1
+            ? "I've forgotten that from your memory."
+            : `I've forgotten ${changes.removed.length} matching memories.`,
       };
     }
     const refDate = options.referenceDate || new Date();
@@ -930,10 +1040,17 @@ export class ChatOrchestrator {
       };
     }
 
-    const preference = ustpRagOnly ? null : explicitMemory(trimmed);
-    if (preference) {
+    const memoryMatch = ustpRagOnly ? null : extractExplicitMemory(trimmed);
+    if (memoryMatch) {
       const enabled = chatMemoryStore.isEnabled(userId);
-      const isStudy = !!studyPreference(trimmed);
+      const isStudy = memoryMatch.isStudyPreference;
+      const addInput = {
+        text: memoryMatch.text,
+        tier: memoryMatch.tier,
+        category: memoryMatch.category,
+        ...(memoryMatch.slotKey ? {slotKey: memoryMatch.slotKey} : {}),
+        ...(memoryMatch.isPinned ? {isPinned: true} : {}),
+      };
       if (bench) trace?.bypass('memory save');
       if (isTemp && options.reviewSurface !== 'quick') {
         const reply =
@@ -976,13 +1093,21 @@ export class ChatOrchestrator {
         const changes = enabled
           ? chatMemoryStore.applyChanges(
               userId,
-              {add: [preference], remove: []},
+              {add: [addInput], remove: []},
               null,
             )
           : null;
         const msgId = `temp_asst_${Date.now()}_${Math.random()
           .toString(36)
           .slice(2, 7)}`;
+        if (changes?.added[0] && memoryMatch.slotKey) {
+          syncChatUpdatedOnboardingSlot(
+            userId,
+            changes.added[0].id,
+            memoryMatch.slotKey,
+            changes.added[0].text,
+          );
+        }
         if (changes && (changes.added.length || changes.removed.length)) {
           DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
             userId,
@@ -1016,7 +1141,7 @@ export class ChatOrchestrator {
           if (!enabled) return message;
           const changes = chatMemoryStore.applyChanges(
             userId,
-            {add: [preference], remove: []},
+            {add: [addInput], remove: []},
             sessionId,
             tx,
           );
@@ -1024,13 +1149,21 @@ export class ChatOrchestrator {
             if (!chatStore.setMemoryChanges(userId, message.id, changes, tx)) {
               throw new Error('The memory notice could not be saved.');
             }
-            tx.afterCommit?.(() =>
+            tx.afterCommit?.(() => {
+              if (changes.added[0] && memoryMatch.slotKey) {
+                syncChatUpdatedOnboardingSlot(
+                  userId,
+                  changes.added[0].id,
+                  memoryMatch.slotKey,
+                  changes.added[0].text,
+                );
+              }
               DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
                 userId,
                 messageId: message.id,
                 changes,
-              }),
-            );
+              });
+            });
             return {...message, memoryChanges: changes};
           }
           return message;
@@ -1066,6 +1199,174 @@ export class ChatOrchestrator {
       };
     }
 
+    if (!ustpRagOnly && isMemoryRecallQuery(trimmed)) {
+      const enabled = chatMemoryStore.isEnabled(userId);
+      const memories = enabled ? memoriesForRecall(userId) : [];
+      const reply = formatMemoryRecallReply(
+        memories,
+        enabled,
+        extractMemoryRecallTopic(trimmed),
+      );
+      const assistantMessage: ChatMessage = isTemp
+        ? {
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
+            sessionId: 'temp_chat',
+            sender: 'assistant',
+            content: reply,
+            localReply: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        : writeReply(
+            userId,
+            'assistant',
+            reply,
+            null,
+            {localReply: true},
+            sessionId,
+          );
+      if (options.speakReply) {
+        try {
+          await waitForCurrent(ttsService.speak(reply));
+        } catch (error) {
+          console.warn('[ChatOrchestrator] TTS playback error:', error);
+        }
+      }
+      return {
+        userMessage,
+        assistantMessage,
+        reply,
+        usedOnline: false,
+        intent: plainChatIntent(trimmed),
+      };
+    }
+
+    const forgetSpecificQuery = ustpRagOnly
+      ? null
+      : extractForgetSpecificMemoryQuery(trimmed);
+    if (forgetSpecificQuery) {
+      if (bench) {
+        trace?.bypass('forget specific memory');
+        const reply = benchmarkSkippedReply('forgetting a specific memory');
+        return {
+          userMessage,
+          assistantMessage: {
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
+            sessionId: 'temp_chat',
+            sender: 'assistant',
+            content: reply,
+            localReply: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          reply,
+          usedOnline: false,
+          intent: plainChatIntent(trimmed),
+        };
+      }
+      const existingMemories = chatMemoryStore.list(userId);
+      const matched = findMatchingMemories(
+        existingMemories,
+        forgetSpecificQuery,
+      );
+      const reply =
+        matched.length > 0
+          ? matched.length === 1
+            ? "I've forgotten that from your memory."
+            : `I've forgotten ${matched.length} matching memories.`
+          : `I couldn't find a saved memory matching "${forgetSpecificQuery}". You can check all saved memories in Profile -> What LAFINA remembers.`;
+      let assistantMessage: ChatMessage;
+      if (isTemp) {
+        const changes =
+          matched.length > 0
+            ? chatMemoryStore.applyChanges(
+                userId,
+                {add: [], remove: matched.map(m => m.id)},
+                null,
+              )
+            : null;
+        for (const removed of changes?.removed ?? []) {
+          reconcileDeletedMemory(userId, removed.id);
+        }
+        const tempId = `temp_asst_${Date.now()}_${Math.random()
+          .toString(36)
+          .slice(2, 7)}`;
+        if (changes && changes.removed.length > 0) {
+          DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+            userId,
+            messageId: tempId,
+            changes,
+          });
+        }
+        assistantMessage = {
+          id: tempId,
+          sessionId: 'temp_chat',
+          sender: 'assistant',
+          content: reply,
+          localReply: true,
+          ...(changes && changes.removed.length > 0
+            ? {memoryChanges: changes}
+            : {}),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        assistantMessage = db.transactionSync(tx => {
+          const message = writeReply(
+            userId,
+            'assistant',
+            reply,
+            null,
+            {localReply: true},
+            sessionId,
+            tx,
+          );
+          if (matched.length === 0) return message;
+          const changes = chatMemoryStore.applyChanges(
+            userId,
+            {add: [], remove: matched.map(m => m.id)},
+            sessionId,
+            tx,
+          );
+          if (changes.removed.length > 0) {
+            if (!chatStore.setMemoryChanges(userId, message.id, changes, tx)) {
+              throw new Error('The memory notice could not be saved.');
+            }
+            tx.afterCommit?.(() => {
+              for (const removed of changes.removed) {
+                reconcileDeletedMemory(userId, removed.id);
+              }
+              DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+                userId,
+                messageId: message.id,
+                changes,
+              });
+            });
+            return {...message, memoryChanges: changes};
+          }
+          return message;
+        });
+      }
+      if (options.speakReply) {
+        try {
+          await waitForCurrent(ttsService.speak(reply));
+        } catch (error) {
+          console.warn('[ChatOrchestrator] TTS playback error:', error);
+        }
+      }
+      return {
+        userMessage,
+        assistantMessage,
+        reply,
+        usedOnline: false,
+        intent: plainChatIntent(trimmed),
+      };
+    }
+
     if (!ustpRagOnly && bench && isForgetAllMemoriesRequest(trimmed)) {
       // Never run by a benchmark, not even in its temporary chat.
       trace?.bypass('forget all memories');
@@ -1094,23 +1395,20 @@ export class ChatOrchestrator {
         "I've forgotten all saved memories on this phone. Your chats are kept.";
       let assistantMessage: ChatMessage;
       if (isTemp) {
-        const prevCount = chatMemoryStore.list(userId).length;
-        db.transactionSync(tx => {
-          chatMemoryStore.clear(userId, tx);
-        });
+        const changes = chatMemoryStore.applyChanges(
+          userId,
+          {add: [], remove: [], clearAll: true},
+          null,
+        );
         reconcileClearedMemories(userId);
         const tempId = `temp_asst_${Date.now()}_${Math.random()
           .toString(36)
           .slice(2, 7)}`;
-        if (prevCount > 0) {
+        if (changes.removed.length > 0) {
           DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
             userId,
             messageId: tempId,
-            changes: {
-              added: [],
-              removed: [],
-              revision: chatMemoryStore.revision(userId),
-            },
+            changes,
           });
         }
         assistantMessage = {
@@ -1119,6 +1417,7 @@ export class ChatOrchestrator {
           sender: 'assistant',
           content: reply,
           localReply: true,
+          ...(changes.removed.length > 0 ? {memoryChanges: changes} : {}),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -1194,6 +1493,28 @@ export class ChatOrchestrator {
     let dryRun: LowRiskDryRun | undefined;
     // A complete DeepSeek conversation reply is checked for memories afterwards.
     let learnFromReply = false;
+    let sentMemoryIds: string[] = [];
+    // Mixed message ("I'm a night owl, I prefer studying at night till 1am. Help me plan my week"):
+    // detect here, persist right after Step 1.5 / 2.5 early returns so cancelled or
+    // early-returned turns never leak an un-noticed memory.
+    const pendingEmbeddedMemory =
+      !ustpRagOnly &&
+      (!isTemp || options.reviewSurface === 'quick') &&
+      !bench &&
+      chatMemoryStore.isEnabled(userId)
+        ? extractEmbeddedMemory(trimmed)
+        : null;
+    let embeddedMemoryChanges: ChatMemoryChanges | null = null;
+    let embeddedMemoryCommitted = false;
+    const rollbackUncommittedEmbeddedMemory = (): void => {
+      if (!embeddedMemoryChanges || embeddedMemoryCommitted) return;
+      try {
+        chatMemoryStore.undoChanges(userId, embeddedMemoryChanges);
+      } catch {
+        // best-effort rollback on cancellation
+      }
+      embeddedMemoryChanges = null;
+    };
 
     // Step 1.5: Conversational Confirm / Cancel / Revise on an active Chat review card
     const makeLocalAssistantMessage = (content: string): ChatMessage =>
@@ -1563,7 +1884,30 @@ export class ChatOrchestrator {
     // Step 3: Extract validated intent (DeepSeek structured extraction when
     // Online Mode is active for scheduling/planner commands, with local fallback).
     // Dedicated USTP Handbook RAG chats bypass planner NLU so handbook queries never misroute.
-    const defaultChatIntent: ValidatedIntent = {
+    if (pendingEmbeddedMemory) {
+      const applied = chatMemoryStore.applyChanges(
+        userId,
+        {
+          add: [
+            {
+              text: pendingEmbeddedMemory.text,
+              tier: pendingEmbeddedMemory.tier,
+              category: pendingEmbeddedMemory.category,
+              ...(pendingEmbeddedMemory.slotKey
+                ? {slotKey: pendingEmbeddedMemory.slotKey}
+                : {}),
+              ...(pendingEmbeddedMemory.isPinned ? {isPinned: true} : {}),
+            },
+          ],
+          remove: [],
+        },
+        isTemp ? null : sessionId,
+      );
+      if (applied.added.length || applied.removed.length) {
+        embeddedMemoryChanges = applied;
+      }
+    }
+    let validated: ValidatedIntent = {
       intent: 'chat',
       title: '',
       date: null,
@@ -1578,7 +1922,9 @@ export class ChatOrchestrator {
       rawTranscript: trimmed,
       isValid: true,
     };
-    let validated: ValidatedIntent = defaultChatIntent;
+    let assistantPersistStartedAt = 0;
+    let assistantMessage!: ChatMessage;
+    try {
     if (!ustpRagOnly) {
       const localValidated = await waitForCurrent(
         intentService.extractIntent(trimmed, {
@@ -1902,6 +2248,9 @@ export class ChatOrchestrator {
             ? memoriesForPrompt(userId)
             : [];
           const memoryOption = memories.length > 0 ? {memories} : {};
+          if (memories.length > 0) {
+            sentMemoryIds = memories.map(m => m.id);
+          }
           // Questions about the student's own plans go to the Chat agent
           // first (ADR-033): it can look things up and prepare one card.
           const agent =
@@ -2222,8 +2571,8 @@ export class ChatOrchestrator {
       .replace(/\bLAFINA\b/g, 'lafina');
 
     // Step 6: Persist assistant message (or return in-memory in Temporary Chat)
-    const assistantPersistStartedAt = trace && !isTemp ? monotonicNow() : 0;
-    const assistantMessage: ChatMessage = isTemp
+    assistantPersistStartedAt = trace && !isTemp ? monotonicNow() : 0;
+    assistantMessage = isTemp
       ? {
           id: `temp_asst_${Date.now()}_${Math.random()
             .toString(36)
@@ -2250,6 +2599,61 @@ export class ChatOrchestrator {
           },
           sessionId,
         );
+    if (embeddedMemoryChanges) {
+      if (options.isCurrent && !options.isCurrent()) {
+        rollbackUncommittedEmbeddedMemory();
+      } else if (isTemp) {
+        embeddedMemoryCommitted = true;
+        if (embeddedMemoryChanges.added[0] && pendingEmbeddedMemory?.slotKey) {
+          syncChatUpdatedOnboardingSlot(
+            userId,
+            embeddedMemoryChanges.added[0].id,
+            pendingEmbeddedMemory.slotKey,
+            embeddedMemoryChanges.added[0].text,
+          );
+        }
+        assistantMessage = {
+          ...assistantMessage,
+          memoryChanges: embeddedMemoryChanges,
+        };
+        DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+          userId,
+          messageId: assistantMessage.id,
+          changes: embeddedMemoryChanges,
+        });
+      } else if (
+        chatStore.setMemoryChanges(
+          userId,
+          assistantMessage.id,
+          embeddedMemoryChanges,
+        )
+      ) {
+        embeddedMemoryCommitted = true;
+        if (embeddedMemoryChanges.added[0] && pendingEmbeddedMemory?.slotKey) {
+          syncChatUpdatedOnboardingSlot(
+            userId,
+            embeddedMemoryChanges.added[0].id,
+            pendingEmbeddedMemory.slotKey,
+            embeddedMemoryChanges.added[0].text,
+          );
+        }
+        assistantMessage = {
+          ...assistantMessage,
+          memoryChanges: embeddedMemoryChanges,
+        };
+        DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+          userId,
+          messageId: assistantMessage.id,
+          changes: embeddedMemoryChanges,
+        });
+      } else {
+        rollbackUncommittedEmbeddedMemory();
+      }
+    }
+    } catch (stepError) {
+      rollbackUncommittedEmbeddedMemory();
+      throw stepError;
+    }
     if (trace && !isTemp) {
       trace.addDuration(
         'persistAssistant',
@@ -2269,11 +2673,20 @@ export class ChatOrchestrator {
     // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
     if (usedOnline && bench) {
       trace?.bypass('memory "last used" update');
-    } else if (usedOnline && !isTemp && chatMemoryStore.isEnabled(userId)) {
-      const promptIds = memoriesForPrompt(userId).map(m => m.id);
-      if (promptIds.length > 0) chatMemoryStore.markUsed(userId, promptIds);
+    } else if (
+      usedOnline &&
+      !isTemp &&
+      sentMemoryIds.length > 0 &&
+      chatMemoryStore.isEnabled(userId)
+    ) {
+      chatMemoryStore.markUsed(userId, sentMemoryIds);
     }
-    if (learnFromReply && !isTemp && !directProviderTestEnabled()) {
+    if (
+      learnFromReply &&
+      !isTemp &&
+      !embeddedMemoryChanges &&
+      !directProviderTestEnabled()
+    ) {
       void chatMemoryService.afterExchange({
         userId,
         sessionId,

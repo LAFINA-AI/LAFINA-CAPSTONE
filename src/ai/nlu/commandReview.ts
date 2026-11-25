@@ -24,6 +24,7 @@ import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {preferencesStore} from '../../storage/preferencesStore';
 import type {StudyPeakHour} from '../../storage/preferencesStore';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {inferStudyPeaksFromText} from '../studyPreference';
 import {plannerQueries} from '../../storage/plannerQueries';
 import {notesStore} from '../../storage/notesStore';
 import {extractChecklistItems, toggleChecklistItem} from '../../utils/richText';
@@ -949,21 +950,25 @@ const findFreeSlotInWindow = (
   minMinute: number,
 ): string | null => {
   try {
-    const day = plannerQueries.window(userId, date, date);
+    const yesterday = addDaysToDate(date, -1);
+    const day = plannerQueries.window(userId, yesterday, date);
     const occupied: Array<[number, number]> = [];
-    for (const ev of day.events) {
-      if (ev.date === date && ev.startTime && ev.endTime) {
-        const s = toMins(ev.startTime);
-        const e = toMins(ev.endTime);
+    const pushItem = (itemDate: string, startTime?: string, endTime?: string) => {
+      if (!startTime || !endTime) return;
+      const s = toMins(startTime);
+      const e = toMins(endTime);
+      if (itemDate === date) {
         occupied.push([s, e > s ? e : e + 1440]);
+      } else if (itemDate === yesterday && e <= s && e > 0) {
+        // Overnight item from yesterday spills into [0, e] today.
+        occupied.push([0, e]);
       }
+    };
+    for (const ev of day.events) {
+      pushItem(ev.date, ev.startTime, ev.endTime);
     }
     for (const b of day.blocks) {
-      if (b.date === date && b.startTime && b.endTime) {
-        const s = toMins(b.startTime);
-        const e = toMins(b.endTime);
-        occupied.push([s, e > s ? e : e + 1440]);
-      }
+      pushItem(b.date, b.startTime, b.endTime);
     }
     const windowStart = Math.max(startHour * 60, minMinute);
     const windowEnd = endHour * 60;
@@ -984,31 +989,47 @@ const findFreeSlotInWindow = (
   return null;
 };
 
-const extractPeakHintsFromMemory = (userId: string): StudyPeakHour[] => {
+const isExplicitStudyPreferenceMemory = (memory: {
+  slotKey: string | null;
+  category: string;
+  text: string;
+}): boolean =>
+  memory.slotKey === 'onboarding:study' ||
+  /^prefers\s+(?:studying|focusing)\b/i.test(memory.text) ||
+  /\b(?:night\s*owl|early\s*bird|morning\s+person)\b/i.test(memory.text) ||
+  /\b(?:prefer|prefers|like|likes|love|usually|most\s+productive|best)\b[^.?!]{0,40}\b(?:study|studying|focus|focusing)\b/i.test(
+    memory.text,
+  ) ||
+  /\b(?:study|studying|focus|focusing)\b[^.?!]{0,25}\b(?:best|better|prefer|prefers)\b/i.test(
+    memory.text,
+  );
+
+const extractPeakHintsFromMemory = (
+  userId: string,
+): {peaks: StudyPeakHour[]; newestChatStudyAt: string | null} => {
   try {
-    if (!chatMemoryStore.isEnabled(userId)) return [];
-    const studyMem = chatMemoryStore
-      .forPrompt(userId)
-      .filter(m => /^prefers studying\b/i.test(m.text))
-      .map(m => m.text.toLowerCase())
-      .join(' ');
-    if (!studyMem) return [];
+    if (!chatMemoryStore.isEnabled(userId)) {
+      return {peaks: [], newestChatStudyAt: null};
+    }
+    const memories = chatMemoryStore
+      .list(userId)
+      .filter(isExplicitStudyPreferenceMemory);
     const hints: StudyPeakHour[] = [];
-    if (/\b(?:late morning|10\s*am|11\s*am)\b/.test(studyMem))
-      hints.push('late_morning');
-    if (/\b(?:early\s+morning|in the morning|mornings)\b/.test(studyMem))
-      hints.push('morning');
-    if (/\b(?:afternoon|1\s*pm|2\s*pm|3\s*pm|4\s*pm)\b/.test(studyMem))
-      hints.push('afternoon');
-    if (/\b(?:evening|evenings|6\s*pm|7\s*pm|8\s*pm)\b/.test(studyMem))
-      hints.push('evening');
-    if (
-      /\b(?:night|late night|9\s*pm|10\s*pm|11\s*pm|midnight)\b/.test(studyMem)
-    )
-      hints.push('night');
-    return hints;
+    let newestChatStudyAt: string | null = null;
+    for (const memory of memories) {
+      const parsed = inferStudyPeaksFromText(memory.text);
+      if (parsed.length === 0) continue;
+      const stampedAt = memory.updatedAt || memory.createdAt;
+      if (!newestChatStudyAt || stampedAt > newestChatStudyAt) {
+        newestChatStudyAt = stampedAt;
+      }
+      for (const peak of parsed) {
+        if (!hints.includes(peak)) hints.push(peak);
+      }
+    }
+    return {peaks: hints, newestChatStudyAt};
   } catch {
-    return [];
+    return {peaks: [], newestChatStudyAt: null};
   }
 };
 
@@ -1028,14 +1049,27 @@ const preferredStudyStart = (
     ) || category.toLowerCase() === 'study';
   if (!isStudyIntent) return null;
 
-  let storedPeaks: StudyPeakHour[] = [];
+  let storedPrefs: ReturnType<typeof preferencesStore.getStored> = null;
   try {
-    storedPeaks = preferencesStore.getStored(userId)?.studyPeakHours ?? [];
+    storedPrefs = preferencesStore.getStored(userId);
   } catch {
-    storedPeaks = [];
+    storedPrefs = null;
   }
+  const storedPeaks = storedPrefs?.studyPeakHours ?? [];
+  const memoryHints = extractPeakHintsFromMemory(userId);
+  const memoryIsNewer =
+    Boolean(memoryHints.newestChatStudyAt) &&
+    (!storedPrefs?.updatedAt ||
+      memoryHints.newestChatStudyAt! > storedPrefs.updatedAt);
+  const memoryOverridesStored = memoryHints.peaks.length > 0 && memoryIsNewer;
+  const allowMemoryFallback =
+    storedPeaks.length === 0 &&
+    memoryHints.peaks.length > 0 &&
+    (!storedPrefs?.updatedAt || memoryIsNewer);
   const peaks =
-    storedPeaks.length > 0 ? storedPeaks : extractPeakHintsFromMemory(userId);
+    memoryOverridesStored || allowMemoryFallback
+      ? memoryHints.peaks
+      : storedPeaks;
   if (peaks.length === 0) return null;
 
   const nowDate = new Date(nowMs);
@@ -1070,9 +1104,10 @@ const reminderPlanWithAdvice = (
   date: string,
   time: string,
   priority: 'High' | 'Medium' | 'Low',
+  nowMs: number = Date.now(),
 ): PlannedReminderWithAdvice => {
   const at = localInstant(date, time);
-  if (!Number.isFinite(at) || at <= Date.now()) return {reminder: null};
+  if (!Number.isFinite(at) || at <= nowMs) return {reminder: null};
   const iso = new Date(at).toISOString();
   let triggerAt = iso;
   let recommendedDelivery: ReminderDeliveryStyle | undefined;
@@ -1083,7 +1118,7 @@ const reminderPlanWithAdvice = (
     });
     if (
       Number.isFinite(Date.parse(rec.recommendedTriggerAt)) &&
-      Date.parse(rec.recommendedTriggerAt) > Date.now()
+      Date.parse(rec.recommendedTriggerAt) > nowMs
     ) {
       triggerAt = rec.recommendedTriggerAt;
     }
@@ -1336,8 +1371,68 @@ const buildCreateTimeBlock = (
           } (${format12HourTime(startTime)}).`,
         );
       } else {
-        startTime = '09:00';
-        assumptions.push('No start time was given, so it starts at 9:00 AM.');
+        const nowDate = new Date(nowMs);
+        const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+        if (!c.date && date === today && nowMins >= 9 * 60) {
+          const tomorrow = addDaysToDate(today, 1);
+          date = tomorrow;
+          // Replace the earlier "today" default assumption with tomorrow.
+          const todayIdx = assumptions.findIndex(a =>
+            a.startsWith('No date was given, so it is scheduled today'),
+          );
+          const tomorrowAssumption = `No date was given and today's open study window has passed, so it is scheduled tomorrow (${friendlyDate(
+            tomorrow,
+          )}).`;
+          if (todayIdx >= 0) assumptions[todayIdx] = tomorrowAssumption;
+          else assumptions.push(tomorrowAssumption);
+          const nextDayStudy = preferredStudyStart(
+            userId,
+            tomorrow,
+            requestedDuration ?? 60,
+            nowMs,
+            title,
+            c.category,
+            today,
+          );
+          if (nextDayStudy) {
+            startTime = nextDayStudy.startTime;
+            assumptions.push(
+              `No start time was given, so it uses your free ${
+                nextDayStudy.label
+              } (${format12HourTime(startTime)}).`,
+            );
+          } else {
+            startTime = '09:00';
+            assumptions.push('No start time was given, so it starts at 9:00 AM.');
+          }
+        } else if (date === today && nowMins >= 9 * 60) {
+          const nextMin = Math.ceil((nowMins + 15) / 30) * 30;
+          const nextFreeToday =
+            userId && nextMin + (requestedDuration ?? 60) <= 24 * 60
+              ? findFreeSlotInWindow(
+                  userId,
+                  today,
+                  0,
+                  24,
+                  requestedDuration ?? 60,
+                  nextMin,
+                )
+              : null;
+          if (nextFreeToday) {
+            startTime = nextFreeToday;
+            assumptions.push(
+              `No start time was given, so it uses your next free slot today (${format12HourTime(
+                startTime,
+              )}).`,
+            );
+          } else {
+            startTime = '09:00';
+            assumptions.push('No start time was given, so it starts at 9:00 AM.');
+          }
+        } else {
+          startTime = '09:00';
+          assumptions.push('No start time was given, so it starts at 9:00 AM.');
+        }
       }
     }
   }
@@ -1663,6 +1758,7 @@ const buildCreateReminder = (
     date,
     c.time,
     c.priority ?? 'High',
+    nowMs,
   );
   if (!reminder) {
     return {

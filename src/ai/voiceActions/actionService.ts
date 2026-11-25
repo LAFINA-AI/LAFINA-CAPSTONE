@@ -25,6 +25,7 @@ import type {
 import {
   isToolExecutionPermitted,
   containsPromptInjection,
+  containsSensitiveSecret,
 } from './actionSecurity';
 import {getRegisteredTool} from './actionRegistry';
 import {validatePayload} from './actionValidator';
@@ -35,6 +36,11 @@ import {
 import {chatOrchestrator} from '../chatOrchestrator';
 import type {SpokenTurnReview} from '../chatOrchestrator';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {
+  reconcileDeletedMemory,
+  reconcileRestoredMemories,
+  syncChatUpdatedOnboardingSlot,
+} from '../../storage/onboardingMemory';
 import {draftRegistry} from './draftRegistry';
 import {
   appliedReviewReply,
@@ -42,7 +48,10 @@ import {
   confirmReviewedCommand,
   reviseReviewedCommand,
 } from '../nlu/commandReview';
-import {explicitMemory} from '../explicitMemory';
+import {
+  extractExplicitMemory,
+  type ExplicitMemoryMatch,
+} from '../explicitMemory';
 import {
   answerFreeTime,
   hasStructuredAction,
@@ -378,13 +387,14 @@ class ActionService {
 
         const p = envelope.payload as {request: string};
         const rawReq = typeof p.request === 'string' ? p.request.trim() : '';
-        const explicitFact = explicitMemory(rawReq);
+        const explicitMatch = extractExplicitMemory(rawReq);
         const sanitizedDirectFact =
-          !explicitFact &&
+          !explicitMatch &&
           toolDef.kind === 'legacy.save_memory' &&
           rawReq.length >= 3 &&
           rawReq.length <= 200 &&
-          !containsPromptInjection(rawReq)
+          !containsPromptInjection(rawReq) &&
+          !containsSensitiveSecret(rawReq)
             ? rawReq
                 .replace(
                   /^(?:please\s+)?(?:remember|keep\s+in\s+mind|note)\s+(?:that\s+)?/i,
@@ -393,7 +403,7 @@ class ActionService {
                 .trim()
             : null;
         const fact =
-          explicitFact ||
+          explicitMatch?.text ||
           (sanitizedDirectFact && sanitizedDirectFact.length >= 2
             ? sanitizedDirectFact
             : null);
@@ -403,6 +413,7 @@ class ActionService {
             sessionId,
             fact,
             p.request,
+            explicitMatch ?? undefined,
           );
           options?.onMemoryProposal?.(prepared.proposal, prepared.actionId);
           return 'A memory review card is shown. Nothing has been saved. Please tap Save to confirm.';
@@ -861,13 +872,26 @@ class ActionService {
     sessionId: string,
     text: string,
     sourceUtterance?: string,
+    matchMeta?: ExplicitMemoryMatch,
   ): {actionId: string; proposal: MemoryProposalData} {
     const actionId = generateId('act');
+    const inferredMeta =
+      matchMeta ??
+      extractExplicitMemory(sourceUtterance || text) ??
+      extractExplicitMemory(text);
     const memProp: MemoryProposalData = {
       id: generateId('mem_prop'),
       text: text.trim(),
       sourceUtterance,
       status: chatMemoryStore.isEnabled(userId) ? 'draft' : 'disabled',
+      ...(inferredMeta
+        ? {
+            tier: inferredMeta.tier,
+            category: inferredMeta.category,
+            slotKey: inferredMeta.slotKey ?? null,
+            isPinned: inferredMeta.isPinned,
+          }
+        : {}),
       revision: 1,
     };
     const envelope: ActionEnvelope = {
@@ -965,7 +989,8 @@ class ActionService {
     if (
       textToSave.length < 2 ||
       textToSave.length > 200 ||
-      containsPromptInjection(textToSave)
+      containsPromptInjection(textToSave) ||
+      containsSensitiveSecret(textToSave)
     ) {
       record.memoryProposal.status = 'failed';
       record.envelope.phase = 'failed';
@@ -983,7 +1008,59 @@ class ActionService {
     }
 
     try {
-      const saved = chatMemoryStore.add(userId, textToSave);
+      const wasEdited =
+        editedText !== undefined &&
+        editedText.trim() !== record.memoryProposal.text.trim();
+      const parsedMeta = extractExplicitMemory(textToSave);
+      const isCanonicalStudyPref =
+        parsedMeta?.isStudyPreference ||
+        /^prefers\s+studying\b/i.test(textToSave);
+      const isCanonicalNamePref = /^prefers\s+to\s+be\s+called\s+.+\.$/i.test(
+        textToSave,
+      );
+      const addOptions = isCanonicalStudyPref
+        ? {
+            tier: 'preference' as const,
+            category: 'study' as const,
+            slotKey: 'onboarding:study',
+          }
+        : isCanonicalNamePref
+        ? {
+            tier: 'core' as const,
+            category: 'identity' as const,
+            slotKey: 'onboarding:name',
+            isPinned: true,
+          }
+        : parsedMeta
+        ? {
+            tier: parsedMeta.tier,
+            category: parsedMeta.category,
+            ...(parsedMeta.slotKey ? {slotKey: parsedMeta.slotKey} : {}),
+            ...(parsedMeta.isPinned ? {isPinned: true} : {}),
+          }
+        : !wasEdited &&
+          (record.memoryProposal.tier ||
+            record.memoryProposal.category ||
+            record.memoryProposal.slotKey)
+        ? {
+            ...(record.memoryProposal.tier
+              ? {tier: record.memoryProposal.tier}
+              : {}),
+            ...(record.memoryProposal.category
+              ? {category: record.memoryProposal.category}
+              : {}),
+            ...(record.memoryProposal.slotKey
+              ? {slotKey: record.memoryProposal.slotKey}
+              : {}),
+            ...(record.memoryProposal.isPinned ? {isPinned: true} : {}),
+          }
+        : {};
+      const applied = chatMemoryStore.applyChanges(
+        userId,
+        {add: [{text: textToSave, ...addOptions}], remove: []},
+        null,
+      );
+      const saved = applied.added[0] ?? null;
       if (!saved) {
         record.memoryProposal.status = 'duplicate';
         record.envelope.phase = 'done';
@@ -994,19 +1071,24 @@ class ActionService {
           error: 'That fact is already in your memory.',
         };
       }
+      if (addOptions.slotKey) {
+        syncChatUpdatedOnboardingSlot(
+          userId,
+          saved.id,
+          addOptions.slotKey,
+          saved.text,
+        );
+      }
       record.memoryProposal.status = 'saved';
       record.memoryProposal.savedMemoryId = saved.id;
-      record.memoryProposal.text = textToSave;
+      record.memoryProposal.text = saved.text;
+      record.memoryProposal.appliedChanges = applied;
       record.envelope.phase = 'done';
       record.status = 'result';
       DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
         userId,
         messageId: actionId,
-        changes: {
-          added: [{id: saved.id, text: saved.text}],
-          removed: [],
-          revision: chatMemoryStore.revision(userId),
-        },
+        changes: applied,
       });
       this.emit(
         actionId,
@@ -1050,9 +1132,20 @@ class ActionService {
     try {
       const removedId = record.memoryProposal.savedMemoryId;
       const removedText = record.memoryProposal.text;
-      chatMemoryStore.remove(userId, removedId);
+      const appliedChanges = record.memoryProposal.appliedChanges ?? null;
+      if (appliedChanges) {
+        chatMemoryStore.undoChanges(userId, appliedChanges);
+        for (const added of appliedChanges.added) {
+          reconcileDeletedMemory(userId, added.id);
+        }
+        reconcileRestoredMemories(userId, appliedChanges.removed);
+      } else {
+        chatMemoryStore.remove(userId, removedId);
+        reconcileDeletedMemory(userId, removedId);
+      }
       record.memoryProposal.status = 'undone';
       record.memoryProposal.savedMemoryId = null;
+      record.memoryProposal.appliedChanges = null;
       DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
         userId,
         messageId: actionId,

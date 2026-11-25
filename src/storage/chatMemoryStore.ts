@@ -2,6 +2,7 @@ import {db} from './database';
 import type {DatabaseTransaction} from './database';
 import {generateId} from '../utils';
 import {isValidChatOwner} from './chatOwnership';
+import {containsSensitiveSecret} from '../ai/voiceActions/promptSanitizer';
 
 /**
  * Chat memory: facts LAFINA keeps about a student between sessions in a
@@ -29,6 +30,7 @@ export interface ChatMemory {
   source: 'chat' | 'manual';
   sessionId: string | null;
   createdAt: string;
+  updatedAt?: string;
   tier: MemoryTier;
   category: MemoryCategory;
   isPinned: boolean;
@@ -155,14 +157,14 @@ export const inferMemoryCategory = (text: string): MemoryCategory => {
     return 'goal';
   }
   if (
-    /\b(?:study|studying|review|exam|quiz|pomodoro|flashcard|quiet library|notes?)\b/.test(
+    /\b(?:study|studying|review|exam|quiz|pomodoro|flashcard|quiet library|notes?|focus(?:ing)?\s+(?:best|better|during|at|in))\b/.test(
       lower,
     )
   ) {
     return 'study';
   }
   if (
-    /\b(?:wake|sleep|morning|evening|night|routine|busiest day|commute|coffee)\b/.test(
+    /\b(?:wake|sleep|morning\s+person|early\s*bird|night\s*owl|morning|evening|night|routine|busiest day|commute|coffee|stay\s+up)\b/.test(
       lower,
     )
   ) {
@@ -180,6 +182,9 @@ export const inferMemoryTier = (
   const lower = text.toLowerCase();
   if (
     /^(?:prefers studying\b|prefers to be called\b|prefers a \w+ conversational tone\b|wants replies\b|student'?s main focus\b|prefers )/.test(
+      lower,
+    ) ||
+    /\b(?:night\s*owl|early\s*bird|morning\s+person|prefers?\s+(?:studying|to\s+study|short|brief|concise|detailed|bullet)|usually\s+(?:studies?|study|wakes?|wake|sleeps?|sleep)|studies?\s+best|focus(?:es)?\s+best)\b/.test(
       lower,
     )
   ) {
@@ -199,6 +204,10 @@ const mapMemory = (row: Record<string, unknown>): ChatMemory => ({
   source: row.source === 'manual' ? 'manual' : 'chat',
   sessionId: typeof row.session_id === 'string' ? row.session_id : null,
   createdAt: String(row.created_at),
+  updatedAt:
+    typeof row.updated_at === 'string' && row.updated_at
+      ? row.updated_at
+      : String(row.created_at),
   tier: normalizeTier(row.tier),
   category: normalizeCategory(row.category),
   isPinned: Number(row.is_pinned ?? 0) === 1,
@@ -256,6 +265,9 @@ const insert = (
 ): ChatMemory | null => {
   const text = cleanText(memory.text);
   if (text.length < 2) return null;
+  if (containsSensitiveSecret(text)) {
+    return null;
+  }
   const now = new Date().toISOString();
   // Clean up expired memories on write so slots and cap stay accurate.
   tx.executeSync(
@@ -338,12 +350,20 @@ const insert = (
     ],
   );
   evictOverflow(tx, userId);
+  const survived = tx.executeSync(
+    'SELECT id FROM chat_memories WHERE user_id = ? AND id = ?',
+    [userId, id],
+  ).rows;
+  if (survived.length === 0) {
+    return null;
+  }
   return {
     id,
     text,
     source: memory.source,
     sessionId: memory.sessionId ?? null,
     createdAt: now,
+    updatedAt: now,
     tier,
     category,
     isPinned,
@@ -508,6 +528,11 @@ export const chatMemoryStore = {
       const nextText =
         patch.text !== undefined ? cleanText(patch.text) : current.text;
       if (nextText.length < 2) return null;
+      if (patch.text !== undefined && containsSensitiveSecret(nextText)) {
+        throw new Error(
+          'Passwords, codes, and sensitive IDs cannot be saved in memory.',
+        );
+      }
       if (patch.text !== undefined) {
         const key = normalizeMemoryTextKey(nextText);
         const others = tx.executeSync(
@@ -545,6 +570,7 @@ export const chatMemoryStore = {
       return {
         ...current,
         text: nextText,
+        updatedAt: now,
         tier: nextTier,
         category: nextCategory,
         isPinned: nextPinned,

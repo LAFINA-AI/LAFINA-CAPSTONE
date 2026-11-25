@@ -24,6 +24,8 @@ export type HeroActionKind =
 
 export interface HomeHeroModel {
   badge: string;
+  /** Compact combined badge + timing for Mascot/Orb styles (e.g. "UP NEXT · IN 58 MIN"). */
+  pillMeta: string;
   title: string;
   subtitle: string;
   ctaLabel: string;
@@ -38,6 +40,16 @@ export interface HomeHeroModel {
   ringCaption: string;
   /** When true, show a crisp checkmark icon instead of ringValue text. */
   ringShowCheck?: boolean;
+  /** Left label for the segmented day progress bar (e.g. "Your day"). */
+  dayProgressLabel: string;
+  /** Right label for the segmented day progress bar (e.g. "3 of 4 done"). */
+  dayProgressText: string;
+  /** Completed count for segmented progress bar. */
+  dayProgressCompleted: number;
+  /** Total items count for segmented progress bar (0 when wide open). */
+  dayProgressTotal: number;
+  /** Optional compact preview of what comes after the primary item. */
+  followingLabel?: string;
 }
 
 export type TodayTimelineRow =
@@ -124,6 +136,14 @@ const formatRingDuration = (
   if (mins < 60) {
     return {value: String(mins), caption: suffixShort};
   }
+  if (mins >= 1440) {
+    const days = Math.floor(mins / 1440);
+    const remHours = Math.floor((mins % 1440) / 60);
+    return {
+      value: remHours === 0 ? `${days}d` : `${days}d ${remHours}h`,
+      caption: suffixLong,
+    };
+  }
   const h = Math.floor(mins / 60);
   const rem = mins % 60;
   return {
@@ -153,6 +173,67 @@ export const formatTaskDueCompact = (
     : dayLabel;
 };
 
+const formatPillDuration = (totalMinutes: number): string => {
+  const mins = Math.max(1, Math.round(totalMinutes));
+  if (mins < 60) return `${mins} MIN`;
+  if (mins >= 1440) {
+    const days = Math.floor(mins / 1440);
+    const remHours = Math.floor((mins % 1440) / 60);
+    return remHours === 0 ? `${days}D` : `${days}D ${remHours}H`;
+  }
+  const h = Math.floor(mins / 60);
+  const rem = mins % 60;
+  return rem === 0 ? `${h} HR` : `${h}H ${rem}M`;
+};
+
+const isOvernightCarryItem = (item: DashboardScheduleItem): boolean =>
+  item.id.endsWith('::carry');
+
+const formatMinutesAsHHMM = (minutes: number): string => {
+  const clamped = Math.max(0, Math.min(23 * 60 + 59, Math.round(minutes)));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+const computeDayProgress = (
+  todayItems: readonly DashboardScheduleItem[],
+  nowMinutes: number,
+  completedTasksCount: number,
+  pendingTasksCount: number,
+): {
+  dayProgressLabel: string;
+  dayProgressText: string;
+  dayProgressCompleted: number;
+  dayProgressTotal: number;
+} => {
+  const todayTotal = todayItems.length;
+  if (todayTotal > 0) {
+    const done = todayItems.filter(i => i.endMinutes <= nowMinutes).length;
+    return {
+      dayProgressLabel: 'Your day',
+      dayProgressText: `${done} of ${todayTotal} done`,
+      dayProgressCompleted: done,
+      dayProgressTotal: todayTotal,
+    };
+  }
+  const totalTasks = completedTasksCount + pendingTasksCount;
+  if (totalTasks > 0) {
+    return {
+      dayProgressLabel: 'Your tasks',
+      dayProgressText: `${completedTasksCount} of ${totalTasks} done`,
+      dayProgressCompleted: completedTasksCount,
+      dayProgressTotal: totalTasks,
+    };
+  }
+  return {
+    dayProgressLabel: 'Your day',
+    dayProgressText: 'Wide open',
+    dayProgressCompleted: 0,
+    dayProgressTotal: 0,
+  };
+};
+
 /**
  * Computes the Hero card model and live circular countdown/progress ring
  * strictly from live SQLite dashboard data (zero mock data).
@@ -177,6 +258,18 @@ export const buildHeroModel = (options: {
   } = options;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const primary = data.upNext.primaryItem;
+  const dayProgress = computeDayProgress(
+    data.todayItems,
+    nowMinutes,
+    completedTasksCount,
+    allPendingTasks.length,
+  );
+  const following = data.upNext.followingItem;
+  const followingLabel = following
+    ? `Next · ${formatTimeLabel(following.startTime, timeFormat24h)} · ${
+        following.title
+      }`
+    : undefined;
 
   // 1. Live class / event / time block right now
   if (data.upNext.mode === 'live' && primary) {
@@ -184,11 +277,10 @@ export const buildHeroModel = (options: {
       0,
       data.upNext.minutesRemaining ?? primary.endMinutes - nowMinutes,
     );
-    const timeRange = formatHomeTimeRange(
-      primary.startTime,
-      primary.endTime,
-      timeFormat24h,
-    );
+    const carry = isOvernightCarryItem(primary);
+    const timeRange = carry
+      ? `Until ${formatTimeLabel(primary.endTime, timeFormat24h)}`
+      : formatHomeTimeRange(primary.startTime, primary.endTime, timeFormat24h);
     const roomSuffix = primary.room ? ` · ${primary.room}` : '';
     const ring = formatRingDuration(remaining, 'min left', 'left');
     const progress = Math.max(
@@ -197,14 +289,20 @@ export const buildHeroModel = (options: {
     );
     return {
       badge: 'LIVE NOW',
+      pillMeta:
+        remaining > 0
+          ? `LIVE NOW · ${formatPillDuration(remaining)} LEFT`
+          : 'LIVE NOW · ENDING SOON',
       title: primary.title,
-      subtitle: `Today · ${timeRange}${roomSuffix}`,
+      subtitle: `${carry ? 'Overnight' : 'Today'} · ${timeRange}${roomSuffix}`,
       ctaLabel: 'View schedule',
       actionKind: 'calendar_item',
       targetDate: primary.date,
       ringProgress: progress,
       ringValue: ring.value,
       ringCaption: ring.caption,
+      ...dayProgress,
+      followingLabel,
     };
   }
 
@@ -241,6 +339,7 @@ export const buildHeroModel = (options: {
 
     return {
       badge: 'UP NEXT',
+      pillMeta: `UP NEXT · IN ${formatPillDuration(minsUntil)}`,
       title: primary.title,
       subtitle: `Today · ${timeRange}${roomSuffix}`,
       ctaLabel: 'View schedule',
@@ -249,6 +348,8 @@ export const buildHeroModel = (options: {
       ringProgress,
       ringValue: ring.value,
       ringCaption: ring.caption,
+      ...dayProgress,
+      followingLabel,
     };
   }
 
@@ -263,13 +364,7 @@ export const buildHeroModel = (options: {
       1,
       Math.round((activeAlarm.at.getTime() - now.getTime()) / 60_000),
     );
-    const isToday =
-      activeAlarm.at.getFullYear() === now.getFullYear() &&
-      activeAlarm.at.getMonth() === now.getMonth() &&
-      activeAlarm.at.getDate() === now.getDate();
-    const dayPrefix = isToday
-      ? 'Today'
-      : activeAlarm.at.toLocaleDateString('en-US', {weekday: 'short'});
+    const dayPrefix = formatAlarmDayPrefix(activeAlarm.at, data.todayStr);
     const ring = formatRingDuration(minsUntilAlarm, 'min left', 'until alarm');
     const ringProgress = Math.max(
       0.08,
@@ -277,6 +372,7 @@ export const buildHeroModel = (options: {
     );
     return {
       badge: 'NEXT ALARM',
+      pillMeta: `NEXT ALARM · IN ${formatPillDuration(minsUntilAlarm)}`,
       title: activeAlarm.alarm.label || 'Scheduled Alarm',
       subtitle: `${dayPrefix} · ${timeStr}`,
       ctaLabel: 'View alarm',
@@ -284,6 +380,7 @@ export const buildHeroModel = (options: {
       ringProgress,
       ringValue: ring.value,
       ringCaption: ring.caption,
+      ...dayProgress,
     };
   }
 
@@ -295,6 +392,7 @@ export const buildHeroModel = (options: {
       totalTasks > 0 ? Math.max(0.08, completedTasksCount / totalTasks) : 0.1;
     return {
       badge: 'TO DO NEXT',
+      pillMeta: `TO DO NEXT · ${completedTasksCount}/${totalTasks} DONE`,
       title: firstTask.title,
       subtitle: formatTaskDueCompact(firstTask, data.todayStr, timeFormat24h),
       ctaLabel: 'View task',
@@ -303,6 +401,7 @@ export const buildHeroModel = (options: {
       ringProgress: progress,
       ringValue: `${completedTasksCount}/${totalTasks}`,
       ringCaption: 'tasks done',
+      ...dayProgress,
     };
   }
 
@@ -313,6 +412,7 @@ export const buildHeroModel = (options: {
     const pastCount = data.todayItems.length;
     return {
       badge: 'TOMORROW',
+      pillMeta: `TOMORROW · ${startLabel.toUpperCase()}`,
       title: tomorrow.title,
       subtitle: `Tomorrow · ${startLabel}${
         tomorrow.room ? ` · ${tomorrow.room}` : ''
@@ -323,6 +423,7 @@ export const buildHeroModel = (options: {
       ringProgress: 1,
       ringValue: pastCount > 0 ? `${pastCount}/${pastCount}` : startLabel,
       ringCaption: pastCount > 0 ? 'today done' : 'first up',
+      ...dayProgress,
     };
   }
 
@@ -330,6 +431,7 @@ export const buildHeroModel = (options: {
   const todayTotal = data.todayItems.length;
   return {
     badge: 'ALL CLEAR',
+    pillMeta: todayTotal > 0 ? 'ALL CLEAR · DAY DONE' : 'ALL CLEAR',
     title: todayTotal > 0 ? 'Wrapped up for today' : 'Your day is wide open',
     subtitle: ustpEnabled
       ? 'Plan study blocks or ask LAFINA about USTP'
@@ -340,6 +442,7 @@ export const buildHeroModel = (options: {
     ringValue: todayTotal > 0 ? `${todayTotal}/${todayTotal}` : '',
     ringCaption: todayTotal > 0 ? 'done today' : 'all clear',
     ringShowCheck: todayTotal === 0,
+    ...dayProgress,
   };
 };
 
@@ -353,8 +456,16 @@ export const buildTodayTimelineRows = (options: {
   now: Date;
   timeFormat24h: boolean;
   hasLiveUnfilteredItem?: boolean;
+  nextUnfilteredStartMinutes?: number | null;
 }): TodayTimelineRow[] => {
-  const {items, freeStudy, now, timeFormat24h, hasLiveUnfilteredItem} = options;
+  const {
+    items,
+    freeStudy,
+    now,
+    timeFormat24h,
+    hasLiveUnfilteredItem,
+    nextUnfilteredStartMinutes,
+  } = options;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const past: DashboardScheduleItem[] = [];
@@ -377,23 +488,31 @@ export const buildTodayTimelineRows = (options: {
   const rows: TodayTimelineRow[] = [];
 
   for (const item of past) {
+    const carry = isOvernightCarryItem(item);
     rows.push({
       id: item.id,
       kind: 'schedule',
       state: 'past',
       isNext: false,
-      timeLabel: formatTimeLabel(item.startTime, timeFormat24h),
+      timeLabel: formatTimeLabel(
+        carry ? '00:00' : item.startTime,
+        timeFormat24h,
+      ),
       title: item.title,
-      subtitle:
-        item.room ||
-        item.subtitle ||
-        formatHomeTimeRange(item.startTime, item.endTime, timeFormat24h),
+      subtitle: carry
+        ? `Overnight · Until ${formatTimeLabel(item.endTime, timeFormat24h)}${
+            item.room ? ` · ${item.room}` : ''
+          }`
+        : item.room ||
+          item.subtitle ||
+          formatHomeTimeRange(item.startTime, item.endTime, timeFormat24h),
       item,
     });
   }
 
   if (live.length > 0) {
     for (const item of live) {
+      const carry = isOvernightCarryItem(item);
       const remaining = Math.max(1, item.endMinutes - nowMinutes);
       rows.push({
         id: item.id,
@@ -402,14 +521,17 @@ export const buildTodayTimelineRows = (options: {
         isNext: false,
         timeLabel: 'Now',
         title: item.title,
-        subtitle:
-          item.room ||
-          formatHomeTimeRange(item.startTime, item.endTime, timeFormat24h),
+        subtitle: carry
+          ? `Overnight · Until ${formatTimeLabel(item.endTime, timeFormat24h)}${
+              item.room ? ` · ${item.room}` : ''
+            }`
+          : item.room ||
+            formatHomeTimeRange(item.startTime, item.endTime, timeFormat24h),
         remainingLabel: `${formatDurationMinutes(remaining)} left`,
         item,
       });
     }
-  } else if (!hasLiveUnfilteredItem) {
+  } else if (items.length > 0 && !hasLiveUnfilteredItem) {
     // Student is currently in a free window (before next item or until sleep).
     const nextItem = upcoming[0] ?? null;
     const rawSleepMin = parseTimeMinutes(freeStudy.sleepTime, true) ?? 23 * 60;
@@ -418,10 +540,29 @@ export const buildTodayTimelineRows = (options: {
 
     let gapEndMinutes: number | null = null;
     let untilLabel = '';
+    const unfilteredCap =
+      typeof nextUnfilteredStartMinutes === 'number' &&
+      nextUnfilteredStartMinutes > nowMinutes
+        ? nextUnfilteredStartMinutes
+        : null;
     if (nextItem) {
-      gapEndMinutes = nextItem.startMinutes;
+      if (unfilteredCap !== null && unfilteredCap < nextItem.startMinutes) {
+        gapEndMinutes = unfilteredCap;
+        untilLabel = `Until ${formatTimeLabel(
+          formatMinutesAsHHMM(unfilteredCap),
+          timeFormat24h,
+        )}`;
+      } else {
+        gapEndMinutes = nextItem.startMinutes;
+        untilLabel = `Until ${formatTimeLabel(
+          nextItem.startTime,
+          timeFormat24h,
+        )}`;
+      }
+    } else if (unfilteredCap !== null) {
+      gapEndMinutes = unfilteredCap;
       untilLabel = `Until ${formatTimeLabel(
-        nextItem.startTime,
+        formatMinutesAsHHMM(unfilteredCap),
         timeFormat24h,
       )}`;
     } else if (!freeStudy.dayEnded && nowMinutes < windowEnd) {
@@ -434,11 +575,12 @@ export const buildTodayTimelineRows = (options: {
 
     if (gapEndMinutes !== null && gapEndMinutes - nowMinutes >= 5) {
       const gapMinutes = gapEndMinutes - nowMinutes;
+      const slotEndTarget = Math.min(gapEndMinutes, windowEnd);
       const matchingSlot =
         freeStudy.freeBlocks.find(
           slot =>
             slot.startMinutes <= nowMinutes + 5 &&
-            slot.endMinutes >= gapEndMinutes! - 5,
+            slot.endMinutes >= slotEndTarget - 5,
         ) ?? null;
 
       rows.push({

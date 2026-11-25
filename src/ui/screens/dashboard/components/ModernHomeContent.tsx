@@ -3,7 +3,9 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {AlertCircle, RefreshCw} from 'lucide-react-native';
 import {
   avatarSeedStore,
+  getDefaultDashboardConfig,
   userStore,
+  type DashboardConfig,
   type DashboardScheduleFilter,
   type DashboardWidgetId,
   type Reminder,
@@ -40,9 +42,11 @@ import {
 export interface ModernHomeContentProps {
   userId: string;
   refreshTrigger?: number;
+  isActive?: boolean;
   now: Date;
   timeFormat24h: boolean;
   data: DashboardLoadedData;
+  config?: DashboardConfig;
   visibleWidgets: readonly DashboardWidgetId[];
   scheduleFilter: DashboardScheduleFilter;
   onClearScheduleFilter: () => void;
@@ -66,25 +70,33 @@ export interface ModernHomeContentProps {
   onRefresh: () => void;
 }
 
-const readActivePomodoroMinutes = (
+const readActivePomodoro = (
   userId: string,
   nowMs: number,
-): number | null => {
+): {minutes: number; deadlineMs: number} | null => {
   try {
-    const state = readPomodoro(userId, nowMs);
+    const effectiveNow = Math.max(nowMs, Date.now());
+    const state = readPomodoro(userId, effectiveNow);
     if (!state.deadline || state.remaining <= 0) return null;
-    return Math.max(1, Math.ceil(state.remaining / 60));
+    return {
+      minutes: Math.max(1, Math.ceil(state.remaining / 60)),
+      deadlineMs: state.deadline,
+    };
   } catch {
     return null;
   }
 };
 
+const DEFAULT_CONFIG = getDefaultDashboardConfig();
+
 export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   userId,
   refreshTrigger = 0,
+  isActive = true,
   now,
   timeFormat24h,
   data,
+  config = DEFAULT_CONFIG,
   visibleWidgets,
   scheduleFilter,
   onClearScheduleFilter,
@@ -114,11 +126,24 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
     });
   }, [userId]);
 
-  const pomodoroActiveMinutes = useMemo(() => {
+  const activePomodoro = useMemo(() => {
     void pomodoroTick;
     void refreshTrigger;
-    return readActivePomodoroMinutes(userId, now.getTime());
+    return readActivePomodoro(userId, now.getTime());
   }, [userId, now, pomodoroTick, refreshTrigger]);
+
+  const pomodoroActiveMinutes = activePomodoro?.minutes ?? null;
+  const pomodoroDeadlineMs = activePomodoro?.deadlineMs ?? null;
+
+  useEffect(() => {
+    if (!pomodoroDeadlineMs) return undefined;
+    const delayMs = Math.max(50, pomodoroDeadlineMs - Date.now() + 50);
+    if (delayMs > 6 * 60 * 60 * 1000) return undefined;
+    const timer = setTimeout(() => {
+      setPomodoroTick(t => t + 1);
+    }, delayMs);
+    return () => clearTimeout(timer);
+  }, [pomodoroDeadlineMs]);
 
   const {photoSource, avatarSeed} = useMemo(() => {
     void refreshTrigger;
@@ -256,11 +281,23 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
     return data.todayItems;
   }, [data.todayItems, scheduleFilter]);
 
-  const hasLiveUnfilteredItem = useMemo(() => {
+  const {hasLiveUnfilteredItem, nextUnfilteredStartMinutes} = useMemo(() => {
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    return data.todayItems.some(
-      item => item.startMinutes <= nowMinutes && item.endMinutes > nowMinutes,
-    );
+    let hasLive = false;
+    let nextStart: number | null = null;
+    for (const item of data.todayItems) {
+      if (item.startMinutes <= nowMinutes && item.endMinutes > nowMinutes) {
+        hasLive = true;
+      } else if (item.startMinutes > nowMinutes) {
+        if (nextStart === null || item.startMinutes < nextStart) {
+          nextStart = item.startMinutes;
+        }
+      }
+    }
+    return {
+      hasLiveUnfilteredItem: hasLive,
+      nextUnfilteredStartMinutes: nextStart,
+    };
   }, [data.todayItems, now]);
 
   const timelineRows = useMemo(
@@ -271,6 +308,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         now,
         timeFormat24h,
         hasLiveUnfilteredItem,
+        nextUnfilteredStartMinutes,
       }),
     [
       filteredTodayItems,
@@ -278,14 +316,26 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
       now,
       timeFormat24h,
       hasLiveUnfilteredItem,
+      nextUnfilteredStartMinutes,
     ],
   );
+
+  const isCompactDensity = config.homeDensity === 'compact';
 
   const renderWidget = (id: DashboardWidgetId): React.ReactNode => {
     switch (id) {
       case 'up_next':
         return (
-          <UpNextHeroCard key={id} hero={hero} onPress={handlePressHero} />
+          <UpNextHeroCard
+            key={id}
+            hero={hero}
+            styleVariant={config.upNextStyle}
+            tone={config.upNextTone}
+            compact={isCompactDensity}
+            isActive={isActive}
+            onPress={handlePressHero}
+            onLongPress={onOpenCustomize}
+          />
         );
       case 'today_schedule':
         return (
@@ -354,13 +404,16 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   const remainingWidgets = heroFirst ? visibleWidgets.slice(1) : visibleWidgets;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, isCompactDensity && styles.containerCompact]}
+    >
       <HomeHeader
         now={now}
         greetingName={data.greetingName}
         academicBadge={data.academicBadge}
         photoSource={photoSource}
         avatarSeed={avatarSeed}
+        showAvatar={config.showGreetingAvatar}
         onOpenCustomize={onOpenCustomize}
       />
 
@@ -389,16 +442,32 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         </View>
       )}
 
-      {heroFirst && <UpNextHeroCard hero={hero} onPress={handlePressHero} />}
+      {heroFirst && (
+        <UpNextHeroCard
+          hero={hero}
+          styleVariant={config.upNextStyle}
+          tone={config.upNextTone}
+          compact={isCompactDensity}
+          isActive={isActive}
+          onPress={handlePressHero}
+          onLongPress={onOpenCustomize}
+        />
+      )}
 
-      <QuickActionsRow
-        ustpEnabled={ustpEnabled}
-        pomodoroActiveMinutes={pomodoroActiveMinutes}
-        onAddTask={onOpenAddTask}
-        onSetAlarm={onOpenSetAlarm}
-        onOpenFocus={onOpenFocus}
-        onAskPrimary={handleAskPrimary}
-      />
+      {config.showQuickActions && (
+        <QuickActionsRow
+          actions={config.quickActions}
+          compact={isCompactDensity}
+          ustpEnabled={ustpEnabled}
+          pomodoroActiveMinutes={pomodoroActiveMinutes}
+          onAddTask={onOpenAddTask}
+          onSetAlarm={onOpenSetAlarm}
+          onOpenFocus={onOpenFocus}
+          onAskPrimary={handleAskPrimary}
+          onOpenNotes={handleOpenAllNotes}
+          onOpenSchedule={handleSeeAllToday}
+        />
+      )}
 
       {remainingWidgets.map(renderWidget)}
     </View>
@@ -408,6 +477,9 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
 const styles = StyleSheet.create({
   container: {
     gap: 18,
+  },
+  containerCompact: {
+    gap: 12,
   },
   errorBanner: {
     flexDirection: 'row',

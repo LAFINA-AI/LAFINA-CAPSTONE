@@ -16,6 +16,8 @@ import {
   type AlarmInput,
   type DashboardWidgetId,
 } from '../../../storage';
+import {nextAlarm} from '../../../scheduler/alarmService';
+import {isUstpSchoolEnabled} from '../../../storage/ustpEligibility';
 import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import {Fonts, FontSize, Layout, ModernLayout, Spacing} from '../../theme';
@@ -34,10 +36,12 @@ import {
   UpNextWidget,
   UpcomingRemindersWidget,
 } from './components';
+import {buildHeroModel} from './components/modern';
+import {baseEntityId} from './dashboardCalculations';
 import {useDashboardData} from './hooks/useDashboardData';
 import {NextAlarmCard} from './components/NextAlarmCard';
 import type {DashboardScheduleItem, DashboardScreenProps} from './types';
-import type {Reminder, Task} from '../../../storage';
+import type {DashboardScheduleFilter, Reminder, Task} from '../../../storage';
 
 const DASHBOARD_DATA_TABLES = [
   'tasks',
@@ -48,8 +52,8 @@ const DASHBOARD_DATA_TABLES = [
   'notes',
   'alarms',
   'users',
+  'user_preferences',
   'custom_categories',
-  'local_settings:dashboard',
   'local_settings:academic',
   'local_settings:student',
   'local_settings:profile',
@@ -57,6 +61,8 @@ const DASHBOARD_DATA_TABLES = [
   'local_settings:schedule',
   'local_settings:onboarding',
 ] as const;
+
+const DASHBOARD_CONFIG_TABLES = ['local_settings:dashboard'] as const;
 
 export const DashboardScreen = React.memo(function Dashboard({
   userId,
@@ -77,7 +83,9 @@ export const DashboardScreen = React.memo(function Dashboard({
       scrollRef.current?.scrollTo?.({y: 0, animated: false});
     }
   }, [isActive, tourAnchor]);
-  const refreshTrigger = explicitRefresh + useStorageRevision(DASHBOARD_DATA_TABLES);
+  const refreshTrigger =
+    explicitRefresh + useStorageRevision(DASHBOARD_DATA_TABLES);
+  const configRevision = useStorageRevision(DASHBOARD_CONFIG_TABLES);
   const {colors, isModern} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const insets = useSafeAreaInsets();
@@ -90,6 +98,7 @@ export const DashboardScreen = React.memo(function Dashboard({
   const {now, data, actions, blockModal, taskModal} = useDashboardData({
     userId,
     refreshTrigger,
+    configRevision,
     isActive,
     onRefresh,
   });
@@ -100,16 +109,25 @@ export const DashboardScreen = React.memo(function Dashboard({
     actions.config.scheduleFilterDefault,
   );
 
-  // Sync local filter pill if user updates default filter in Customize modal.
+  // Sync local filter pill if user changes account or updates default filter in Customize modal.
+  const prevUserIdRef = React.useRef(userId);
   const prevDefaultFilterRef = React.useRef(
     actions.config.scheduleFilterDefault,
   );
   React.useEffect(() => {
+    if (prevUserIdRef.current !== userId) {
+      prevUserIdRef.current = userId;
+      prevDefaultFilterRef.current = actions.config.scheduleFilterDefault;
+      setScheduleFilter(actions.config.scheduleFilterDefault);
+      setCustomizeVisible(false);
+      setAlarmModalVisible(false);
+      return;
+    }
     if (prevDefaultFilterRef.current !== actions.config.scheduleFilterDefault) {
       prevDefaultFilterRef.current = actions.config.scheduleFilterDefault;
       setScheduleFilter(actions.config.scheduleFilterDefault);
     }
-  }, [actions.config.scheduleFilterDefault]);
+  }, [userId, actions.config.scheduleFilterDefault]);
 
   const timeFormat24h = useMemo(() => {
     void refreshTrigger;
@@ -129,6 +147,48 @@ export const DashboardScreen = React.memo(function Dashboard({
     () => actions.config.widgetOrder.filter(id => !hiddenSet.has(id)),
     [actions.config.widgetOrder, hiddenSet],
   );
+
+  const previewUstpEnabled = useMemo(() => {
+    if (!customizeVisible || !isModern) return false;
+    if (data.ustpSchoolEnabled !== undefined) return data.ustpSchoolEnabled;
+    try {
+      return isUstpSchoolEnabled(userId);
+    } catch {
+      return false;
+    }
+  }, [customizeVisible, isModern, data.ustpSchoolEnabled, userId]);
+
+  const previewHero = useMemo(() => {
+    if (!customizeVisible || !isModern) return null;
+    let activeAlarm = null;
+    try {
+      activeAlarm = nextAlarm(userId, now);
+    } catch {
+      activeAlarm = null;
+    }
+    const allPendingTasks = [
+      ...data.tasksSummary.overdueTasks,
+      ...data.tasksSummary.dueTodayTasks,
+      ...data.tasksSummary.upcomingTasks,
+    ];
+    return buildHeroModel({
+      data,
+      activeAlarm,
+      allPendingTasks,
+      completedTasksCount: data.tasksSummary.completedCount ?? 0,
+      now,
+      timeFormat24h,
+      ustpEnabled: previewUstpEnabled,
+    });
+  }, [
+    customizeVisible,
+    isModern,
+    userId,
+    now,
+    data,
+    timeFormat24h,
+    previewUstpEnabled,
+  ]);
 
   const pendingTasksCount =
     data.tasksSummary.overdueTotal + data.tasksSummary.dueTodayTasks.length;
@@ -157,7 +217,7 @@ export const DashboardScreen = React.memo(function Dashboard({
   const pressTask = useCallback(
     (task: Task) =>
       onOpenCalendarTab({
-        entityId: task.id,
+        entityId: baseEntityId(task.id),
         entityKind: 'task',
         date: task.dueDate || todayStr,
       }),
@@ -182,6 +242,17 @@ export const DashboardScreen = React.memo(function Dashboard({
   const openSetAlarm = useCallback(() => setAlarmModalVisible(true), []);
   const closeSetAlarm = useCallback(() => setAlarmModalVisible(false), []);
   const clearScheduleFilter = useCallback(() => setScheduleFilter('all'), []);
+  const handleChangeDefaultFilter = useCallback(
+    (filter: DashboardScheduleFilter) => {
+      actions.setScheduleFilter(filter);
+      setScheduleFilter(filter);
+    },
+    [actions],
+  );
+  const handleResetConfig = useCallback(() => {
+    actions.resetConfig();
+    setScheduleFilter('all');
+  }, [actions]);
   const openFocus = useCallback(() => {
     if (onOpenSkill) {
       onOpenSkill({skill: 'pomodoro', action: 'open'});
@@ -319,9 +390,15 @@ export const DashboardScreen = React.memo(function Dashboard({
           <ModernHomeContent
             userId={userId}
             refreshTrigger={refreshTrigger}
+            isActive={
+              actions.config.upNextStyle === 'orb_brief'
+                ? isActive && !customizeVisible
+                : true
+            }
             now={now}
             timeFormat24h={timeFormat24h}
             data={data}
+            config={actions.config}
             visibleWidgets={visibleWidgets}
             scheduleFilter={scheduleFilter}
             onClearScheduleFilter={clearScheduleFilter}
@@ -416,13 +493,21 @@ export const DashboardScreen = React.memo(function Dashboard({
         <CustomizeDashboardModal
           visible={customizeVisible}
           config={actions.config}
+          previewHero={previewHero}
+          ustpEnabled={previewUstpEnabled}
           onClose={closeCustomize}
           onApplyPreset={actions.applyPreset}
           onMoveWidget={actions.moveWidget}
           onToggleWidget={actions.toggleWidgetVisibility}
           onChangeMinGap={actions.setMinFreeGapMinutes}
-          onChangeDefaultFilter={actions.setScheduleFilter}
-          onReset={actions.resetConfig}
+          onChangeDefaultFilter={handleChangeDefaultFilter}
+          onChangeUpNextStyle={actions.setUpNextStyle}
+          onChangeUpNextTone={actions.setUpNextTone}
+          onToggleShowQuickActions={actions.setShowQuickActions}
+          onToggleQuickAction={actions.toggleQuickAction}
+          onChangeHomeDensity={actions.setHomeDensity}
+          onToggleGreetingAvatar={actions.setShowGreetingAvatar}
+          onReset={handleResetConfig}
         />
       )}
     </View>

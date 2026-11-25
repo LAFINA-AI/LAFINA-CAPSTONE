@@ -1,6 +1,12 @@
 import {onlineChatSkill} from '../skills/onlineChatSkill';
 import {isRealDate} from '../storage/eventTime';
 import {classifySmallTalk} from './localConversation';
+import {extractExplicitMemory} from './explicitMemory';
+import {
+  extractForgetSpecificMemoryQuery,
+  isForgetAllMemoriesRequest,
+  isMemoryRecallQuery,
+} from './chatMemoryCommands';
 import {
   alarmRepeatRule,
   detectCategory,
@@ -158,7 +164,14 @@ export function shouldUseOnlineIntentExtraction(
     return false;
   }
 
-  if (classifySmallTalk(trimmed) || isHandbookQuestion(trimmed)) {
+  if (
+    classifySmallTalk(trimmed) ||
+    isHandbookQuestion(trimmed) ||
+    extractExplicitMemory(trimmed) ||
+    isMemoryRecallQuery(trimmed) ||
+    isForgetAllMemoriesRequest(trimmed) ||
+    extractForgetSpecificMemoryQuery(trimmed)
+  ) {
     return false;
   }
 
@@ -225,10 +238,10 @@ function buildIntentExtractionPrompt(
     '- "create_event": standalone calendar events or appointments ("add an event...", "book an appointment...")',
     '- "create_time_block": explicit time blocks, study blocks, focus blocks, work blocks, or scheduled slots with start+end time/duration',
     '- "create_reminder": explicit reminders ("remind me...", "set a reminder...")',
-    '- "create_note": saving a note or checklist ("note...", "jot down...", "checklist...")',
+    '- "create_note": saving a note or checklist ONLY when the student explicitly asks to write, take, save, or jot down a note or checklist in their Notes tab ("take a note...", "jot down...", "checklist..."). NEVER use "create_note" for personal facts, habits, or study preferences (e.g. "I\'m a night owl", "I prefer studying at night till 1am", "remember that I like...").',
     '- "create_alarm": a clock alarm that rings to wake the student ("set an alarm...", "wake me up at...", "get me up at six"); "time" is required and "title" is an optional short label. Use "create_reminder" only when the student asks to be reminded of something.',
     '- "update_task", "update_time_block", "update_note", "delete_task", "delete_time_block", "delete_note", "complete_task"',
-    '- "chat": NOT a planner action (questions, advice, open-ended chat, cancelled requests)',
+    '- "chat": NOT a planner action (questions, advice, personal facts/preferences/habits/memories, open-ended chat, cancelled requests)',
     'JSON schema:',
     '{"intent":string,"title":string|null,"date":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"endTime":"HH:MM"|null,"durationMinutes":number|null,"category":"Academic"|"Personal"|"APPEND","priority":"High"|"Medium"|"Low"|null,"details":string|null,"location":string|null,"isCompleted":boolean|null,"isPinned":boolean|null,"newCategory":string|null,"checklistItems":string[]|null,"targetTitle":string|null,"newTitle":string|null,"targetEntityType":"task"|"time_block"|"event"|"reminder"|"note"|"any"|null}',
     'Rules:',

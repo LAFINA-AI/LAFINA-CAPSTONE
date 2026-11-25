@@ -169,6 +169,7 @@ export const HomeTasksCard: React.FC<HomeTasksCardProps> = React.memo(
                     testID={`dashboard-task-toggle-${task.id}`}
                     onPress={() => onToggleTask(task)}
                     activeOpacity={0.75}
+                    hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
                     accessibilityRole="checkbox"
                     accessibilityState={{checked: task.isCompleted}}
                     accessibilityLabel={`Mark ${task.title} complete`}
@@ -346,7 +347,7 @@ export const HomeFreeStudyCard: React.FC<HomeFreeStudyCardProps> = React.memo(
           <>
             {expanded && (
               <View style={styles.extraSlotsWrap}>
-                {summary.freeBlocks.slice(1, 4).map(slot => (
+                {summary.freeBlocks.slice(1).map(slot => (
                   <View
                     key={slot.id}
                     style={[

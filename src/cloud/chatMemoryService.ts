@@ -1,8 +1,13 @@
 import {DeviceEventEmitter} from 'react-native';
 import {cloudClient} from './cloudClient';
 import {isGuestAccount} from './entitlements';
+import {
+  memoriesForPrompt,
+  reconcileClearedMemories,
+  reconcileDeletedMemory,
+  reconcileRestoredMemories,
+} from '../storage/onboardingMemory';
 import {chatMemoryStore} from '../storage/chatMemoryStore';
-import {memoriesForPrompt} from '../storage/onboardingMemory';
 import type {ChatMemoryChanges} from '../storage/chatMemoryStore';
 import {chatStore} from '../storage/chatStore';
 import {db} from '../storage/database';
@@ -82,8 +87,12 @@ export const chatMemoryService = {
       ) {
         throw new Error('The memory notice could not be saved.');
       }
-      if (applied.removed.length)
-        tx.afterCommit?.(() => emit({userId, messageId, changes: applied}));
+      tx.afterCommit?.(() => {
+        reconcileClearedMemories(userId);
+        if (applied.removed.length) {
+          emit({userId, messageId, changes: applied});
+        }
+      });
       return applied;
     };
     return executor ? write(executor) : db.transactionSync(write);
@@ -205,9 +214,36 @@ export const chatMemoryService = {
       if (!chatStore.setMemoryChanges(userId, messageId, reverted, tx)) {
         throw new Error('The memory notice could not be saved.');
       }
+      tx.afterCommit?.(() => {
+        for (const added of stored.added) {
+          reconcileDeletedMemory(userId, added.id);
+        }
+        reconcileRestoredMemories(userId, stored.removed);
+      });
       return reverted;
     });
     emit({userId, messageId, changes: undone});
     return undone;
+  },
+
+  /** Undo for an in-memory reply (Temporary Chat or Quick Chat) not stored in SQLite messages. */
+  undoTemporary: (
+    userId: string,
+    messageId: string,
+    changes: ChatMemoryChanges,
+  ): ChatMemoryChanges => {
+    if (changes.undone) return changes;
+    const reverted: ChatMemoryChanges = {...changes, undone: true};
+    db.transactionSync(tx => {
+      chatMemoryStore.undoChanges(userId, changes, tx);
+      tx.afterCommit?.(() => {
+        for (const added of changes.added) {
+          reconcileDeletedMemory(userId, added.id);
+        }
+        reconcileRestoredMemories(userId, changes.removed);
+      });
+    });
+    emit({userId, messageId, changes: reverted});
+    return reverted;
   },
 };

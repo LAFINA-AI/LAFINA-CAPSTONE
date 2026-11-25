@@ -1,4 +1,5 @@
 import {plannerQueries} from '../../storage/plannerQueries';
+import {addDaysToDate} from '../../storage/eventTime';
 import {tasksStore} from '../../storage/tasksStore';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {readOnboardingIdentity} from '../../storage/onboardingMemory';
@@ -8,6 +9,7 @@ import type {StudyPeakHour} from '../../storage/preferencesStore';
 import {formatAlarmTime} from '../../scheduler/alarmSchedule';
 import {onAlarmDismissedForBriefing} from '../../scheduler/alarmService';
 import {formatLocalDate} from '../nlu/fastPathParser';
+import {inferStudyPeaksFromText} from '../studyPreference';
 import {speakTextWithTts} from '../tts/ttsService';
 
 /**
@@ -120,20 +122,24 @@ export const buildMorningBriefing = (
   )}, ${WEEKDAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}.`;
 
   const today = formatLocalDate(now);
+  const yesterday = addDaysToDate(today, -1);
   let window;
   try {
-    window = plannerQueries.window(userId, today, today);
+    window = plannerQueries.window(userId, yesterday, today);
   } catch {
     return `${opening} I couldn't read your schedule right now.`;
   }
+  const todayEvents = window.events.filter(e => e.date === today);
+  const todayBlocks = window.blocks.filter(b => b.date === today);
+  const todayTasks = window.tasks.filter(t => t.dueDate === today);
   const timed = [
-    ...window.events.map(e => ({title: e.title, time: e.startTime})),
-    ...window.blocks.map(b => ({title: b.title, time: b.startTime})),
-    ...window.tasks
+    ...todayEvents.map(e => ({title: e.title, time: e.startTime})),
+    ...todayBlocks.map(b => ({title: b.title, time: b.startTime})),
+    ...todayTasks
       .filter(t => !t.isCompleted && t.dueTime)
       .map(t => ({title: t.title, time: t.dueTime as string})),
   ].sort((a, b) => a.time.localeCompare(b.time));
-  const due = window.tasks
+  const due = todayTasks
     .filter(t => !t.isCompleted && !t.dueTime)
     .map(t => spokenTitle(t.title));
 
@@ -150,21 +156,62 @@ export const buildMorningBriefing = (
   let peakSlot: {time: string; label: string} | null = null;
   try {
     const storedPrefs = preferencesStore.getStored(userId);
-    if (storedPrefs?.studyPeakHours?.length) {
-      const occupied: Array<[number, number]> = [
-        ...window.events.map(e => {
-          const s = toMins(e.startTime);
-          const en = toMins(e.endTime);
-          return [s, en > s ? en : en + 1440] as [number, number];
-        }),
-        ...window.blocks.map(b => {
-          const s = toMins(b.startTime);
-          const en = toMins(b.endTime);
-          return [s, en > s ? en : en + 1440] as [number, number];
-        }),
-      ];
+    const storedPeaks = storedPrefs?.studyPeakHours ?? [];
+    let memoryPeaks: StudyPeakHour[] = [];
+    let newestMemoryAt: string | null = null;
+    if (chatMemoryStore.isEnabled(userId)) {
+      for (const m of chatMemoryStore.list(userId)) {
+        const isStudyMemory =
+          m.slotKey === 'onboarding:study' ||
+          /^prefers\s+(?:studying|focusing)\b/i.test(m.text) ||
+          /\b(?:night\s*owl|early\s*bird|morning\s+person)\b/i.test(m.text) ||
+          /\b(?:prefer|prefers|like|likes|love|usually|most\s+productive|best)\b[^.?!]{0,40}\b(?:study|studying|focus|focusing)\b/i.test(
+            m.text,
+          ) ||
+          /\b(?:study|studying|focus|focusing)\b[^.?!]{0,25}\b(?:best|better|prefer|prefers)\b/i.test(
+            m.text,
+          );
+        if (!isStudyMemory) {
+          continue;
+        }
+        const parsed = inferStudyPeaksFromText(m.text);
+        if (parsed.length === 0) continue;
+        const stampedAt = m.updatedAt || m.createdAt;
+        if (!newestMemoryAt || stampedAt > newestMemoryAt) {
+          newestMemoryAt = stampedAt;
+        }
+        for (const p of parsed) {
+          if (!memoryPeaks.includes(p)) memoryPeaks.push(p);
+        }
+      }
+    }
+    const memoryIsNewer =
+      Boolean(newestMemoryAt) &&
+      (!storedPrefs?.updatedAt || newestMemoryAt! > storedPrefs.updatedAt);
+    const useMemoryPeaks =
+      memoryPeaks.length > 0 &&
+      (memoryIsNewer || (storedPeaks.length === 0 && !storedPrefs?.updatedAt));
+    const activePeaks = useMemoryPeaks ? memoryPeaks : storedPeaks;
+    if (activePeaks.length > 0) {
+      const occupied: Array<[number, number]> = [];
+      const addOccupied = (
+        itemDate: string,
+        startTime?: string,
+        endTime?: string,
+      ) => {
+        if (!startTime || !endTime) return;
+        const s = toMins(startTime);
+        const en = toMins(endTime);
+        if (itemDate === today) {
+          occupied.push([s, en > s ? en : en + 1440]);
+        } else if (itemDate === yesterday && en <= s && en > 0) {
+          occupied.push([0, en]);
+        }
+      };
+      for (const e of window.events) addOccupied(e.date, e.startTime, e.endTime);
+      for (const b of window.blocks) addOccupied(b.date, b.startTime, b.endTime);
       peakSlot = findPeakOpenSlot(
-        storedPrefs.studyPeakHours,
+        activePeaks,
         occupied,
         now.getHours() * 60 + now.getMinutes(),
       );

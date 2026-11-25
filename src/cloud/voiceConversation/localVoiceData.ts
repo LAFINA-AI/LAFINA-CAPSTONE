@@ -423,7 +423,9 @@ export const buildStudentVoiceContext = (
     if (chatMemoryStore.isEnabled(userId)) {
       const memories = memoriesForPrompt(userId);
       if (memories.length > 0) {
-        const facts = memories.slice(0, 12).map(m => m.text);
+        const facts = memories
+          .slice(0, 25)
+          .map(m => sanitizeUntrustedContext(m.text, 250));
         sections.push(`Student Memories & Preferences: ${facts.join('; ')}`);
       }
     }

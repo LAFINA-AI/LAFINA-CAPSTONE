@@ -3,24 +3,34 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {
   AlarmClock,
   BookOpen,
+  CalendarDays,
+  FileText,
   Plus,
   Sparkles,
   Timer,
 } from 'lucide-react-native';
+import {
+  DEFAULT_HOME_QUICK_ACTIONS,
+  type HomeQuickActionId,
+} from '../../../../../storage';
 import {useTheme} from '../../../../contexts/ThemeContext';
 import {Fonts} from '../../../../theme';
 
 export interface QuickActionsRowProps {
+  actions?: readonly HomeQuickActionId[];
+  compact?: boolean;
   ustpEnabled: boolean;
   pomodoroActiveMinutes: number | null;
   onAddTask: () => void;
   onSetAlarm: () => void;
   onOpenFocus: () => void;
   onAskPrimary: () => void;
+  onOpenNotes?: () => void;
+  onOpenSchedule?: () => void;
 }
 
 interface ActionTile {
-  id: string;
+  id: HomeQuickActionId;
   testID: string;
   label: string;
   accessibilityLabel: string;
@@ -32,36 +42,43 @@ interface ActionTile {
 
 export const QuickActionsRow: React.FC<QuickActionsRowProps> = React.memo(
   ({
+    actions = DEFAULT_HOME_QUICK_ACTIONS,
+    compact = false,
     ustpEnabled,
     pomodoroActiveMinutes,
     onAddTask,
     onSetAlarm,
     onOpenFocus,
     onAskPrimary,
+    onOpenNotes,
+    onOpenSchedule,
   }) => {
     const {modernPalette, modernShadows} = useTheme();
     const isFocusing = pomodoroActiveMinutes !== null;
+    const iconSize = compact ? 19 : 22;
 
-    const tiles: ActionTile[] = [
-      {
-        id: 'add-task',
+    const tileMap: Record<HomeQuickActionId, ActionTile> = {
+      add_task: {
+        id: 'add_task',
         testID: 'home-quick-add-task',
         label: 'Add task',
         accessibilityLabel: 'Add task',
-        renderIcon: color => <Plus color={color} size={22} strokeWidth={2.2} />,
+        renderIcon: color => (
+          <Plus color={color} size={iconSize} strokeWidth={2.2} />
+        ),
         onPress: onAddTask,
       },
-      {
-        id: 'set-alarm',
+      set_alarm: {
+        id: 'set_alarm',
         testID: 'home-quick-set-alarm',
         label: 'Set alarm',
         accessibilityLabel: 'Set alarm',
         renderIcon: color => (
-          <AlarmClock color={color} size={22} strokeWidth={2} />
+          <AlarmClock color={color} size={iconSize} strokeWidth={2} />
         ),
         onPress: onSetAlarm,
       },
-      {
+      focus: {
         id: 'focus',
         testID: 'home-quick-focus',
         label: isFocusing ? `${pomodoroActiveMinutes}m left` : 'Focus',
@@ -69,11 +86,13 @@ export const QuickActionsRow: React.FC<QuickActionsRowProps> = React.memo(
           ? `Focus session running, ${pomodoroActiveMinutes} minutes left`
           : 'Open Focus timer',
         active: isFocusing,
-        renderIcon: color => <Timer color={color} size={22} strokeWidth={2} />,
+        renderIcon: color => (
+          <Timer color={color} size={iconSize} strokeWidth={2} />
+        ),
         onPress: onOpenFocus,
       },
-      {
-        id: 'ask',
+      ask_ai: {
+        id: 'ask_ai',
         testID: ustpEnabled ? 'home-quick-ask-ustp' : 'home-quick-ask-ai',
         label: ustpEnabled ? 'Ask USTP' : 'Ask AI',
         accessibilityLabel: ustpEnabled
@@ -81,13 +100,37 @@ export const QuickActionsRow: React.FC<QuickActionsRowProps> = React.memo(
           : 'Ask LAFINA AI',
         renderIcon: color =>
           ustpEnabled ? (
-            <BookOpen color={color} size={21} strokeWidth={2} />
+            <BookOpen color={color} size={iconSize - 1} strokeWidth={2} />
           ) : (
-            <Sparkles color={color} size={21} strokeWidth={2} />
+            <Sparkles color={color} size={iconSize - 1} strokeWidth={2} />
           ),
         onPress: onAskPrimary,
       },
-    ];
+      notes: {
+        id: 'notes',
+        testID: 'home-quick-notes',
+        label: 'Notes',
+        accessibilityLabel: 'Open Notes',
+        renderIcon: color => (
+          <FileText color={color} size={iconSize - 1} strokeWidth={2} />
+        ),
+        onPress: () => onOpenNotes?.(),
+      },
+      schedule: {
+        id: 'schedule',
+        testID: 'home-quick-schedule',
+        label: 'Schedule',
+        accessibilityLabel: 'Open Schedule',
+        renderIcon: color => (
+          <CalendarDays color={color} size={iconSize - 1} strokeWidth={2} />
+        ),
+        onPress: () => onOpenSchedule?.(),
+      },
+    };
+
+    const tiles = actions
+      .map(id => tileMap[id])
+      .filter((tile): tile is ActionTile => Boolean(tile));
 
     return (
       <View style={styles.row} testID="home-quick-actions">
@@ -104,6 +147,7 @@ export const QuickActionsRow: React.FC<QuickActionsRowProps> = React.memo(
             <View
               style={[
                 styles.iconBox,
+                compact && styles.iconBoxCompact,
                 modernShadows.subtle,
                 {
                   backgroundColor: tile.active
@@ -128,6 +172,7 @@ export const QuickActionsRow: React.FC<QuickActionsRowProps> = React.memo(
             <Text
               style={[
                 styles.label,
+                compact && styles.labelCompact,
                 {
                   color: tile.active
                     ? modernPalette.accent
@@ -166,6 +211,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconBoxCompact: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+  },
   activeDot: {
     position: 'absolute',
     top: 8,
@@ -180,5 +230,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     letterSpacing: -0.1,
+  },
+  labelCompact: {
+    fontSize: 11.5,
   },
 });

@@ -11,6 +11,8 @@ import {quickChatPresence} from '../../../quickChat/quickChatPresence';
 import {
   avatarSeedStore,
   dashboardConfigStore,
+  MAX_HOME_QUICK_ACTIONS,
+  MIN_HOME_QUICK_ACTIONS,
   notesQueryStore,
   notesStore,
   preferencesStore,
@@ -29,11 +31,15 @@ import type {
   DashboardScheduleFilter,
   DashboardWidgetId,
   Event,
+  HomeDensityMode,
+  HomeQuickActionId,
   MinFreeGapMinutes,
   NoteSnapshot,
   Reminder,
   Task,
   TimeBlock,
+  UpNextCardStyleId,
+  UpNextCardToneId,
   UserPreferences,
 } from '../../../../storage';
 import {calendarVisibilityStore} from '../../../../storage/calendarVisibilityStore';
@@ -73,6 +79,7 @@ import type {
 interface UseDashboardDataOptions {
   userId: string;
   refreshTrigger: number;
+  configRevision?: number;
   isActive?: boolean;
   onRefresh: () => void;
 }
@@ -255,6 +262,7 @@ const areVisibilityMapsEqual = (
 export const useDashboardData = ({
   userId,
   refreshTrigger,
+  configRevision = 0,
   isActive = true,
   onRefresh,
 }: UseDashboardDataOptions) => {
@@ -270,6 +278,15 @@ export const useDashboardData = ({
   const [config, setConfigState] = useState<DashboardConfig>(() =>
     dashboardConfigStore.get(userId),
   );
+  const configRef = useRef(config);
+  configRef.current = config;
+  const setConfig = useCallback((next: DashboardConfig) => {
+    if (JSON.stringify(configRef.current) === JSON.stringify(next)) {
+      return;
+    }
+    configRef.current = next;
+    setConfigState(next);
+  }, []);
   const [batches, setBatches] = useState<ImportBatch[]>(
     () => importedBatchesStore.getCachedImportedBatches(userId) ?? [],
   );
@@ -333,11 +350,23 @@ export const useDashboardData = ({
   const refresh = useCallback(() => {
     const freshNow = new Date();
     setNow(freshNow);
-    setConfigState(dashboardConfigStore.get(userId));
+    setConfig(dashboardConfigStore.get(userId));
     loadRawData(freshNow);
     syncVisibilityFromCache();
     void loadVisibility();
-  }, [userId, loadRawData, syncVisibilityFromCache, loadVisibility]);
+  }, [userId, setConfig, loadRawData, syncVisibilityFromCache, loadVisibility]);
+
+  const loadedConfigRevRef = useRef({userId, configRevision});
+  useLayoutEffect(() => {
+    if (
+      loadedConfigRevRef.current.userId === userId &&
+      loadedConfigRevRef.current.configRevision === configRevision
+    ) {
+      return;
+    }
+    loadedConfigRevRef.current = {userId, configRevision};
+    setConfig(dashboardConfigStore.get(userId));
+  }, [userId, configRevision, setConfig]);
 
   const dirtyRef = useRef(false);
   const loadedIdentityRef = useRef({userId, refreshTrigger});
@@ -349,6 +378,12 @@ export const useDashboardData = ({
       return;
     }
     loadedIdentityRef.current = {userId, refreshTrigger};
+    if (userChanged) {
+      setBatches(importedBatchesStore.getCachedImportedBatches(userId) ?? []);
+      setVisibilityMap(
+        calendarVisibilityStore.getCachedVisibilityMap(userId) ?? {main: true},
+      );
+    }
     if (!userChanged && !isActive) {
       dirtyRef.current = true;
       return;
@@ -607,27 +642,27 @@ export const useDashboardData = ({
   const updateConfig = useCallback(
     (patch: Partial<DashboardConfig>) => {
       const next = dashboardConfigStore.save(userId, patch);
-      setConfigState(next);
+      setConfig(next);
     },
-    [userId],
+    [userId, setConfig],
   );
 
   const applyPreset = useCallback(
     (presetId: DashboardPresetId) => {
       const next = dashboardConfigStore.applyPreset(userId, presetId);
-      setConfigState(next);
+      setConfig(next);
     },
-    [userId],
+    [userId, setConfig],
   );
 
   const resetConfig = useCallback(() => {
     const next = dashboardConfigStore.reset(userId);
-    setConfigState(next);
-  }, [userId]);
+    setConfig(next);
+  }, [userId, setConfig]);
 
   const moveWidget = useCallback(
     (id: DashboardWidgetId, direction: 'up' | 'down') => {
-      const current = [...config.widgetOrder];
+      const current = [...configRef.current.widgetOrder];
       const idx = current.indexOf(id);
       if (idx < 0) return;
       const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -636,23 +671,24 @@ export const useDashboardData = ({
       current.splice(targetIdx, 0, moved);
       updateConfig({widgetOrder: current});
     },
-    [config.widgetOrder, updateConfig],
+    [updateConfig],
   );
 
   const toggleWidgetVisibility = useCallback(
     (id: DashboardWidgetId) => {
-      const hidden = new Set(config.hiddenWidgets);
+      const latest = configRef.current;
+      const hidden = new Set(latest.hiddenWidgets);
       if (hidden.has(id)) {
         hidden.delete(id);
       } else {
         // Ensure at least one widget stays visible.
-        const visibleCount = config.widgetOrder.length - hidden.size;
+        const visibleCount = latest.widgetOrder.length - hidden.size;
         if (visibleCount <= 1) return;
         hidden.add(id);
       }
       updateConfig({hiddenWidgets: Array.from(hidden)});
     },
-    [config.hiddenWidgets, config.widgetOrder.length, updateConfig],
+    [updateConfig],
   );
 
   const setMinFreeGapMinutes = useCallback(
@@ -669,11 +705,70 @@ export const useDashboardData = ({
     [updateConfig],
   );
 
+  const setUpNextStyle = useCallback(
+    (style: UpNextCardStyleId) => {
+      updateConfig({upNextStyle: style});
+    },
+    [updateConfig],
+  );
+
+  const setUpNextTone = useCallback(
+    (tone: UpNextCardToneId) => {
+      updateConfig({upNextTone: tone});
+    },
+    [updateConfig],
+  );
+
+  const setShowQuickActions = useCallback(
+    (show: boolean) => {
+      updateConfig({showQuickActions: show});
+    },
+    [updateConfig],
+  );
+
+  const toggleQuickAction = useCallback(
+    (actionId: HomeQuickActionId) => {
+      const current = configRef.current.quickActions;
+      const exists = current.includes(actionId);
+      if (exists) {
+        if (current.length <= MIN_HOME_QUICK_ACTIONS) return;
+        updateConfig({
+          quickActions: current.filter(id => id !== actionId),
+        });
+      } else {
+        if (current.length >= MAX_HOME_QUICK_ACTIONS) return;
+        updateConfig({quickActions: [...current, actionId]});
+      }
+    },
+    [updateConfig],
+  );
+
+  const setHomeDensity = useCallback(
+    (density: HomeDensityMode) => {
+      updateConfig({homeDensity: density});
+    },
+    [updateConfig],
+  );
+
+  const setShowGreetingAvatar = useCallback(
+    (show: boolean) => {
+      updateConfig({showGreetingAvatar: show});
+    },
+    [updateConfig],
+  );
+
   const toggleTaskComplete = useCallback(
     (task: Task) => {
-      tasksStore.updateTask({id: task.id, isCompleted: !task.isCompleted});
-      loadRawData(new Date());
-      onRefresh();
+      try {
+        tasksStore.updateTask({
+          id: baseEntityId(task.id),
+          isCompleted: !task.isCompleted,
+        });
+        loadRawData(new Date());
+        onRefresh();
+      } catch {
+        // Keep Home responsive if storage write fails.
+      }
     },
     [loadRawData, onRefresh],
   );
@@ -715,6 +810,12 @@ export const useDashboardData = ({
       toggleWidgetVisibility,
       setMinFreeGapMinutes,
       setScheduleFilter,
+      setUpNextStyle,
+      setUpNextTone,
+      setShowQuickActions,
+      toggleQuickAction,
+      setHomeDensity,
+      setShowGreetingAvatar,
       toggleTaskComplete,
       openStudyBlockSlot,
       openAddTaskModal,
@@ -729,6 +830,12 @@ export const useDashboardData = ({
       toggleWidgetVisibility,
       setMinFreeGapMinutes,
       setScheduleFilter,
+      setUpNextStyle,
+      setUpNextTone,
+      setShowQuickActions,
+      toggleQuickAction,
+      setHomeDensity,
+      setShowGreetingAvatar,
       toggleTaskComplete,
       openStudyBlockSlot,
       openAddTaskModal,

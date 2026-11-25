@@ -3,6 +3,12 @@ import type {
   ExtractedIntent,
   ParsedIntentType,
 } from './types';
+import {extractExplicitMemory} from '../explicitMemory';
+import {
+  extractForgetSpecificMemoryQuery,
+  isForgetAllMemoriesRequest,
+  isMemoryRecallQuery,
+} from '../chatMemoryCommands';
 
 /** Dictionary mapping spoken number words to integers. */
 export const NUMBER_WORDS: Record<string, number> = {
@@ -2142,8 +2148,34 @@ function parseIntentWithoutDelivery(
   transcript: string,
   referenceDate: Date,
 ): ExtractedIntent {
+  const rawTrimmed = (transcript || '').trim();
+  // Personal memory statements, recall queries, and forget-memory requests must
+  // never be misparsed as notes, tasks, or time blocks (e.g. "im an night owl,
+  // i prefer studying at night till 1am").
+  if (
+    rawTrimmed &&
+    (extractExplicitMemory(rawTrimmed) ||
+      isMemoryRecallQuery(rawTrimmed) ||
+      isForgetAllMemoriesRequest(rawTrimmed) ||
+      extractForgetSpecificMemoryQuery(rawTrimmed))
+  ) {
+    return {
+      intent: 'chat',
+      title: null,
+      date: null,
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: detectCategory(rawTrimmed),
+      details: transcript,
+      snoozeMinutes: null,
+      confidence: 0.95,
+      source: 'fast_path',
+      rawTranscript: transcript,
+    };
+  }
   // Offline Taglish: translate the planner words, never a note's own text.
-  const taglish = NOTE_CREATION_START.test((transcript || '').trim())
+  const taglish = NOTE_CREATION_START.test(rawTrimmed)
     ? null
     : translateTaglishCommand(transcript);
   if (taglish) {

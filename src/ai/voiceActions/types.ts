@@ -134,6 +134,36 @@ export interface MemoryProposalData {
   sourceUtterance?: string;
   status: MemoryProposalStatus;
   savedMemoryId?: string | null;
+  tier?: 'core' | 'preference' | 'episodic';
+  category?: 'identity' | 'academic' | 'study' | 'goal' | 'routine' | 'general';
+  slotKey?: string | null;
+  isPinned?: boolean;
+  appliedChanges?: {
+    added: Array<{id: string; text: string}>;
+    removed: Array<{
+      id: string;
+      text: string;
+      source?: 'chat' | 'manual';
+      sessionId?: string | null;
+      createdAt?: string;
+      updatedAt?: string;
+      rowId?: number;
+      tier?: 'core' | 'preference' | 'episodic';
+      category?:
+        | 'identity'
+        | 'academic'
+        | 'study'
+        | 'goal'
+        | 'routine'
+        | 'general';
+      isPinned?: boolean;
+      slotKey?: string | null;
+      lastUsedAt?: string | null;
+      expiresAt?: string | null;
+    }>;
+    revision?: string;
+    undone?: boolean;
+  } | null;
   error?: string;
   revision: number;
 }

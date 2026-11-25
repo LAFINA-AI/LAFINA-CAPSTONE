@@ -1,5 +1,9 @@
 export {HomeHeader} from './HomeHeader';
-export {UpNextHeroCard} from './UpNextHeroCard';
+export {UpNextHeroCard, resolveHeroToneColors} from './UpNextHeroCard';
+export type {
+  UpNextHeroCardProps,
+  ResolvedHeroToneColors,
+} from './UpNextHeroCard';
 export {QuickActionsRow} from './QuickActionsRow';
 export {TodayTimelineCard} from './TodayTimelineCard';
 export {
@@ -15,4 +19,8 @@ export {
   formatHomeTimeRange,
   formatTaskDueCompact,
 } from './homeTimeline';
-export type {HomeHeroModel, HeroActionKind, TodayTimelineRow} from './homeTimeline';
+export type {
+  HomeHeroModel,
+  HeroActionKind,
+  TodayTimelineRow,
+} from './homeTimeline';

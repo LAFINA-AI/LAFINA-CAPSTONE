@@ -41,7 +41,9 @@ const makeItem = (
   };
 };
 
-const baseFreeStudy = (overrides: Partial<FreeStudySummary> = {}): FreeStudySummary => ({
+const baseFreeStudy = (
+  overrides: Partial<FreeStudySummary> = {},
+): FreeStudySummary => ({
   wakeTime: '07:00',
   sleepTime: '23:00',
   dayEnded: false,
@@ -52,7 +54,9 @@ const baseFreeStudy = (overrides: Partial<FreeStudySummary> = {}): FreeStudySumm
   ...overrides,
 });
 
-const baseData = (overrides: Partial<DashboardLoadedData> = {}): DashboardLoadedData => ({
+const baseData = (
+  overrides: Partial<DashboardLoadedData> = {},
+): DashboardLoadedData => ({
   todayStr: '2026-11-24',
   nowMinutes: 18 * 60 + 2,
   greetingName: 'John',
@@ -100,7 +104,13 @@ describe('homeTimeline pure calculations', () => {
   });
 
   test('buildHeroModel computes real gap progress for upcoming item and live progress for active item', () => {
-    const pastClass = makeItem('c1', 'IT415 · Elective 4', '15:00', '17:00', 'Room 1');
+    const pastClass = makeItem(
+      'c1',
+      'IT415 · Elective 4',
+      '15:00',
+      '17:00',
+      'Room 1',
+    );
     const nextClass = makeItem('c2', 'Project Sync', '19:00', '20:00', 'Lab 2');
     const now = new Date(2026, 10, 24, 18, 2); // 62m past 17:00, 58m before 19:00
 
@@ -126,8 +136,13 @@ describe('homeTimeline pure calculations', () => {
     });
 
     expect(upcomingHero.badge).toBe('UP NEXT');
+    expect(upcomingHero.pillMeta).toBe('UP NEXT · IN 58 MIN');
     expect(upcomingHero.ringValue).toBe('58');
     expect(upcomingHero.ringCaption).toBe('min to go');
+    expect(upcomingHero.dayProgressLabel).toBe('Your day');
+    expect(upcomingHero.dayProgressText).toBe('1 of 2 done');
+    expect(upcomingHero.dayProgressCompleted).toBe(1);
+    expect(upcomingHero.dayProgressTotal).toBe(2);
     // 62 / 120 elapsed in gap
     expect(upcomingHero.ringProgress).toBeCloseTo(62 / 120, 2);
     expect(upcomingHero.subtitle).toBe('Today · 7:00 – 8:00 PM · Lab 2');
@@ -154,6 +169,7 @@ describe('homeTimeline pure calculations', () => {
     });
 
     expect(liveHero.badge).toBe('LIVE NOW');
+    expect(liveHero.pillMeta).toBe('LIVE NOW · 30 MIN LEFT');
     expect(liveHero.ringValue).toBe('30');
     expect(liveHero.ringCaption).toBe('min left');
     expect(liveHero.ringProgress).toBe(0.5);
@@ -287,9 +303,7 @@ describe('homeTimeline pure calculations', () => {
   });
 
   test('buildTodayTimelineRows does not attach an unrelated later study slot to a short current free gap', () => {
-    const items = [
-      makeItem('c1', 'Next Class', '10:15', '11:30', 'Room 2'),
-    ];
+    const items = [makeItem('c1', 'Next Class', '10:15', '11:30', 'Room 2')];
     const laterSlot = {
       id: 'gap-840-960',
       startTime: '14:00',
@@ -318,14 +332,14 @@ describe('homeTimeline pure calculations', () => {
   });
 
   test('formatAlarmDayPrefix distinguishes Today, Tomorrow, and later weekdays', () => {
-    expect(formatAlarmDayPrefix(new Date(2026, 10, 24, 22, 0), '2026-11-24')).toBe(
-      'Today',
-    );
-    expect(formatAlarmDayPrefix(new Date(2026, 10, 25, 6, 30), '2026-11-24')).toBe(
-      'Tomorrow',
-    );
-    expect(formatAlarmDayPrefix(new Date(2026, 10, 26, 6, 30), '2026-11-24')).toBe(
-      'Thu',
-    );
+    expect(
+      formatAlarmDayPrefix(new Date(2026, 10, 24, 22, 0), '2026-11-24'),
+    ).toBe('Today');
+    expect(
+      formatAlarmDayPrefix(new Date(2026, 10, 25, 6, 30), '2026-11-24'),
+    ).toBe('Tomorrow');
+    expect(
+      formatAlarmDayPrefix(new Date(2026, 10, 26, 6, 30), '2026-11-24'),
+    ).toBe('Thu');
   });
 });

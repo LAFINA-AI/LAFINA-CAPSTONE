@@ -19,6 +19,8 @@ import {
   type ReviewDecisionResult,
 } from '../chatOrchestrator';
 import type {ChatMessage} from '../../storage/chatStore';
+import type {ChatMemoryChanges} from '../../storage/chatMemoryStore';
+import {chatMemoryService} from '../../cloud/chatMemoryService';
 import type {UndoResult} from '../nlu/commandReview';
 
 export const QUICK_CHAT_DATA_CHANGED_EVENT = 'LAFINA_QUICK_CHAT_DATA_CHANGED';
@@ -194,13 +196,28 @@ export const quickChatController = {
     }
 
     if (!isCurrent()) {
-      // Nothing prepared after Stop may wait for a later Confirm.
+      // Nothing prepared after Stop may wait for a later Confirm, and any
+      // embedded memory from a stopped turn must be rolled back.
       if (result.review?.status === 'proposal') {
         chatOrchestrator.cancelReview(
           userId,
           result.review.proposal.operationId,
           {temporaryChat: true},
         );
+      }
+      if (
+        result.assistantMessage.memoryChanges &&
+        !result.assistantMessage.memoryChanges.undone
+      ) {
+        try {
+          chatMemoryService.undoTemporary(
+            userId,
+            result.assistantMessage.id,
+            result.assistantMessage.memoryChanges,
+          );
+        } catch {
+          // best-effort rollback for stopped quick chat turn
+        }
       }
       return {status: 'stopped'};
     }
@@ -308,6 +325,22 @@ export const quickChatController = {
     if (userId && state.ownerId && state.ownerId !== userId) return;
     reset(userId ?? null);
     notify();
+  },
+
+  /** Updates a quick-chat message's memory notice (e.g. after Undo). */
+  patchMemoryChanges(
+    userId: string,
+    messageId: string,
+    changes: ChatMemoryChanges,
+  ): void {
+    if (!userId || state.ownerId !== userId) return;
+    let changed = false;
+    state.messages = state.messages.map(msg => {
+      if (msg.id !== messageId) return msg;
+      changed = true;
+      return {...msg, memoryChanges: changes};
+    });
+    if (changed) notify();
   },
 
   /** Keeps only this owner's transcript (account switch or sign-out). */

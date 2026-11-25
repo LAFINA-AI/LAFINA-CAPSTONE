@@ -22,6 +22,7 @@ export interface HomeHeaderProps {
   academicBadge: string | null;
   photoSource: ImageSourcePropType | null;
   avatarSeed: string | null;
+  showAvatar?: boolean;
   onOpenCustomize: () => void;
 }
 
@@ -32,6 +33,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = React.memo(
     academicBadge,
     photoSource,
     avatarSeed,
+    showAvatar = true,
     onOpenCustomize,
   }) => {
     const {isDarkMode, modernPalette, modernShadows} = useTheme();
@@ -42,7 +44,9 @@ export const HomeHeader: React.FC<HomeHeaderProps> = React.memo(
       month: 'short',
       day: 'numeric',
     });
-    const subtitle = academicBadge ? `${dateLabel} · ${academicBadge}` : dateLabel;
+    const subtitle = academicBadge
+      ? `${dateLabel} · ${academicBadge}`
+      : dateLabel;
     const avatarBg = isDarkMode
       ? modernPalette.softViolet
       : mixColors(modernPalette.accent, modernPalette.softViolet, 0.14);
@@ -53,36 +57,39 @@ export const HomeHeader: React.FC<HomeHeaderProps> = React.memo(
     return (
       <View style={styles.headerRow} testID="home-header">
         <View style={styles.identity}>
-          <View
-            style={[
-              styles.avatarFrame,
-              {
-                backgroundColor: avatarBg,
-                borderColor: avatarBorder,
-              },
-            ]}
-          >
-            {photoSource ? (
-              <Image
-                source={photoSource}
-                style={styles.avatarImage}
-                resizeMode="cover"
-                accessibilityLabel={`${greetingName} avatar`}
-              />
-            ) : avatarSeed ? (
-              <CharacterAvatar
-                seed={avatarSeed}
-                size={40}
-                testID="home-character-avatar"
-              />
-            ) : (
-              <DefaultProfileAvatar
-                size={40}
-                isDarkMode={isDarkMode}
-                testID="home-default-avatar"
-              />
-            )}
-          </View>
+          {showAvatar && (
+            <View
+              testID="home-header-avatar"
+              style={[
+                styles.avatarFrame,
+                {
+                  backgroundColor: avatarBg,
+                  borderColor: avatarBorder,
+                },
+              ]}
+            >
+              {photoSource ? (
+                <Image
+                  source={photoSource}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                  accessibilityLabel={`${greetingName} avatar`}
+                />
+              ) : avatarSeed ? (
+                <CharacterAvatar
+                  seed={avatarSeed}
+                  size={40}
+                  testID="home-character-avatar"
+                />
+              ) : (
+                <DefaultProfileAvatar
+                  size={40}
+                  isDarkMode={isDarkMode}
+                  testID="home-default-avatar"
+                />
+              )}
+            </View>
+          )}
 
           <View style={styles.greetingCol}>
             <Text

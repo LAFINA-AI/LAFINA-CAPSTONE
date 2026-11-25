@@ -3,12 +3,15 @@ import RNFS from 'react-native-fs';
 import {fireEvent, render, waitFor} from '@testing-library/react-native';
 import {
   ALL_DASHBOARD_WIDGET_IDS,
+  ALL_UP_NEXT_CARD_TONES,
+  DEFAULT_HOME_QUICK_ACTIONS,
   alarmsStore,
   calendarVisibilityStore,
   dashboardConfigStore,
   db,
   importedBatchesStore,
   initDatabase,
+  normalizeDashboardConfig,
   notesStore,
   preferencesStore,
   remindersStore,
@@ -20,7 +23,13 @@ import {academicProfileStore} from '../../src/storage/academicProfileStore';
 import {studentSetupStore} from '../../src/storage/studentSetupStore';
 import type {Event, TimeBlock} from '../../src/storage';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
+import {
+  MODERN_THEMES,
+  getModernPalette,
+  getModernThemeExtras,
+} from '../../src/ui/theme';
 import {DashboardScreen} from '../../src/ui/screens/dashboard';
+import {resolveHeroToneColors} from '../../src/ui/screens/dashboard/components/modern';
 import {useDashboardData} from '../../src/ui/screens/dashboard/hooks/useDashboardData';
 import {
   buildDayScheduleItems,
@@ -81,15 +90,51 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
 
     test('transfers guest dashboard preferences on account link without overwriting existing cloud config', () => {
       const guest = userStore.createGuestUser();
-      dashboardConfigStore.save(guest.id, {minFreeGapMinutes: 45});
+      dashboardConfigStore.save(guest.id, {
+        minFreeGapMinutes: 45,
+        upNextStyle: 'mascot_progress',
+        upNextTone: 'soft',
+        homeDensity: 'compact',
+        showQuickActions: false,
+      });
 
       const targetId = makeUser('transfer');
       db.transactionSync(tx => {
         dashboardConfigStore.transferFromGuest(tx, guest.id, targetId);
       });
 
-      expect(dashboardConfigStore.get(targetId).minFreeGapMinutes).toBe(45);
+      const transferred = dashboardConfigStore.get(targetId);
+      expect(transferred.minFreeGapMinutes).toBe(45);
+      expect(transferred.upNextStyle).toBe('mascot_progress');
+      expect(transferred.upNextTone).toBe('soft');
+      expect(transferred.homeDensity).toBe('compact');
+      expect(transferred.showQuickActions).toBe(false);
       expect(dashboardConfigStore.get(guest.id).minFreeGapMinutes).toBe(30);
+    });
+
+    test('normalizes Up Next card style/tone, quick action bounds, density, and avatar toggle safely', () => {
+      const sanitized = normalizeDashboardConfig({
+        upNextStyle: 'invalid_style' as never,
+        upNextTone: 'invalid_tone' as never,
+        quickActions: ['notes', 'notes', 'unknown' as never],
+        homeDensity: 'wide' as never,
+        showQuickActions: false,
+        showGreetingAvatar: false,
+      });
+
+      expect(sanitized.upNextStyle).toBe('countdown_ring');
+      expect(sanitized.upNextTone).toBe('vivid');
+      expect(sanitized.homeDensity).toBe('comfortable');
+      expect(sanitized.showQuickActions).toBe(false);
+      expect(sanitized.showGreetingAvatar).toBe(false);
+      // Single valid action is padded from defaults without duplicates
+      expect(sanitized.quickActions[0]).toBe('notes');
+      expect(sanitized.quickActions.length).toBe(
+        DEFAULT_HOME_QUICK_ACTIONS.length,
+      );
+      expect(new Set(sanitized.quickActions).size).toBe(
+        sanitized.quickActions.length,
+      );
     });
   });
 
@@ -330,7 +375,9 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
       expect(utils.getByTestId('dashboard-hero-ring')).toBeTruthy();
       expect(utils.queryByTestId('dashboard-hero-mascot')).toBeNull();
       expect(utils.queryByLabelText('Open alarms')).toBeNull();
-      expect(utils.queryByPlaceholderText('Search classes, notes...')).toBeNull();
+      expect(
+        utils.queryByPlaceholderText('Search classes, notes...'),
+      ).toBeNull();
       expect(utils.getByTestId('home-greeting-title').props.children).toEqual([
         'Good morning',
         ', ',
@@ -706,6 +753,172 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
       await waitFor(() => {
         expect(alarmsStore.list(uid).length).toBeGreaterThanOrEqual(1);
       });
+    });
+
+    test('customizes Up Next card style & finish, quick actions, density, and greeting avatar with live persistence', async () => {
+      const fixedNow = new Date(2026, 10, 24, 18, 2, 0);
+      jest.useFakeTimers().setSystemTime(fixedNow);
+
+      const uid = makeUser('home-custom');
+      const todayStr = formatLocalDateStr(fixedNow);
+
+      // 3 completed sessions + 1 upcoming session in 58 min => "3 of 4 done"
+      timeBlocksStore.insert({
+        id: 'done-1',
+        userId: uid,
+        title: 'CS 101 · Lecture',
+        date: todayStr,
+        startTime: '08:00',
+        endTime: '09:30',
+        color: '#2563EB',
+        category: 'Class',
+      });
+      timeBlocksStore.insert({
+        id: 'done-2',
+        userId: uid,
+        title: 'CS 102 · Lab',
+        date: todayStr,
+        startTime: '10:00',
+        endTime: '12:00',
+        color: '#2563EB',
+        category: 'Class',
+      });
+      timeBlocksStore.insert({
+        id: 'done-3',
+        userId: uid,
+        title: 'Study Session',
+        date: todayStr,
+        startTime: '14:00',
+        endTime: '15:30',
+        color: '#059669',
+        category: 'Learning',
+      });
+      timeBlocksStore.insert({
+        id: 'next-4',
+        userId: uid,
+        title: 'Capstone Sync',
+        date: todayStr,
+        startTime: '19:00',
+        endTime: '20:00',
+        color: '#C24B14',
+        category: 'Class',
+      });
+
+      const onOpenNotesTab = jest.fn();
+      const utils = render(
+        <ThemeProvider userId={uid} initialModernTheme="sunset">
+          <DashboardScreen
+            userId={uid}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+            onOpenCalendarTab={jest.fn()}
+            onOpenNotesTab={onOpenNotesTab}
+            onOpenChatTab={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      // Default is countdown_ring; long-pressing opens Customize Dashboard
+      expect(utils.getByTestId('dashboard-hero-ring')).toBeTruthy();
+      expect(utils.getByTestId('home-header-avatar')).toBeTruthy();
+      fireEvent(utils.getByTestId('dashboard-widget-up-next'), 'longPress');
+      expect(utils.getByText('Customize Dashboard')).toBeTruthy();
+      expect(utils.getByTestId('customize-upnext-preview')).toBeTruthy();
+
+      // Switch to Mascot & Progress style + Soft Tint finish
+      fireEvent.press(utils.getByTestId('upnext-style-mascot_progress'));
+      fireEvent.press(utils.getByTestId('upnext-tone-soft'));
+      fireEvent.press(utils.getByTestId('home-density-compact'));
+      fireEvent(
+        utils.getByTestId('toggle-greeting-avatar'),
+        'valueChange',
+        false,
+      );
+
+      // Swap quick action: remove Focus, add Notes
+      fireEvent.press(utils.getByTestId('quick-action-chip-focus'));
+      fireEvent.press(utils.getByTestId('quick-action-chip-notes'));
+
+      fireEvent.press(utils.getByTestId('customize-dashboard-done'));
+
+      await waitFor(() => {
+        expect(utils.getByTestId('dashboard-hero-mascot')).toBeTruthy();
+      });
+      expect(utils.getByText('UP NEXT · IN 58 MIN')).toBeTruthy();
+      expect(utils.getByText('Your day')).toBeTruthy();
+      expect(utils.getByText('3 of 4 done')).toBeTruthy();
+      expect(utils.getByTestId('dashboard-hero-segment-0')).toBeTruthy();
+      expect(utils.getByTestId('dashboard-hero-segment-3')).toBeTruthy();
+      expect(utils.queryByTestId('home-header-avatar')).toBeNull();
+      expect(utils.queryByTestId('home-quick-focus')).toBeNull();
+
+      // Newly added Notes quick action navigates cleanly
+      fireEvent.press(utils.getByTestId('home-quick-notes'));
+      expect(onOpenNotesTab).toHaveBeenCalledTimes(1);
+
+      // Verify persistence in SQLite
+      const saved = dashboardConfigStore.get(uid);
+      expect(saved.upNextStyle).toBe('mascot_progress');
+      expect(saved.upNextTone).toBe('soft');
+      expect(saved.homeDensity).toBe('compact');
+      expect(saved.showGreetingAvatar).toBe(false);
+      expect(saved.quickActions).toContain('notes');
+      expect(saved.quickActions).not.toContain('focus');
+
+      // Switch to Orb & Brief, then Compact Glance, then hide Quick Actions
+      fireEvent.press(utils.getByTestId('dashboard-customize-btn'));
+      fireEvent.press(utils.getByTestId('upnext-style-orb_brief'));
+      fireEvent.press(utils.getByTestId('customize-dashboard-done'));
+      await waitFor(() => {
+        expect(utils.getByTestId('dashboard-hero-orb')).toBeTruthy();
+      });
+
+      fireEvent.press(utils.getByTestId('dashboard-customize-btn'));
+      fireEvent.press(utils.getByTestId('upnext-style-compact_glance'));
+      fireEvent(
+        utils.getByTestId('toggle-quick-actions'),
+        'valueChange',
+        false,
+      );
+      fireEvent.press(utils.getByTestId('customize-dashboard-done'));
+      await waitFor(() => {
+        expect(utils.getByTestId('dashboard-hero-compact')).toBeTruthy();
+      });
+      expect(utils.queryByTestId('home-quick-actions')).toBeNull();
+
+      // Reset restores defaults
+      fireEvent.press(utils.getByTestId('dashboard-customize-btn'));
+      fireEvent.press(utils.getByTestId('customize-dashboard-reset'));
+      fireEvent.press(utils.getByTestId('customize-dashboard-done'));
+      await waitFor(() => {
+        expect(utils.getByTestId('dashboard-hero-ring')).toBeTruthy();
+      });
+      expect(utils.getByTestId('home-quick-actions')).toBeTruthy();
+      expect(utils.getByTestId('home-header-avatar')).toBeTruthy();
+    });
+
+    test('resolveHeroToneColors scales cleanly across all Modern themes in Light and Dark mode', () => {
+      for (const theme of MODERN_THEMES) {
+        for (const isDarkMode of [false, true]) {
+          const palette = getModernPalette(isDarkMode, theme.id);
+          const extras = getModernThemeExtras(isDarkMode, theme.id);
+          for (const tone of ALL_UP_NEXT_CARD_TONES) {
+            const resolved = resolveHeroToneColors(
+              tone,
+              isDarkMode,
+              palette,
+              extras,
+            );
+            expect(resolved.cardBg).toBeTruthy();
+            expect(resolved.titleColor).toBeTruthy();
+            expect(resolved.pillBg).toBeTruthy();
+            expect(resolved.ctaBg).toBeTruthy();
+            expect(resolved.segmentFilled).toBeTruthy();
+            expect(resolved.segmentEmpty).toBeTruthy();
+            expect(resolved.cardBg).not.toBe(resolved.titleColor);
+          }
+        }
+      }
     });
   });
 });

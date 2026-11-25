@@ -11,6 +11,10 @@
  */
 
 import {chatMemoryStore} from '../storage/chatMemoryStore';
+import {
+  extractEmbeddedMemory,
+  extractExplicitMemory,
+} from './explicitMemory';
 import {readLocalVoiceResult} from '../cloud/voiceConversation/localVoiceData';
 import {
   onlineChatSkill,
@@ -150,6 +154,29 @@ export async function runChatAgent(
         if (review?.status === 'proposal')
           return 'A review card is already on the student’s screen. Prepare at most one card per reply.';
         const fields = args as StructuredActionArgs;
+        const looksLikeMemoryNote = (value: unknown): boolean => {
+          if (typeof value !== 'string') return false;
+          const trimmedVal = value.trim();
+          if (!trimmedVal) return false;
+          return Boolean(
+            extractExplicitMemory(trimmedVal) ||
+              extractEmbeddedMemory(trimmedVal) ||
+              /^(?:prefers\s+(?:studying|to\s+be\s+called)|night\s*owl\b|early\s*bird\b|morning\s+person\b)/i.test(
+                trimmedVal,
+              ),
+          );
+        };
+        const combinedTitleDetails = [fields.title, fields.details]
+          .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+          .join(': ');
+        if (
+          fields.action === 'create_note' &&
+          (looksLikeMemoryNote(fields.request) ||
+            looksLikeMemoryNote(fields.details) ||
+            looksLikeMemoryNote(combinedTitleDetails))
+        ) {
+          return 'Personal preferences and habits belong in Chat Memory, not in Notes. No note card was prepared.';
+        }
         const intent =
           intentFromToolArguments(fields) ??
           (typeof fields.request === 'string'

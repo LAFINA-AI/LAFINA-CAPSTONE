@@ -17,6 +17,7 @@ import {UndoSnackbar} from '../components/chat/UndoSnackbar';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {quickChatController} from '../../ai/quickChat/quickChatController';
+import {chatMemoryService} from '../../cloud/chatMemoryService';
 import type {UndoOffer} from '../../ai/nlu/commandReview';
 import type {ChatMessage} from '../../storage/chatStore';
 import type {CallNavigationTarget} from '../navigation/callNavigation';
@@ -135,6 +136,24 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
     );
     return () => clearTimeout(timer);
   }, [busy]);
+
+  const handleUndoMemory = useCallback(
+    (message: ChatMessage) => {
+      if (!message.memoryChanges || message.memoryChanges.undone) return;
+      try {
+        const reverted = chatMemoryService.undoTemporary(
+          userId,
+          message.id,
+          message.memoryChanges,
+        );
+        quickChatController.patchMemoryChanges(userId, message.id, reverted);
+      } catch (error) {
+        console.warn('[QuickChat] Could not undo memory change:', error);
+        setNotice('Could not undo the memory change. Try again.');
+      }
+    },
+    [userId],
+  );
 
   const send = useCallback(async () => {
     const text = draft.trim();
@@ -342,6 +361,7 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
               key={message.id}
               item={message}
               replyFormat={replyFormat}
+              onUndoMemory={handleUndoMemory}
             />
           ))}
           {busy && streaming?.text ? (

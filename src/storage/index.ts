@@ -191,8 +191,18 @@ export type {
 } from './academicProfileStore';
 export {
   ALL_DASHBOARD_WIDGET_IDS,
+  ALL_HOME_QUICK_ACTION_IDS,
+  ALL_UP_NEXT_CARD_STYLES,
+  ALL_UP_NEXT_CARD_TONES,
   DASHBOARD_PRESETS,
   DASHBOARD_WIDGET_META,
+  DEFAULT_HOME_QUICK_ACTIONS,
+  HOME_DENSITY_OPTIONS,
+  HOME_QUICK_ACTIONS,
+  MAX_HOME_QUICK_ACTIONS,
+  MIN_HOME_QUICK_ACTIONS,
+  UP_NEXT_CARD_STYLES,
+  UP_NEXT_CARD_TONES,
   dashboardConfigStore,
   getDefaultDashboardConfig,
   normalizeDashboardConfig,
@@ -204,7 +214,14 @@ export type {
   DashboardScheduleFilter,
   DashboardWidgetId,
   DashboardWidgetMeta,
+  HomeDensityMode,
+  HomeQuickActionId,
+  HomeQuickActionMeta,
   MinFreeGapMinutes,
+  UpNextCardStyleId,
+  UpNextCardStyleMeta,
+  UpNextCardToneId,
+  UpNextCardToneMeta,
 } from './dashboardConfigStore';
 export {productTourStore, PRODUCT_TOUR_VERSION} from './productTourStore';
 export {calendarVisibilityStore} from './calendarVisibilityStore';

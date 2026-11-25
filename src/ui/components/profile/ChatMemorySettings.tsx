@@ -38,6 +38,7 @@ import type {
 import {
   reconcileClearedMemories,
   reconcileDeletedMemory,
+  reconcileEditedMemory,
 } from '../../../storage/onboardingMemory';
 import {
   getConfirmedAcademicProfile,
@@ -201,6 +202,7 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
         setNotice('Memory text cannot be empty.');
         return;
       }
+      reconcileEditedMemory(userId, updated);
       setEditingId(null);
       setEditingDraft('');
       changed();

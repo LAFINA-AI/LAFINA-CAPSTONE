@@ -288,6 +288,55 @@ export const studentSetupStore = {
     toUserId: string,
   ): void => {
     if (fromUserId === toUserId) return;
+    // Merge onboarding.memory.v1 entries so partial guest memory transfers
+    // preserve pointers to transferred rows without overwriting existing ones.
+    try {
+      const fromRow = tx.executeSync(
+        'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+        [fromUserId, 'onboarding.memory.v1'],
+      ).rows[0];
+      const toRow = tx.executeSync(
+        'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+        [toUserId, 'onboarding.memory.v1'],
+      ).rows[0];
+      if (fromRow && toRow) {
+        const fromParsed = JSON.parse(String(fromRow.value || '{}')) as {
+          entries?: Record<string, {id?: string}>;
+        };
+        const toParsed = JSON.parse(String(toRow.value || '{}')) as {
+          entries?: Record<string, {id?: string}>;
+        };
+        const merged: Record<string, {id: string}> = {};
+        for (const [k, v] of Object.entries(toParsed.entries ?? {})) {
+          if (v?.id) merged[k] = {id: v.id};
+        }
+        let changed = false;
+        for (const [k, v] of Object.entries(fromParsed.entries ?? {})) {
+          if (!v?.id || merged[k]) continue;
+          const exists = tx.executeSync(
+            'SELECT id FROM chat_memories WHERE user_id = ? AND id = ?',
+            [toUserId, v.id],
+          ).rows;
+          if (exists.length > 0) {
+            merged[k] = {id: v.id};
+            changed = true;
+          }
+        }
+        if (changed) {
+          tx.executeSync(
+            'UPDATE local_settings SET value = ?, updated_at = ? WHERE user_id = ? AND key = ?',
+            [
+              JSON.stringify({entries: merged}),
+              new Date().toISOString(),
+              toUserId,
+              'onboarding.memory.v1',
+            ],
+          );
+        }
+      }
+    } catch {
+      // Fall back to standard UPDATE OR IGNORE below.
+    }
     for (const key of [
       STUDENT_SETUP_KEY,
       'onboarding.progress.v1',

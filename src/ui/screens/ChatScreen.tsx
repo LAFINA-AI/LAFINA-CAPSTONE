@@ -1239,13 +1239,14 @@ export const ChatScreen = React.memo(function ChatScreenView({
       CHAT_MEMORY_CHANGED_EVENT,
       (event: ChatMemoryChangedEvent) => {
         if (event?.userId !== userId) return;
-        setMessages(current =>
+        const patch = (current: ChatMessage[]) =>
           current.map(message =>
             message.id === event.messageId
               ? {...message, memoryChanges: event.changes}
               : message,
-          ),
-        );
+          );
+        setMessages(patch);
+        setTempMessages(patch);
       },
     );
     return () => subscription.remove();
@@ -1255,7 +1256,15 @@ export const ChatScreen = React.memo(function ChatScreenView({
     (message: ChatMessage) => {
       if (!message.memoryChanges || message.memoryChanges.undone) return;
       try {
-        chatMemoryService.undo(userId, message.id, message.memoryChanges);
+        if (message.sessionId === 'temp_chat') {
+          chatMemoryService.undoTemporary(
+            userId,
+            message.id,
+            message.memoryChanges,
+          );
+        } else {
+          chatMemoryService.undo(userId, message.id, message.memoryChanges);
+        }
       } catch (error) {
         console.error('[ChatScreen] Could not undo the memory change:', error);
         Alert.alert(
