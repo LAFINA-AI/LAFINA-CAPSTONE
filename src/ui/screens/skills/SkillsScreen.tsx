@@ -7,7 +7,8 @@ import {useScreenActive} from '../../navigation/RetainedTab';
 import {useSkillsPalette} from '../../theme/skills';
 import {SkillsHub, SKILLS} from './SkillsHub';
 import type {SkillRoute} from './SkillsHub';
-import {SkillButton, SkillPage, ui} from './SkillUI';
+import {SkillPage, ui} from './SkillUI';
+import {AllSkillsView} from './AllSkillsView';
 import {PomodoroSkill} from './PomodoroSkill';
 import {FlashcardsSkill} from './FlashcardsSkill';
 import {GwaSkill} from './GwaSkill';
@@ -303,14 +304,7 @@ function SkillsContent(props: NotesScreenProps) {
             onBack={back}
           >
             {route === 'all' ? (
-              SKILLS.map(s => (
-                <SkillButton
-                  key={s.id}
-                  label={s.title}
-                  secondary
-                  onPress={() => setRoute(s.id)}
-                />
-              ))
+              <AllSkillsView onSelect={setRoute} />
             ) : route === 'pomodoro' ? (
               <PomodoroSkill
                 userId={props.userId}

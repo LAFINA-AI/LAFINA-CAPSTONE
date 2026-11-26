@@ -976,3 +976,33 @@ test('Quiz Maker says so when LAFINA writes fewer questions than asked for', asy
   const saved = readSkillState<{requestedCount?: number}>(owner, 'quiz', {});
   expect(saved.requestedCount).toBe(10);
 });
+
+test('All skills screen renders categorized skill cards with descriptions and opens selected skill', async () => {
+  const view = render(
+    wrap(
+      <SkillsScreen userId={owner} refreshTrigger={0} onRefresh={jest.fn()} />,
+    ),
+  );
+  fireEvent.press(view.getByLabelText('All skills'));
+  await waitFor(() =>
+    expect(view.getByTestId('all-skills-view')).toBeTruthy(),
+  );
+  expect(view.getByText('STUDY & REVIEW')).toBeTruthy();
+  expect(view.getByText('FOCUS & TOOLS')).toBeTruthy();
+  expect(view.getByText('AI CREATION')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-materials')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-pomodoro')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-flashcards')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-quiz')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-gwa')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-summarizer')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-meetings')).toBeTruthy();
+  expect(view.getByTestId('all-skills-item-docgen')).toBeTruthy();
+  expect(view.getByText('Slides, docs, PDF & sheets')).toBeTruthy();
+
+  fireEvent.press(view.getByTestId('all-skills-item-gwa'));
+  await waitFor(() =>
+    expect(view.queryByTestId('all-skills-view')).toBeNull(),
+  );
+  expect(view.getByText('GWA calculator')).toBeTruthy();
+});

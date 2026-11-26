@@ -69,7 +69,7 @@ export const meetingNotesSkill: NotesSkill = {
         body: JSON.stringify({
           content,
           source: isDirect ? 'transcript' : 'sections',
-          titleHint: input.titleHint,
+          titleHint: input.titleHint.trim().slice(0, 200),
           recordedAt: input.recordedAt,
         }),
       },

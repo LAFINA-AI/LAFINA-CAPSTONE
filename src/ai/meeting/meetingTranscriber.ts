@@ -71,9 +71,9 @@ export const transcribeMeetingChunks = async (
         : DEFAULT_CHUNK_DURATION_MS;
     let chunkSucceeded = false;
     try {
-      // ponytail: try ElevenLabs cloud STT first, fall back to local Whisper
+      // Default to local on-device Whisper unless cloud STT is explicitly opted in.
       let chunkSegments: TranscriptSegment[] | null = null;
-      if (options.useElevenLabs !== false) {
+      if (options.useElevenLabs === true) {
         chunkSegments = await transcribeChunkWithElevenLabs(
           chunkPath,
           offsetMs,
