@@ -3,10 +3,15 @@
  * pipeline for the Quick Chat panel.
  *
  * - Every request runs `chatOrchestrator.processMessage` in Temporary Chat
- *   mode with the `'quick'` review surface, so nothing is written to chat
- *   history and Quick Chat's card never replaces a Chat-tab or Voice card.
- * - The transcript lives in memory only, per owner, capped, and is dropped
- *   after an owner change or 30 minutes without use (checked lazily; no timers).
+ *   mode with the `'quick'` review surface, so Quick Chat never consumes the
+ *   main Chat tab's synced 20-chat quota and Quick Chat's card never replaces
+ *   a Chat-tab or Voice card.
+ * - Completed Quick Chat sessions are persisted locally per owner in
+ *   `local_settings` (capped at `QUICK_CHAT_MAX_HISTORY` threads) so students
+ *   can browse, reopen, continue, or delete past floating chats, while also
+ *   being able to clear the current floating chat at any time.
+ * - After 30 minutes without use (checked lazily; no timers), the active view
+ *   starts fresh while the previous conversation stays available in History.
  * - Planner writes still happen only through the review card's Confirm (or
  *   the pipeline's existing low-risk actions with Undo).
  * - After a change is applied it emits `QUICK_CHAT_DATA_CHANGED_EVENT` so the
@@ -20,16 +25,34 @@ import {
 } from '../chatOrchestrator';
 import type {ChatMessage} from '../../storage/chatStore';
 import type {ChatMemoryChanges} from '../../storage/chatMemoryStore';
+import {localSettingsStore} from '../../storage/localSettingsStore';
 import {chatMemoryService} from '../../cloud/chatMemoryService';
-import type {UndoResult} from '../nlu/commandReview';
+import {
+  cancelReviewedCommand,
+  formatResolvedReviewContent,
+  latestPendingReview,
+  type UndoResult,
+} from '../nlu/commandReview';
+import {clearPendingClarification} from '../nlu/pendingClarification';
 
 export const QUICK_CHAT_DATA_CHANGED_EVENT = 'LAFINA_QUICK_CHAT_DATA_CHANGED';
 export const QUICK_CHAT_MAX_MESSAGES = 20;
+export const QUICK_CHAT_MAX_HISTORY = 20;
 export const QUICK_CHAT_IDLE_MS = 30 * 60 * 1000;
+const QUICK_CHAT_HISTORY_KEY = 'quickChat.history.v1';
 
 export interface QuickChatDataChangedEvent {
   ownerId: string;
   reason: 'confirmed' | 'undone' | 'applied';
+}
+
+export interface QuickChatHistorySession {
+  id: string;
+  title: string;
+  preview: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface QuickChatSendOptions {
@@ -53,6 +76,7 @@ type Listener = (ownerId: string | null) => void;
 
 interface QuickChatState {
   ownerId: string | null;
+  activeSessionId: string | null;
   messages: ChatMessage[];
   /** The last completed reply: its review card, Undo offer and text. */
   lastResult: ChatOrchestratorResult | null;
@@ -64,11 +88,12 @@ interface QuickChatState {
    * The words that produced the open review card, given back on Cancel.
    * Kept here (not in the panel) so it survives closing and reopening.
    */
-  cardSource: {operationId: string; text: string} | null;
+  cardSource: {operationId: string; text: string; messageId?: string} | null;
 }
 
 const state: QuickChatState = {
   ownerId: null,
+  activeSessionId: null,
   messages: [],
   lastResult: null,
   lastUsedAt: 0,
@@ -97,9 +122,103 @@ const notify = (): void => {
   });
 };
 
+const oneLine = (text: string, max: number): string => {
+  const clean = (text || '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
+};
+
+const cap = (messages: ChatMessage[]): ChatMessage[] =>
+  messages.length > QUICK_CHAT_MAX_MESSAGES
+    ? messages.slice(messages.length - QUICK_CHAT_MAX_MESSAGES)
+    : messages;
+
+const newSessionId = (): string =>
+  `quick_session_${now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+const readStoredHistory = (userId: string): QuickChatHistorySession[] => {
+  if (!userId) return [];
+  const raw = localSettingsStore.get(userId, QUICK_CHAT_HISTORY_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (item): item is QuickChatHistorySession =>
+          Boolean(item) &&
+          typeof item === 'object' &&
+          typeof item.id === 'string' &&
+          typeof item.title === 'string' &&
+          Array.isArray(item.messages) &&
+          item.messages.length > 0,
+      )
+      .slice(0, QUICK_CHAT_MAX_HISTORY);
+  } catch {
+    return [];
+  }
+};
+
+const writeStoredHistory = (
+  userId: string,
+  sessions: QuickChatHistorySession[],
+): void => {
+  if (!userId) return;
+  try {
+    localSettingsStore.set(
+      userId,
+      QUICK_CHAT_HISTORY_KEY,
+      JSON.stringify(sessions.slice(0, QUICK_CHAT_MAX_HISTORY)),
+    );
+  } catch {
+    // Non-fatal: in-memory state still works when local_settings is unavailable.
+  }
+};
+
+const persistActiveSession = (): void => {
+  const userId = state.ownerId;
+  if (!userId || state.messages.length === 0) return;
+  if (!state.activeSessionId) {
+    state.activeSessionId = newSessionId();
+  }
+  const sessionId = state.activeSessionId;
+  const firstUser = state.messages.find(m => m.sender === 'user');
+  const lastMsg = state.messages[state.messages.length - 1];
+  const at = new Date(now()).toISOString();
+  const existing = readStoredHistory(userId);
+  const prev = existing.find(s => s.id === sessionId);
+  const updated: QuickChatHistorySession = {
+    id: sessionId,
+    title: firstUser ? oneLine(firstUser.content, 60) : 'Quick chat',
+    preview: lastMsg ? oneLine(lastMsg.content, 90) : '',
+    messages: cap([...state.messages]),
+    createdAt: prev?.createdAt ?? state.messages[0]?.createdAt ?? at,
+    updatedAt: at,
+  };
+  const next = [updated, ...existing.filter(s => s.id !== sessionId)].slice(
+    0,
+    QUICK_CHAT_MAX_HISTORY,
+  );
+  writeStoredHistory(userId, next);
+};
+
+const cancelPendingQuickState = (ownerId: string | null): void => {
+  if (!ownerId) return;
+  try {
+    const pending = latestPendingReview(ownerId, 'quick');
+    if (pending) {
+      cancelReviewedCommand(ownerId, pending.operationId);
+    }
+  } catch {
+    // best-effort cleanup
+  }
+  clearPendingClarification(ownerId, 'quick');
+};
+
 const reset = (ownerId: string | null): void => {
   abortActive();
   state.ownerId = ownerId;
+  state.activeSessionId = null;
   state.messages = [];
   state.lastResult = null;
   state.busy = false;
@@ -108,18 +227,16 @@ const reset = (ownerId: string | null): void => {
   state.cardSource = null;
 };
 
-/** Drops the transcript after an owner change or 30 minutes without use. */
+/** Drops the active transcript after an owner change or 30 minutes without use. */
 const prepareFor = (ownerId: string): void => {
   const idle = now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS;
   if (state.ownerId !== ownerId || (idle && !state.busy)) {
+    if (state.ownerId && state.ownerId !== ownerId) {
+      clearPendingClarification(state.ownerId, 'quick');
+    }
     reset(ownerId);
   }
 };
-
-const cap = (messages: ChatMessage[]): ChatMessage[] =>
-  messages.length > QUICK_CHAT_MAX_MESSAGES
-    ? messages.slice(messages.length - QUICK_CHAT_MAX_MESSAGES)
-    : messages;
 
 const tempMessage = (
   sender: 'user' | 'assistant',
@@ -143,6 +260,43 @@ const emitDataChanged = (
 ): void => {
   const event: QuickChatDataChangedEvent = {ownerId, reason};
   DeviceEventEmitter.emit(QUICK_CHAT_DATA_CHANGED_EVENT, event);
+};
+
+const applyReviewResolutionInPlace = (
+  status: 'confirmed' | 'cancelled',
+  messageId?: string,
+): boolean => {
+  let targetIndex = -1;
+  if (messageId) {
+    targetIndex = state.messages.findIndex(m => m.id === messageId);
+  }
+  if (targetIndex === -1) {
+    for (let i = state.messages.length - 1; i >= 0; i -= 1) {
+      const msg = state.messages[i];
+      if (
+        msg.sender === 'assistant' &&
+        !msg.reviewResolution &&
+        /^(?:\*\*)?Please review:/i.test(msg.content.trim())
+      ) {
+        targetIndex = i;
+        break;
+      }
+    }
+  }
+  if (targetIndex === -1) return false;
+  const target = state.messages[targetIndex];
+  const updated: ChatMessage = {
+    ...target,
+    content: formatResolvedReviewContent(target.content),
+    reviewResolution: {
+      status,
+      resolvedAt: new Date(now()).toISOString(),
+    },
+  };
+  state.messages = state.messages.map((msg, idx) =>
+    idx === targetIndex ? updated : msg,
+  );
+  return true;
 };
 
 export const quickChatController = {
@@ -204,10 +358,13 @@ export const quickChatController = {
     }
     if (activeController === controller) activeController = null;
 
-    // A change the pipeline already applied (low-risk action with Undo) is
-    // real data even when the reply is stale, so the main app still refreshes.
+    // A change the pipeline already applied (low-risk action with Undo, or
+    // conversational confirmation of an open review card) is real data even
+    // when the reply is stale, so the main app still refreshes.
     if (result.undo && result.actionResult?.success) {
       emitDataChanged(userId, 'applied');
+    } else if (result.resolvedReview?.status === 'applied') {
+      emitDataChanged(userId, 'confirmed');
     }
 
     if (!isCurrent()) {
@@ -237,10 +394,22 @@ export const quickChatController = {
       return {status: 'stopped'};
     }
 
+    if (
+      result.resolvedReview?.status === 'applied' ||
+      result.resolvedReview?.status === 'cancelled'
+    ) {
+      applyReviewResolutionInPlace(
+        result.resolvedReview.status === 'applied' ? 'confirmed' : 'cancelled',
+        state.cardSource?.messageId,
+      );
+      state.cardSource = null;
+    }
+
     state.messages = cap([...state.messages, result.assistantMessage]);
     state.lastResult = result;
     state.busy = false;
     state.lastUsedAt = now();
+    persistActiveSession();
     notify();
     return {status: 'done', result};
   },
@@ -261,8 +430,8 @@ export const quickChatController = {
   /**
    * Records Confirm or Cancel from the review card (the card itself calls
    * `chatOrchestrator.confirmReview` / `cancelReview` through
-   * `useCommandReview`). Adds the outcome to the transcript and announces an
-   * applied change.
+   * `useCommandReview`). Updates the proposal bubble, adds the outcome to the
+   * transcript, persists to history, and announces an applied change.
    */
   recordDecision(
     userId: string,
@@ -273,11 +442,17 @@ export const quickChatController = {
       decision.outcome?.status === 'applied' && !decision.outcome.repeated;
     if (applied) emitDataChanged(userId, 'confirmed');
     if (state.ownerId !== userId || !decision.reply) return;
+    if (applied) {
+      applyReviewResolutionInPlace('confirmed', state.cardSource?.messageId);
+    } else if (decision.cancelled) {
+      applyReviewResolutionInPlace('cancelled', state.cardSource?.messageId);
+    }
     state.messages = cap([
       ...state.messages,
       tempMessage('assistant', decision.reply),
     ]);
     state.lastUsedAt = now();
+    persistActiveSession();
     notify();
   },
 
@@ -294,6 +469,7 @@ export const quickChatController = {
           tempMessage('assistant', result.reply),
         ]);
         state.lastUsedAt = now();
+        persistActiveSession();
         notify();
       }
     }
@@ -303,7 +479,7 @@ export const quickChatController = {
   /** Remembers the words behind the review card `operationId` (null forgets). */
   setCardSource(
     userId: string,
-    source: {operationId: string; text: string} | null,
+    source: {operationId: string; text: string; messageId?: string} | null,
   ): void {
     if (!userId || state.ownerId !== userId) return;
     state.cardSource = source;
@@ -320,7 +496,7 @@ export const quickChatController = {
     return source && source.operationId === operationId ? source.text : null;
   },
 
-  /** This owner's transcript, or [] after an owner change or idle expiry. */
+  /** This owner's active transcript, or [] after an owner change or idle expiry. */
   getTranscript(userId: string): ChatMessage[] {
     if (!userId || state.ownerId !== userId) return [];
     if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
@@ -328,6 +504,64 @@ export const quickChatController = {
       return [];
     }
     return [...state.messages];
+  },
+
+  /** The active Quick Chat session id for this owner, or null when empty. */
+  getActiveSessionId(userId: string): string | null {
+    if (!userId || state.ownerId !== userId) return null;
+    if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
+      reset(userId);
+      return null;
+    }
+    return state.activeSessionId;
+  },
+
+  /** Saved Quick Chat conversations for this owner, newest first. */
+  getHistory(userId: string): QuickChatHistorySession[] {
+    return readStoredHistory(userId);
+  },
+
+  /** Loads a saved Quick Chat conversation into the panel so it can be read or continued. */
+  openHistorySession(userId: string, sessionId: string): boolean {
+    if (!userId || !sessionId) return false;
+    const target = readStoredHistory(userId).find(s => s.id === sessionId);
+    if (!target) return false;
+    cancelPendingQuickState(state.ownerId);
+    cancelPendingQuickState(userId);
+    abortActive();
+    state.ownerId = userId;
+    state.activeSessionId = target.id;
+    state.messages = cap([...target.messages]);
+    state.lastResult = null;
+    state.busy = false;
+    state.generation += 1;
+    state.lastUsedAt = now();
+    state.cardSource = null;
+    notify();
+    return true;
+  },
+
+  /** Removes one saved Quick Chat conversation from history. */
+  deleteHistorySession(userId: string, sessionId: string): void {
+    if (!userId || !sessionId) return;
+    const next = readStoredHistory(userId).filter(s => s.id !== sessionId);
+    writeStoredHistory(userId, next);
+    if (state.ownerId === userId && state.activeSessionId === sessionId) {
+      cancelPendingQuickState(userId);
+      reset(userId);
+    }
+    notify();
+  },
+
+  /** Removes all saved Quick Chat conversations for this owner and clears the panel. */
+  clearHistory(userId: string): void {
+    if (!userId) return;
+    writeStoredHistory(userId, []);
+    if (state.ownerId === userId) {
+      cancelPendingQuickState(userId);
+      reset(userId);
+    }
+    notify();
   },
 
   /** The last completed reply for this owner (review card, Undo, text), or null. */
@@ -344,9 +578,15 @@ export const quickChatController = {
     return state.ownerId === userId && state.busy;
   },
 
-  /** Drops the transcript. Without an owner, or for the current one, all of it. */
+  /**
+   * Clears the current floating chat back to a clean slate, cancelling any
+   * pending review card or clarification on the `'quick'` surface. Past
+   * completed conversations remain available in Quick Chat History.
+   */
   clear(userId?: string | null): void {
     if (userId && state.ownerId && state.ownerId !== userId) return;
+    const targetOwner = userId ?? state.ownerId;
+    cancelPendingQuickState(targetOwner);
     reset(userId ?? null);
     notify();
   },
@@ -364,12 +604,16 @@ export const quickChatController = {
       changed = true;
       return {...msg, memoryChanges: changes};
     });
-    if (changed) notify();
+    if (changed) {
+      persistActiveSession();
+      notify();
+    }
   },
 
   /** Keeps only this owner's transcript (account switch or sign-out). */
   retainOnly(userId: string | null): void {
     if (state.ownerId !== userId) {
+      clearPendingClarification(state.ownerId ?? undefined, 'quick');
       reset(userId);
       notify();
     }
@@ -385,8 +629,10 @@ export const quickChatController = {
   /** Test-only reset; `clock` replaces Date.now for idle-expiry tests. */
   resetForTests(clock?: () => number): void {
     abortActive();
+    clearPendingClarification();
     now = clock ?? ((): number => Date.now());
     state.ownerId = null;
+    state.activeSessionId = null;
     state.messages = [];
     state.lastResult = null;
     state.busy = false;

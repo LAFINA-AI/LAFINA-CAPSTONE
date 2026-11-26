@@ -5412,6 +5412,9 @@ export const undoLowRiskCommand = (
   return {status: 'undone', reply: `Undone. ${entry.label} was reversed.`};
 };
 
+/** Current review session token; changes on sign-out or session reset. */
+export const getReviewSessionId = (): string => sessionId;
+
 /** Ends the review session: every open proposal becomes unconfirmable. */
 export const endReviewSession = (): void => {
   reviews.clear();

@@ -1,0 +1,206 @@
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index 6588675..fd55589 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -621,13 +621,15 @@ CHAT_AGENT_TOOLS = frozenset(
+         "read_memories",
+         "find_free_time",
+         "prepare_lafina_action",
++        "search_ustp_sources",
+     }
+ )
+ 
+ CHAT_AGENT_INSTRUCTION = (
+     "You can use the provided tools to look at the student's own planner on their phone "
+-    "(calendar, To-Dos, notes, saved memories, free time) and to prepare a review card for a "
+-    "planner change. Use a tool whenever the answer depends on their data instead of guessing, "
++    "(calendar, To-Dos, notes, saved memories, free time), search verified on-device USTP sources "
++    "(2023 Student Handbook and USTP CDO campus knowledge via search_ustp_sources), and prepare a review card for a "
++    "planner change. Use a tool whenever the answer depends on their data or USTP rules/dates instead of guessing, "
+     "and you may use several tools in a row (for example find free time, then prepare a card "
+     "for the slot the student wants). prepare_lafina_action only shows a card: nothing is saved "
+     "until the student taps Confirm, so never say that anything was saved, scheduled, changed or "
+diff --git a/app/api/v1/voice.py b/app/api/v1/voice.py
+index 4887fc0..a1fde75 100644
+--- a/app/api/v1/voice.py
++++ b/app/api/v1/voice.py
+@@ -165,6 +165,8 @@ class VoiceCapabilitiesResponse(BaseModel):
+     detail: str | None = None
+     # The agent accepts the app's opening line (first_message override).
+     openingLine: bool = False
++    # The agent and backend allowlist the on-device `search_ustp_sources` tool (ADR-047).
++    clientUstpTool: bool = False
+ 
+ 
+ class VoiceSessionRequest(BaseModel):
+@@ -220,6 +222,7 @@ async def voice_capabilities(
+         sessionsPerDay=settings.VOICE_CONVERSATION_SESSIONS_PER_DAY,
+         detail=None if enabled else "Voice conversation is not set up on this server yet.",
+         openingLine=enabled and settings.VOICE_OPENING_LINE_OVERRIDE,
++        clientUstpTool=enabled,
+     )
+ 
+ 
+diff --git a/app/services/voice_conversation.py b/app/services/voice_conversation.py
+index 0309706..66e3ca5 100644
+--- a/app/services/voice_conversation.py
++++ b/app/services/voice_conversation.py
+@@ -41,6 +41,12 @@ VOICE_SYSTEM_INSTRUCTION = (
+     "For two or more actions use prepare_multi_action with separate structured items and their own dates and times. "
+     "Ask one concise question when a required title or time is missing or ambiguous. State any assumed date or duration. "
+     "Use read tools for schedule questions; a question never authorizes an edit. "
++    "For any question about USTP rules, dress code, grades, honors, attendance, conduct, academic calendar dates, "
++    "offices, portals, library, scholarships, programs or campus life, always call search_ustp_sources first "
++    "before answering or refusing. Answer strictly from its returned passages in one to three plain spoken sentences, "
++    "naming the section, page and as-of date. State any caveats and never choose between conflicting dates. "
++    "If search_ustp_sources returns no_evidence, wrong_academic_year, disabled, or ineligible, state that reason plainly "
++    "and never invent university rules or dates. "
+     "Use revise_draft with the exact current card ID and revision to change a draft. Preserve every field not requested to change. "
+     "The app handles the student's explicit spoken or tapped confirmation and commits locally. "
+     "confirm_draft can report an existing save receipt; it cannot substitute for student approval. "
+@@ -62,8 +68,9 @@ VOICE_STYLE_INSTRUCTION = (
+     "Do not read the entire review card aloud. Briefly summarize its title and time, then ask whether to save or adjust it. "
+     "Do not speak internal reasoning or narrate imaginary progress. "
+     "If speech recognition appears incomplete, ask briefly for clarification. "
+-    "When handbook passages are supplied, name the section and page supporting the answer. "
+-    "Without supplied passages, do not describe university policy as verified."
++    "When handbook or USTP source passages are supplied (either in context or via search_ustp_sources), "
++    "name the section, page, and as-of date supporting the answer. "
++    "Without verified passages from context or search_ustp_sources, do not describe university policy or campus dates as verified."
+ )
+ 
+ 
+diff --git a/app/services/voice_tool_contract.json b/app/services/voice_tool_contract.json
+index e241788..e448e49 100644
+--- a/app/services/voice_tool_contract.json
++++ b/app/services/voice_tool_contract.json
+@@ -90,6 +90,35 @@
+       }
+     }
+   },
++  {
++    "type": "function",
++    "function": {
++      "name": "search_ustp_sources",
++      "description": "Searches LAFINA’s verified on-device USTP sources: the 2023 USTP Student Handbook (standing rules: dress code, conduct, grades, GWA, INC completion, Dean’s List, attendance, shifting, retention, scholarships) and the USTP Cagayan de Oro knowledge snapshot (AY 2026–2027 academic calendar, offices, portals like PRISMS/USTeP, programs, library, and student organizations). Always call this read-only tool before answering or refusing any USTP question. Cite section, page, and as-of date from its results; never invent policies or dates.",
++      "parameters": {
++        "type": "object",
++        "properties": {
++          "query": {
++            "type": "string",
++            "description": "The student’s USTP question or keywords (e.g., \"tattered jeans dress code\", \"second semester midterms\", \"INC grade completion\", \"Registrar contact\"). Max 200 characters."
++          },
++          "collection": {
++            "type": "string",
++            "enum": [
++              "all",
++              "handbook",
++              "ustp_cdo"
++            ],
++            "description": "Optional. \"handbook\" for Student Handbook rules/policies, \"ustp_cdo\" for USTP CDO calendar/offices/portals/programs, or \"all\" (default)."
++          }
++        },
++        "required": [
++          "query"
++        ],
++        "additionalProperties": false
++      }
++    }
++  },
+   {
+     "type": "function",
+     "function": {
+@@ -471,9 +500,7 @@
+                   "enum": [
+                     "task",
+                     "event",
+-                    "time_block",
+                     "reminder",
+-                    "alarm",
+                     "note"
+                   ]
+                 },
+@@ -490,12 +517,7 @@
+                   "type": "string"
+                 },
+                 "priority": {
+-                  "type": "string",
+-                  "enum": [
+-                    "low",
+-                    "medium",
+-                    "high"
+-                  ]
++                  "type": "string"
+                 },
+                 "body": {
+                   "type": "string"
+@@ -504,14 +526,10 @@
+               "required": [
+                 "kind",
+                 "title"
+-              ],
+-              "additionalProperties": false
++              ]
+             }
+           }
+         },
+-        "required": [
+-          "text"
+-        ],
+         "additionalProperties": false
+       }
+     }
+diff --git a/tests/test_voice_ustp_tool.py b/tests/test_voice_ustp_tool.py
+new file mode 100644
+index 0000000..e90d72f
+--- /dev/null
++++ b/tests/test_voice_ustp_tool.py
+@@ -0,0 +1,48 @@
++"""Tests for the on-device USTP sources tool (`search_ustp_sources`, ADR-047)."""
++
++from types import SimpleNamespace
++
++from app.api.v1.ai import CHAT_AGENT_TOOLS
++from app.services.voice_conversation import (
++    VOICE_STYLE_INSTRUCTION,
++    VOICE_SYSTEM_INSTRUCTION,
++    approved_voice_tools,
++    voice_tool_definitions,
++)
++from scripts.provision_voice_agent import agent_config
++
++
++def test_search_ustp_sources_is_in_voice_and_chat_allowlists():
++    defs = {t["function"]["name"]: t for t in voice_tool_definitions()}
++    assert "search_ustp_sources" in defs
++    params = defs["search_ustp_sources"]["function"]["parameters"]
++    assert params["required"] == ["query"]
++    assert set(params["properties"].keys()) == {"query", "collection"}
++
++    approved = approved_voice_tools(
++        [{"type": "function", "function": {"name": "search_ustp_sources"}}]
++    )
++    assert [t["function"]["name"] for t in approved] == ["search_ustp_sources"]
++    assert "search_ustp_sources" in CHAT_AGENT_TOOLS
++
++
++def test_voice_instructions_require_search_ustp_sources():
++    assert "search_ustp_sources" in VOICE_SYSTEM_INSTRUCTION
++    assert "search_ustp_sources" in VOICE_STYLE_INSTRUCTION
++
++
++def test_provision_agent_config_includes_search_ustp_sources():
++    settings = SimpleNamespace(
++        VOICE_CONVERSATION_MAX_REPLY_TOKENS=220,
++        ELEVENLABS_VOICE_ID="test-voice", VOICE_CONVERSATION_MAX_SECONDS=300,
++    )
++    args = SimpleNamespace(
++        name="LAFINA Voice",
++        first_message="Hi!",
++        language="en",
++        tts_model="eleven_turbo_v2_5",
++        turn_timeout=7.0, turn_eagerness="normal",
++    )
++    cfg = agent_config(settings, "https://lafina-backend.vercel.app", "sec-1", args)
++    tool_names = [t["name"] for t in cfg["conversation_config"]["agent"]["prompt"]["tools"]]
++    assert "search_ustp_sources" in tool_names

@@ -49,6 +49,10 @@ interface QuickChatConversationProps {
   onlineMode: boolean;
   /** Tells the panel a review card is open (the scrim then does not close it). */
   onCardOpenChange?: (open: boolean) => void;
+  /** Incremented by the panel header's Clear action to reset local UI state. */
+  clearSignal?: number;
+  /** Tells the panel whether the current chat has anything clearable. */
+  onHasContentChange?: (hasContent: boolean) => void;
 }
 
 interface SuccessState {
@@ -65,6 +69,8 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
   userId,
   onlineMode,
   onCardOpenChange,
+  clearSignal = 0,
+  onHasContentChange,
 }) => {
   const {colors} = useTheme();
   const replyFormat = useChatReplyFormat(userId);
@@ -94,6 +100,7 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
   const sendingRef = useRef(false);
   const flushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(true);
+  const prevClearSignalRef = useRef(clearSignal);
 
   useEffect(() => {
     mounted.current = true;
@@ -102,6 +109,38 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
       if (flushRef.current) clearTimeout(flushRef.current);
     };
   }, []);
+
+  // Reset local UI state when the student taps Clear in the panel header.
+  useEffect(() => {
+    if (clearSignal === prevClearSignalRef.current) return;
+    prevClearSignalRef.current = clearSignal;
+    if (flushRef.current) {
+      clearTimeout(flushRef.current);
+      flushRef.current = null;
+    }
+    review.dismiss();
+    setSuccess(null);
+    setUndoOffer(null);
+    setMultiStep(false);
+    setCardNotice('');
+    setNotice('');
+    setStreaming(null);
+    setDraft('');
+    inputRef.current?.focus();
+  }, [clearSignal, review]);
+
+  const hasContent =
+    messages.length > 0 ||
+    busy ||
+    cardOpen ||
+    Boolean(success) ||
+    multiStep ||
+    Boolean(notice) ||
+    draft.trim().length > 0;
+
+  useEffect(() => {
+    onHasContentChange?.(hasContent);
+  }, [hasContent, onHasContentChange]);
 
   // The controller is the source of truth (it also survives closing the panel).
   useEffect(() => {
@@ -192,13 +231,23 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
           // Several changes at once are reviewed in the main app.
           review.dismiss();
           setMultiStep(true);
-        } else if (!result.resolvedReview) {
+        } else if (result.resolvedReview) {
+          // Conversational confirm/cancel resolved the open card.
+          quickChatController.setCardSource(userId, null);
+          review.dismiss();
+        } else {
           // The words behind the card, given back on Cancel (even after
-          // the panel was closed and reopened).
+          // the panel was closed and reopened). For a multi-turn follow-up
+          // ("remind me to throw trash" → "9pm"), preserve the combined
+          // command text so Cancel restores something editable.
           quickChatController.setCardSource(
             userId,
             result.review?.status === 'proposal'
-              ? {operationId: result.review.proposal.operationId, text}
+              ? {
+                  operationId: result.review.proposal.operationId,
+                  text: result.intent?.rawTranscript?.trim() || text,
+                  messageId: result.assistantMessage.id,
+                }
               : null,
           );
           // A new request replaces the open card in Quick Chat only.
@@ -326,6 +375,15 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
 
   const empty = messages.length === 0 && !busy && !cardOpen && !success;
   const showChips = empty && !multiStep;
+  // Avoid duplicating the exact confirmation line both as a trailing bubble
+  // and inside the green QuickChatSuccessCard right underneath it.
+  const visibleMessages =
+    success &&
+    messages.length > 0 &&
+    messages[messages.length - 1].sender === 'assistant' &&
+    messages[messages.length - 1].content.trim() === success.message.trim()
+      ? messages.slice(0, -1)
+      : messages;
 
   return (
     <View style={styles.container}>
@@ -357,7 +415,7 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
           }
           testID="quick-chat-transcript"
         >
-          {messages.map(message => (
+          {visibleMessages.map(message => (
             <ChatMessageItem
               key={message.id}
               item={message}

@@ -158,6 +158,16 @@ import {
 import {useOfflineCall} from '../../hooks/useOfflineCall';
 import {warmUpOfflineModel} from '../../../ai/nlu/intentService';
 import {warmupOfflineSpeech} from '../../../ai/native/speechCapture';
+import {
+  searchUstpSourcesForVoice,
+  shouldMergeFollowUpQuery,
+} from '../../../handbook';
+import {isHandbookQuestion} from '../../../ai/onlineIntentExtractor';
+import {recordCallUstpSources} from '../../../ai/voiceActions/callUstpCitations';
+import {
+  UstpSourcesSheet,
+  type UstpSourcesTarget,
+} from '../chat/UstpSourcesSheet';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -453,6 +463,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       ]
     : null;
   const [readResult, setReadResult] = useState<LocalVoiceResult | null>(null);
+  const [ustpSourcesTarget, setUstpSourcesTarget] =
+    useState<UstpSourcesTarget | null>(null);
+  const lastOfflineUstpQuery = useRef<string | null>(null);
   const [localNote, setLocalNote] = useState<string | null>(null);
   // "Marked done · Undo" after an immediate action (audit finding 10).
   const [undoOffer, setUndoOffer] = useState<UndoOffer | null>(null);
@@ -889,8 +902,43 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         case 'memory':
           setLocalNote(result.reply);
           return speakable(result.reply);
-        default:
+        default: {
+          // ADR-047: answer USTP Handbook and USTP CDO questions offline from
+          // the on-device SQLite FTS5 index (respecting COR eligibility + pref).
+          const explicitUstp =
+            isHandbookQuestion(request) ||
+            /\b(?:ustp|student\s+handbook|handbook|university\s+of\s+science\s+and\s+technology\s+of\s+southern\s+philippines)\b/i.test(
+              request,
+            );
+          const followUpUstp =
+            !explicitUstp &&
+            lastOfflineUstpQuery.current !== null &&
+            shouldMergeFollowUpQuery(request);
+          if (explicitUstp || followUpUstp) {
+            const ustpResult = await searchUstpSourcesForVoice(owner, request, {
+              previousUserQuery: lastOfflineUstpQuery.current,
+            });
+            if (!isCurrent()) return '';
+            if (ustpResult.status === 'ok') {
+              lastOfflineUstpQuery.current = request;
+              setReadResult(ustpResult);
+              recordCallUstpSources(owner, ustpResult.sources);
+              setLocalNote(ustpResult.spokenReply);
+              return ustpResult.spokenReply;
+            }
+            if (
+              ustpResult.status === 'ineligible' ||
+              ustpResult.status === 'disabled' ||
+              ustpResult.status === 'wrong_academic_year' ||
+              ustpResult.status === 'unavailable' ||
+              explicitUstp
+            ) {
+              setLocalNote(ustpResult.spokenReply);
+              return ustpResult.spokenReply;
+            }
+          }
           return OFFLINE_HELP_REPLY;
+        }
       }
     },
     [presentReview, showBatchCard],
@@ -2682,6 +2730,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     actionService.clearSessionActions(actionSession.current);
     actionSession.current = generateId('call-actions');
     lastUserRequest.current = '';
+    lastOfflineUstpQuery.current = null;
+    setUstpSourcesTarget(null);
     executedTurn.current = null;
     voiceTurns.current = [];
     awaitingDetails.current = false;
@@ -3891,6 +3941,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               ownerId={userId}
               onDismiss={() => setReadResult(null)}
               onNavigate={onNavigate}
+              onSeePassages={passageIds =>
+                setUstpSourcesTarget({kind: 'used', passageIds})
+              }
             />
           )}
 
@@ -4186,6 +4239,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         isCallActive={live || connecting}
         onClose={closeSettings}
         onSettingsChanged={applyCallSettings}
+      />
+      <UstpSourcesSheet
+        target={ustpSourcesTarget}
+        onClose={() => setUstpSourcesTarget(null)}
       />
     </View>
   );

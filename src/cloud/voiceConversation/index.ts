@@ -25,6 +25,11 @@ import {chatMemoryService} from '../chatMemoryService';
 import {explicitMemory} from '../../ai/explicitMemory';
 import {isForgetAllMemoriesRequest} from '../../ai/chatMemoryCommands';
 import {callGreetingFor} from '../../ai/callGreetings';
+import {localHandbookService} from '../../handbook';
+import {
+  clearCallUstpSources,
+  consumeCallUstpCitation,
+} from '../../ai/voiceActions/callUstpCitations';
 
 export {
   VoiceConversationController,
@@ -142,6 +147,7 @@ const createVoicePersistence = (userId: string) => {
     // Saved to this account's general Chat only while it is still the signed-in one.
     userTurn: (text: string) => {
       if (!isSignedInOwner(userId)) return;
+      clearCallUstpSources(userId);
       lastUserTurn = {
         text,
         revision: chatMemoryStore.revision(userId),
@@ -150,8 +156,10 @@ const createVoicePersistence = (userId: string) => {
     },
     assistantTurn: (text: string, heard: 'complete' | 'interrupted') => {
       if (!isSignedInOwner(userId)) return;
+      const citation = consumeCallUstpCitation(userId, text);
       const saved = chatStore.addGeneralMessage(userId, 'assistant', text, {
         voiceInterrupted: heard === 'interrupted',
+        ...(citation ? citation : {}),
       });
       const captured = lastUserTurn;
       lastUserTurn = null;
@@ -201,6 +209,7 @@ export const defaultVoiceConversationDeps = (
   // Server-side handbook search only with a confirmed USTP COR setup.
   useHandbook: () =>
     handbookPreference.read(userId) && isUstpSchoolEnabled(userId),
+  hasLocalHandbook: () => localHandbookService.isPopulated(),
   // The chat's recent conversation first: the context is cut from the end.
   getStudentContext: () =>
     [buildChatRecap(userId), buildStudentVoiceContext(userId)]

@@ -73,6 +73,12 @@ import {
   executeMultiActionBatch,
   formatMultiActionSpokenSummary,
 } from './multiActionService';
+import {
+  formatVoiceUstpToolResult,
+  searchUstpSourcesForVoice,
+  type UstpSearchCollection,
+} from '../../handbook';
+import {recordCallUstpSources} from './callUstpCitations';
 
 export interface ActionRecord {
   envelope: ActionEnvelope;
@@ -109,6 +115,7 @@ export interface ExecuteToolOptions {
 class ActionService {
   private retiredSessions = new Set<string>();
   private actions = new Map<string, ActionRecord>();
+  private lastUstpQueryBySession = new Map<string, string>();
   private listeners = new Set<ActionLifecycleListener>();
 
   subscribe(listener: ActionLifecycleListener): () => void {
@@ -171,6 +178,7 @@ class ActionService {
       this.retiredSessions.delete(oldest);
     }
     draftRegistry.clearSessionDrafts(sessionId);
+    this.lastUstpQueryBySession.delete(sessionId);
     for (const [id, record] of this.actions.entries()) {
       if (record.envelope.sessionId === sessionId) {
         if (
@@ -268,6 +276,63 @@ class ActionService {
 
     // 4. Execution branching
     try {
+      if (toolDef.kind === 'ustp.search') {
+        envelope.phase = 'checking';
+        this.emit(actionId, toolDef.kind, 'checking');
+
+        if (!isCurrent()) {
+          envelope.phase = 'canceled';
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed or cancelled.',
+          );
+          return 'Request cancelled because conversational turn updated.';
+        }
+
+        const p = envelope.payload as {
+          query: string;
+          collection?: UstpSearchCollection;
+        };
+        const previousUserQuery =
+          this.lastUstpQueryBySession.get(sessionId) ?? null;
+        const result = await searchUstpSourcesForVoice(userId, p.query, {
+          collection: p.collection,
+          previousUserQuery,
+        });
+
+        if (!isCurrent()) {
+          envelope.phase = 'canceled';
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed or cancelled.',
+          );
+          return 'Request cancelled because conversational turn updated.';
+        }
+
+        if (result.status === 'ok') {
+          this.lastUstpQueryBySession.set(sessionId, p.query);
+          if (this.lastUstpQueryBySession.size > 50) {
+            const oldest = this.lastUstpQueryBySession.keys().next().value;
+            if (oldest !== undefined)
+              this.lastUstpQueryBySession.delete(oldest);
+          }
+          recordCallUstpSources(userId, result.sources);
+          options?.onReadResult?.(result);
+        }
+
+        const resultStr = formatVoiceUstpToolResult(result);
+        envelope.phase = 'done';
+        record.status = 'result';
+        record.result = resultStr;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'done');
+        return resultStr;
+      }
+
       if (
         toolDef.kind === 'legacy.read_data' ||
         toolDef.kind === 'calendar.read' ||

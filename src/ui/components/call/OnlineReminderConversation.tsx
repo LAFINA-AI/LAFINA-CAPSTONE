@@ -55,6 +55,7 @@ const REMINDER_CALL_TOOLS = new Set([
   'read_memories',
   'find_free_time',
   'snooze_reminder',
+  'search_ustp_sources',
 ]);
 
 /** Card tools the call screen answers from its reading of the student's turn. */

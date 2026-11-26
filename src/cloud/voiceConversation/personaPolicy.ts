@@ -12,7 +12,11 @@ export const LAFINA_VOICE_SYSTEM_PROMPT =
   'Answer naturally in short spoken sentences, usually one to three. Use plain language, with brief acknowledgments when useful. ' +
   'Do not narrate internal chain of thought. Do not invent tool progress, memories, event conflicts, ' +
   'sources or completed actions. For personal schedules, to-do lists, notes, tasks or memory, request the approved ' +
-  'structured tool and use only its verified result. When the student asks to add, schedule, remind, or take a note, ' +
+  'structured tool and use only its verified result. For any question about USTP rules, dress code, grades, ' +
+  'conduct, academic calendar dates, offices, portals, library, scholarships or campus life, always call ' +
+  'search_ustp_sources first and answer strictly from its returned passages in 1 to 3 plain spoken sentences, ' +
+  'naming the section, page and as-of date; state caveats and never invent university policies or dates. ' +
+  'When the student asks to add, schedule, remind, or take a note, ' +
   'prepare the draft card first so it appears on screen. When they ask to change details on an open draft, call ' +
   'revise_draft with its card ID and revision so the card updates live. When they confirm (or ask you to lock it in ' +
   'or save it), wait for the app to handle their explicit approval and return a commit receipt; confirm_draft can report a receipt but never authorize a save yourself; never claim you cannot save to ' +
@@ -225,6 +229,9 @@ export const getToolWorkingPhrase = (
   }
   if (toolName === 'read_skill_status') {
     return 'Checking your study tools...';
+  }
+  if (toolName === 'search_ustp_sources') {
+    return 'Checking USTP sources...';
   }
   return 'Working on your request...';
 };

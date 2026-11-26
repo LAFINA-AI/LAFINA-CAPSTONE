@@ -32,7 +32,7 @@ const HANDBOOK_STRONG_CUE_RE =
 
 /** Policy topics that are only handbook questions next to a policy cue. */
 const HANDBOOK_TOPIC_RE =
-  /\b(?:gwa|gpa|tuition|fees?|prerequisites?|absences?|absent|tardiness|plagiari[sz]m|cheating|cheat|transferee|uniform|haircut|probation|retention|scholarship|overload|underload|inc|incomplete|grades?|grading|honors?|nstp|rotc|loa|(?:drop(?:ping)?|withdraw(?:ing|al)?)\s+(?:(?:a|this|that|my|the|one)\s+)?(?:subjects?|course|class|units?)|mag[\s-]?drop|fail(?:ed|ing)?\s+(?:(?:a|this|that|my|the)\s+)?(?:subjects?|course|class)|shift(?:ing)?\s+(?:(?:of|to|ng|my|another|a)\s+)*(?:courses?|programs?|degrees?|majors?)|mag[\s-]?shift)\b/i;
+  /\b(?:gwa|gpa|tuition|fees?|prerequisites?|absences?|absent|tardiness|plagiari[sz]m|cheating|cheat|transferee|uniform|haircut|dress|attire|jeans|tattered|torn|ripped|slippers|flip[-\s]?flops?|tsinelas|shorts|sleeveless|sando|tank\s+tops?|earrings|miniskirts?|mini[-\s]?skirts?|midriff|crop(?:ped)?\s+tops?|hair\s*(?:color|coloring|dye)|(?:dye(?:d|ing)?|color(?:ed|ing)?|bleach(?:ed|ing)?)\s+(?:my\s+|your\s+)?hair|curfew|id\s*sling|school\s+id|hazing|drug\s+test(?:ing)?|probation|retention|scholarship|overload|underload|inc|incomplete|grades?|grading|honors?|nstp|rotc|loa|(?:drop(?:ping)?|withdraw(?:ing|al)?)\s+(?:(?:a|this|that|my|the|one)\s+)?(?:subjects?|course|class|units?)|mag[\s-]?drop|fail(?:ed|ing)?\s+(?:(?:a|this|that|my|the)\s+)?(?:subjects?|course|class)|shift(?:ing)?\s+(?:(?:of|to|ng|my|another|a)\s+)*(?:courses?|programs?|degrees?|majors?)|mag[\s-]?shift)\b/i;
 
 /** Words that ask what is allowed, required or what happens. */
 const HANDBOOK_POLICY_CUE_RE =

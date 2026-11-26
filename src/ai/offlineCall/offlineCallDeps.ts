@@ -6,6 +6,10 @@ import {DeviceEventEmitter} from 'react-native';
 import {chatStore} from '../../storage/chatStore';
 import {callGreetingFor} from '../callGreetings';
 import {
+  clearCallUstpSources,
+  consumeCallUstpCitation,
+} from '../voiceActions/callUstpCitations';
+import {
   cancelOfflineSpeechCapture,
   isMicrophoneBusyError,
   startOfflineSpeechCapture,
@@ -64,11 +68,14 @@ export const defaultOfflineCallDeps = (
   // Offline turns go to this account's general Chat, like an online call's.
   persistence: {
     userTurn: text => {
+      clearCallUstpSources(userId);
       chatStore.addGeneralMessage(userId, 'user', text);
     },
     assistantTurn: (text, heard) => {
+      const citation = consumeCallUstpCitation(userId, text);
       chatStore.addGeneralMessage(userId, 'assistant', text, {
         voiceInterrupted: heard === 'interrupted',
+        ...(citation ? citation : {}),
       });
     },
   },

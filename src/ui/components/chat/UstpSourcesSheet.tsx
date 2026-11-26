@@ -277,9 +277,8 @@ function HomePage({
         style={[styles.body, {color: palette.muted}]}
         testID="ustp-sources-intro"
       >
-        Ask USTP answers only from the passages here, all stored on this phone.
-        Each one shows where it came from and when it was checked. Calls with
-        LAFINA use a separate online copy of the Student Handbook.
+        Ask USTP and Call LAFINA answer from the passages here, all stored on
+        this phone. Each one shows where it came from and when it was checked.
       </Text>
       <View
         style={[

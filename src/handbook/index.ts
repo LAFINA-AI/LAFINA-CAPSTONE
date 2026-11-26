@@ -4,10 +4,12 @@ export {
   buildPromptHandbookContextWithMeta,
   extractQueryTokens,
   formatOfflineHandbookReply,
+  formatSpokenHandbookReply,
   hitToHandbookSource,
   LOCAL_NO_EVIDENCE_REPLY,
   parsePageNumber,
   rankAndFilterFtsCandidates,
+  replyDisclaimsHandbook,
   sanitizePassageForPrompt,
   shouldMergeFollowUpQuery,
   uniqueLinks,
@@ -24,6 +26,7 @@ export {
   analyzeKnowledgeQuery,
   formatAsOfDate,
   isSnapshotStale,
+  staleSnapshotNote,
 } from './knowledgeScope';
 export type {KnowledgeQueryScope} from './knowledgeScope';
 export {campusSourceNote} from './knowledgeCitations';
@@ -49,3 +52,12 @@ export {
   toPassageView,
 } from './knowledgeLibrary';
 export type {KnowledgeSourceSummary, PassageView} from './knowledgeLibrary';
+export {
+  formatVoiceUstpToolResult,
+  searchUstpSourcesForVoice,
+} from './voiceUstpSearch';
+export type {
+  UstpSearchCollection,
+  VoiceUstpPassage,
+  VoiceUstpSearchResult,
+} from './voiceUstpSearch';

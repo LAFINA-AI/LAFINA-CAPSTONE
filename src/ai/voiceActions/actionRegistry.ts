@@ -117,6 +117,29 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
     },
   },
   {
+    name: 'search_ustp_sources',
+    kind: 'ustp.search',
+    description:
+      'Searches LAFINA’s verified on-device USTP sources: the 2023 USTP Student Handbook (standing rules: dress code, conduct, grades, GWA, INC completion, Dean’s List, attendance, shifting, retention, scholarships) and the USTP Cagayan de Oro knowledge snapshot (AY 2026–2027 academic calendar, offices, portals like PRISMS/USTeP, programs, library, and student organizations). Always call this read-only tool before answering or refusing any USTP question. Cite section, page, and as-of date from its results; never invent policies or dates.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'The student’s USTP question or keywords (e.g., "tattered jeans dress code", "second semester midterms", "INC grade completion", "Registrar contact"). Max 200 characters.',
+        },
+        collection: {
+          type: 'string',
+          enum: ['all', 'handbook', 'ustp_cdo'],
+          description:
+            'Optional. "handbook" for Student Handbook rules/policies, "ustp_cdo" for USTP CDO calendar/offices/portals/programs, or "all" (default).',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'read_lafina_data',
     kind: 'legacy.read_data',
     description:

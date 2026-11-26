@@ -44,6 +44,7 @@ const ALLOWED_KINDS: readonly LafinaActionKind[] = [
   'legacy.save_memory',
   'calendar.free_time',
   'reminder.snooze',
+  'ustp.search',
 ];
 
 const ALLOWED_PHASES: readonly LafinaActionPhase[] = [
@@ -883,6 +884,40 @@ export function validatePayload(
         valid: true,
         data: {
           minutes: typeof p.minutes === 'number' ? Math.round(p.minutes) : 10,
+        },
+      };
+    }
+
+    case 'ustp.search': {
+      if (
+        typeof p.query !== 'string' ||
+        !p.query.trim() ||
+        p.query.length > 200
+      ) {
+        return {
+          valid: false,
+          error: 'ustp.search requires query string (1..200 chars).',
+        };
+      }
+      if (containsPromptInjection(p.query)) {
+        return {valid: false, error: 'query was rejected.'};
+      }
+      if (
+        p.collection !== undefined &&
+        p.collection !== 'all' &&
+        p.collection !== 'handbook' &&
+        p.collection !== 'ustp_cdo'
+      ) {
+        return {
+          valid: false,
+          error: 'collection must be one of: all, handbook, ustp_cdo.',
+        };
+      }
+      return {
+        valid: true,
+        data: {
+          query: p.query.trim(),
+          ...(p.collection !== undefined ? {collection: p.collection} : {}),
         },
       };
     }

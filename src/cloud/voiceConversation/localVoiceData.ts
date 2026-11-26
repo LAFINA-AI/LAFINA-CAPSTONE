@@ -17,6 +17,7 @@ import {
   formatAlarmTime,
   nextAlarmTrigger,
 } from '../../scheduler/alarmSchedule';
+import type {VoiceUstpSearchResult} from '../../handbook';
 
 /** Return only the current owner's requested records, bounded before network use. */
 export const readLocalVoiceResult = (
@@ -194,7 +195,9 @@ export const readLocalVoiceResult = (
   throw new Error('Unsupported data type');
 };
 
-export type LocalVoiceResult = ReturnType<typeof readLocalVoiceResult>;
+export type LocalVoiceResult =
+  | ReturnType<typeof readLocalVoiceResult>
+  | VoiceUstpSearchResult;
 export const readLocalVoiceData = (
   userId: string,
   kind: unknown,

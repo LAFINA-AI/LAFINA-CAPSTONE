@@ -11,12 +11,19 @@
  */
 
 import {chatMemoryStore} from '../storage/chatMemoryStore';
+import {isUstpSchoolEnabled} from '../storage/ustpEligibility';
+import {
+  formatVoiceUstpToolResult,
+  searchUstpSourcesForVoice,
+  type UstpSearchCollection,
+} from '../handbook';
 import {
   extractEmbeddedMemory,
   extractExplicitMemory,
 } from './explicitMemory';
 import {readLocalVoiceResult} from '../cloud/voiceConversation/localVoiceData';
 import {
+  handbookPreference,
   onlineChatSkill,
   type AgentExchangeMessage,
   type AgentToolCall,
@@ -36,6 +43,7 @@ import {
   cancelReviewedCommand,
   prepareReviewedCommand,
   type PrepareResult,
+  type ReviewSurface,
 } from './nlu/commandReview';
 import type {ValidatedIntent} from './nlu/types';
 
@@ -58,6 +66,7 @@ export interface ChatAgentOptions {
   referenceDate: Date;
   /** "Sunday 2026-11-15, 9:00 AM". */
   localNow: string;
+  reviewSurface?: ReviewSurface;
   isCurrent?: () => boolean;
   signal?: AbortSignal;
 }
@@ -105,9 +114,27 @@ export async function runChatAgent(
   const isCurrent = options.isCurrent ?? (() => true);
   const tools: string[] = [...CHAT_TOOLS];
   if (chatMemoryStore.isEnabled(userId)) tools.push('read_memories');
+  if (isUstpSchoolEnabled(userId) && handbookPreference.read(userId))
+    tools.push('search_ustp_sources');
   const exchange: AgentExchangeMessage[] = [];
   const toolsUsed: string[] = [];
+  const localUstpSources: HandbookSource[] = [];
+  let lastUstpQuery: string | null = null;
   let review: PrepareResult | undefined;
+  const mergeSources = (remote: HandbookSource[]): HandbookSource[] => {
+    const merged: HandbookSource[] = [...localUstpSources];
+    const seen = new Set(
+      merged.map(s => s.passageId || `${s.title}|${s.section ?? ''}|${s.page ?? ''}`),
+    );
+    for (const s of remote) {
+      const key = s.passageId || `${s.title}|${s.section ?? ''}|${s.page ?? ''}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(s);
+      }
+    }
+    return merged;
+  };
   const abandon = (): null => {
     if (review?.status === 'proposal')
       cancelReviewedCommand(userId, review.proposal.operationId);
@@ -145,6 +172,34 @@ export async function runChatAgent(
         );
       case 'read_memories':
         return asText(readLocalVoiceResult(userId, 'memory', args.query));
+      case 'search_ustp_sources': {
+        const res = await searchUstpSourcesForVoice(
+          userId,
+          String(args.query ?? ''),
+          {
+            collection: args.collection as UstpSearchCollection | undefined,
+            previousUserQuery: lastUstpQuery,
+            referenceDate: options.referenceDate,
+          },
+        );
+        if (res.status === 'ok') {
+          lastUstpQuery = String(args.query ?? '');
+          const seen = new Set(
+            localUstpSources.map(
+              s => s.passageId || `${s.title}|${s.section ?? ''}|${s.page ?? ''}`,
+            ),
+          );
+          for (const s of res.sources) {
+            const key =
+              s.passageId || `${s.title}|${s.section ?? ''}|${s.page ?? ''}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              localUstpSources.push(s);
+            }
+          }
+        }
+        return formatVoiceUstpToolResult(res);
+      }
       case 'find_free_time':
         return answerFreeTime(
           userId,
@@ -194,7 +249,7 @@ export async function runChatAgent(
           return 'Nothing was prepared: give the action and its details (deleting needs the student to ask in their own words).';
         const prepared = prepareReviewedCommand(userId, intent, {
           referenceDate: options.referenceDate,
-          surface: 'chat',
+          surface: options.reviewSurface ?? 'chat',
         });
         if (prepared.status === 'proposal') {
           review = prepared;
@@ -223,7 +278,12 @@ export async function runChatAgent(
     if (result.status !== 'success' || !result.data) return abandon();
     const {reply, toolCalls, sources} = result.data;
     if (toolCalls.length === 0) {
-      return {reply, ...(review ? {review} : {}), sources, toolsUsed};
+      return {
+        reply,
+        ...(review ? {review} : {}),
+        sources: mergeSources(sources),
+        toolsUsed,
+      };
     }
     if (step === CHAT_AGENT_MAX_STEPS - 1) {
       // Out of steps: answer with what is known instead of looping.
@@ -234,7 +294,7 @@ export async function runChatAgent(
             ? review.reply
             : 'I looked at your planner but could not finish that in one go. Could you ask in smaller steps?'),
         ...(review ? {review} : {}),
-        sources,
+        sources: mergeSources(sources),
         toolsUsed,
       };
     }

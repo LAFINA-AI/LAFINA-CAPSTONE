@@ -177,6 +177,8 @@ export interface VoiceConversationDeps {
   /** The saved online voice, null for the server default. Throws when unreadable. */
   getVoice(): {id: string; name: string} | null;
   useHandbook(): boolean;
+  /** True when on-device USTP sources are indexed and ready for `search_ustp_sources` (ADR-047). */
+  hasLocalHandbook?(): boolean;
   getStudentContext?(): string;
   api: VoiceConversationApi;
   transport: VoiceTransport;
@@ -982,12 +984,15 @@ export class VoiceConversationController {
       this.previousSessionId
         ? this.previousSessionId
         : undefined;
+    const skipServerHandbook =
+      capabilities.data.clientUstpTool === true &&
+      this.deps.hasLocalHandbook?.() === true;
     const sessionPromise = api
       .createSession(
         {
           requestId: this.deps.newRequestId?.() ?? randomId(),
           voiceId: voice?.id ?? null,
-          useHandbook: this.deps.useHandbook(),
+          useHandbook: skipServerHandbook ? false : this.deps.useHandbook(),
           ...(resumeOf ? {resumeOf} : {}),
         },
         controller.signal,

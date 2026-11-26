@@ -110,6 +110,13 @@ export interface VoiceCapabilities {
    * the memory in the student context only (ADR-046).
    */
   resume?: boolean;
+  /**
+   * The server and ElevenLabs agent allowlist the on-device
+   * `search_ustp_sources` client tool (ADR-047). When true and the device's
+   * local USTP index is populated, the app disables redundant server-side
+   * Pinecone retrieval for the session.
+   */
+  clientUstpTool?: boolean;
 }
 
 /** One earlier turn of this call, for a reconnect's `call_recap`. */

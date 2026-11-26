@@ -271,7 +271,25 @@ const CONCEPT_GROUPS: ReadonlyArray<readonly string[]> = [
     'excused',
     'unexcused',
   ],
-  ['uniform', 'dress', 'attire', 'haircut'],
+  [
+    'uniform',
+    'dress',
+    'attire',
+    'haircut',
+    'jeans',
+    'tattered',
+    'torn',
+    'slippers',
+    'shorts',
+    'sleeveless',
+    'earrings',
+    'miniskirt',
+    'miniskirts',
+    'blouse',
+    'blouses',
+    'midriff',
+    'curfew',
+  ],
   [
     'cheat',
     'cheating',
@@ -396,6 +414,16 @@ const QUERY_SYNONYMS: ReadonlyArray<readonly [RegExp, string]> = [
   [
     /\bwhere\s+is\s+(?:the\s+)?(?:ustp\s*)?(?:cdo|cdeo|cagayan\s+de\s+oro)(?:\s+campus)?(?:\s+located)?\b/gi,
     'cdo campus address',
+  ],
+  // Spoken dress-code paraphrases mapped to Appendix I handbook wording.
+  [/\b(?:ripped|frayed)\b/gi, 'tattered'],
+  [/\b(?:flip[-\s]?flops?|tsinelas)\b/gi, 'slippers'],
+  [/\b(?:sando|tank\s+tops?)\b/gi, 'sleeveless'],
+  [/\b(?:crop(?:ped)?\s+tops?)\b/gi, 'midriff'],
+  [/\bmini[-\s]?skirts?\b/gi, 'miniskirts'],
+  [
+    /\b(?:dye(?:d|ing)?|color(?:ed|ing)?|bleach(?:ed|ing)?)\s+(?:my\s+|your\s+)?hair\b|\bhair\s*(?:dye|color|coloring)\b/gi,
+    'dress unnatural hair colors',
   ],
 ];
 
@@ -1273,7 +1301,117 @@ export function formatOfflineHandbookReply(
   ].join('\n');
 }
 
+/** Removes Markdown syntax and raw URLs so TTS speaks clean prose. */
+function plainSpokenText(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, '$1')
+    .replace(/https?:\/\/[^\s<>()\]]+/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^>\s?/gm, '')
+    .replace(/^[*+-]\s+/gm, '')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Shortens a passage cleanly at a sentence or word boundary for spoken calls. */
+function spokenExcerpt(text: string, maxChars = 320): string {
+  const clean = plainSpokenText(text);
+  if (clean.length <= maxChars) return clean;
+  const slice = clean.slice(0, maxChars);
+  const lastStop = Math.max(
+    slice.lastIndexOf('. '),
+    slice.lastIndexOf('! '),
+    slice.lastIndexOf('? '),
+  );
+  if (lastStop >= Math.floor(maxChars * 0.45)) {
+    return slice.slice(0, lastStop + 1).trim();
+  }
+  const lastSpace = slice.lastIndexOf(' ');
+  return `${(lastSpace > 40 ? slice.slice(0, lastSpace) : slice).trimEnd()}...`;
+}
+
+/**
+ * Plain, TTS-friendly reply for offline calls and voice fallback (ADR-047).
+ * Never emits Markdown headings, blockquotes, or raw URLs; names section,
+ * page, as-of date, and caveats honestly.
+ */
+export function formatSpokenHandbookReply(
+  result: LocalHandbookSearchResult,
+  options: KnowledgeFormatOptions = {},
+): string {
+  if (result.insufficientReason === 'academic_year') {
+    return plainSpokenText(wrongAcademicYearReply(result));
+  }
+  if (result.insufficientEvidence || result.matches.length === 0) {
+    return "I couldn't verify that from my USTP sources, which cover the 2023 USTP Student Handbook and the USTP Cagayan de Oro knowledge snapshot. Try asking with more specific terms, or check with the USTP Registrar or Office of Student Affairs.";
+  }
+
+  const top = result.matches[0];
+  const chunk = top.chunk;
+  const pageSpoken = chunk.pageLabel
+    ? chunk.pageLabel.replace(/^p\.\s*/i, 'page ').replace(/^PDF\s+p\.\s*/i, 'PDF page ')
+    : '';
+  const where = [chunk.section || chunk.chapter, pageSpoken]
+    .filter(Boolean)
+    .join(', ');
+
+  if (chunk.collection === 'ustp_cdo') {
+    const referenceDate = options.referenceDate ?? new Date();
+    const asOf = chunk.meta?.asOf ? formatAsOfDate(chunk.meta.asOf) : null;
+    const {lines} = rankListLines(chunk, result.queryUsed);
+    const body = spokenExcerpt(lines.join('. '), 340);
+    const caveats = (chunk.meta?.caveats ?? [])
+      .map(c => `Note: ${plainSpokenText(c.text)}`)
+      .join(' ');
+    const stale =
+      chunk.meta?.asOf && isSnapshotStale(chunk.meta, referenceDate)
+        ? staleSnapshotNote(chunk.meta.asOf)
+        : '';
+    return [
+      `From my USTP Cagayan de Oro sources${asOf ? ` as of ${asOf}` : ''}${
+        where ? `, ${where}` : ''
+      }: ${body}`,
+      caveats,
+      stale,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  const body = spokenExcerpt(chunk.content, 360);
+  const parts = [
+    `According to the 2023 USTP Student Handbook${where ? `, ${where}` : ''}: ${body}`,
+  ];
+  const second = result.matches[1];
+  if (
+    second &&
+    second.chunk.collection === 'handbook' &&
+    second.chunk.id !== chunk.id &&
+    second.score >= top.score * 0.6
+  ) {
+    const secondPage = second.chunk.pageLabel
+      ? second.chunk.pageLabel.replace(/^p\.\s*/i, 'page ')
+      : '';
+    const secondWhere = [second.chunk.section || second.chunk.chapter, secondPage]
+      .filter(Boolean)
+      .join(', ');
+    parts.push(
+      `Also see ${secondWhere}: ${spokenExcerpt(second.chunk.content, 180)}`,
+    );
+  }
+  return parts.join(' ');
+}
+
 export function shouldMergeFollowUpQuery(query: string): boolean {
   const meaningful = extractQueryTokens(query);
   return meaningful.length > 0 && meaningful.length <= 2;
 }
+
+/** The model said the handbook excerpts it was given don't cover the question. */
+const HANDBOOK_DISCLAIMER_RE =
+  /\b(?:(?:excerpts?|handbook|passages?)\s+(?:provided\s+)?(?:do(?:es)?\s+not|don['’]t|doesn['’]t)\s+(?:specify|mention|cover|address|say|include|contain)|(?:not|isn['’]t)\s+(?:covered|mentioned|specified|addressed)\s+in\s+the\s+(?:provided\s+)?(?:handbook|excerpts?))/i;
+
+export const replyDisclaimsHandbook = (reply: string): boolean =>
+  HANDBOOK_DISCLAIMER_RE.test(reply);

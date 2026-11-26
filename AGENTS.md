@@ -107,3 +107,12 @@ For the call reconnect task (ADR-046, RC-00..RC-06), `docs/plans/call-reconnect/
 - a reconnect never extends the call's time.
 
 The backend part is a patch only (`backend_integration/call-reconnect/`, migration 016); nothing was pushed or deployed. Everything else in this file still applies, including no background mic and no wake word.
+
+## Task-scoped notice: Call LAFINA USTP Sources RAG (2026-11-26)
+
+For the Call LAFINA USTP Sources RAG task (ADR-047, `USTP-CALL-00..05`), `docs/plans/call-ustp-rag/OWNER-AUTHORIZATION.md` records the owner's approval ("just do all your recommended plan, Proceed"):
+- Call LAFINA (online, reminder, and offline calls) and `ChatAgent` query our on-device USTP sources (`localHandbookService`: 2023 USTP Student Handbook + USTP CDO Knowledge Pack) via the read-only `search_ustp_sources` client tool and offline call RAG;
+- the existing confirmed-COR gate (`isUstpSchoolEnabled`) and `handbookPreference` remain enforced, returning a plain spoken explanation when pending or turned off;
+- calls show a dismissible in-call USTP Source Card with **See passages** and persist citations to Chat history.
+
+The backend and ElevenLabs agent update is delivered as a patch and handoff only (`backend_integration/call-ustp-rag/`); nothing is pushed or deployed. Everything else in this file still applies.

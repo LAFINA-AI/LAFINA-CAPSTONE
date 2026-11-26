@@ -92,6 +92,13 @@ import {
   acknowledgeReminderAction,
   snoozeReminderAction,
 } from '../scheduler/reminderActions';
+import {
+  classifyPendingClarification,
+  clearPendingClarification,
+  getPendingClarification,
+  rememberPendingClarification,
+  resolveClarificationFollowUp,
+} from './nlu/pendingClarification';
 import {formatLocalDate} from './nlu/fastPathParser';
 import {ttsService} from './tts/ttsService';
 import {
@@ -118,6 +125,7 @@ import {
   formatOfflineHandbookReply,
   LOCAL_NO_EVIDENCE_REPLY,
   localHandbookService,
+  replyDisclaimsHandbook,
   type OnlineHandbookContext,
 } from '../handbook';
 import {detectSkillIntent} from './skills/skillIntent';
@@ -1696,6 +1704,93 @@ export class ChatOrchestrator {
       }
     }
 
+    // Step 1.6: Follow-up answer to a pending clarification (e.g. "remind me
+    // to throw trash" → "What time...?" → "9pm"). Completes the partial intent
+    // on-device and prepares a normal review card (both offline and online).
+    const pendingClarification =
+      !pendingProposal && !bench && !ustpRagOnly && !options.ringingCall
+        ? getPendingClarification(
+            userId,
+            activeSurface,
+            sessionId,
+            lastAssistantId,
+          )
+        : null;
+    if (pendingClarification) {
+      if (CHAT_REVIEW_CANCEL_RE.test(trimmed)) {
+        clearPendingClarification(userId, activeSurface, sessionId);
+        const cancelMsg = 'Cancelled. Nothing was changed.';
+        const assistantMessage = makeLocalAssistantMessage(cancelMsg);
+        if (options.speakReply) {
+          try {
+            await waitForCurrent(ttsService.speak(cancelMsg));
+          } catch (error) {
+            console.warn('[ChatOrchestrator] TTS playback error:', error);
+          }
+        }
+        return {
+          userMessage,
+          assistantMessage,
+          intent: plainChatIntent(trimmed),
+          usedOnline: false,
+          reply: cancelMsg,
+        };
+      }
+      const mergedIntent = resolveClarificationFollowUp(
+        pendingClarification,
+        trimmed,
+        refDate,
+      );
+      clearPendingClarification(userId, activeSurface, sessionId);
+      if (mergedIntent) {
+        const prepared = prepareReviewedCommand(userId, mergedIntent, {
+          referenceDate: refDate,
+          surface: activeSurface,
+          ringingCall: options.ringingCall,
+        });
+        const assistantMessage = makeLocalAssistantMessage(prepared.reply);
+        if (prepared.status === 'proposal') {
+          rememberReviewTurn(
+            prepared.proposal.operationId,
+            sessionId,
+            assistantMessage.id,
+          );
+        } else {
+          const nextClarification = classifyPendingClarification(
+            mergedIntent,
+            prepared,
+          );
+          if (nextClarification) {
+            rememberPendingClarification({
+              userId,
+              surface: activeSurface,
+              sessionId,
+              assistantMessageId: assistantMessage.id,
+              kind: nextClarification.kind,
+              intent: mergedIntent,
+              clearLeadMinutes: nextClarification.clearLeadMinutes,
+            });
+          }
+        }
+        if (options.speakReply) {
+          try {
+            await waitForCurrent(ttsService.speak(prepared.reply));
+          } catch (error) {
+            console.warn('[ChatOrchestrator] TTS playback error:', error);
+          }
+        }
+        return {
+          userMessage,
+          assistantMessage,
+          intent: mergedIntent,
+          review: prepared,
+          route: 'reviewed_mutation',
+          usedOnline: false,
+          reply: prepared.reply,
+        };
+      }
+    }
+
     // "yes" / "confirm" with no card waiting. Offline there is no conversation
     // it could answer, so say so instead of "needs Online Mode". Online, it may
     // answer DeepSeek's own question, so it goes to the conversation.
@@ -1994,23 +2089,24 @@ export class ChatOrchestrator {
     // card called "First one" (audit 2, B2).
     let followUpAgent = false;
     let pointerOnly = false;
+    const allowOnlineAgent = !isTemp || activeSurface === 'quick';
     if (
       !finalReply &&
       !ustpRagOnly &&
       !isScheduleScan &&
       !options.ringingCall
     ) {
+      const recentForPointer = isTemp
+        ? (options.temporaryHistory ?? [userMessage]).slice(-6)
+        : readRecentHistory(userId, 6, sessionId);
       const pointsBack =
         isReferenceRequest(validated, trimmed) ||
         (validated.intent === 'chat' &&
-          !isTemp &&
+          allowOnlineAgent &&
           options.onlineMode === true &&
           isShortReferenceFollowUp(trimmed) &&
-          lastAssistantIsPlanner(
-            readRecentHistory(userId, 6, sessionId),
-            trimmed,
-          ));
-      if (pointsBack && options.onlineMode && !isTemp) {
+          lastAssistantIsPlanner(recentForPointer, trimmed));
+      if (pointsBack && options.onlineMode && allowOnlineAgent) {
         followUpAgent = true;
       } else if (pointsBack) {
         pointerOnly = true;
@@ -2255,7 +2351,7 @@ export class ChatOrchestrator {
           // first (ADR-033): it can look things up and prepare one card.
           const agent =
             followUpAgent ||
-            (!isTemp &&
+            (allowOnlineAgent &&
               !ustpRagOnly &&
               !smallTalk &&
               !isHandbookQuestion(trimmed) &&
@@ -2267,6 +2363,7 @@ export class ChatOrchestrator {
                     ...memoryOption,
                     referenceDate: refDate,
                     localNow: describeNow(refDate),
+                    reviewSurface: activeSurface,
                     ...(options.isCurrent
                       ? {isCurrent: options.isCurrent}
                       : {}),
@@ -2276,8 +2373,14 @@ export class ChatOrchestrator {
               : null;
           if (agent) {
             finalReply = agent.reply || agent.review?.reply || '';
-            handbookNote = cite(agent.sources);
-            if (finalReply) {
+            handbookNote =
+              agent.sources.length && !replyDisclaimsHandbook(finalReply)
+                ? cite(agent.sources)
+                : null;
+            if (
+              finalReply &&
+              !agent.toolsUsed.includes('search_ustp_sources')
+            ) {
               const withHandbook = await waitForCurrent(
                 appendHandbookPart(finalReply, trimmed, userId),
               );
@@ -2663,11 +2766,25 @@ export class ChatOrchestrator {
     }
 
     if (review?.status === 'proposal') {
+      clearPendingClarification(userId, activeSurface, sessionId);
       rememberReviewTurn(
         review.proposal.operationId,
         sessionId,
         assistantMessage.id,
       );
+    } else if (!bench && !ustpRagOnly && !options.ringingCall) {
+      const nextClarification = classifyPendingClarification(validated, review);
+      if (nextClarification) {
+        rememberPendingClarification({
+          userId,
+          surface: activeSurface,
+          sessionId,
+          assistantMessageId: assistantMessage.id,
+          kind: nextClarification.kind,
+          intent: validated,
+          clearLeadMinutes: nextClarification.clearLeadMinutes,
+        });
+      }
     }
 
     // Background: never delays or changes the reply. Chat hears about any
@@ -3097,12 +3214,7 @@ const plainChatIntent = (text: string): ValidatedIntent => ({
   isValid: true,
 });
 
-/** The model said the handbook excerpts it was given don't cover the question. */
-const HANDBOOK_DISCLAIMER_RE =
-  /\b(?:(?:excerpts?|handbook|passages?)\s+(?:provided\s+)?(?:do(?:es)?\s+not|don['’]t|doesn['’]t)\s+(?:specify|mention|cover|address|say|include|contain)|(?:not|isn['’]t)\s+(?:covered|mentioned|specified|addressed)\s+in\s+the\s+(?:provided\s+)?(?:handbook|excerpts?))/i;
-
-export const replyDisclaimsHandbook = (reply: string): boolean =>
-  HANDBOOK_DISCLAIMER_RE.test(reply);
+export {replyDisclaimsHandbook};
 
 const WEEKDAY_NAMES = [
   'Sunday',

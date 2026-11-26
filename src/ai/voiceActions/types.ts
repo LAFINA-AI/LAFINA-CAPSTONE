@@ -24,7 +24,8 @@ export type LafinaActionKind =
   | 'calendar.free_time'
   | 'reminder.snooze'
   | 'skill.open'
-  | 'skill.read';
+  | 'skill.read'
+  | 'ustp.search';
 
 export type LafinaActionPhase =
   | 'requested'
