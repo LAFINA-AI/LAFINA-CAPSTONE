@@ -11,7 +11,9 @@ import {
 } from '../storage/sessionEpoch';
 import {syncConflictStore} from '../storage/syncConflictStore';
 import {syncMetadataStore} from '../storage/syncMetadataStore';
-import {OutboxItem, syncOutboxStore} from '../storage/syncOutboxStore';
+import {syncOutboxStore} from '../storage/syncOutboxStore';
+import type {OutboxItem} from '../storage/syncOutboxStore';
+import {presentationModeStore} from '../storage/presentationModeStore';
 import {syncStateStore} from '../storage/syncStateStore';
 import type {
   SyncEntityType,
@@ -1806,6 +1808,10 @@ export const syncWorker = {
         return;
       }
       if (db.isFallback()) {
+        syncState.deactivate('Local only');
+        return;
+      }
+      if (presentationModeStore.isActive(localUserId)) {
         syncState.deactivate('Local only');
         return;
       }

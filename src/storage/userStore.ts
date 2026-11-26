@@ -13,6 +13,7 @@ import {
   normalizeAvatarSeed,
 } from './profileSyncPayload';
 import {noteSessionChange} from './sessionEpoch';
+import {restoreActivePresentationOnSessionExit} from './presentationSnapshot';
 
 export interface User {
   id: string;
@@ -308,6 +309,9 @@ export const userStore = {
   },
 
   setCurrentUser: (userId: string): void => {
+    // Switching away from another owner restores any active Presentation Mode
+    // sandbox first so real local data is never orphaned.
+    restoreActivePresentationOnSessionExit(userId);
     // A new sign-in, even as the same account, retires confirmations made for
     // the previous one (remediation audit P1).
     noteSessionChange();
@@ -327,6 +331,7 @@ export const userStore = {
   },
 
   logout: (): void => {
+    restoreActivePresentationOnSessionExit();
     noteSessionChange();
     try {
       db.executeSync('DELETE FROM active_session');

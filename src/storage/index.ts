@@ -295,3 +295,30 @@ export type {
   ScheduleEntryTargetKind,
   ScheduleEntryType,
 } from './scheduleEntriesStore';
+export {
+  PRESENTATION_MODE_KEY,
+  PRESENTATION_SNAPSHOT_KEY,
+  presentationModeStore,
+} from './presentationModeStore';
+export type {PresentationModeState} from './presentationModeStore';
+export {
+  PRESENTATION_CHILD_TABLES,
+  PRESENTATION_SNAPSHOT_VERSION,
+  PRESENTATION_USER_TABLES,
+  captureOwnerSnapshot,
+  clearOwnerScopedData,
+  enterPresentationSandbox,
+  exitPresentationSandbox,
+  isPresentationManagedSettingKey,
+  refreshPresentationSandbox,
+  restoreActivePresentationOnSessionExit,
+  restoreOwnerSnapshot,
+} from './presentationSnapshot';
+export type {
+  EnterSandboxResult,
+  PresentationSnapshot,
+  RefreshSandboxResult,
+  RestoreSandboxResult,
+  SettingRowSnapshot,
+  UserProfileSnapshot,
+} from './presentationSnapshot';
