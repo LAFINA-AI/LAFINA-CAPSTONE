@@ -737,6 +737,7 @@ export class VoiceConversationController {
       lastTiming: null,
       reconnectAttempt: null,
       reconnects: 0,
+      clientUstpTool: false,
     });
     await this.openSegment(gen, 'start');
   };
@@ -767,6 +768,7 @@ export class VoiceConversationController {
       lastTiming: null,
       reconnectAttempt: null,
       reconnects: 0,
+      clientUstpTool: false,
     });
     await this.openSegment(gen, 'resume');
   };
@@ -1227,6 +1229,7 @@ export class VoiceConversationController {
       voiceName: voice?.name ?? 'Default voice',
       endsAt,
       reconnectAttempt: null,
+      clientUstpTool: capabilities.data.clientUstpTool === true,
       ...(reconnecting
         ? {
             reconnects: (this.snapshot.reconnects ?? 0) + 1,

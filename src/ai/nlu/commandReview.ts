@@ -4529,7 +4529,140 @@ export const cancelReviewedCommand = (
   return true;
 };
 
-/** Replace a pending creation with a newly validated review; old tokens expire. */
+const ALARM_REPEAT_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const;
+
+const repeatDaysToRrule = (repeatDays: number): string | null => {
+  const mask = repeatDays & 127;
+  if (!mask) return null;
+  if (mask === 127) return 'FREQ=DAILY';
+  const days = ALARM_REPEAT_CODES.filter((_, idx) => Boolean(mask & (1 << idx)));
+  return days.length ? `FREQ=WEEKLY;BYDAY=${days.join(',')}` : null;
+};
+
+const EXPLICIT_MERIDIEM_RE =
+  /\b(?:a\.?\s*m\.?|p\.?\s*m\.?|noon|midday|mid-day|midnight|morning|afternoon|evening|night|tonight)\b|\d(?::\d{2})?\s*(?:am|pm)\b/i;
+
+const END_TIME_ONLY_RE =
+  /\b(?:end\s*time|ends?\s+(?:at|by)|ending\s+(?:at|by)|finish(?:es|ing)?\s+(?:at|by)|(?:extend|shorten)\b[^.!?\n]*\b(?:to|until|till))\b|^(?:actually\s*,?\s*|no\s*,?\s*)?(?:until|till|'til)\s+/i;
+
+const START_TIME_CUE_RE = /\b(?:start\s*time|starts?\s+at|from|between)\b/i;
+
+const shiftHourIfPmDraft = (
+  hhmm: string | null,
+  draftIsPm: boolean,
+  hasExplicitMeridiem: boolean,
+): string | null => {
+  if (!hhmm || !draftIsPm || hasExplicitMeridiem) return hhmm;
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
+  if (!match) return hhmm;
+  const h = Number(match[1]);
+  const m = match[2];
+  if (h >= 1 && h < 12) {
+    return `${String(h + 12).padStart(2, '0')}:${m}`;
+  }
+  return hhmm;
+};
+
+/**
+ * Extracts date/time revision fields from `instruction` with awareness of the
+ * existing draft's meridiem (e.g. "change it to 7:30 to 8" on a 7 PM - 8 PM
+ * draft preserves PM) and end-time-only phrasing ("change the end time to 8:30").
+ */
+export const parseDraftTimeRevision = (
+  instruction: string,
+  existingStartTime: string | null,
+  supportsEndTime: boolean,
+  referenceDate: Date = new Date(),
+): {
+  date: string | null;
+  time: string | null;
+  endTime: string | null;
+  endTimeOnly: boolean;
+  durationMinutes: number | null;
+} => {
+  const parsed = parseDateAndTime(instruction, referenceDate);
+  let time = parsed.time;
+  let endTime = parsed.endTime;
+  let durationMinutes = parsed.durationMinutes;
+
+  // Recover bare time ranges like "change it to 7:30 to 8" or "to 7 to 8"
+  // where `parseDateAndTime` skipped the range because "to" is not in its
+  // range prefix list and neither endpoint repeated AM/PM.
+  if (!endTime) {
+    const bareColonRange =
+      /\b(\d{1,2}:\d{2}\s*(?:to|until|till|'til|[-–—])\s*\d{1,2}(?::\d{2})?)\b/i.exec(
+        instruction,
+      );
+    const barePrefixedHourRange =
+      !bareColonRange &&
+      /\b(?:change|make|move|set|shift|switch|reschedule|put|actually)\b[^.!?\n]*?\b(?:to|at)\s+(\d{1,2}\s*(?:to|until|till|'til|[-–—])\s*\d{1,2})\b/i.exec(
+        instruction,
+      );
+    const rangeExpr =
+      bareColonRange?.[1] ||
+      (barePrefixedHourRange ? barePrefixedHourRange[1] : null);
+    if (rangeExpr) {
+      const recovered = parseDateAndTime(`from ${rangeExpr}`, referenceDate);
+      if (recovered.time && recovered.endTime) {
+        time = recovered.time;
+        endTime = recovered.endTime;
+        durationMinutes = recovered.durationMinutes;
+      }
+    }
+  }
+
+  if (!durationMinutes) {
+    const durPhrase = instruction.match(
+      /(?:for|make\s+(?:it|that)|set\s+(?:the\s+)?duration\s+to|duration:?)\s*(half\s+an?\s+(?:hour|hr)|an?\s+(?:hour|hr)|(?:\d+(?:\.\d+)?|one|two|three|four|five|ten|fifteen|twenty|thirty|forty|fifty|sixty)\s*(?:hours?|hrs?|minutes?|mins?))/i,
+    );
+    if (durPhrase) {
+      durationMinutes =
+        parseDateAndTime('for ' + durPhrase[1], referenceDate)
+          .durationMinutes || null;
+    }
+  }
+
+  const hasExplicitMeridiem = EXPLICIT_MERIDIEM_RE.test(instruction);
+  const draftIsPm = Boolean(
+    existingStartTime &&
+      isWallTime(existingStartTime) &&
+      Number(existingStartTime.slice(0, 2)) >= 12,
+  );
+  const endTimeOnly = Boolean(
+    supportsEndTime &&
+      time &&
+      !endTime &&
+      END_TIME_ONLY_RE.test(instruction) &&
+      !START_TIME_CUE_RE.test(instruction),
+  );
+
+  if (endTimeOnly) {
+    const resolvedEnd = shiftHourIfPmDraft(
+      time,
+      draftIsPm,
+      hasExplicitMeridiem,
+    );
+    return {
+      date: parsed.date,
+      time: null,
+      endTime: resolvedEnd,
+      endTimeOnly: true,
+      durationMinutes,
+    };
+  }
+
+  time = shiftHourIfPmDraft(time, draftIsPm, hasExplicitMeridiem);
+  endTime = shiftHourIfPmDraft(endTime, draftIsPm, hasExplicitMeridiem);
+  return {
+    date: parsed.date,
+    time,
+    endTime,
+    endTimeOnly: false,
+    durationMinutes,
+  };
+};
+
+/** Replace a pending draft with a newly validated review; old tokens expire. */
 export const reviseReviewedCommand = (
   ownerId: string,
   operationId: string,
@@ -4554,7 +4687,11 @@ export const reviseReviewedCommand = (
     op.op !== 'create_reminder' &&
     op.op !== 'create_time_block' &&
     op.op !== 'create_event' &&
-    op.op !== 'create_note'
+    op.op !== 'create_note' &&
+    op.op !== 'create_alarm' &&
+    op.op !== 'update_task' &&
+    op.op !== 'update_schedule_item' &&
+    op.op !== 'update_note'
   ) {
     return {
       status: 'invalid',
@@ -4574,18 +4711,54 @@ export const reviseReviewedCommand = (
       reply: 'That is a question, so the draft was not changed.',
     };
   }
-  const parsed = parseDateAndTime(instruction, referenceDate);
-  let durationMinutes = parsed.durationMinutes;
-  if (!durationMinutes) {
-    const durPhrase = instruction.match(
-      /(?:for|make\s+(?:it|that)|set\s+(?:the\s+)?duration\s+to|duration:?)\s*(half\s+an?\s+(?:hour|hr)|an?\s+(?:hour|hr)|(?:\d+(?:\.\d+)?|one|two|three|four|five|ten|fifteen|twenty|thirty|forty|fifty|sixty)\s*(?:hours?|hrs?|minutes?|mins?))/i,
-    );
-    if (durPhrase) {
-      durationMinutes =
-        parseDateAndTime('for ' + durPhrase[1], referenceDate)
-          .durationMinutes || null;
+  const supportsEndTime =
+    op.op === 'create_time_block' ||
+    op.op === 'create_event' ||
+    op.op === 'update_schedule_item';
+  const existingStartTime =
+    op.op === 'create_time_block' ||
+    op.op === 'create_event' ||
+    op.op === 'update_schedule_item'
+      ? op.startTime
+      : op.op === 'create_reminder'
+      ? op.time
+      : op.op === 'create_task' || op.op === 'update_task'
+      ? op.dueTime
+      : op.op === 'create_alarm'
+      ? `${String(op.hour).padStart(2, '0')}:${String(op.minute).padStart(
+          2,
+          '0',
+        )}`
+      : null;
+
+  const parsed = parseDraftTimeRevision(
+    instruction,
+    existingStartTime,
+    supportsEndTime,
+    referenceDate,
+  );
+  const durationMinutes = parsed.durationMinutes;
+
+  let nextDelivery: ReminderDeliveryStyle | null = current.reminderDelivery;
+  let deliveryChanged = false;
+  if (current.reminderDelivery !== null) {
+    if (
+      /\b(?:notify\s+only|notification\s+only|just\s+(?:a\s+)?notif(?:y|ication)|don['’]?t\s+call|no\s+call|instead\s+of\s+(?:a\s+)?call)\b/i.test(
+        instruction,
+      )
+    ) {
+      nextDelivery = 'notify';
+      deliveryChanged = true;
+    } else if (
+      /\b(?:call\s+me|reminder\s+call|ring\s+me|as\s+a\s+call)\b/i.test(
+        instruction,
+      )
+    ) {
+      nextDelivery = 'call';
+      deliveryChanged = true;
     }
   }
+
   const explicitTitle = renamedTitleIn(instruction);
   const body = instruction
     .match(
@@ -4598,7 +4771,8 @@ export const reviseReviewedCommand = (
     !parsed.time &&
     !parsed.endTime &&
     !durationMinutes &&
-    !body
+    !body &&
+    !deliveryChanged
       ? instruction
           .match(
             /^(?:actually\s*,?\s*|no\s*,?\s*)?(?:change|make|set)\s+(?:it|that)\s+(?:to\s+)?['"\u201c]?([^'"\u201d\n]+?)['"\u201d]?\.?$/i,
@@ -4612,57 +4786,114 @@ export const reviseReviewedCommand = (
     !parsed.endTime &&
     !durationMinutes &&
     !renamed &&
-    !body
+    !body &&
+    !deliveryChanged
   ) {
     return {
       status: 'invalid',
       reply: 'Which date, time, title or note content should I change?',
     };
   }
-  const blockStart =
-    op.op === 'create_time_block' || op.op === 'create_event'
-      ? parsed.time || op.startTime
-      : null;
+
+  if (op.op === 'create_alarm') {
+    const alarmTime =
+      parsed.time ||
+      `${String(op.hour).padStart(2, '0')}:${String(op.minute).padStart(
+        2,
+        '0',
+      )}`;
+    const result = prepareReviewedCommand(
+      ownerId,
+      {
+        intent: 'create_alarm',
+        title: renamed || op.label || null,
+        date: parsed.date || op.oneShotDate,
+        time: alarmTime,
+        endTime: null,
+        durationMinutes: null,
+        category: 'Personal',
+        details: null,
+        snoozeMinutes: null,
+        confidence: 1,
+        source: 'fast_path',
+        rawTranscript: instruction,
+        isValid: true,
+        recurrenceRule: repeatDaysToRrule(op.repeatDays),
+      },
+      {surface: current.proposal.surface},
+    );
+    if (result.status === 'proposal') current.state = 'cancelled';
+    return result;
+  }
+
+  const isUpdate =
+    op.op === 'update_task' ||
+    op.op === 'update_schedule_item' ||
+    op.op === 'update_note';
+
+  const blockStart = supportsEndTime ? parsed.time || op.startTime : null;
   const blockEnd =
-    (op.op === 'create_time_block' || op.op === 'create_event') && blockStart
+    supportsEndTime && blockStart
       ? parsed.endTime ||
         addMinutesToTime(
           blockStart,
           durationMinutes || computeDurationMinutes(op.startTime, op.endTime),
         )
       : null;
+
+  const intentType: ParsedIntentType =
+    op.op === 'create_event'
+      ? 'create_time_block'
+      : op.op === 'update_schedule_item'
+      ? 'update_time_block'
+      : op.op;
+
+  const targetEntityType: CrudTargetEntityType | undefined =
+    op.op === 'create_event'
+      ? 'event'
+      : isUpdate && 'target' in op
+      ? op.target.type
+      : undefined;
+
   const result = prepareReviewedCommand(
     ownerId,
     {
-      intent: op.op === 'create_event' ? 'create_time_block' : op.op,
-      ...(op.op === 'create_event' ? {targetEntityType: 'event' as const} : {}),
-      title: renamed || op.title,
+      intent: intentType,
+      ...(targetEntityType ? {targetEntityType} : {}),
+      title: isUpdate && 'target' in op ? op.target.title : renamed || op.title,
+      ...(isUpdate && 'target' in op ? {targetTitle: op.target.title} : {}),
+      ...(isUpdate ? {newTitle: renamed || op.title} : {}),
       date:
         parsed.date ||
-        (op.op === 'create_task' ? op.dueDate : 'date' in op ? op.date : null),
-      time:
-        parsed.time ||
-        (op.op === 'create_task'
-          ? op.dueTime
-          : op.op === 'create_reminder'
-          ? op.time
-          : op.op === 'create_time_block' || op.op === 'create_event'
-          ? op.startTime
+        (op.op === 'create_task' || op.op === 'update_task'
+          ? op.dueDate
+          : 'date' in op
+          ? op.date
           : null),
+      time:
+        (parsed.endTimeOnly ? existingStartTime : parsed.time) ||
+        existingStartTime,
       endTime: blockEnd || parsed.endTime || null,
       durationMinutes: durationMinutes || null,
-      category: op.category,
-      ...(op.op === 'create_task' ? {priority: op.priority} : {}),
+      category:
+        'category' in op && typeof op.category === 'string'
+          ? op.category
+          : 'Academic',
+      ...(op.op === 'create_task' || (op.op === 'update_task' && op.priority)
+        ? {priority: op.priority}
+        : {}),
       ...(op.op === 'create_event' ? {location: op.location} : {}),
       details:
         body ||
-        (op.op === 'create_note'
+        (op.op === 'create_note' || op.op === 'update_note'
           ? op.body
           : op.op === 'create_reminder'
           ? op.details
           : op.op === 'create_event'
           ? op.location
-          : op.notes) ||
+          : 'notes' in op
+          ? op.notes
+          : null) ||
         null,
       snoozeMinutes: null,
       confidence: 1,
@@ -4670,7 +4901,7 @@ export const reviseReviewedCommand = (
       rawTranscript: instruction,
       isValid: true,
       recurrenceRule: 'recurrenceRule' in op ? op.recurrenceRule : null,
-      deliveryStyle: current.reminderDelivery,
+      deliveryStyle: nextDelivery,
     },
     {surface: current.proposal.surface},
   );

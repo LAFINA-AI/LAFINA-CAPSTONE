@@ -96,15 +96,19 @@ import {
   reviseReviewedCommand,
   cancelReviewedCommand,
   appliedReviewReply,
+  parseDraftTimeRevision,
+  renamedTitleIn,
 } from '../../../ai/nlu/commandReview';
 import {
   hasStructuredAction,
+  intentFromToolArguments,
   prepareStructuredReview,
   SUGGESTED_CARD_NOTE,
 } from '../../../ai/voiceActions/structuredAction';
 import type {StructuredActionArgs} from '../../../ai/voiceActions/structuredAction';
 import {
   findRepeatOfSaved,
+  normalizeTitle,
   savedCardById,
   savedCardFromProposal,
 } from '../../../ai/voiceActions/recentSaves';
@@ -159,6 +163,7 @@ import {useOfflineCall} from '../../hooks/useOfflineCall';
 import {warmUpOfflineModel} from '../../../ai/nlu/intentService';
 import {warmupOfflineSpeech} from '../../../ai/native/speechCapture';
 import {
+  localHandbookService,
   searchUstpSourcesForVoice,
   shouldMergeFollowUpQuery,
 } from '../../../handbook';
@@ -377,6 +382,158 @@ const LIVE = new Set<ConversationPhase>([
   'reconnecting',
 ]);
 
+const PLACEHOLDER_CARD_ID_RE =
+  /^(?:current|active|draft|latest|pending|open|card|this|it|none|unknown|null|undefined)$/i;
+
+const draftFamily = (intent: string): string =>
+  intent === 'create_event' || intent === 'create_time_block'
+    ? 'calendar'
+    : intent;
+
+const draftHhmm = (value: string | null | undefined): string | null => {
+  const match = /^(\d{1,2}):(\d{2})/.exec((value || '').trim());
+  return match ? `${match[1].padStart(2, '0')}:${match[2]}` : null;
+};
+
+/**
+ * True when an already-open pending review card already matches the structured
+ * creation fields the model is trying to prepare (for example, local voice
+ * revision just updated the draft to 7:30-8:00 PM on the same turn).
+ */
+const matchesPendingDraft = (
+  pending: CommandProposal,
+  args: StructuredActionArgs,
+): boolean => {
+  if (!args.action?.startsWith('create_') || !pending.intent.startsWith('create_'))
+    return false;
+  const intent = intentFromToolArguments(args);
+  if (!intent) return false;
+  if (draftFamily(pending.intent) !== draftFamily(intent.intent)) return false;
+  const fields = pending.draftFields;
+  const wantedTitle = normalizeTitle(intent.title || args.title);
+  const currentTitle = normalizeTitle(fields?.title || pending.title);
+  if (!wantedTitle || wantedTitle !== currentTitle) return false;
+  const wantedDate = intent.date ?? args.date ?? null;
+  if (wantedDate && fields?.date && wantedDate !== fields.date) return false;
+  const wantedTime = draftHhmm(intent.time ?? args.time);
+  const currentTime = draftHhmm(fields?.time);
+  if (wantedTime && wantedTime !== currentTime) return false;
+  const wantedEnd = draftHhmm(intent.endTime ?? args.endTime);
+  const currentEnd = draftHhmm(fields?.endTime);
+  if (wantedEnd && currentEnd && wantedEnd !== currentEnd) return false;
+  if (
+    args.action === 'create_note' &&
+    typeof args.details === 'string' &&
+    args.details.trim() &&
+    fields?.details &&
+    args.details.trim() !== fields.details.trim()
+  ) {
+    return false;
+  }
+  return true;
+};
+
+/**
+ * True when a model `revise_draft` instruction is already reflected on the
+ * card that `handleStudentTurn` just revised locally on the same turn.
+ */
+const instructionAlreadyReflectedInDraft = (
+  instruction: string,
+  pending: CommandProposal,
+  lastUtterance: string,
+  sameTurn: boolean,
+): boolean => {
+  const trimmed = instruction.trim();
+  if (trimmed.toLowerCase() === lastUtterance.trim().toLowerCase()) return true;
+  const fields = pending.draftFields;
+  if (!fields) return sameTurn && !trimmed;
+  const parsed = parseDraftTimeRevision(
+    trimmed,
+    fields.time,
+    fields.supportsEndTime,
+  );
+  const renamed = renamedTitleIn(trimmed);
+  const body = trimmed
+    .match(
+      /(?:(?:change|update|set|make)\s+(?:the\s+)?)?(?:body|content|details?|description|notes?)\s*(?:to|:)\s*['"\u201c]?([^'"\u201d\n]+?)['"\u201d]?\.?$/i,
+    )?.[1]
+    ?.trim();
+  const wantsNotify =
+    pending.reminderDelivery !== null &&
+    /\b(?:notify\s+only|notification\s+only|just\s+(?:a\s+)?notif(?:y|ication)|don['’]?t\s+call|no\s+call|instead\s+of\s+(?:a\s+)?call)\b/i.test(
+      trimmed,
+    );
+  const wantsCall =
+    pending.reminderDelivery !== null &&
+    /\b(?:call\s+me|reminder\s+call|ring\s+me|as\s+a\s+call)\b/i.test(trimmed);
+
+  const hasAnyDelta = Boolean(
+    parsed.date ||
+      parsed.time ||
+      parsed.endTime ||
+      parsed.durationMinutes ||
+      renamed ||
+      body ||
+      wantsNotify ||
+      wantsCall,
+  );
+  if (!hasAnyDelta) return sameTurn;
+
+  if (parsed.date && fields.date !== parsed.date) return false;
+  if (parsed.time && draftHhmm(fields.time) !== draftHhmm(parsed.time))
+    return false;
+  if (parsed.endTime && draftHhmm(fields.endTime) !== draftHhmm(parsed.endTime))
+    return false;
+  if (
+    parsed.durationMinutes &&
+    !parsed.endTime &&
+    fields.durationMinutes !== parsed.durationMinutes
+  )
+    return false;
+  if (renamed && normalizeTitle(renamed) !== normalizeTitle(fields.title))
+    return false;
+  if (body && body !== (fields.details || '').trim()) return false;
+  if (wantsNotify && pending.reminderDelivery !== 'notify') return false;
+  if (wantsCall && pending.reminderDelivery !== 'call') return false;
+  return true;
+};
+
+const formatReviewCardContext = (
+  proposal: CommandProposal,
+  prefix = 'Active review card on screen',
+): string =>
+  `${prefix}: ${proposal.title} (${proposal.details.join(', ')}). Card ID: ${
+    proposal.operationId
+  }; revision: 1. Nothing has been saved yet. Use this Card ID with revise_draft, confirm_draft, or cancel_draft.`;
+
+const formatMemoryCardContext = (
+  proposal: MemoryProposalData,
+  actionId: string,
+): string =>
+  `Active memory card on screen: "${proposal.text}". Card ID: ${actionId}; revision: 1. Nothing has been saved yet. Use this Card ID with confirm_draft or cancel_draft.`;
+
+const formatBatchCardContext = (batch: MultiActionBatchData): string =>
+  `Active grouped review card on screen (${batch.items.length} items: ${batch.items
+    .map(i => i.title)
+    .join(', ')}). Card ID: ${
+    batch.id
+  }; revision: 1. Nothing has been saved yet. Use this Card ID with confirm_draft or cancel_draft.`;
+
+/**
+ * True when an utterance names the open pending card's title ("make jogging
+ * time 7:30pm to 8pm") rather than asking to add another separate item.
+ */
+const utteranceTargetsPendingTitle = (
+  text: string,
+  pending: CommandProposal,
+): boolean => {
+  if (/\b(?:another|new|second|also\s+add)\b/i.test(text)) return false;
+  const titleNorm = normalizeTitle(pending.draftFields?.title || pending.title);
+  if (titleNorm.length < 3) return false;
+  const textNorm = normalizeTitle(text);
+  return textNorm.includes(titleNorm);
+};
+
 const isVoiceDraftRevision = (text: string): boolean => {
   const t = text.trim();
   if (
@@ -394,13 +551,13 @@ const isVoiceDraftRevision = (text: string): boolean => {
     return false;
   }
   return (
-    /^(?:actually|no[, ]|change|make\s+(?:it|that|the)|move\s+(?:it|that|this|the)|shift\s+(?:it|that|this)|reschedule(?:\s+(?:it|that|this))?|set\s+(?:it|that|the\s+(?:time|date|title|duration|reminder))|update\s+(?:it|that|the)|edit\s+(?:it|that|the)|instead|rename|call\s+it|title(?:\s+it)?(?:\s+to|:)|let['\u2019]?s\s+(?:do|make|move|change|set)|how\s+about|what\s+about)\b/i.test(
+    /^(?:actually|no[, ]|change|make\s+(?:it|that|the)|move\s+(?:it|that|this|the)|shift\s+(?:it|that|this|the)|push\s+(?:it|that|this|the)|postpone|delay|extend|shorten|reschedule(?:\s+(?:it|that|this|the))?|set\s+(?:it|that|the\s+(?:time|start\s+time|end\s+time|date|title|duration|reminder|schedule|alarm))|update\s+(?:it|that|the)|edit\s+(?:it|that|the)|instead|rename|call\s+it|title(?:\s+it)?(?:\s+to|:)|let['\u2019]?s\s+(?:do|make|move|change|set)|how\s+about|what\s+about)\b/i.test(
       t,
     ) ||
-    (/\b(?:change|move|shift|reschedule|update|edit|rename|make|set|put|schedule)\b/i.test(
+    (/\b(?:change|move|shift|push|postpone|delay|extend|shorten|reschedule|update|edit|rename|make|set|put|schedule)\b/i.test(
       t,
     ) &&
-      /\b(?:it|that|this|the\s+(?:time|date|title|name|duration|meeting|task|reminder|event|block|note))\b/i.test(
+      /\b(?:it|that|this|the\s+(?:time|start\s+time|end\s+time|date|title|name|duration|meeting|task|reminder|event|block|note|schedule|alarm|draft|card))\b/i.test(
         t,
       )) ||
     /\binstead[.!?]*$/i.test(t)
@@ -466,6 +623,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const [ustpSourcesTarget, setUstpSourcesTarget] =
     useState<UstpSourcesTarget | null>(null);
   const lastOfflineUstpQuery = useRef<string | null>(null);
+  // Pre-warm the on-device USTP SQLite FTS5 index so the first spoken USTP
+  // question in online or offline Call LAFINA answers without cold-start lag.
+  useEffect(() => {
+    void localHandbookService.ensureReady().catch(() => undefined);
+  }, []);
   const [localNote, setLocalNote] = useState<string | null>(null);
   // "Marked done · Undo" after an immediate action (audit finding 10).
   const [undoOffer, setUndoOffer] = useState<UndoOffer | null>(null);
@@ -512,12 +674,24 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   /** Which card the stage shows when more than one is open. */
   const [cardFocus, setCardFocus] = useState<CardKind | null>(null);
   const lastLocalRevision = useRef<{
+    ticket: number;
     oldId: string;
     newId: string;
     utterance: string;
     reply: string;
+    proposal: CommandProposal;
     at: number;
   } | null>(null);
+  /** Superseded card IDs -> newest card ID in this call (revisions & inline edits). */
+  const replacedCardIds = useRef<Map<string, string>>(new Map());
+  /** Last card canceled this call, for a racing model cancel_draft. */
+  const lastLocalCancel = useRef<{
+    cardId: string;
+    title: string;
+    at: number;
+  } | null>(null);
+  /** Last active card context sent via contextual_update (avoids duplicate frames). */
+  const lastSentCardContextId = useRef<string | null>(null);
   /**
    * The one save running now. The student's "save it", the card's button and
    * LAFINA's confirm_draft can land together; they all share this save, so
@@ -743,6 +917,79 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     memoryActionId: activeMemoryActionId.current,
     batch: activeMultiBatch,
   };
+  const recordReplacedCard = useCallback((oldId: string, newId: string) => {
+    if (!oldId || !newId || oldId === newId) return;
+    replacedCardIds.current.set(oldId, newId);
+    while (replacedCardIds.current.size > 40) {
+      const oldest = replacedCardIds.current.keys().next().value;
+      if (oldest === undefined) break;
+      replacedCardIds.current.delete(oldest);
+    }
+  }, []);
+
+  const resolveReplacedCardId = useCallback((cardId: unknown): string => {
+    if (typeof cardId !== 'string') return '';
+    let current = cardId.trim();
+    const seen = new Set<string>();
+    for (let i = 0; i < 12; i += 1) {
+      if (!current || seen.has(current)) break;
+      seen.add(current);
+      const next = replacedCardIds.current.get(current);
+      if (!next) break;
+      current = next;
+    }
+    return current;
+  }, []);
+
+  const syncCardContext = useCallback(
+    (kind: CardKind, id: string, text: string, force = false): void => {
+      if (modeRef.current === 'offline' || !id) return;
+      const key = `${kind}:${id}`;
+      if (!force && lastSentCardContextId.current === key) return;
+      lastSentCardContextId.current = key;
+      void conversationRef.current?.sendContext(text);
+    },
+    [],
+  );
+
+  const openCardReminder = useCallback((): string => {
+    const parts: string[] = [];
+    const pending = latestPendingReview(ownerRef.current, 'voice');
+    if (pending) {
+      parts.push(
+        `Active review card on screen: "${pending.title}" (Card ID: ${pending.operationId}; revision: 1).`,
+      );
+    }
+    const cards = currentCards.current;
+    if (cards.memory?.status === 'draft' && cards.memoryActionId) {
+      parts.push(
+        `Active memory card on screen: "${cards.memory.text}" (Card ID: ${cards.memoryActionId}; revision: 1).`,
+      );
+    }
+    if (
+      cards.batch &&
+      (cards.batch.status === 'draft' ||
+        cards.batch.status === 'partial' ||
+        cards.batch.status === 'failed')
+    ) {
+      parts.push(
+        `Active grouped review card on screen (${cards.batch.items.length} items, Card ID: ${cards.batch.id}; revision: 1).`,
+      );
+    }
+    return parts.join(' ');
+  }, []);
+
+  const sendContextPreservingCard = useCallback(
+    (text: string): void => {
+      if (modeRef.current === 'offline') return;
+      const reminder = openCardReminder();
+      void conversationRef.current?.sendContext(
+        reminder ? `${text} ${reminder}` : text,
+      );
+    },
+    [openCardReminder],
+  );
+
   /**
    * Puts a review card on the stage and in front. A memory or grouped card
    * that is already finished (saved, cancelled) steps aside, so the card
@@ -751,6 +998,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const presentReview = useCallback(
     (prepared: PrepareResult | null | undefined): boolean => {
       if (prepared?.status !== 'proposal') return false;
+      lastLocalCancel.current = null;
       reviewRef.current.present(prepared);
       const cards = currentCards.current;
       if (cards.memory && cards.memory.status !== 'draft') {
@@ -773,6 +1021,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   );
   const showMemoryCard = useCallback(
     (proposal: MemoryProposalData, actionId: string): void => {
+      lastLocalCancel.current = null;
       activeMemoryActionId.current = actionId;
       setActiveMemoryProposal(proposal);
       setCardFocus('memory');
@@ -781,6 +1030,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     [],
   );
   const showBatchCard = useCallback((batch: MultiActionBatchData): void => {
+    lastLocalCancel.current = null;
     setActiveMultiBatch(batch);
     setCardFocus('batch');
     cardShownTurn.current = studentTurnCount.current;
@@ -1085,6 +1335,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         const canceledNote =
           'The student canceled the draft card by voice. Nothing was saved and no card is open now. Do not save or prepare it again unless they ask.';
         if (memoryOpen && cards.memoryActionId) {
+          lastLocalCancel.current = {
+            cardId: cards.memoryActionId,
+            title: cards.memory?.text || 'memory',
+            at: Date.now(),
+          };
+          lastSentCardContextId.current = null;
           actionService.cancelMemoryProposal(owner, cards.memoryActionId);
           setActiveMemoryProposal(null);
           activeMemoryActionId.current = null;
@@ -1094,6 +1350,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           return CANCELED_REPLY;
         }
         if (batchOpen && cards.batch) {
+          lastLocalCancel.current = {
+            cardId: cards.batch.id,
+            title: 'grouped actions',
+            at: Date.now(),
+          };
+          lastSentCardContextId.current = null;
           const result = actionService.cancelMultiActionBatch(
             owner,
             cards.batch,
@@ -1105,6 +1367,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           return CANCELED_REPLY;
         }
         if (pending) {
+          lastLocalCancel.current = {
+            cardId: pending.operationId,
+            title: pending.title,
+            at: Date.now(),
+          };
+          lastSentCardContextId.current = null;
           cancelReviewedCommand(owner, pending.operationId);
           reviewRef.current.dismiss();
           groundedReply.current = canceledNote;
@@ -1251,7 +1519,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           if (ticket !== turnTicket.current) return null;
           setLocalNote(line);
           if (offlineTurn) return line;
-          void conversationRef.current?.sendContext(
+          sendContextPreservingCard(
             `From the student's Skills on this device: ${line} Tell them this in one short sentence. Nothing else was changed.`,
           );
           return null;
@@ -1354,8 +1622,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (
         pending &&
         (isVoiceDraftRevision(changeTrimmed) ||
-          (!isVoiceScheduleStart(changeTrimmed) &&
-            hasRevisionDelta &&
+          (hasRevisionDelta &&
+            (!isVoiceScheduleStart(changeTrimmed) ||
+              utteranceTargetsPendingTitle(changeTrimmed, pending)) &&
             !/^(?:what|which|when|where|who|why|how|show|list|check|find|search|do\s+i|am\s+i|is\s+there|can\s+you\s+(?:show|check|find))\b/i.test(
               changeTrimmed,
             )))
@@ -1372,11 +1641,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           actionService.markSuggestedCard(revised.proposal.operationId);
         if (revised.status === 'proposal') {
           presentReview(revised);
+          recordReplacedCard(pending.operationId, revised.proposal.operationId);
           lastLocalRevision.current = {
+            ticket,
             oldId: pending.operationId,
             newId: revised.proposal.operationId,
             utterance: text,
             reply: revised.reply,
+            proposal: revised.proposal,
             at: Date.now(),
           };
           const summary =
@@ -1416,10 +1688,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             summary +
             ' Nothing has been saved yet. Ask the student whether to save it; the app saves it when they say yes or save it.';
           setLocalNote(revised.reply);
-          void conversationRef.current?.sendContext(
+          syncCardContext(
+            'review',
+            revised.proposal.operationId,
             'Draft card updated on screen: ' +
               summary +
               ' Nothing is saved yet. Tell the student the new details and ask whether to save it. When they say yes or save it, the app saves it and confirm_draft returns the receipt.',
+            true,
           );
           return 'Updated. ' + spokenCardLine(revised.proposal);
         } else {
@@ -1455,6 +1730,71 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         return null;
       }
       setLocalNote(null);
+      // Fallback for backends that do not advertise `clientUstpTool: true` yet:
+      // surface the on-device USTP Sources card immediately and push verified
+      // passages as a contextual update so the model has grounded context.
+      if (
+        !directProviderTestEnabled() &&
+        conversationRef.current?.snapshot.clientUstpTool !== true
+      ) {
+        const explicitUstp =
+          isHandbookQuestion(trimmed) ||
+          /\b(?:ustp|student\s+handbook|handbook|university\s+of\s+science\s+and\s+technology\s+of\s+southern\s+philippines)\b/i.test(
+            trimmed,
+          );
+        const followUpUstp =
+          !explicitUstp &&
+          lastOfflineUstpQuery.current !== null &&
+          shouldMergeFollowUpQuery(trimmed);
+        if (explicitUstp || followUpUstp) {
+          void searchUstpSourcesForVoice(owner, trimmed, {
+            previousUserQuery: lastOfflineUstpQuery.current,
+          })
+            .then(ustpResult => {
+              if (
+                ticket !== turnTicket.current ||
+                owner !== ownerRef.current ||
+                session !== actionSession.current ||
+                !conversationRef.current ||
+                !LIVE.has(conversationRef.current.snapshot.phase)
+              ) {
+                return;
+              }
+              if (ustpResult.status === 'ok') {
+                lastOfflineUstpQuery.current = trimmed;
+                setReadResult(ustpResult);
+                recordCallUstpSources(owner, ustpResult.sources);
+                const summary = ustpResult.passages
+                  .slice(0, 2)
+                  .map(p => {
+                    const cite = [
+                      p.section || p.chapter,
+                      p.pageLabel,
+                      p.asOf ? `as of ${p.asOf}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(', ');
+                    return `[${cite}] ${p.excerpt.slice(0, 500)}`;
+                  })
+                  .join('\n');
+                sendContextPreservingCard(
+                  `Verified on-device USTP sources for "${trimmed}" (answer strictly from these passages, naming section, page, and as-of date):\n${summary}`,
+                );
+              } else if (
+                ustpResult.status === 'ineligible' ||
+                ustpResult.status === 'disabled' ||
+                ustpResult.status === 'wrong_academic_year' ||
+                ustpResult.status === 'unavailable'
+              ) {
+                sendContextPreservingCard(
+                  `On-device USTP sources status for "${trimmed}": ${ustpResult.spokenReply}`,
+                );
+              }
+            })
+            .catch(() => undefined);
+          return null;
+        }
+      }
       if (
         directProviderTestEnabled() ||
         !['query_schedule', 'query_notes'].includes(fragment.intent)
@@ -1495,7 +1835,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 'Check the card — nothing is saved until confirmed.',
               );
             if (result.review.status === 'proposal') {
-              void conversationRef.current?.sendContext(
+              syncCardContext(
+                'review',
+                result.review.proposal.operationId,
                 'A review card is shown: ' +
                   result.review.proposal.title +
                   ' (' +
@@ -1503,6 +1845,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   '). Card ID: ' +
                   result.review.proposal.operationId +
                   '; revision: 1. Ask the student to confirm; wait for the app save receipt.',
+                true,
               );
             }
           } else if (result.kind === 'executed') {
@@ -1511,7 +1854,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             setUndoOffer(result.undo ?? null);
             groundedReply.current = result.reply;
             const updatedContext = buildStudentVoiceContext(owner);
-            void conversationRef.current?.sendContext(
+            sendContextPreservingCard(
               `Executed immediately on device: ${result.reply}${
                 updatedContext
                   ? `\n\n[UPDATED PLANNER CONTEXT]\n${updatedContext}`
@@ -1522,9 +1865,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             reviewRef.current.dismiss();
             showBatchCard(result.batch);
             setLocalNote(result.reply);
-            groundedReply.current = `Grouped review card is now on screen with ${result.batch.items.length} items. Nothing has been saved yet. Tell the student to review and tap Confirm All.`;
-            void conversationRef.current?.sendContext(
-              `Grouped review card is now on screen with ${result.batch.items.length} items. Tell the student to review and confirm all or cancel.`,
+            groundedReply.current = `Grouped review card is now on screen with ${result.batch.items.length} items. Card ID: ${result.batch.id}; revision: 1. Nothing has been saved yet. Tell the student to review and tap Confirm All.`;
+            syncCardContext(
+              'batch',
+              result.batch.id,
+              formatBatchCardContext(result.batch),
+              true,
             );
           } else if (
             result.kind === 'note' ||
@@ -1533,7 +1879,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           ) {
             setLocalNote(result.reply);
             groundedReply.current = result.reply;
-            void conversationRef.current?.sendContext(
+            sendContextPreservingCard(
               `Local verified database result for student request "${text}": ${result.reply}`,
             );
           }
@@ -1545,10 +1891,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       beginClosing,
       handOffNow,
       presentReview,
+      recordReplacedCard,
       reviewOffline,
       saveOpenCard,
+      sendContextPreservingCard,
       showBatchCard,
       showMemoryCard,
+      syncCardContext,
     ],
   );
 
@@ -1792,8 +2141,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         if (hasStructuredAction(fields)) {
           const checked = validatePayload('legacy.prepare_action', parameters);
           if (!checked.valid) return `Nothing was prepared: ${checked.error}`;
+          const structuredData = checked.data as StructuredActionArgs;
           const signature = JSON.stringify(
-            Object.entries(checked.data as Record<string, unknown>).sort(
+            Object.entries(structuredData as Record<string, unknown>).sort(
               ([a], [b]) => a.localeCompare(b),
             ),
           );
@@ -1803,11 +2153,44 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             prior?.ticket === turnTicket.current &&
             prior.signature === signature &&
             pending?.operationId === prior.id
-          )
+          ) {
+            syncCardContext(
+              'review',
+              pending.operationId,
+              formatReviewCardContext(pending),
+            );
             return `Review card is already shown: ${pending.title}. Card ID: ${pending.operationId}; revision: 1. Nothing was saved.`;
+          }
+          // If the student's turn already revised the open card locally to the
+          // exact same fields, keep that card instead of minting a duplicate ID.
+          if (pending && matchesPendingDraft(pending, structuredData)) {
+            preparedTurn.current = {
+              ticket: turnTicket.current,
+              signature,
+              id: pending.operationId,
+            };
+            presentReview({
+              status: 'proposal',
+              proposal: pending,
+              reply: pending.reply,
+            });
+            setLocalNote(
+              'Check the card — nothing is saved until you confirm.',
+            );
+            syncCardContext(
+              'review',
+              pending.operationId,
+              formatReviewCardContext(pending),
+            );
+            return `Review card is now on screen: ${
+              pending.title
+            }. ${pending.details.join(' ')} Card ID: ${
+              pending.operationId
+            }; revision: 1. ${SUGGESTED_CARD_NOTE}`;
+          }
           const prepared = prepareStructuredReview(
             owner,
-            checked.data as StructuredActionArgs,
+            structuredData,
             'voice',
           );
           if (!isCurrent()) {
@@ -1816,6 +2199,15 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             return 'Request canceled. Nothing was saved.';
           }
           if (prepared?.status === 'proposal') {
+            if (
+              pending &&
+              pending.operationId !== prepared.proposal.operationId
+            ) {
+              recordReplacedCard(
+                pending.operationId,
+                prepared.proposal.operationId,
+              );
+            }
             preparedTurn.current = {
               ticket: turnTicket.current,
               signature,
@@ -1825,6 +2217,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             presentReview(prepared);
             setLocalNote(
               'Check the card — nothing is saved until you confirm.',
+            );
+            syncCardContext(
+              'review',
+              prepared.proposal.operationId,
+              formatReviewCardContext(prepared.proposal),
+              true,
             );
             return `Review card is now on screen: ${
               prepared.proposal.title
@@ -1845,12 +2243,28 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             setLocalNote(draft.reply);
             return draft.reply;
           }
+          const prevPending = latestPendingReview(owner, 'voice');
           const prepared = prepareReviewedCommand(owner, draft.intent, {
             surface: 'voice',
           });
           if (prepared.status === 'proposal') {
+            if (
+              prevPending &&
+              prevPending.operationId !== prepared.proposal.operationId
+            ) {
+              recordReplacedCard(
+                prevPending.operationId,
+                prepared.proposal.operationId,
+              );
+            }
             presentReview(prepared);
             setLocalNote('Check the card — nothing is saved until confirmed.');
+            syncCardContext(
+              'review',
+              prepared.proposal.operationId,
+              formatReviewCardContext(prepared.proposal),
+              true,
+            );
             return `Review card is now on screen: ${prepared.proposal.title}. Card ID: ${prepared.proposal.operationId}; revision: 1. Nothing has been saved. Ask the student to confirm.`;
           }
           return prepared.reply;
@@ -1916,7 +2330,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             showBatchCard(reviewed.batch);
             setLocalNote(reviewed.reply);
             groundedReply.current = reviewed.reply;
-            return `Grouped review card is now on screen with ${reviewed.batch.items.length} items. Tell the student to review and tap Confirm All.`;
+            syncCardContext(
+              'batch',
+              reviewed.batch.id,
+              formatBatchCardContext(reviewed.batch),
+              true,
+            );
+            return `Grouped review card is now on screen with ${reviewed.batch.items.length} items. Card ID: ${reviewed.batch.id}; revision: 1. Tell the student to review and tap Confirm All.`;
           } else if (
             reviewed &&
             (reviewed.kind === 'note' ||
@@ -1942,6 +2362,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         } else if (pending) {
           setCardFocus('review');
         }
+        if (pending) {
+          syncCardContext(
+            'review',
+            pending.operationId,
+            formatReviewCardContext(pending),
+          );
+        }
         return pending
           ? 'Review card is now on screen: ' +
               pending.title +
@@ -1953,11 +2380,17 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           : groundedReply.current;
       }
       if (name === 'revise_draft' || name === 'cancel_draft') {
-        const savedCard = savedCardById(
-          parameters.cardId,
-          savedCards.current,
-          Date.now(),
-        );
+        if (saveInFlight.current) {
+          await saveInFlight.current;
+          if (!isCurrent())
+            throw new Error(
+              'Request cancelled because conversational turn updated.',
+            );
+        }
+        const mappedCardId = resolveReplacedCardId(parameters.cardId);
+        const savedCard =
+          savedCardById(parameters.cardId, savedCards.current, Date.now()) ??
+          savedCardById(mappedCardId, savedCards.current, Date.now());
         if (
           savedCard &&
           latestPendingReview(owner, 'voice')?.operationId !==
@@ -1968,37 +2401,206 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             : `That card is already saved (${savedCard.receipt}), so it cannot be revised as a draft and nothing changed. To change the saved "${savedCard.title}", prepare a card that updates or reschedules it.`;
         }
       }
-      if (
-        name === 'revise_draft' &&
-        lastLocalRevision.current &&
-        parameters.cardId === lastLocalRevision.current.oldId &&
-        Date.now() - lastLocalRevision.current.at < 8000
-      ) {
-        const incomingInst = String(parameters.instruction || '')
-          .trim()
-          .toLowerCase();
+      if (name === 'cancel_draft') {
+        const cards = currentCards.current;
+        const pending = latestPendingReview(owner, 'voice');
+        const memoryOpen =
+          cards.memory?.status === 'draft' && !!cards.memoryActionId;
+        const batchOpen =
+          !!cards.batch &&
+          (cards.batch.status === 'draft' ||
+            cards.batch.status === 'partial' ||
+            cards.batch.status === 'failed');
+        const rawId =
+          typeof parameters.cardId === 'string' ? parameters.cardId.trim() : '';
         if (
-          incomingInst ===
-          lastLocalRevision.current.utterance.trim().toLowerCase()
+          !pending &&
+          !memoryOpen &&
+          !batchOpen &&
+          lastLocalCancel.current &&
+          Date.now() - lastLocalCancel.current.at < RECEIPT_WINDOW_MS
         ) {
-          return (
-            'A review card is shown: ' +
-            lastLocalRevision.current.reply +
-            ' Card ID: ' +
-            lastLocalRevision.current.newId +
-            '; revision: 1. Nothing has been saved yet. Ask the student to confirm; wait for the app save receipt.'
-          );
+          return 'Draft already canceled. Nothing was saved.';
         }
-        return 'That draft revision was replaced. Use the current on-screen card ID and repeat the requested change; nothing was changed.';
+        if (
+          memoryOpen &&
+          cards.memoryActionId &&
+          (rawId === cards.memoryActionId ||
+            (!pending &&
+              !batchOpen &&
+              (!rawId || PLACEHOLDER_CARD_ID_RE.test(rawId))))
+        ) {
+          lastLocalCancel.current = {
+            cardId: cards.memoryActionId,
+            title: cards.memory?.text || 'memory',
+            at: Date.now(),
+          };
+          lastSentCardContextId.current = null;
+          actionService.cancelMemoryProposal(owner, cards.memoryActionId);
+          activeMemoryActionId.current = null;
+          setActiveMemoryProposal(null);
+          setLocalNote('Memory draft canceled. Nothing was saved.');
+          sendContextPreservingCard(
+            'Memory draft canceled. Nothing was saved.',
+          );
+          return 'Draft canceled. Nothing was saved.';
+        }
+        if (
+          batchOpen &&
+          cards.batch &&
+          (rawId === cards.batch.id ||
+            (!pending &&
+              !memoryOpen &&
+              (!rawId || PLACEHOLDER_CARD_ID_RE.test(rawId))))
+        ) {
+          lastLocalCancel.current = {
+            cardId: cards.batch.id,
+            title: 'grouped actions',
+            at: Date.now(),
+          };
+          lastSentCardContextId.current = null;
+          const result = actionService.cancelMultiActionBatch(
+            owner,
+            cards.batch,
+          );
+          setActiveMultiBatch(null);
+          setLocalNote(result.spokenSummary);
+          sendContextPreservingCard(
+            'Grouped review card canceled. Nothing else was saved.',
+          );
+          return 'Draft canceled. Nothing was saved.';
+        }
+        if (pending) {
+          const normalizedRev =
+            parameters.revision === undefined ||
+            (typeof parameters.revision === 'number' &&
+              Number.isSafeInteger(parameters.revision) &&
+              parameters.revision >= 1)
+              ? 1
+              : parameters.revision;
+          const resolvedId =
+            !rawId ||
+            PLACEHOLDER_CARD_ID_RE.test(rawId) ||
+            resolveReplacedCardId(rawId) === pending.operationId ||
+            (rawId !== cards.memoryActionId && rawId !== cards.batch?.id)
+              ? pending.operationId
+              : rawId;
+          parameters = {
+            ...parameters,
+            cardId: resolvedId,
+            revision: normalizedRev,
+          };
+        }
+      }
+      if (name === 'revise_draft') {
+        const pending = latestPendingReview(owner, 'voice');
+        const rawId =
+          typeof parameters.cardId === 'string' ? parameters.cardId.trim() : '';
+        const mappedId = resolveReplacedCardId(rawId);
+        const recentRev = lastLocalRevision.current;
+        if (pending && recentRev && pending.operationId === recentRev.newId) {
+          const isSameTurn = recentRev.ticket === turnTicket.current;
+          const isRecentOldId =
+            (rawId === recentRev.oldId ||
+              mappedId === pending.operationId ||
+              !rawId ||
+              PLACEHOLDER_CARD_ID_RE.test(rawId)) &&
+            Date.now() - recentRev.at < 8000;
+          if (isSameTurn || isRecentOldId) {
+            const incomingInst =
+              typeof parameters.instruction === 'string'
+                ? parameters.instruction.trim()
+                : '';
+            if (
+              instructionAlreadyReflectedInDraft(
+                incomingInst,
+                pending,
+                recentRev.utterance,
+                isSameTurn,
+              )
+            ) {
+              syncCardContext(
+                'review',
+                pending.operationId,
+                formatReviewCardContext(pending, 'Draft card updated on screen'),
+              );
+              return (
+                'A review card is shown: ' +
+                recentRev.reply +
+                ' Card ID: ' +
+                pending.operationId +
+                '; revision: 1. Nothing has been saved yet. Ask the student to confirm; when they say yes or save it, the app saves it and confirm_draft returns the receipt.'
+              );
+            }
+          }
+        }
+        if (pending) {
+          const cards = currentCards.current;
+          const normalizedRev =
+            parameters.revision === undefined ||
+            (typeof parameters.revision === 'number' &&
+              Number.isSafeInteger(parameters.revision) &&
+              parameters.revision >= 1)
+              ? 1
+              : parameters.revision;
+          const resolvedId =
+            !rawId ||
+            PLACEHOLDER_CARD_ID_RE.test(rawId) ||
+            mappedId === pending.operationId ||
+            (rawId !== cards.memoryActionId && rawId !== cards.batch?.id)
+              ? pending.operationId
+              : rawId;
+          parameters = {
+            ...parameters,
+            cardId: resolvedId,
+            revision: normalizedRev,
+          };
+        }
+      }
+      if (name === 'confirm_draft') {
+        const rawId =
+          typeof parameters.cardId === 'string' ? parameters.cardId.trim() : '';
+        const pending = latestPendingReview(owner, 'voice');
+        const cards = currentCards.current;
+        const resolvedId =
+          !rawId || PLACEHOLDER_CARD_ID_RE.test(rawId)
+            ? pending?.operationId ||
+              (cards.memory?.status === 'draft' && cards.memoryActionId
+                ? cards.memoryActionId
+                : null) ||
+              cards.batch?.id ||
+              savedCards.current[savedCards.current.length - 1]?.operationId ||
+              'current'
+            : resolveReplacedCardId(rawId) || rawId;
+        const normalizedRev =
+          parameters.revision === undefined ||
+          (typeof parameters.revision === 'number' &&
+            Number.isSafeInteger(parameters.revision) &&
+            parameters.revision >= 1)
+            ? 1
+            : parameters.revision;
+        parameters = {
+          ...parameters,
+          cardId: resolvedId,
+          revision: normalizedRev,
+        };
       }
       if (name === 'save_lafina_memory') {
         if (
           currentCards.current.memory?.status === 'draft' &&
           activeMemoryActionId.current
         ) {
+          syncCardContext(
+            'memory',
+            activeMemoryActionId.current,
+            formatMemoryCardContext(
+              currentCards.current.memory,
+              activeMemoryActionId.current,
+            ),
+          );
           return (
             `A memory review card is already open for "${currentCards.current.memory.text}". ` +
-            `Card ID: ${activeMemoryActionId.current}. Nothing has been saved yet — wait for the student to confirm.`
+            `Card ID: ${activeMemoryActionId.current}; revision: 1. Nothing has been saved yet — wait for the student to confirm.`
           );
         }
         const rawReq =
@@ -2028,6 +2630,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           // best-effort
         }
       }
+      const pendingBeforeTool = latestPendingReview(owner, 'voice');
       let toolError = false;
       const answer = await actionService.executeTool(
         owner,
@@ -2043,7 +2646,18 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             if (isCurrent() && owner === ownerRef.current)
               setReadResult(result);
           },
-          onDraftCanceled: () => reviewRef.current.dismiss(),
+          onDraftCanceled: () => {
+            if (pendingBeforeTool) {
+              lastLocalCancel.current = {
+                cardId: pendingBeforeTool.operationId,
+                title: pendingBeforeTool.title,
+                at: Date.now(),
+              };
+            }
+            lastSentCardContextId.current = null;
+            reviewRef.current.dismiss();
+            sendContextPreservingCard('Draft canceled. Nothing was saved.');
+          },
           // Card revisions are always 1 here; the card ID and the student's
           // own words decide, so a model-side revision count never blocks.
           onConfirmDraft: cardId => resolveModelConfirm(cardId),
@@ -2053,6 +2667,29 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               setLocalNote(
                 'Check the card — nothing is saved until confirmed.',
               );
+              if (result.review.status === 'proposal') {
+                if (
+                  pendingBeforeTool &&
+                  pendingBeforeTool.operationId !==
+                    result.review.proposal.operationId
+                ) {
+                  recordReplacedCard(
+                    pendingBeforeTool.operationId,
+                    result.review.proposal.operationId,
+                  );
+                }
+                syncCardContext(
+                  'review',
+                  result.review.proposal.operationId,
+                  formatReviewCardContext(
+                    result.review.proposal,
+                    name === 'revise_draft'
+                      ? 'Draft card updated on screen'
+                      : 'Active review card on screen',
+                  ),
+                  true,
+                );
+              }
             } else if (
               result.kind === 'note' ||
               result.kind === 'local_answer' ||
@@ -2064,11 +2701,23 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           onMemoryProposal: (memProp, actionId) => {
             showMemoryCard(memProp, actionId);
             setLocalNote('Check the memory card — nothing is saved yet.');
+            syncCardContext(
+              'memory',
+              actionId,
+              formatMemoryCardContext(memProp, actionId),
+              true,
+            );
           },
           onMultiActionBatch: batch => {
             showBatchCard(batch);
             setLocalNote(
               'Check the grouped actions card — nothing is saved yet.',
+            );
+            syncCardContext(
+              'batch',
+              batch.id,
+              formatBatchCardContext(batch),
+              true,
             );
           },
         },
@@ -2080,9 +2729,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       handOffNow,
       callSettings.toolAudioCue,
       presentReview,
+      recordReplacedCard,
       resolveModelConfirm,
+      resolveReplacedCardId,
+      sendContextPreservingCard,
       showBatchCard,
       showMemoryCard,
+      syncCardContext,
     ],
   );
 
@@ -2118,6 +2771,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             }`,
       );
       if (result.success && result.status === 'saved') {
+        lastSentCardContextId.current = null;
         setActiveMemoryProposal(prev =>
           prev
             ? {
@@ -2201,6 +2855,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           };
         }
         setActiveMultiBatch(batch);
+        if (batch.status === 'saved') lastSentCardContextId.current = null;
         setLocalNote(spokenSummary);
         const refreshed = buildStudentVoiceContext(ownerRef.current);
         const how =
@@ -2229,6 +2884,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
   const handleCancelMultiAll = useCallback(() => {
     if (!activeMultiBatch) return;
+    lastLocalCancel.current = {
+      cardId: activeMultiBatch.id,
+      title: 'grouped actions',
+      at: Date.now(),
+    };
+    lastSentCardContextId.current = null;
     const {batch, spokenSummary} = actionService.cancelMultiActionBatch(
       ownerRef.current,
       activeMultiBatch,
@@ -2268,6 +2929,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         )
           return;
         setActiveMultiBatch(batch);
+        if (batch.status === 'saved') lastSentCardContextId.current = null;
         setLocalNote(spokenSummary);
       } catch {
         setLocalNote(
@@ -2285,15 +2947,22 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     const pending = latestPendingReview(ownerRef.current, 'voice');
     if (pending)
       parts.push(
-        `a review card${cardLabel(
-          pending.title,
-        )} is waiting for the student to save or cancel; nothing is saved yet.`,
+        `a review card${cardLabel(pending.title)} (Card ID: ${
+          pending.operationId
+        }; revision: 1) is waiting for the student to save or cancel; nothing is saved yet.`,
       );
-    if (activeMemoryProposal)
-      parts.push('a memory card is waiting for the student to save or cancel.');
-    if (activeMultiBatch)
+    if (activeMemoryProposal?.status === 'draft' && activeMemoryActionId.current)
       parts.push(
-        'a card with several changes is waiting for the student to save or cancel.',
+        `a memory card (Card ID: ${activeMemoryActionId.current}; revision: 1) is waiting for the student to save or cancel.`,
+      );
+    if (
+      activeMultiBatch &&
+      (activeMultiBatch.status === 'draft' ||
+        activeMultiBatch.status === 'partial' ||
+        activeMultiBatch.status === 'failed')
+    )
+      parts.push(
+        `a card with several changes (Card ID: ${activeMultiBatch.id}; revision: 1) is waiting for the student to save or cancel.`,
       );
     return parts.length ? parts.join(' ') : null;
   };
@@ -2509,6 +3178,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     setActiveMemoryProposal(null);
     activeMemoryActionId.current = null;
     setActiveMultiBatch(null);
+    lastLocalRevision.current = null;
+    replacedCardIds.current.clear();
+    lastLocalCancel.current = null;
+    lastSentCardContextId.current = null;
   }, [snapshot.phase, userId]);
 
   // Records when the live call connected, with haptic cues. The once-a-second
@@ -2561,6 +3234,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     setActiveMemoryProposal(null);
     activeMemoryActionId.current = null;
     setActiveMultiBatch(null);
+    lastLocalRevision.current = null;
+    replacedCardIds.current.clear();
+    lastLocalCancel.current = null;
+    lastSentCardContextId.current = null;
     setCallSettings(getCallLafinaSettings(userId));
     return () => {
       actionService.clearSessionActions(actionSession.current);
@@ -2740,6 +3417,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     approvalRef.current = null;
     lastReceipt.current = null;
     savedCards.current = [];
+    lastLocalRevision.current = null;
+    replacedCardIds.current.clear();
+    lastLocalCancel.current = null;
+    lastSentCardContextId.current = null;
     setCardFocus(null);
     turnTicket.current += 1;
     setDismissedTurnId(null);
@@ -2845,6 +3526,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         const record = savedCardFromProposal(confirming, reply, Date.now());
         if (record)
           savedCards.current = [...savedCards.current, record].slice(-10);
+        lastSentCardContextId.current = null;
       }
       if (
         owner !== ownerRef.current ||
@@ -2855,10 +3537,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         return {saved, message: reply};
       }
       setLocalNote(reply);
+      const remaining = openCardReminder();
       groundedReply.current = saved
         ? 'The student confirmed the card and it was saved: ' +
           reply +
-          ' No card is open now.'
+          (remaining ? ` ${remaining}` : ' No card is open now.')
         : 'The card was not saved: ' + reply;
       const refreshed = buildStudentVoiceContext(userId);
       const how =
@@ -2866,7 +3549,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           ? 'The student tapped Confirm on the card.'
           : 'The student said to save the card.';
       const confirmMsg = saved
-        ? `Confirmed and saved action result: ${reply} ${how} It is saved now and no card is open. Tell the student it is saved if they ask; do not ask them to confirm it again.`
+        ? `Confirmed and saved action result: ${reply} ${how} It is saved now${
+            remaining ? `. ${remaining}` : ' and no card is open.'
+          } Tell the student it is saved if they ask; do not ask them to confirm it again.`
         : `Action was not saved: ${reply} ${how}`;
       void conversation.sendContext(
         refreshed ? `${confirmMsg}\n\n${refreshed}` : confirmMsg,
@@ -2878,7 +3563,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         });
       return {saved, message: reply};
     },
-    [announce, conversation, userId],
+    [announce, conversation, openCardReminder, userId],
   );
 
   // Every save path goes through runSave, so two at once share one write.
@@ -2890,17 +3575,30 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   };
 
   const handleCancelReview = useCallback(() => {
+    const cancelledCard = reviewRef.current.proposal;
     const decision = reviewRef.current.cancel();
     if (decision) {
+      if (cancelledCard) {
+        lastLocalCancel.current = {
+          cardId: cancelledCard.operationId,
+          title: cancelledCard.title,
+          at: Date.now(),
+        };
+      }
+      lastSentCardContextId.current = null;
+      const remaining = openCardReminder();
       setLocalNote(decision.reply);
       groundedReply.current =
-        'The student canceled the card. Nothing was saved and no card is open now.';
+        'The student canceled the card. Nothing was saved' +
+        (remaining ? `. ${remaining}` : ' and no card is open now.');
       void conversation.sendContext(
-        'The student canceled the review card. Nothing was saved and no card is open now. Do not save or prepare it again unless they ask.',
+        'The student canceled the review card. Nothing was saved' +
+          (remaining ? `. ${remaining}` : ' and no card is open now.') +
+          ' Do not save or prepare it again unless they ask.',
       );
       announce(CANCELED_REPLY);
     }
-  }, [announce, conversation]);
+  }, [announce, conversation, openCardReminder]);
 
   const handleSendTyped = useCallback(async () => {
     const text = typed.trim();
@@ -3598,14 +4296,21 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 expired={review?.expired}
                 busy={review?.busy}
                 onEdit={patch => {
+                  const prevId = reviewRef.current.proposal?.operationId;
                   const result = reviewRef.current.edit?.(patch);
                   if (result?.status === 'proposal') {
-                    void conversationRef.current?.sendContext(
+                    if (prevId && prevId !== result.proposal.operationId) {
+                      recordReplacedCard(prevId, result.proposal.operationId);
+                    }
+                    syncCardContext(
+                      'review',
+                      result.proposal.operationId,
                       `Draft updated on screen: ${
                         result.proposal.title
                       }. ${result.proposal.details.join(' ')} Card ID: ${
                         result.proposal.operationId
                       }; revision: 1. Nothing was saved.`,
+                      true,
                     );
                   }
                   return result;
@@ -3738,14 +4443,21 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                         draftCorrection,
                       );
                       if (revised.status === 'proposal') {
+                        recordReplacedCard(
+                          current.operationId,
+                          revised.proposal.operationId,
+                        );
                         presentReview(revised);
                         setDraftCorrection('');
-                        void conversationRef.current?.sendContext(
+                        syncCardContext(
+                          'review',
+                          revised.proposal.operationId,
                           `Draft updated on screen: ${
                             revised.proposal.title
                           }. ${revised.proposal.details.join(' ')} Card ID: ${
                             revised.proposal.operationId
                           }; revision: 1. Nothing was saved.`,
+                          true,
                         );
                       }
                       setLocalNote(revised.reply);
@@ -4090,9 +4802,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               setUndoOffer(null);
               const outcome = chatOrchestrator.undoAction(owner, token);
               setLocalNote(outcome.reply);
-              void conversationRef.current?.sendContext(
-                `Planner update: ${outcome.reply}`,
-              );
+              sendContextPreservingCard(`Planner update: ${outcome.reply}`);
             }}
             testID="voice-undo"
           />

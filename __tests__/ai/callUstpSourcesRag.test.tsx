@@ -96,12 +96,21 @@ describe('Call LAFINA on-device USTP Sources RAG (ADR-047)', () => {
     expect(res.spokenReply).not.toMatch(/###|https?:\/\/|\*\*/);
   });
 
-  test('handles natural spoken dress-code paraphrases (ripped jeans, flip-flops, hair dye, shorts)', async () => {
+  test('handles natural spoken dress-code paraphrases (use/wear tattered jeans, ripped pants, flip-flops, hair dye, shorts, earrings, blouses)', async () => {
     for (const q of [
+      'is it okay to use tattered jeans',
+      'is it okay to use tattered jeans in school?',
+      'can I use tattered jeans in class?',
+      'are tattered jeans okay?',
+      'are tattered jeans prohibited?',
+      'can students wear ripped pants?',
+      'ok ra ba mag tattered jeans?',
       'can I wear ripped jeans in USTP?',
       'are flip-flops allowed in ustp?',
       'can I dye my hair blue at ustp?',
       'pwede ba mag shorts sa ustp?',
+      'can I wear an earring at USTP?',
+      'are tube tops or spaghetti straps allowed?',
     ]) {
       expect(isHandbookQuestion(q)).toBe(true);
       const res = await searchUstpSourcesForVoice(USER_ID, q, {
@@ -216,6 +225,20 @@ describe('Call LAFINA on-device USTP Sources RAG (ADR-047)', () => {
     expect(citation?.handbookNote).toMatch(/p\. 120/);
     expect(citation?.sourcePassageIds.length).toBeGreaterThan(0);
 
+    // ElevenLabs may send null or empty string for optional `collection`.
+    for (const collection of [null, '', 'HANDBOOK']) {
+      const nullableRaw = await actionService.executeTool(
+        USER_ID,
+        sessionId,
+        'search_ustp_sources',
+        {query: 'is it okay to use tattered jeans', collection},
+        () => true,
+      );
+      const nullableParsed = JSON.parse(nullableRaw);
+      expect(nullableParsed.status).toBe('ok');
+      expect(nullableParsed.passages[0].pageLabel).toBe('p. 120');
+    }
+
     // Injection payload is rejected by validator.
     const rejected = await actionService.executeTool(
       USER_ID,
@@ -287,6 +310,7 @@ describe('Call LAFINA on-device USTP Sources RAG (ADR-047)', () => {
       expect.objectContaining({useHandbook: false}),
       expect.anything(),
     );
+    expect(cNew.getSnapshot().clientUstpTool).toBe(true);
     cNew.dispose();
 
     const cOld = new VoiceConversationController(makeDeps(false));
@@ -295,6 +319,7 @@ describe('Call LAFINA on-device USTP Sources RAG (ADR-047)', () => {
       expect.objectContaining({useHandbook: true}),
       expect.anything(),
     );
+    expect(cOld.getSnapshot().clientUstpTool).toBe(false);
     cOld.dispose();
   });
 

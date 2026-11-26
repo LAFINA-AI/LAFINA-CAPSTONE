@@ -175,9 +175,15 @@ const STOP_WORDS = new Set([
   'you',
   'your',
   // Conversational filler: never evidence of a handbook topic.
+  'allowed',
+  'banned',
+  'forbidden',
+  'inside',
   'mean',
   'means',
   'meaning',
+  'permitted',
+  'prohibited',
   'stand',
   'stands',
   'another',
@@ -191,7 +197,11 @@ const STOP_WORDS = new Set([
   'sure',
   'thank',
   'thanks',
+  'use',
+  'using',
   'want',
+  'wear',
+  'wearing',
   'yeah',
   'yes',
   // Tagalog / Taglish function words.
@@ -416,11 +426,18 @@ const QUERY_SYNONYMS: ReadonlyArray<readonly [RegExp, string]> = [
     'cdo campus address',
   ],
   // Spoken dress-code paraphrases mapped to Appendix I handbook wording.
+  [/\b(?:ripped|frayed|tattered|torn)\s+(?:pants|denim)\b/gi, 'tattered jeans'],
   [/\b(?:ripped|frayed)\b/gi, 'tattered'],
+  [/\bshort\s+pants\b/gi, 'shorts'],
   [/\b(?:flip[-\s]?flops?|tsinelas)\b/gi, 'slippers'],
   [/\b(?:sando|tank\s+tops?)\b/gi, 'sleeveless'],
   [/\b(?:crop(?:ped)?\s+tops?)\b/gi, 'midriff'],
   [/\bmini[-\s]?skirts?\b/gi, 'miniskirts'],
+  [/\bearring\b/gi, 'earrings'],
+  [
+    /\b(?:tube\s+tops?|spaghetti\s+straps?|halter\s+tops?|backless\s+(?:tops?|blouses?)|see[-\s]?through\s+(?:attire|clothes?|tops?|blouses?)|plunging\s+necklines?)\b/gi,
+    'dress blouses',
+  ],
   [
     /\b(?:dye(?:d|ing)?|color(?:ed|ing)?|bleach(?:ed|ing)?)\s+(?:my\s+|your\s+)?hair\b|\bhair\s*(?:dye|color|coloring)\b/gi,
     'dress unnatural hair colors',
@@ -960,6 +977,13 @@ export function rankAndFilterFtsCandidates(
     ).length;
     const coverageRatio = matchedConcepts / totalConcepts;
     const literal = countLiteralHits(docWords, built.tokens);
+    // Exact hits on the query's own domain terms (e.g. "tattered", "jeans")
+    // must outrank chunks that only matched a sibling synonym ("uniform")
+    // plus a generic word ("class").
+    const domainTokens = built.conceptTokens
+      .filter((_toks, i) => built.conceptIsDomain[i])
+      .flat();
+    const domainLiteral = countLiteralHits(docWords, domainTokens);
 
     // The chapter/section title is the strongest signal of what a passage
     // is about (audit M5): "Grade Completion" should beat a chunk that
@@ -994,6 +1018,7 @@ export function rankAndFilterFtsCandidates(
       (matchedConcepts - matchedDomain) * 2 +
       coverageRatio * 3 +
       literal * 1.5 +
+      domainLiteral * 4 +
       sectionLiteral * 4 +
       sectionConcepts * 3 +
       keywordLiteral +

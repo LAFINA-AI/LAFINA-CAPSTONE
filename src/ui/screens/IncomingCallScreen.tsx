@@ -59,6 +59,7 @@ import {parseRingingReminderChange} from '../../ai/nlu/ringingReminderChange';
 import {
   latestPendingReview,
   prepareReviewedCommand,
+  reviseReviewedCommand,
 } from '../../ai/nlu/commandReview';
 import type {CommandProposal, PrepareResult} from '../../ai/nlu/commandReview';
 import {Fonts, ModernLayout, Shadows} from '../theme';
@@ -155,7 +156,7 @@ interface TurnReading {
 export const describeCallCard = (proposal: CommandProposal): string =>
   `Review card is now on screen: ${proposal.heading} "${proposal.title}"${
     proposal.details.length ? ` (${proposal.details.join(' ')})` : ''
-  }. Nothing is saved until the student says confirm or taps Confirm. Tell them briefly what the card does and ask them to confirm; do not ask them to repeat the change.`;
+  }. Card ID: ${proposal.operationId}; revision: 1. Nothing is saved until the student says confirm or taps Confirm. Tell them briefly what the card does and ask them to confirm; do not ask them to repeat the change.`;
 
 const plainReply = (text: string): string =>
   text
@@ -1272,6 +1273,20 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         default:
           break;
       }
+      if (open && name === 'revise_draft') {
+        const inst =
+          typeof _parameters.instruction === 'string' &&
+          _parameters.instruction.trim()
+            ? _parameters.instruction.trim()
+            : reading?.text || '';
+        if (inst) {
+          const revised = reviseReviewedCommand(userId, open.operationId, inst);
+          if (revised.status === 'proposal') {
+            showPlannerResult(revised, revised.reply);
+            return describeCallCard(revised.proposal);
+          }
+        }
+      }
       if (open && name !== 'revise_draft') return describeCallCard(open);
       // The device saw no planner request in these words, but the agent did
       // (including a revision to an open card): read the same words once more
@@ -1291,7 +1306,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       if (open) return describeCallCard(open);
       return 'No planner change was found in what the student said, so nothing was changed. Ask what they would like to change.';
     },
-    [runPlanner, userId],
+    [runPlanner, showPlannerResult, userId],
   );
 
   const handleOnlineSnapshot = useCallback(
@@ -1468,7 +1483,15 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       onConfirm={() => void handleReviewConfirm()}
       onCancel={handleReviewCancel}
       onDismiss={review.dismiss}
-      onEdit={review.edit}
+      onEdit={patch => {
+        const result = review.edit?.(patch) ?? null;
+        if (result?.status === 'proposal') {
+          void onlineRef.current?.sendContext(
+            `Planner update: ${describeCallCard(result.proposal)}`,
+          );
+        }
+        return result;
+      }}
       onDeliveryChange={review.setDelivery}
       editError={review.editError}
       testIDPrefix="reminder-call-review"

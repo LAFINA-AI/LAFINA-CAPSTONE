@@ -35,7 +35,7 @@ const GRADUATE_AUDIENCE_RE =
 
 /** Standing rules: answered from the Student Handbook. */
 const POLICY_RE =
-  /\b(?:polic(?:y|ies)|rules?|regulations?|allowed|allowable|permitted|penalt(?:y|ies)|sanctions?|offen[cs]es?|discipline|disciplinary|grading|grades?|gwa|gpa|inc|incomplete|retention|probation|honors?|latin|cum\s+laude|dress\s+code|uniform|attire|haircut|jeans|tattered|torn|ripped|slippers|shorts|sleeveless|earrings|miniskirts?|midriff|curfew|attendance|absences?|tardiness|cheating|plagiari[sz]m|conduct|loa|leave\s+of\s+absence|shift(?:ing)?|can\s+i|may\s+i|am\s+i\s+allowed|is\s+it\s+(?:ok|okay)|pwede|puwede|bawal|what\s+happens\s+if)\b/i;
+  /\b(?:polic(?:y|ies)|rules?|regulations?|allowed|allowable|permitted|prohibited|banned|forbidden|penalt(?:y|ies)|sanctions?|offen[cs]es?|discipline|disciplinary|grading|grades?|gwa|gpa|inc|incomplete|retention|probation|honors?|latin|cum\s+laude|dress\s+code|uniform|attire|haircut|jeans|tattered|torn|ripped|slippers|shorts|sleeveless|earrings?|blouses?|miniskirts?|midriff|curfew|attendance|absences?|tardiness|cheating|plagiari[sz]m|conduct|loa|leave\s+of\s+absence|shift(?:ing)?|can\s+(?:i|we|students?)|may\s+i|am\s+i\s+allowed|is\s+it\s+(?:ok|okay)|pwede|puwede|bawal|what\s+happens\s+if|what\s+if)\b/i;
 
 /** Dates, places, offices, portals, programs: answered from the campus pack. */
 const CAMPUS_INFO_RE =

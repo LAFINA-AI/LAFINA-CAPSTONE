@@ -889,35 +889,44 @@ export function validatePayload(
     }
 
     case 'ustp.search': {
-      if (
-        typeof p.query !== 'string' ||
-        !p.query.trim() ||
-        p.query.length > 200
-      ) {
+      const rawQuery = typeof p.query === 'string' ? p.query.trim() : '';
+      if (!rawQuery || rawQuery.length > 200) {
         return {
           valid: false,
           error: 'ustp.search requires query string (1..200 chars).',
         };
       }
-      if (containsPromptInjection(p.query)) {
+      if (containsPromptInjection(rawQuery)) {
         return {valid: false, error: 'query was rejected.'};
       }
-      if (
-        p.collection !== undefined &&
-        p.collection !== 'all' &&
-        p.collection !== 'handbook' &&
-        p.collection !== 'ustp_cdo'
-      ) {
-        return {
-          valid: false,
-          error: 'collection must be one of: all, handbook, ustp_cdo.',
-        };
+      let collection: 'all' | 'handbook' | 'ustp_cdo' | undefined;
+      if (p.collection !== undefined && p.collection !== null) {
+        if (typeof p.collection !== 'string') {
+          return {
+            valid: false,
+            error: 'collection must be one of: all, handbook, ustp_cdo.',
+          };
+        }
+        const normalized = p.collection.trim().toLowerCase();
+        if (normalized) {
+          if (
+            normalized !== 'all' &&
+            normalized !== 'handbook' &&
+            normalized !== 'ustp_cdo'
+          ) {
+            return {
+              valid: false,
+              error: 'collection must be one of: all, handbook, ustp_cdo.',
+            };
+          }
+          collection = normalized;
+        }
       }
       return {
         valid: true,
         data: {
-          query: p.query.trim(),
-          ...(p.collection !== undefined ? {collection: p.collection} : {}),
+          query: rawQuery,
+          ...(collection !== undefined ? {collection} : {}),
         },
       };
     }

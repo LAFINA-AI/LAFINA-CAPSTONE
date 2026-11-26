@@ -91,6 +91,8 @@ export interface ConversationSnapshot {
   reconnectAttempt?: number | null;
   /** How many times this call has reconnected by itself. */
   reconnects?: number;
+  /** True when the server & ElevenLabs agent advertise `search_ustp_sources` (ADR-047). */
+  clientUstpTool?: boolean;
 }
 
 export interface VoiceCapabilities {

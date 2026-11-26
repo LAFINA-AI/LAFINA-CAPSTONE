@@ -3417,12 +3417,12 @@ function parseEnglishIntent(
 
   // Strip command verb + optional article/adjective + entity noun
   cleanTitle = cleanTitle.replace(
-    /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-?dos?|to\s+dos?|reminders?|events?|notes?)|(?:add|create|schedule|set(?:\s+up)?|make|put|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
+    /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|schedules?(?:\s+items?)?|tasks?|todos?|to-?dos?|to\s+dos?|reminders?|events?|notes?)|(?:add|create|schedule|set(?:\s+up)?|make|put|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
     '',
   );
 
   cleanTitle = cleanTitle.replace(
-    /^(?:(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?(?:\s+list)?|events?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|reminders?|notes?))\s*[:\s,-]*(?:(?:called|titled|named|for|to|about|on|at)\b)?\s*[:\s,-]*/i,
+    /^(?:(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?(?:\s+list)?|events?|schedules?(?:\s+items?)?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|reminders?|notes?))\s*[:\s,-]*(?:(?:called|titled|named|for|to|about|on|at)\b)?\s*[:\s,-]*/i,
     '',
   );
 
@@ -3729,7 +3729,7 @@ export function distillScheduleTitle(rawTitle: string): string {
         '',
       )
       .replace(
-        /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?)|(?:create|add|schedule|set(?:\s+up)?|make|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)(?:\s+(?:called|titled|named|for|to|about)\b)?(?:\s+(?:a|an|the|new)\b)*[\s,:-]*/i,
+        /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|schedules?(?:\s+items?)?|tasks?|todos?|to-dos?|reminders?|events?)|(?:create|add|schedule|set(?:\s+up)?|make|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)(?:\s+(?:called|titled|named|for|to|about)\b)?(?:\s+(?:a|an|the|new)\b)*[\s,:-]*/i,
         '',
       )
       .trim();

@@ -3001,7 +3001,7 @@ async function chatSkillReply(
 export const chatOrchestrator = new ChatOrchestrator();
 
 const CHAT_REVIEW_CONFIRM_RE =
-  /^(?:(?:yes|yeah|yep|yup|sure|ok(?:ay)?)(?:\s+please)?(?:\s+(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply))?|(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply)(?:\s+please)?)[.!]*$/i;
+  /^(?:(?:yes|yeah|yep|yup|sure|ok(?:ay)?)(?:[,\s]+please)?(?:[,\s]+(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply))?|(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply)(?:[,\s]+please)?)[.!]*$/i;
 
 /** A one-word yes/no that could just as well answer the model's question. */
 const BARE_CONFIRM_RE =
@@ -3238,7 +3238,7 @@ const CHAT_REVIEW_CANCEL_RE =
   /^(?:no|nope|cancel(?:\s+(?:it|that))?|never\s*mind|nevermind|forget\s+it|stop|discard(?:\s+(?:it|that))?)[.!]*$/i;
 
 const CHAT_REVIEW_REVISE_RE =
-  /^(?:change|rename|move|make|set|shift|update|reschedule|put|switch|actually)\b/i;
+  /^(?:(?:please|can\s+you|could\s+you|no,?|wait,?|instead,?)\s+)*(?:change|rename|move|make|set|shift|update|reschedule|put|switch|actually|extend|shorten|push|delay|postpone)\b|\binstead[.!?]*$/i;
 
 const CLAUSE_ACTION_VERB_RE =
   /\b(?:add|schedule|create|make|remind|set|mark|complete|reopen|pin|unpin|delete|remove|cancel|move|reschedule|update|edit|change|rename|jot|write|save|note:|task:|event:|reminder:)\b/i;
