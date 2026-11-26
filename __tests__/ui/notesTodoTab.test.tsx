@@ -421,11 +421,21 @@ describe('Notes Tab To-Do Integration', () => {
       isVoiceTranscribed: false,
     });
 
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 10);
+    const futureYmd = `${futureDate.getFullYear()}-${String(
+      futureDate.getMonth() + 1,
+    ).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+    const expectedShortDate = futureDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+
     tasksStore.insertTask({
       id: 'todo-grid-concise-1',
       userId,
       title: 'Learn AI Engineering Course',
-      dueDate: '2026-11-27',
+      dueDate: futureYmd,
       dueTime: null,
       isCompleted: false,
       priority: 'High',
@@ -453,8 +463,8 @@ describe('Notes Tab To-Do Integration', () => {
     });
     expect(screen.getByText('Learn AI Engineering Course')).toBeTruthy();
     expect(screen.getByText('High')).toBeTruthy();
-    expect(screen.getByText('Nov 27')).toBeTruthy();
-    expect(screen.queryByText('2026-11-27')).toBeNull();
+    expect(screen.getByText(expectedShortDate)).toBeTruthy();
+    expect(screen.queryByText(futureYmd)).toBeNull();
     expect(
       screen.queryByText('Complete modules 1 through 4 before finals'),
     ).toBeNull();
@@ -465,7 +475,7 @@ describe('Notes Tab To-Do Integration', () => {
       screen.getByText('Complete modules 1 through 4 before finals'),
     ).toBeTruthy();
     expect(screen.getByText('Academic')).toBeTruthy();
-    expect(screen.getByText('2026-11-27')).toBeTruthy();
+    expect(screen.getByText(futureYmd)).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('notes-subtab-notes'));
     expect(screen.getByText('two')).toBeTruthy();
