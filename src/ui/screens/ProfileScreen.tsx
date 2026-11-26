@@ -642,6 +642,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   // Remediation audit P1: a Clear All Data confirmation is honoured only while
   // this screen is mounted and still shows the account that opened it.
   const alive = useRef(true);
+  const ttsTestingRef = useRef(false);
+  const clearingDataRef = useRef(false);
+  const signingOutRef = useRef(false);
   const currentUserId = useRef(userId);
   currentUserId.current = userId;
   useEffect(() => {
@@ -874,20 +877,23 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   };
 
   const handleTestTtsVoice = async () => {
-    if (ttsTesting) {
+    if (ttsTestingRef.current || ttsTesting) {
       return;
     }
+    const reqUserId = userId;
+    ttsTestingRef.current = true;
     setTtsTesting(true);
     let disposeSpeech: (() => Promise<void>) | undefined;
     try {
       const {createCallSpeechProvider} = require('../../cloud/speechService');
-      const provider = createCallSpeechProvider(userId);
+      const provider = createCallSpeechProvider(reqUserId);
       disposeSpeech = provider.dispose;
 
       Alert.alert('Playing a sample…', 'Turn your media volume up to hear it.');
       const result = await provider.speakText(
         'Hey! This is LAFINA. My voice is working.',
       );
+      if (!alive.current || currentUserId.current !== reqUserId) return;
       if (result.source === 'cancelled') {
         Alert.alert('Sample stopped', 'The voice sample was cancelled.');
       } else if (result.source === 'elevenlabs') {
@@ -903,10 +909,15 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       console.error('[Profile] TTS test failed:', e);
-      Alert.alert('Could not play the sample', message);
+      if (alive.current && currentUserId.current === reqUserId) {
+        Alert.alert('Could not play the sample', message);
+      }
     } finally {
       await disposeSpeech?.().catch(() => undefined);
-      setTtsTesting(false);
+      ttsTestingRef.current = false;
+      if (alive.current) {
+        setTtsTesting(false);
+      }
     }
   };
 
@@ -916,7 +927,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   };
 
   const choosePhoto = async () => {
+    const reqUserId = userId;
     const result = await pickAvatarImage();
+    if (!alive.current || currentUserId.current !== reqUserId) return;
     if (result.status === 'cancelled') return;
     if (result.status === 'failed') {
       Alert.alert(
@@ -926,18 +939,23 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       return;
     }
     const previous = currentUser?.avatarUri ?? null;
-    userStore.setAvatarUri(userId, result.uri);
-    setCurrentUser(userStore.getUserById(userId));
+    userStore.setAvatarUri(reqUserId, result.uri);
+    setCurrentUser(userStore.getUserById(reqUserId));
     await removeAvatarImage(previous);
-    onRefresh();
+    if (alive.current && currentUserId.current === reqUserId) {
+      onRefresh();
+    }
   };
 
   const clearPhoto = async () => {
+    const reqUserId = userId;
     const previous = currentUser?.avatarUri ?? null;
-    userStore.setAvatarUri(userId, null);
-    setCurrentUser(userStore.getUserById(userId));
+    userStore.setAvatarUri(reqUserId, null);
+    setCurrentUser(userStore.getUserById(reqUserId));
     await removeAvatarImage(previous);
-    onRefresh();
+    if (alive.current && currentUserId.current === reqUserId) {
+      onRefresh();
+    }
   };
 
   const randomizeCharacterAvatar = () => {
@@ -971,16 +989,19 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   };
 
   const resetToDefaultAvatar = async () => {
+    const reqUserId = userId;
     setAvatarModalVisible(false);
     const previous = currentUser?.avatarUri ?? null;
     if (previous) {
-      userStore.setAvatarUri(userId, null);
+      userStore.setAvatarUri(reqUserId, null);
     }
-    avatarSeedStore.clear(userId);
+    avatarSeedStore.clear(reqUserId);
     setAvatarSeed(null);
-    setCurrentUser(userStore.getUserById(userId));
+    setCurrentUser(userStore.getUserById(reqUserId));
     await removeAvatarImage(previous);
-    onRefresh();
+    if (alive.current && currentUserId.current === reqUserId) {
+      onRefresh();
+    }
   };
 
   const handleChoosePhotoFromModal = async () => {
@@ -1003,6 +1024,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
    * changes nothing. The result names only the steps it confirmed.
    */
   const confirmClearData = async (authority: DataResetAuthority | null) => {
+    if (clearingDataRef.current) return;
+    clearingDataRef.current = true;
+    try {
     const preparation = preparePersonalDataReset(authority);
     const prepared =
       typeof preparation === 'boolean' ? preparation : await preparation;
@@ -1117,7 +1141,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
         });
       }
     }
-    if (alive.current) {
+    if (alive.current && currentUserId.current === authority.userId) {
       setCurrentUser(userStore.getUserById(userId));
       setAcademicProfile(getConfirmedAcademicProfile(userId));
       setStudentSetup(studentSetupStore.get(userId));
@@ -1125,6 +1149,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       loadStats();
       loadEventDefaultsSummary();
       onRefresh();
+    }
+    } finally {
+      clearingDataRef.current = false;
     }
   };
 
@@ -1173,7 +1200,8 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   };
 
   const handleConfirmSignOut = async () => {
-    if (signingOut) return;
+    if (signingOutRef.current || signingOut) return;
+    signingOutRef.current = true;
     setSigningOut(true);
     try {
       if (!isGuest) {
@@ -1185,6 +1213,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
         error,
       );
     } finally {
+      signingOutRef.current = false;
       void cancelFocusTimer();
       userStore.logout();
       if (alive.current) {

@@ -506,13 +506,16 @@ describe('offline model timing', () => {
   });
 
   it('cancelling stops waiting for the model', async () => {
-    extract.mockImplementation(() => new Promise(() => undefined));
     const controller = new AbortController();
+    extract.mockImplementation(() => {
+      queueMicrotask(() => controller.abort());
+      return new Promise(() => undefined);
+    });
     const trace = createRequestTrace({
       requestedMode: 'offline',
       source: 'benchmark',
     });
-    const pending = intentService.extractIntent(
+    const result = await intentService.extractIntent(
       'pa-remind ako mag-aral bukas ng 7pm',
       {
         preferOnDeviceSlm: true,
@@ -521,8 +524,6 @@ describe('offline model timing', () => {
         signal: controller.signal,
       },
     );
-    controller.abort();
-    const result = await pending;
     expect(result.source).not.toBe('on_device_slm');
     expect(
       NativeModules.LafinaIntentExtractor.cancelExtraction,

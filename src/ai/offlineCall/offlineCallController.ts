@@ -381,6 +381,11 @@ export class OfflineCallController implements ConversationController {
       const line = this.announcements.shift();
       if (line !== undefined) {
         await this.say(gen, line.text, line.inChat);
+        if (this.endAfterLine && this.current(gen)) {
+          this.endAfterLine = false;
+          this.finish('ended', null);
+          return;
+        }
         continue;
       }
       const typed = this.typed.shift();
@@ -726,8 +731,12 @@ export class OfflineCallController implements ConversationController {
   setMuted = (muted: boolean): void => {
     if (this.snapshot.muted === muted) return;
     this.update({muted, ...(muted ? {micCapturing: false, level: 0} : {})});
-    if (muted) this.interruptCapture();
-    else this.nudge();
+    if (muted) {
+      this.clearRetryWait();
+      this.interruptCapture();
+    } else {
+      this.nudge();
+    }
   };
 
   /**
@@ -756,7 +765,9 @@ export class OfflineCallController implements ConversationController {
   sendText = async (text: string): Promise<boolean> => {
     const trimmed = text.trim().slice(0, 1000);
     if (!trimmed || !this.isActive()) return false;
+    if (this.typed.length >= 20) this.typed.shift();
     this.typed.push(trimmed);
+    this.clearRetryWait();
     this.interruptCapture();
     this.nudge();
     return true;
@@ -769,8 +780,12 @@ export class OfflineCallController implements ConversationController {
   announce = (text: string, options: {inChat?: boolean} = {}): void => {
     const trimmed = text.trim();
     if (!trimmed || !this.isActive()) return;
+    if (this.announcements.length >= 20) this.announcements.shift();
     this.announcements.push({text: trimmed, inChat: options.inChat === true});
-    if (this.snapshot.phase === 'listening') this.interruptCapture();
+    if (this.snapshot.phase === 'listening') {
+      this.clearRetryWait();
+      this.interruptCapture();
+    }
     this.nudge();
   };
 

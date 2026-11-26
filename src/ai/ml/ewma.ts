@@ -15,7 +15,7 @@ export const DEFAULT_EWMA_ALPHA = 0.25;
  * Validates and clamps alpha to the open interval (0, 1].
  */
 export function clampAlpha(alpha: number): number {
-  if (isNaN(alpha) || alpha <= 0) return 0.01;
+  if (!Number.isFinite(alpha) || alpha <= 0) return 0.01;
   if (alpha > 1) return 1.0;
   return alpha;
 }
@@ -32,8 +32,10 @@ export function stepEwma(
   observation: number,
   alpha = DEFAULT_EWMA_ALPHA,
 ): number {
+  const safePrev = Number.isFinite(previousSmoothed) ? previousSmoothed : 0;
+  if (!Number.isFinite(observation)) return safePrev;
   const safeAlpha = clampAlpha(alpha);
-  return safeAlpha * observation + (1.0 - safeAlpha) * previousSmoothed;
+  return safeAlpha * observation + (1.0 - safeAlpha) * safePrev;
 }
 
 /**
@@ -68,6 +70,9 @@ export class EwmaTracker {
    * Ingests a new observation Y_t and updates S_t.
    */
   observe(observation: number): number {
+    if (!Number.isFinite(observation)) {
+      return this.state.value;
+    }
     if (this.state.sampleCount === 0) {
       // First observation initializes the series if initialValue was unset/zero
       this.state.value = observation;

@@ -89,6 +89,7 @@ class ReminderCallActivity : Activity() {
 
   private fun bind(intent: Intent?) {
     handler.removeCallbacks(watcher)
+    waitingForUnlock = false
     val reminderId = intent?.getStringExtra("reminderId")?.takeIf { it.isNotBlank() }
     if (reminderId == null) {
       finish()
@@ -165,6 +166,7 @@ class ReminderCallActivity : Activity() {
   }
 
   private fun decline() {
+    if (waitingForUnlock || isFinishing || isDestroyed) return
     identity?.let { LafinaReminderModule.declineFromLockScreen(this, it) }
     finish()
   }

@@ -586,14 +586,16 @@ function AppContent({
 
   // Verify reminder permissions once onboarding and the walkthrough are done.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) return undefined;
     if (isOnboarding || tourOpen || productTourStore.isPending(userId)) {
-      return;
+      return undefined;
     }
+    let cancelled = false;
 
     void (async (): Promise<void> => {
       try {
         let status = await getReminderPermissionStatus();
+        if (cancelled) return;
         if (
           Platform.OS === 'android' &&
           (!status || !status.notificationsEnabled)
@@ -601,7 +603,9 @@ function AppContent({
           await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           );
+          if (cancelled) return;
           status = await getReminderPermissionStatus();
+          if (cancelled) return;
         }
         setPermissionStatus(status);
 
@@ -615,9 +619,14 @@ function AppContent({
           setPermissionModalVisible(true);
         }
       } catch (error) {
-        console.warn('[App] Failed to check reminder permissions:', error);
+        if (!cancelled) {
+          console.warn('[App] Failed to check reminder permissions:', error);
+        }
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [userId, isOnboarding, tourOpen]);
 
   // Recover durable queue entries after a close/restart; never auto-answer recovery.
@@ -769,7 +778,9 @@ function AppContent({
       wasOnline = isOnline;
     });
 
+    let disposed = false;
     const runForegroundWork = (): void => {
+      if (disposed || AppState.currentState !== 'active') return;
       db.invalidateData(['alarms', 'reminders', 'tasks']);
       scheduler.start();
       // Floating LAFINA (ADR-036 Decision 6, risk R-03): while Quick Chat is
@@ -779,14 +790,16 @@ function AppContent({
       void (async () => {
         if (!quickChatInFront) {
           const payloads = await consumePendingNativeCalls().catch(() => []);
+          if (disposed || AppState.currentState !== 'active') return;
           payloads.forEach(p => presentCallRef.current(p));
         }
         await rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+        if (disposed || AppState.currentState !== 'active') return;
         if (!quickChatPresence.isOpen()) startReminderPoller(userId);
       })();
       void getReminderPermissionStatus()
         .then(status => {
-          if (status) setPermissionStatus(status);
+          if (!disposed && status) setPermissionStatus(status);
         })
         .catch(() => undefined);
       void scheduler.runNow();
@@ -820,6 +833,7 @@ function AppContent({
     });
 
     return () => {
+      disposed = true;
       syncSchedulerRef.current = null;
       appStateSubscription.remove();
       cancelForegroundWork();

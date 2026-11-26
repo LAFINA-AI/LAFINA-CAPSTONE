@@ -1,5 +1,5 @@
 import {generateId} from '../utils';
-import {db} from './database';
+import {db, type DatabaseTransaction} from './database';
 
 export interface BehaviorLog {
   id: string;
@@ -30,16 +30,17 @@ export const behaviorStore = {
     eventType: string,
     eventKey: string,
     eventValue: string,
+    executor?: DatabaseTransaction,
   ): void => {
     const id = generateId('beh');
     const now = new Date().toISOString();
-    try {
-      db.executeSync(
+    const apply = (tx: DatabaseTransaction) => {
+      tx.executeSync(
         `INSERT INTO user_behavior_logs (id, user_id, event_type, event_key, event_value, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [id, userId, eventType, eventKey, eventValue, now, now],
       );
-      db.executeSync(
+      tx.executeSync(
         `DELETE FROM user_behavior_logs
          WHERE user_id = ? AND event_type = ?
            AND id NOT IN (
@@ -50,6 +51,10 @@ export const behaviorStore = {
            )`,
         [userId, eventType, userId, eventType, MAX_BEHAVIOR_LOGS_PER_TYPE],
       );
+    };
+    try {
+      if (executor) apply(executor);
+      else db.transactionSync(apply);
     } catch (error) {
       console.error('Error inserting user behavior log:', error);
       throw error;
@@ -105,16 +110,17 @@ export const behaviorStore = {
     userId: string,
     featureType: string,
     featureVector: string,
+    executor?: DatabaseTransaction,
   ): void => {
     const id = generateId('fs');
     const now = new Date().toISOString();
-    try {
-      db.executeSync(
+    const apply = (tx: DatabaseTransaction) => {
+      tx.executeSync(
         `INSERT INTO ml_feature_snapshots (id, user_id, feature_type, feature_vector, computed_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [id, userId, featureType, featureVector, now, now, now],
       );
-      db.executeSync(
+      tx.executeSync(
         `DELETE FROM ml_feature_snapshots
          WHERE user_id = ? AND feature_type = ?
            AND id NOT IN (
@@ -131,6 +137,10 @@ export const behaviorStore = {
           MAX_FEATURE_SNAPSHOTS_PER_TYPE,
         ],
       );
+    };
+    try {
+      if (executor) apply(executor);
+      else db.transactionSync(apply);
     } catch (error) {
       console.error('Error inserting ML feature snapshot:', error);
       throw error;

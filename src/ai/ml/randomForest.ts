@@ -140,7 +140,7 @@ export class RandomForestEnsemble {
 
     for (const tree of this.model.trees) {
       const pred = Number(evaluateTree(tree.root, features));
-      const validPred = isNaN(pred) ? fallbackValue : pred;
+      const validPred = Number.isFinite(pred) ? pred : fallbackValue;
       predictions.push(validPred);
       sum += validPred;
     }

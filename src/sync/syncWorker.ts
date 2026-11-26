@@ -1425,10 +1425,42 @@ const persistMutationResults = (
       serversWithoutProfileAvatarSeed.add(compatServer);
       pendingAvatarSeedCompatRetries.delete(item.mutationId);
     }
+    if (
+      typeof item.serverVersion === 'number' &&
+      Number.isInteger(item.serverVersion) &&
+      item.serverVersion > 0
+    ) {
+      const existingVersion = syncMetadataStore.getVersion(
+        localUserId,
+        item.entityType,
+        item.entityId,
+        ACCOUNT_SCOPE,
+        localUserId,
+        tx,
+      );
+      if (existingVersion === null || item.serverVersion > existingVersion) {
+        syncMetadataStore.upsert(
+          localUserId,
+          {
+            entityType: item.entityType,
+            entityId: item.entityId,
+            version: item.serverVersion,
+            changeId: response.nextCursor,
+            updatedAt: response.serverTime,
+          },
+          ACCOUNT_SCOPE,
+          localUserId,
+          tx,
+        );
+      }
+    }
   }
   syncOutboxStore.acknowledgeMutations(
     localUserId,
-    response.accepted.map(item => item.mutationId),
+    [
+      ...response.accepted.map(item => item.mutationId),
+      ...heldForLimit,
+    ],
     ACCOUNT_SCOPE,
     localUserId,
     tx,
@@ -1457,16 +1489,17 @@ const applyPage = (
   finalStatus: 'Syncing' | 'Synced' | 'Attention required',
   finalError: string | null,
   inFlightMutations: OutboundMutation[] = [],
+  passOwnEchoes?: Set<string>,
 ): ApplyPageResult & {rejectedCount: number} => {
   let reminderTextUpdated = false;
   let localRemoteChanges = 0;
   let rejectedCount = 0;
-  const ownEchoes = new Set(
-    response.accepted.map(
-      result =>
-        `${result.entityType}:${result.entityId}:${result.serverVersion}`,
-    ),
-  );
+  const ownEchoes = passOwnEchoes ?? new Set<string>();
+  for (const result of response.accepted) {
+    ownEchoes.add(
+      `${result.entityType}:${result.entityId}:${result.serverVersion}`,
+    );
+  }
 
   const chatTally: ChatApplyTally = {changed: false, removed: false};
   db.transactionSync((tx: DatabaseTransaction) => {
@@ -1595,7 +1628,7 @@ const failOutboxMutations = (
           entityId: mutation.entityId,
           operation: mutation.operation,
           reason,
-          localPayload: {},
+          localPayload: reason === 'payload_too_large' ? {} : mutation.payload,
           baseVersion: mutation.baseVersion ?? null,
           serverVersion: null,
           serverPayload: null,
@@ -1705,6 +1738,8 @@ const prepareOutboxBatch = (
       ids,
       ACCOUNT_SCOPE,
       localUserId,
+      undefined,
+      true,
     );
   }
 
@@ -1739,15 +1774,17 @@ export const syncWorker = {
     }
     followUpSyncRequested = false;
     const runLoop = async (): Promise<void> => {
-      do {
+      try {
+        do {
+          followUpSyncRequested = false;
+          await syncWorker.runSyncPass();
+        } while (followUpSyncRequested);
+      } finally {
+        inFlightSync = null;
         followUpSyncRequested = false;
-        await syncWorker.runSyncPass();
-      } while (followUpSyncRequested);
+      }
     };
-    inFlightSync = runLoop().finally(() => {
-      inFlightSync = null;
-      followUpSyncRequested = false;
-    });
+    inFlightSync = runLoop();
     return inFlightSync;
   },
 
@@ -1755,12 +1792,13 @@ export const syncWorker = {
     let localUserId: string | null = null;
     let inFlightMutationIds: string[] = [];
     let inFlightMutations: OutboundMutation[] = [];
+    let reminderTextUpdated = false;
+    const sessionGeneration = getSessionGeneration();
     try {
       if (!db.isFallback() && !db.getHealth().durable) {
         syncState.deactivate('Local only');
         return;
       }
-      const sessionGeneration = getSessionGeneration();
       const session = userStore.getActiveSessionToken();
       localUserId = session.userId;
       if (!localUserId || !userStore.getUserById(localUserId)) {
@@ -1842,6 +1880,7 @@ export const syncWorker = {
       if (!chatSyncEnabled && chatSyncStore.serverSupportsChat(localUserId)) {
         // Turning upload/download off never withholds a student's explicit deletion.
         // This feed is deliberately not applied or used to advance the normal cursor.
+        let deleteBatchLimit = OUTBOX_BATCH_SIZE;
         for (let batch = 0; batch < MAX_SYNC_REQUESTS; batch += 1) {
           const pendingDeletes = syncOutboxStore.getPendingMutations(
             localUserId,
@@ -1853,18 +1892,30 @@ export const syncWorker = {
             'delete',
           );
           if (!pendingDeletes.length) break;
+          const seenDeleteEntities = new Set<string>();
           const deleteMutations: OutboundMutation[] = [];
           const oversizedDeletes: OutboundMutation[] = [];
+          const exhaustedDeletes: OutboundMutation[] = [];
           let deleteBytes = 0;
           for (const item of pendingDeletes) {
+            const entityKey = `${item.entityType}:${item.entityId}`;
+            if (seenDeleteEntities.has(entityKey)) continue;
+            seenDeleteEntities.add(entityKey);
             const mutation = formatMutation(localUserId!, item);
+            if (item.attempts >= MAX_OUTBOX_ATTEMPTS) {
+              exhaustedDeletes.push(mutation);
+              continue;
+            }
             const size = utf8Length(JSON.stringify(mutation));
             if (size > MAX_MUTATIONS_PAYLOAD_BYTES) {
               oversizedDeletes.push(mutation);
               continue;
             }
             const addedBytes = size + (deleteMutations.length > 0 ? 1 : 0);
-            if (deleteBytes + addedBytes > MAX_MUTATIONS_PAYLOAD_BYTES) {
+            if (
+              deleteMutations.length >= deleteBatchLimit ||
+              deleteBytes + addedBytes > MAX_MUTATIONS_PAYLOAD_BYTES
+            ) {
               break;
             }
             deleteBytes += addedBytes;
@@ -1875,9 +1926,17 @@ export const syncWorker = {
             oversizedDeletes,
             'payload_too_large',
           );
-          chatDeleteRejections += oversizedDeletes.length;
+          failOutboxMutations(
+            localUserId,
+            exhaustedDeletes,
+            'max_attempts_exceeded',
+          );
+          chatDeleteRejections +=
+            oversizedDeletes.length + exhaustedDeletes.length;
           if (!deleteMutations.length) {
-            if (oversizedDeletes.length > 0) continue;
+            if (oversizedDeletes.length > 0 || exhaustedDeletes.length > 0) {
+              continue;
+            }
             break;
           }
           inFlightMutations = deleteMutations;
@@ -1894,6 +1953,8 @@ export const syncWorker = {
               inFlightMutationIds,
               ACCOUNT_SCOPE,
               localUserId,
+              undefined,
+              true,
             );
             inFlightMutationIds = [];
             inFlightMutations = [];
@@ -1917,6 +1978,8 @@ export const syncWorker = {
               inFlightMutationIds,
               ACCOUNT_SCOPE,
               localUserId,
+              undefined,
+              true,
             );
             inFlightMutationIds = [];
             inFlightMutations = [];
@@ -1929,6 +1992,8 @@ export const syncWorker = {
               inFlightMutationIds,
               ACCOUNT_SCOPE,
               localUserId,
+              undefined,
+              true,
             );
             inFlightMutationIds = [];
             inFlightMutations = [];
@@ -1938,10 +2003,52 @@ export const syncWorker = {
             syncState.setStatus(localUserId, 'Sign-in required');
             return;
           }
-          if (deleted.status !== 'success' || !deleted.data)
+          if (deleted.status === 'validation_error') {
+            const failedDeleteBatch = inFlightMutations;
+            syncOutboxStore.requeueMutations(
+              localUserId,
+              inFlightMutationIds,
+              ACCOUNT_SCOPE,
+              localUserId,
+              undefined,
+              failedDeleteBatch.length > 1,
+            );
+            inFlightMutationIds = [];
+            inFlightMutations = [];
+            if (failedDeleteBatch.length > 1) {
+              deleteBatchLimit = Math.max(
+                1,
+                Math.floor(failedDeleteBatch.length / 2),
+              );
+              continue;
+            }
+            failOutboxMutations(
+              localUserId,
+              failedDeleteBatch,
+              deleted.error || 'validation_error',
+            );
+            chatDeleteRejections += failedDeleteBatch.length;
+            deleteBatchLimit = OUTBOX_BATCH_SIZE;
+            continue;
+          }
+          if (deleted.status !== 'success' || !deleted.data) {
+            const isTransient =
+              deleted.status === 'rate_limited' ||
+              deleted.status === 'server_unavailable';
+            syncOutboxStore.requeueMutations(
+              localUserId,
+              inFlightMutationIds,
+              ACCOUNT_SCOPE,
+              localUserId,
+              undefined,
+              isTransient,
+            );
+            inFlightMutationIds = [];
+            inFlightMutations = [];
             throw new Error(
               deleted.error || 'Cloud chat deletion could not finish.',
             );
+          }
           validateMutationResults(deleted.data, inFlightMutations);
           chatDeleteRejections += settleMutationResults(
             localUserId,
@@ -1950,6 +2057,7 @@ export const syncWorker = {
           );
           inFlightMutationIds = [];
           inFlightMutations = [];
+          deleteBatchLimit = OUTBOX_BATCH_SIZE;
           if (batch === MAX_SYNC_REQUESTS - 1)
             throw new Error(
               'More cloud chat deletions are waiting for the next sync.',
@@ -1982,8 +2090,8 @@ export const syncWorker = {
         : null;
       let snapshotItems: SyncChange[] = [];
       const snapshotItemKeys = new Set<string>();
+      const passOwnEchoes = new Set<string>();
       let rejectedCount = preparedBatch.oversizedCount + chatDeleteRejections;
-      let reminderTextUpdated = false;
 
       for (
         let requestNumber = 1;
@@ -2012,6 +2120,8 @@ export const syncWorker = {
             inFlightMutationIds,
             ACCOUNT_SCOPE,
             localUserId,
+            undefined,
+            true,
           );
           inFlightMutationIds = [];
           inFlightMutations = [];
@@ -2024,6 +2134,8 @@ export const syncWorker = {
             inFlightMutationIds,
             ACCOUNT_SCOPE,
             localUserId,
+            undefined,
+            true,
           );
           inFlightMutationIds = [];
           inFlightMutations = [];
@@ -2043,6 +2155,8 @@ export const syncWorker = {
             inFlightMutationIds,
             ACCOUNT_SCOPE,
             localUserId,
+            undefined,
+            failedBatch.length > 1,
           );
           inFlightMutationIds = [];
           inFlightMutations = [];
@@ -2086,17 +2200,19 @@ export const syncWorker = {
             } rejected by server`,
           );
           retryAttempt = 0;
-          if (reminderTextUpdated) {
-            await reconcileReminderDelivery(localUserId);
-          }
           return;
         }
         if (result.status !== 'success' || !result.data) {
+          const isTransient =
+            result.status === 'rate_limited' ||
+            result.status === 'server_unavailable';
           syncOutboxStore.requeueMutations(
             localUserId,
             inFlightMutationIds,
             ACCOUNT_SCOPE,
             localUserId,
+            undefined,
+            isTransient,
           );
           inFlightMutationIds = [];
           inFlightMutations = [];
@@ -2200,9 +2316,6 @@ export const syncWorker = {
             snapshotRejectedMessage,
           );
           retryAttempt = 0;
-          if (reminderTextUpdated) {
-            await reconcileReminderDelivery(localUserId);
-          }
           return;
         }
 
@@ -2243,6 +2356,7 @@ export const syncWorker = {
           'Syncing',
           null,
           inFlightMutations,
+          passOwnEchoes,
         );
         reminderTextUpdated =
           reminderTextUpdated || pageResult.reminderTextUpdated;
@@ -2277,9 +2391,6 @@ export const syncWorker = {
           rejectedMessage,
         );
         retryAttempt = 0;
-        if (reminderTextUpdated) {
-          await reconcileReminderDelivery(localUserId);
-        }
         return;
       }
 
@@ -2287,15 +2398,30 @@ export const syncWorker = {
         `Sync exceeded the ${MAX_SYNC_REQUESTS}-request safety limit.`,
       );
     } catch (error: unknown) {
+      const sessionChanged =
+        getSessionGeneration() !== sessionGeneration ||
+        (localUserId !== null &&
+          userStore.getActiveSessionToken().userId !== localUserId);
       if (localUserId) {
         syncOutboxStore.requeueMutations(
           localUserId,
           inFlightMutationIds,
           ACCOUNT_SCOPE,
           localUserId,
+          undefined,
+          sessionChanged,
         );
         inFlightMutationIds = [];
         inFlightMutations = [];
+      }
+      if (sessionChanged) {
+        if (
+          !localUserId ||
+          userStore.getActiveSessionToken().userId !== localUserId
+        ) {
+          syncState.deactivate('Local only', null);
+        }
+        return;
       }
       retryAttempt += 1;
       console.error('[SyncWorker] Error during sync pass:', error);
@@ -2313,6 +2439,19 @@ export const syncWorker = {
           localUserId ? 'Local only' : 'Attention required',
           localUserId ? null : getErrorMessage(error),
         );
+      }
+    } finally {
+      if (
+        reminderTextUpdated &&
+        localUserId &&
+        userStore.getActiveSessionToken().userId === localUserId &&
+        getSessionGeneration() === sessionGeneration
+      ) {
+        try {
+          await reconcileReminderDelivery(localUserId);
+        } catch (error) {
+          console.warn('[SyncWorker] Reminder delivery reconciliation failed:', error);
+        }
       }
     }
   },

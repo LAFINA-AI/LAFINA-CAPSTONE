@@ -2,6 +2,7 @@ package com.lafina.capstone
 
 import android.content.Context
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import com.tom_roush.pdfbox.text.TextPosition
@@ -55,7 +56,7 @@ object CorPdfTextExtractor {
   }
 
   fun extract(input: InputStream): Result {
-    PDDocument.load(input).use { document ->
+    PDDocument.load(input, MemoryUsageSetting.setupTempFileOnly()).use { document ->
       val pageCount = document.numberOfPages
       if (pageCount <= 0) {
         return Result(0f, 0f, 0, "", "", emptyList())

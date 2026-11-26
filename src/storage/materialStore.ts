@@ -649,22 +649,31 @@ export const materialStore = {
     materialId: string,
     maxChars = 12000,
   ): string {
-    const res = db.executeSync(
-      `SELECT content
-       FROM user_material_chunks
-       WHERE user_id = ? AND material_id = ?
-       ORDER BY seq ASC`,
-      [userId, materialId],
-    );
+    const PAGE_SIZE = 20;
     let out = '';
-    for (const row of res.rows) {
-      const piece = typeof row.content === 'string' ? row.content.trim() : '';
-      if (!piece) continue;
-      if (out.length > 0) out += '\n\n';
-      out += piece;
-      if (out.length >= maxChars) {
-        return out.slice(0, maxChars);
+    let offset = 0;
+    while (true) {
+      const rows =
+        db.executeSync(
+          `SELECT content
+           FROM user_material_chunks
+           WHERE user_id = ? AND material_id = ?
+           ORDER BY seq ASC
+           LIMIT ? OFFSET ?`,
+          [userId, materialId, PAGE_SIZE, offset],
+        ).rows ?? [];
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        const piece = typeof row.content === 'string' ? row.content.trim() : '';
+        if (!piece) continue;
+        if (out.length > 0) out += '\n\n';
+        out += piece;
+        if (out.length >= maxChars) {
+          return out.slice(0, maxChars);
+        }
       }
+      if (rows.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
     }
     return out;
   },

@@ -27,6 +27,7 @@ export interface OutboxItem {
 interface PendingMutationRow {
   id: string;
   operation: SyncOperation;
+  payload?: unknown;
   base_version: number | null;
 }
 
@@ -36,6 +37,25 @@ const executorFor = (executor?: DatabaseTransaction): DatabaseTransaction =>
 export type OutboxEnqueueListener = (localUserId: string) => void;
 
 const enqueueListeners = new Set<OutboxEnqueueListener>();
+const notifiedByTx = new WeakMap<DatabaseTransaction, Set<string>>();
+
+const scheduleAfterCommitNotify = (
+  localUserId: string,
+  executor?: DatabaseTransaction,
+): void => {
+  if (executor?.afterCommit) {
+    let seen = notifiedByTx.get(executor);
+    if (!seen) {
+      seen = new Set<string>();
+      notifiedByTx.set(executor, seen);
+    }
+    if (seen.has(localUserId)) return;
+    seen.add(localUserId);
+    executor.afterCommit(() => notifyEnqueued(localUserId));
+  } else {
+    notifyEnqueued(localUserId);
+  }
+};
 
 const notifyEnqueued = (localUserId: string): void => {
   enqueueListeners.forEach(listener => {
@@ -83,7 +103,7 @@ export const syncOutboxStore = {
     }
 
     const queuedResult = scopedDb.executeSync(
-      `SELECT id, operation, base_version, status, attempts FROM sync_outbox
+      `SELECT id, operation, payload, base_version, status, attempts FROM sync_outbox
        WHERE user_id = ? AND scope_type = ? AND scope_id = ?
          AND entity_type = ? AND entity_id = ?
          AND status IN ('pending', 'in_progress', 'failed')
@@ -114,7 +134,10 @@ export const syncOutboxStore = {
           : operation === 'delete'
           ? 'delete'
           : 'update';
-      const compactedPayload = compactedOperation === 'delete' ? {} : payload;
+      const compactedPayload =
+        compactedOperation === 'delete'
+          ? {}
+          : {...parsePayload(compactable.payload), ...payload};
       const compactedBaseVersion =
         compactedOperation === 'create' ? 0 : compactable.base_version;
 
@@ -133,12 +156,7 @@ export const syncOutboxStore = {
           scopeId,
         ],
       );
-      const scheduleNotify = () => notifyEnqueued(localUserId);
-      if (executor?.afterCommit) {
-        executor.afterCommit(scheduleNotify);
-      } else {
-        scheduleNotify();
-      }
+      scheduleAfterCommitNotify(localUserId, executor);
       return;
     }
 
@@ -175,11 +193,7 @@ export const syncOutboxStore = {
         now,
       ],
     );
-    if (executor?.afterCommit) {
-      executor.afterCommit(() => notifyEnqueued(localUserId));
-    } else {
-      notifyEnqueued(localUserId);
-    }
+    scheduleAfterCommitNotify(localUserId, executor);
   },
 
   onEnqueue: (listener: OutboxEnqueueListener): (() => void) => {
@@ -215,13 +229,17 @@ export const syncOutboxStore = {
     scopeType: SyncScopeType = 'account',
     scopeId: string = localUserId,
     executor?: DatabaseTransaction,
+    refundAttempt: boolean = false,
   ): void => {
     if (db.isFallback()) return;
     if (ids.length === 0) return;
     const placeholders = ids.map(() => '?').join(',');
+    const setClause = refundAttempt
+      ? `status = 'pending', attempts = MAX(0, attempts - 1)`
+      : `status = 'pending'`;
     executorFor(executor).executeSync(
       `UPDATE sync_outbox
-       SET status = 'pending'
+       SET ${setClause}
        WHERE user_id = ? AND scope_type = ? AND scope_id = ?
          AND status = 'in_progress' AND id IN (${placeholders})`,
       [localUserId, scopeType, scopeId, ...ids],

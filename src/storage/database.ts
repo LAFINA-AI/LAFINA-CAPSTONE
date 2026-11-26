@@ -95,12 +95,16 @@ const extractLocalSettingsNamespace = (
   params: unknown[],
 ): string | null => {
   const normalized = query.replace(/\s+/g, ' ').trim();
-  if (
-    /^INSERT(?:\s+OR\s+\w+)?\s+INTO\s+["`[]?local_settings["`\]]?\s*\(\s*user_id\s*,\s*key\b/i.test(
+  const insertMatch =
+    /^(?:INSERT(?:\s+OR\s+\w+)?|REPLACE)\s+INTO\s+["`[]?local_settings["`\]]?\s*\(\s*user_id\s*,\s*key\b[^)]*\)\s*VALUES\s*\(\s*(\?|'[^']*')\s*,\s*(\?|'([^']*)')/i.exec(
       normalized,
-    )
-  ) {
-    const key = params[1];
+    );
+  if (insertMatch && !/\)\s*,\s*\(/.test(normalized)) {
+    if (insertMatch[3] !== undefined) {
+      return insertMatch[3] ? insertMatch[3].split('.')[0] : null;
+    }
+    const keyIndex = insertMatch[1] === '?' ? 1 : 0;
+    const key = params[keyIndex];
     return typeof key === 'string' && key ? key.split('.')[0] : null;
   }
   if (

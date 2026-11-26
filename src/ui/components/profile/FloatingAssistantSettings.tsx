@@ -153,7 +153,9 @@ export const FloatingAssistantSettings: React.FC<
     setEnabledState(true);
     setExplainer(false);
     setNotice('');
-    setStatus(await floatingAssistantNative.setEnabled(true, userId));
+    const nextStatus = await floatingAssistantNative.setEnabled(true, userId);
+    if (!mounted.current) return;
+    setStatus(nextStatus);
     setStatusKnown(true);
     onChanged?.();
   }, [userId, onChanged]);

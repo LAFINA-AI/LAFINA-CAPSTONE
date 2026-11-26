@@ -302,9 +302,21 @@ export class IntentService {
       trace?.note({modelAvailability: 'simulated_missing', modelState: 'not_used'});
     } else if (Platform.OS === 'android' && extractor) {
       try {
+        if (options.signal?.aborted) {
+          trace?.note({
+            fallbackReason: 'cancelled before the offline model started',
+          });
+          return validateIntent(fastPathResult);
+        }
         const activeModel = await getActiveOfflineModelReadyConfig(
           options.userId,
         );
+        if (options.signal?.aborted) {
+          trace?.note({
+            fallbackReason: 'cancelled before the offline model started',
+          });
+          return validateIntent(fastPathResult);
+        }
         if (!activeModel && trace) {
           trace.note({
             modelAvailability: await describeMissingModel(options.userId),

@@ -266,8 +266,10 @@ export const speakText = async (
 ): Promise<void> => {
   const session = activeSession;
   try {
-    publishCallState('speaking', text);
-    const provider = activeSession?.speechProvider || defaultCallSpeechProvider;
+    if (!session || activeSession === session) {
+      publishCallState('speaking', text);
+    }
+    const provider = session?.speechProvider || defaultCallSpeechProvider;
     await provider.speakText(text, options);
   } catch (error) {
     console.error('[CallDispatcher] speakText error:', error);
@@ -479,6 +481,7 @@ async function startAutomaticAttempt(
       // alone. MIC_IN_USE names the other recorder; CAPTURE_BUSY is another voice
       // capture still finishing, which must not be described as a recording.
       session.voiceEnabled = false;
+      void stopActiveCallSession().catch(() => undefined);
       const code = (error as {code?: unknown} | null)?.code;
       publishCallState(
         'connected',
@@ -553,15 +556,23 @@ export const answerCall = async (
     expectedGeneration,
   );
   if (!captured.ok) {
-    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration).catch(
+      () => undefined,
+    );
     // A retired job has no newer work to protect; a stale generation might.
     if (captured.retired)
-      await cancelReminderAlarm(reminderId, userId, expectedGeneration);
+      await cancelReminderAlarm(reminderId, userId, expectedGeneration).catch(
+        () => undefined,
+      );
     return false;
   }
   if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
-    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
-    await cancelReminderAlarm(reminderId, userId, expectedGeneration);
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration).catch(
+      () => undefined,
+    );
+    await cancelReminderAlarm(reminderId, userId, expectedGeneration).catch(
+      () => undefined,
+    );
     return false;
   }
 
@@ -570,8 +581,12 @@ export const answerCall = async (
   const isTaskDone = alertSuppression(db, reminder) === 'task_completed';
   if (isTaskDone) {
     remindersStore.acknowledgeReminder(reminder.id);
-    await cancelReminderAlarm(reminder.id, userId, expectedGeneration);
-    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
+    await cancelReminderAlarm(reminder.id, userId, expectedGeneration).catch(
+      () => undefined,
+    );
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration).catch(
+      () => undefined,
+    );
     return false;
   }
 
@@ -625,8 +640,13 @@ export const answerCall = async (
     if (!activeSession) void stopActiveCallSession().catch(() => undefined);
     return false;
   }
-  await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
-  if (!isCurrentSession(session)) return false;
+  await finishNativeIncomingCall(reminderId, userId, expectedGeneration).catch(
+    () => undefined,
+  );
+  if (!isCurrentSession(session)) {
+    if (!activeSession) void stopActiveCallSession().catch(() => undefined);
+    return false;
+  }
   remindersStore.updateReminderStatus(reminderId, 'triggered');
   publishCallState('connected');
 
@@ -782,8 +802,9 @@ export const declineCall = async (
     await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
     return;
   }
+  const previousSession = activeSession;
   sessionSequence += 1;
-  activeSession = {
+  const session: CallDispatcherSession = {
     id: sessionSequence,
     reminderId,
     userId,
@@ -795,7 +816,18 @@ export const declineCall = async (
     speechProvider,
     isResolving: false,
   };
-  await autoSnoozeCall();
+  activeSession = session;
+  if (previousSession) {
+    await stopActiveAudioAndCapture(previousSession);
+    if (!isCurrentSession(session)) return;
+    void stopActiveCallSession().catch(() => undefined);
+  }
+  if (!isCurrentSession(session)) return;
+  await autoSnoozeCall({
+    reminderId,
+    userId,
+    generation: captured.generation,
+  });
 };
 
 /**

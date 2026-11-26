@@ -1,5 +1,5 @@
 import {NativeModules, Platform} from 'react-native';
-import {pick, types} from '@react-native-documents/picker';
+import {errorCodes, isErrorWithCode, pick, types} from '@react-native-documents/picker';
 import {
   parseScannedSchedule,
   type ParsedScheduleResult,
@@ -102,7 +102,9 @@ export const visionService = {
       };
     } catch (err: any) {
       if (
+        (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) ||
         err?.code === 'OPERATION_CANCELLED' ||
+        err?.code === 'OPERATION_CANCELED' ||
         err?.message?.includes('cancel')
       ) {
         return null;
@@ -128,7 +130,9 @@ export const visionService = {
       };
     } catch (err: any) {
       if (
+        (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) ||
         err?.code === 'OPERATION_CANCELLED' ||
+        err?.code === 'OPERATION_CANCELED' ||
         err?.message?.includes('cancel')
       ) {
         return null;
@@ -144,7 +148,11 @@ export const visionService = {
     if (Platform.OS !== 'android' || !LafinaVision?.recognizeText) {
       return '';
     }
-    const result = await LafinaVision.recognizeText(uri);
+    const result = await withTimeout(
+      LafinaVision.recognizeText(uri),
+      OCR_TIMEOUT_MS,
+      'Reading the image took too long. Try again with a clearer image.',
+    );
     return (result?.text || '').trim();
   },
 
@@ -155,7 +163,11 @@ export const visionService = {
     if (Platform.OS !== 'android' || !LafinaVision?.recognizeText) {
       return '';
     }
-    const result = await LafinaVision.recognizeText(uri);
+    const result = await withTimeout(
+      LafinaVision.recognizeText(uri),
+      OCR_TIMEOUT_MS,
+      'Reading the COR took too long. Try the COR PDF from the student portal.',
+    );
     return (result?.structuredText || result?.text || '').trim();
   },
 

@@ -8,7 +8,7 @@ internal class PendingReminderCalls(context: Context, name: String = "lafina_pen
   private val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
   private fun read(): JSONObject {
     val saved = prefs.getString("calls_v1", null)
-    if (saved != null) return JSONObject(saved)
+    if (saved != null) return runCatching { JSONObject(saved) }.getOrElse { JSONObject() }
     val calls = JSONObject()
     val id = prefs.getString("reminder_id", null)
     if (!id.isNullOrBlank()) {
@@ -22,7 +22,7 @@ internal class PendingReminderCalls(context: Context, name: String = "lafina_pen
   }
   fun all(): List<JSONObject> {
     val calls = read()
-    return calls.keys().asSequence().map { calls.getJSONObject(it) }.sortedBy { it.optLong("atMs") }.toList()
+    return calls.keys().asSequence().mapNotNull { calls.optJSONObject(it) }.sortedBy { it.optLong("atMs") }.toList()
   }
   fun get(owner: String, id: String, generation: Long): JSONObject? = read().optJSONObject(key(owner, id, generation))
   fun put(row: JSONObject) {

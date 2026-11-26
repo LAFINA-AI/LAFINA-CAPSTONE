@@ -1,5 +1,5 @@
-import React, {useEffect, useRef} from 'react';
-import {Animated, StyleSheet, Text, View} from 'react-native';
+import React, {useEffect, useRef, useState} from 'react';
+import {Animated, AppState, StyleSheet, Text, View} from 'react-native';
 import type {ConversationPhase} from '../../../cloud/voiceConversation/types';
 import {useTheme} from '../../contexts/ThemeContext';
 import {useReducedMotion} from '../../hooks/useReducedMotion';
@@ -90,13 +90,23 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
 
   // Subtle pulse animation for thinking / tool working
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  const [appActive, setAppActive] = useState(
+    () => AppState.currentState === 'active',
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', next => {
+      setAppActive(next === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (isReducedMotion) {
       pulseAnim.setValue(0.7);
       return;
     }
-    if (phase === 'thinking' || phase === 'tool_working') {
+    if (appActive && (phase === 'thinking' || phase === 'tool_working')) {
       const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -116,7 +126,7 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
     } else {
       pulseAnim.setValue(0.4);
     }
-  }, [phase, isReducedMotion, pulseAnim]);
+  }, [appActive, phase, isReducedMotion, pulseAnim]);
 
   const isSpeaking = phase === 'speaking';
   const boundedOutput = normalizeAmplitude(outputLevel);

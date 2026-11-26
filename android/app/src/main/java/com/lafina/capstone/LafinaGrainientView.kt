@@ -67,6 +67,7 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
   }
 
   override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+    renderer?.finish(surfaceDestroyed = false)
     val (w, h) = scaledSize(width, height)
     surface.setDefaultBufferSize(w, h)
     renderer = Renderer(surface, params, animating).also {
@@ -82,9 +83,10 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
   }
 
   override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-    renderer?.finish()
+    val current = renderer
     renderer = null
-    return false
+    // Return true so TextureView releases the surface if the renderer already exited.
+    return current?.finish(surfaceDestroyed = true) ?: true
   }
 
   override fun onSurfaceTextureUpdated(surface: SurfaceTexture) = Unit
@@ -101,6 +103,8 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
   ) : Thread("LafinaGrainient") {
     private val lock = Object()
     private var running = true
+    private var exited = false
+    private var ownsSurfaceRelease = false
     private var paused = false
     private var dirty = true
 
@@ -110,6 +114,8 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
     private var program = 0
     private var vertexBuffer = 0
     private val uniforms = HashMap<String, Int>()
+    private val sizeBuf = IntArray(2)
+    private var lastUploadedParams: Params? = null
 
     fun update(next: Params, nextAnimate: Boolean) = synchronized(lock) {
       params = next
@@ -129,9 +135,14 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
       lock.notifyAll()
     }
 
-    fun finish() = synchronized(lock) {
+    /** Returns true if TextureView should release the SurfaceTexture itself. */
+    fun finish(surfaceDestroyed: Boolean): Boolean = synchronized(lock) {
       running = false
+      if (surfaceDestroyed && !exited) {
+        ownsSurfaceRelease = true
+      }
       lock.notifyAll()
+      surfaceDestroyed && exited
     }
 
     override fun run() {
@@ -218,6 +229,7 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
       GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vertexBuffer)
       GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, vertices.size * 4, data, GLES30.GL_STATIC_DRAW)
       val position = GLES30.glGetAttribLocation(program, "position")
+      if (position < 0) return false
       GLES30.glEnableVertexAttribArray(position)
       GLES30.glVertexAttribPointer(position, 2, GLES30.GL_FLOAT, false, 0, 0)
       return true
@@ -253,16 +265,17 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
       GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, status, 0)
       if (status[0] == 0) {
         Log.e(TAG, "Shader compile failed: ${GLES30.glGetShaderInfoLog(shader)}")
+        GLES30.glDeleteShader(shader)
         return null
       }
       return shader
     }
 
     private fun draw(p: Params, time: Float) {
-      val size = IntArray(2)
-      EGL14.eglQuerySurface(display, surface, EGL14.EGL_WIDTH, size, 0)
-      EGL14.eglQuerySurface(display, surface, EGL14.EGL_HEIGHT, size, 1)
-      GLES30.glViewport(0, 0, size[0], size[1])
+      EGL14.eglQuerySurface(display, surface, EGL14.EGL_WIDTH, sizeBuf, 0)
+      EGL14.eglQuerySurface(display, surface, EGL14.EGL_HEIGHT, sizeBuf, 1)
+      if (sizeBuf[0] <= 0 || sizeBuf[1] <= 0) return
+      GLES30.glViewport(0, 0, sizeBuf[0], sizeBuf[1])
 
       fun set(name: String, value: Float) = GLES30.glUniform1f(uniforms.getValue(name), value)
       fun setColor(name: String, color: Int) = GLES30.glUniform3f(
@@ -272,30 +285,33 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
         Color.blue(color) / 255f,
       )
 
-      GLES30.glUniform2f(uniforms.getValue("iResolution"), size[0].toFloat(), size[1].toFloat())
+      GLES30.glUniform2f(uniforms.getValue("iResolution"), sizeBuf[0].toFloat(), sizeBuf[1].toFloat())
       set("iTime", time)
-      set("uTimeSpeed", p.timeSpeed)
-      set("uColorBalance", p.colorBalance)
-      set("uWarpStrength", p.warpStrength)
-      set("uWarpFrequency", p.warpFrequency)
-      set("uWarpSpeed", p.warpSpeed)
-      set("uWarpAmplitude", p.warpAmplitude)
-      set("uBlendAngle", p.blendAngle)
-      set("uBlendSoftness", p.blendSoftness)
-      set("uRotationAmount", p.rotationAmount)
-      set("uNoiseScale", p.noiseScale)
-      set("uGrainAmount", p.grainAmount)
-      set("uGrainScale", p.grainScale)
-      set("uGrainAnimated", if (p.grainAnimated) 1f else 0f)
-      set("uContrast", p.contrast)
-      set("uGamma", p.gamma)
-      set("uSaturation", p.saturation)
-      GLES30.glUniform2f(uniforms.getValue("uCenterOffset"), p.centerX, p.centerY)
-      set("uZoom", p.zoom)
-      setColor("uColor1", p.color1)
-      setColor("uColor2", p.color2)
-      setColor("uColor3", p.color3)
-      set("uLightMode", if (p.lightMode) 1f else 0f)
+      if (p != lastUploadedParams) {
+        lastUploadedParams = p
+        set("uTimeSpeed", p.timeSpeed)
+        set("uColorBalance", p.colorBalance)
+        set("uWarpStrength", p.warpStrength)
+        set("uWarpFrequency", p.warpFrequency)
+        set("uWarpSpeed", p.warpSpeed)
+        set("uWarpAmplitude", p.warpAmplitude)
+        set("uBlendAngle", p.blendAngle)
+        set("uBlendSoftness", p.blendSoftness)
+        set("uRotationAmount", p.rotationAmount)
+        set("uNoiseScale", p.noiseScale)
+        set("uGrainAmount", p.grainAmount)
+        set("uGrainScale", p.grainScale)
+        set("uGrainAnimated", if (p.grainAnimated) 1f else 0f)
+        set("uContrast", p.contrast)
+        set("uGamma", p.gamma)
+        set("uSaturation", p.saturation)
+        GLES30.glUniform2f(uniforms.getValue("uCenterOffset"), p.centerX, p.centerY)
+        set("uZoom", p.zoom)
+        setColor("uColor1", p.color1)
+        setColor("uColor2", p.color2)
+        setColor("uColor3", p.color3)
+        set("uLightMode", if (p.lightMode) 1f else 0f)
+      }
 
       GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
     }
@@ -315,7 +331,13 @@ class LafinaGrainientView(context: Context) : TextureView(context), TextureView.
         if (context != EGL14.EGL_NO_CONTEXT) EGL14.eglDestroyContext(display, context)
         EGL14.eglReleaseThread()
       }
-      surfaceTexture.release()
+      val shouldRelease = synchronized(lock) {
+        exited = true
+        ownsSurfaceRelease
+      }
+      if (shouldRelease) {
+        surfaceTexture.release()
+      }
     }
   }
 

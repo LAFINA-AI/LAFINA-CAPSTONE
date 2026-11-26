@@ -153,7 +153,7 @@ export const userStore = {
     const now = new Date().toISOString();
 
     const existing = db.executeSync(
-      'SELECT 1 FROM users WHERE lower(trim(email)) = ? LIMIT 1',
+      'SELECT 1 FROM users WHERE email IS NOT NULL AND lower(trim(email)) = ? LIMIT 1',
       [normalizedEmail],
     ).rows?.[0];
     if (existing) {
@@ -210,7 +210,7 @@ export const userStore = {
 
     db.transactionSync(tx => {
       const clash = tx.executeSync(
-        'SELECT 1 FROM users WHERE lower(trim(email)) = ? OR cloud_account_id = ? LIMIT 1',
+        'SELECT 1 FROM users WHERE (email IS NOT NULL AND lower(trim(email)) = ?) OR cloud_account_id = ? LIMIT 1',
         [normalizedEmail, input.cloudAccountId],
       ).rows?.[0];
       if (clash) {
@@ -242,7 +242,7 @@ export const userStore = {
     try {
       const normalizedEmail = normalizeEmail(email);
       const userRow = db.executeSync(
-        'SELECT * FROM users WHERE lower(trim(email)) = ? LIMIT 1',
+        'SELECT * FROM users WHERE email IS NOT NULL AND lower(trim(email)) = ? LIMIT 1',
         [normalizedEmail],
       ).rows?.[0] as StoredUserRow | undefined;
       if (!userRow) {
@@ -268,7 +268,7 @@ export const userStore = {
     const normalizedEmail = normalizeEmail(email);
     try {
       const row = db.executeSync(
-        'SELECT * FROM users WHERE lower(trim(email)) = ? LIMIT 1',
+        'SELECT * FROM users WHERE email IS NOT NULL AND lower(trim(email)) = ? LIMIT 1',
         [normalizedEmail],
       ).rows?.[0] as StoredUserRow | undefined;
       return row ? mapStoredUser(row) : null;
@@ -437,10 +437,13 @@ export const userStore = {
     };
   },
 
-  markOnboardingComplete: (userId: string): void => {
+  markOnboardingComplete: (
+    userId: string,
+    executor?: DatabaseTransaction,
+  ): void => {
     const now = new Date().toISOString();
     try {
-      db.executeSync(
+      (executor ?? db).executeSync(
         `UPDATE users SET is_new_user = 0, updated_at = ? WHERE id = ?`,
         [now, userId],
       );
@@ -549,11 +552,11 @@ export const userStore = {
           [GUEST_USER_ID, clean, null, 'guest', 1, 0, 0, 0, now, now],
         );
       }
-      tx.executeSync(
+      const res = tx.executeSync(
         `UPDATE users SET username = ?, updated_at = ? WHERE id = ?`,
         [clean, now, userId],
       );
-      if (userId !== GUEST_USER_ID) {
+      if (userId !== GUEST_USER_ID && (res.rowsAffected ?? 0) > 0) {
         enqueueProfileMutation(userId, 'update', tx);
       }
     };

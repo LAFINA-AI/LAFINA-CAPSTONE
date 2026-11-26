@@ -294,6 +294,13 @@ export const useDashboardData = ({
     () =>
       calendarVisibilityStore.getCachedVisibilityMap(userId) ?? {main: true},
   );
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const activeUserRef = useRef(userId);
   activeUserRef.current = userId;
 
@@ -329,7 +336,7 @@ export const useDashboardData = ({
         importedBatchesStore.getImportedBatches(userId),
         calendarVisibilityStore.getVisibilityMap(userId),
       ]);
-      if (activeUserRef.current !== userId) return;
+      if (!mountedRef.current || activeUserRef.current !== userId) return;
       setBatches(prev =>
         areBatchesEqual(prev, fetchedBatches) ? prev : fetchedBatches,
       );
@@ -339,7 +346,7 @@ export const useDashboardData = ({
           : fetchedVisibility,
       );
     } catch {
-      if (activeUserRef.current !== userId) return;
+      if (!mountedRef.current || activeUserRef.current !== userId) return;
       setBatches(prev => (prev.length === 0 ? prev : []));
       setVisibilityMap(prev =>
         areVisibilityMapsEqual(prev, {main: true}) ? prev : {main: true},

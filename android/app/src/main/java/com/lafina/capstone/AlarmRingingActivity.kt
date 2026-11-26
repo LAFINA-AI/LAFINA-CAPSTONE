@@ -51,7 +51,7 @@ class AlarmRingingActivity : Activity() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       val callback = OnBackInvokedCallback {
         // Ignore Back while an alarm is actively ringing so it must be Dismissed or Snoozed.
-        if (LafinaAlarmService.ringing == null && !waitingForKeyguardDismiss) {
+        if (LafinaAlarmService.ringing == null && LafinaAlarmService.fallbackRinging == null && !waitingForKeyguardDismiss) {
           finish()
         }
       }
@@ -66,34 +66,55 @@ class AlarmRingingActivity : Activity() {
     bindRingingRequest()
   }
 
+  private fun requestFromIntent(source: Intent?): RingRequest? {
+    val id = source?.getStringExtra(LafinaAlarms.EXTRA_ALARM_ID)?.takeIf { it.isNotBlank() } ?: return null
+    return RingRequest(
+        alarmId = id,
+        generation = source.getLongExtra(LafinaAlarms.EXTRA_GENERATION, 0L),
+        label = source.getStringExtra(LafinaAlarmService.EXTRA_LABEL).orEmpty().ifBlank { "Alarm" },
+        vibrate = source.getBooleanExtra(LafinaAlarmService.EXTRA_VIBRATE, true),
+        soundUri = source.getStringExtra(LafinaAlarmService.EXTRA_SOUND),
+        isTest = source.getBooleanExtra(LafinaAlarms.EXTRA_IS_TEST, false))
+  }
+
+  private fun activeRequest(): RingRequest? =
+      LafinaAlarmService.ringing ?: LafinaAlarmService.fallbackRinging ?: requestFromIntent(intent)
+
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
+    waitingForKeyguardDismiss = false
     bindRingingRequest()
   }
 
   override fun onResume() {
     super.onResume()
-    if (!waitingForKeyguardDismiss) {
-      bindRingingRequest()
+    if (waitingForKeyguardDismiss) {
+      val keyguard = getSystemService(KeyguardManager::class.java)
+      if (LafinaAlarmService.ringing == null && LafinaAlarmService.fallbackRinging == null && keyguard?.isKeyguardLocked != true) {
+        waitingForKeyguardDismiss = false
+        finish()
+      }
+      return
     }
+    bindRingingRequest()
   }
 
   @Deprecated("Deprecated in Java")
   override fun onBackPressed() {
-    if (LafinaAlarmService.ringing == null && !waitingForKeyguardDismiss) {
+    if (LafinaAlarmService.ringing == null && LafinaAlarmService.fallbackRinging == null && !waitingForKeyguardDismiss) {
       @Suppress("DEPRECATION")
       super.onBackPressed()
     }
   }
 
   private fun bindRingingRequest() {
-    val request = LafinaAlarmService.ringing
+    val request = activeRequest()
     if (request == null) {
       finish()
       return
     }
-    val definition = if (request.isTest) null else LafinaAlarms.registry(this).get(request.alarmId)
+    val definition = if (request.isTest) null else synchronized(LafinaAlarms.LOCK) { LafinaAlarms.registry(this).get(request.alarmId) }
     val snoozeMinutes = definition?.snoozeMinutes
     val briefing = definition?.briefing == true
 
@@ -127,12 +148,13 @@ class AlarmRingingActivity : Activity() {
       })
     }
     root.addView(button("Dismiss", accent, Color.WHITE) {
+      if (waitingForKeyguardDismiss || isFinishing || isDestroyed) return@button
       if (briefing) {
         waitingForKeyguardDismiss = true
         LafinaAlarmService.finish(this, AlarmEvent.DISMISSED)
         openForBriefing {
           waitingForKeyguardDismiss = false
-          finish()
+          if (!isFinishing && !isDestroyed) finish()
         }
       } else {
         LafinaAlarmService.finish(this, AlarmEvent.DISMISSED)
@@ -158,7 +180,8 @@ class AlarmRingingActivity : Activity() {
       keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
         override fun onDismissSucceeded() {
           waitingForKeyguardDismiss = false
-          startActivity(open)
+          if (isFinishing || isDestroyed) return
+          runCatching { startActivity(open) }
           onDone()
         }
 
@@ -174,7 +197,7 @@ class AlarmRingingActivity : Activity() {
       })
     } else {
       waitingForKeyguardDismiss = false
-      startActivity(open)
+      runCatching { startActivity(open) }
       onDone()
     }
   }

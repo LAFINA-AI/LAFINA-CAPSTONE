@@ -70,15 +70,15 @@ const wait = (ms: number, signal?: AbortSignal): Promise<void> =>
       reject(new MeetingError('cancelled'));
       return;
     }
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        reject(new MeetingError('cancelled'));
-      },
-      { once: true },
-    );
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new MeetingError('cancelled'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 
 const withRetry = async <T>(
@@ -90,6 +90,7 @@ const withRetry = async <T>(
   for (let attempt = 0; ; attempt += 1) {
     checkAborted(signal);
     const result = await fn();
+    checkAborted(signal);
     if (result.status === 'success' && result.data !== undefined) {
       return result.data;
     }

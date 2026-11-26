@@ -267,18 +267,30 @@ object OtaBundles {
    * checksum it was verified against, or null. Never re-hashes the file: the
    * install step does that right before handing it over.
    */
-  fun readyApk(context: Context): ReadyApk? {
+  fun readyApk(context: Context): ReadyApk? = synchronized(lock) {
     val newest = apkDir(context).listFiles()
       ?.mapNotNull { file -> APK_NAME.find(file.name)?.groupValues?.get(1)?.toIntOrNull() }
       ?.filter { it > BuildConfig.VERSION_CODE }
-      ?.maxOrNull() ?: return null
+      ?.maxOrNull() ?: return@synchronized null
     val sha = try {
       apkShaFile(context, newest).takeIf { it.isFile }?.readText()?.trim()
     } catch (error: Exception) {
       null
     }
-    if (sha == null || !SHA256_HEX.matches(sha)) return null
-    return ReadyApk(newest, sha)
+    if (sha == null || !SHA256_HEX.matches(sha)) return@synchronized null
+    ReadyApk(newest, sha)
+  }
+
+  private fun writeShaAtomically(shaFile: File, sha256: String) {
+    synchronized(lock) {
+      val tmp = File(shaFile.parentFile, "${shaFile.name}.tmp")
+      tmp.writeText(sha256)
+      if (shaFile.exists()) shaFile.delete()
+      if (!tmp.renameTo(shaFile)) {
+        shaFile.writeText(sha256)
+        tmp.delete()
+      }
+    }
   }
 
   private fun checkedUrl(url: String): URL {
@@ -320,6 +332,7 @@ object OtaBundles {
     sha256: String,
     isCancelled: () -> Boolean,
     onProgress: (received: Long, total: Long) -> Unit,
+    onConnection: (HttpURLConnection?) -> Unit = {},
   ) {
     if (!updatesEnabled) throw OtaException("E_INCOMPATIBLE", "In-app updates work only in release builds.")
     if (versionCode <= BuildConfig.VERSION_CODE) {
@@ -336,7 +349,7 @@ object OtaBundles {
     val target = apkFile(context, versionCode)
     val shaFile = apkShaFile(context, versionCode)
     if (target.isFile && target.length() == size && sha256Of(target) == sha256) {
-      shaFile.writeText(sha256)
+      writeShaAtomically(shaFile, sha256)
       onProgress(size, size)
       return
     }
@@ -355,13 +368,15 @@ object OtaBundles {
     }
 
     // A failed or cancelled download keeps its part file, to resume next time.
-    fetch(parsed, partial, size, sha256, resume = true, isCancelled = isCancelled, onProgress = onProgress)
-    target.delete()
-    if (!partial.renameTo(target)) {
-      partial.delete()
-      throw OtaException("E_DOWNLOAD", "The update could not be saved. Try again.")
+    fetch(parsed, partial, size, sha256, resume = true, isCancelled = isCancelled, onProgress = onProgress, onConnection = onConnection)
+    synchronized(lock) {
+      target.delete()
+      if (!partial.renameTo(target)) {
+        partial.delete()
+        throw OtaException("E_DOWNLOAD", "The update could not be saved. Try again.")
+      }
+      writeShaAtomically(shaFile, sha256)
     }
-    shaFile.writeText(sha256)
   }
 
   /**
@@ -479,6 +494,7 @@ object OtaBundles {
     sha256: String,
     isCancelled: () -> Boolean,
     onProgress: (received: Long, total: Long) -> Unit,
+    onConnection: (HttpURLConnection?) -> Unit = {},
   ) {
     if (!updatesEnabled) throw OtaException("E_INCOMPATIBLE", "In-app updates work only in release builds.")
     if (nativeVersionCode != BuildConfig.VERSION_CODE) {
@@ -504,7 +520,7 @@ object OtaBundles {
     val partial = File(dir, DOWNLOAD_FILE)
     partial.delete()
     try {
-      fetch(parsed, partial, size, sha256, resume = false, isCancelled = isCancelled, onProgress = onProgress)
+      fetch(parsed, partial, size, sha256, resume = false, isCancelled = isCancelled, onProgress = onProgress, onConnection = onConnection)
       val staged = unpack(context, partial, version)
       synchronized(lock) {
         val state = readState(context)
@@ -540,6 +556,7 @@ object OtaBundles {
     resume: Boolean,
     isCancelled: () -> Boolean,
     onProgress: (received: Long, total: Long) -> Unit,
+    onConnection: (HttpURLConnection?) -> Unit = {},
   ) {
     var offset = if (resume && destination.isFile) destination.length() else 0L
     if (offset > size) {
@@ -583,14 +600,23 @@ object OtaBundles {
       throw networkError()
     }
 
+    onConnection(connection)
     try {
       val status = try {
         connection.responseCode
       } catch (error: Exception) {
+        if (isCancelled()) throw OtaException("E_CANCELLED", "The update was cancelled.")
         throw networkError()
       }
+      val contentRange = connection.getHeaderField("Content-Range")
       val append = when {
-        offset > 0 && status == HttpURLConnection.HTTP_PARTIAL -> true
+        offset > 0 && status == HttpURLConnection.HTTP_PARTIAL -> {
+          if (contentRange == null || !contentRange.startsWith("bytes $offset-")) {
+            destination.delete()
+            throw OtaException("E_NETWORK", "The download range did not match. Try again.")
+          }
+          true
+        }
         status == HttpURLConnection.HTTP_OK -> false
         status == 416 -> {
           // The saved part no longer matches what the server has.
@@ -649,6 +675,7 @@ object OtaBundles {
       }
       onProgress(received, size)
     } finally {
+      onConnection(null)
       connection.disconnect()
     }
   }

@@ -41,6 +41,7 @@ class LafinaReminderService : Service() {
       }
     } catch (error: Exception) {
       synchronized(START_LOCK) {
+        if (token >= 0L && pendingStarts > 0) pendingStarts -= 1
         if (token < 0L || token == startSequence) {
           val code = if (error is SecurityException) "PERMISSION_DENIED" else "SERVICE_START_FAILED"
           startPromise?.reject(code, "Microphone service could not start.", error)
@@ -51,8 +52,16 @@ class LafinaReminderService : Service() {
       return START_NOT_STICKY
     }
     synchronized(START_LOCK) {
+      if (token >= 0L && pendingStarts > 0) pendingStarts -= 1
       if (token >= 0L && token != startSequence) {
-        // Stale intent superseded by a newer begin(); do not settle its promise or stop it.
+        // Stale intent superseded by a newer begin(); stop if no active/pending start remains.
+        if (running == null && pendingStarts <= 0) {
+          try {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+          } catch (_: Exception) {
+          }
+          stopSelf()
+        }
         return START_NOT_STICKY
       }
       running = this
@@ -126,7 +135,15 @@ class LafinaReminderService : Service() {
   }
 
   override fun onDestroy() {
-    synchronized(START_LOCK) { if (running === this) running = null }
+    synchronized(START_LOCK) {
+      if (running === this) {
+        running = null
+        if (pendingStarts <= 0) {
+          startPromise?.reject("SERVICE_DESTROYED", "Microphone service stopped before completing startup.")
+          startPromise = null
+        }
+      }
+    }
     releaseWakeLock()
     super.onDestroy()
   }
@@ -139,6 +156,7 @@ class LafinaReminderService : Service() {
     private var stopRequested = false
     private var startPromise: Promise? = null
     private var startSequence = 0L
+    private var pendingStarts = 0
 
     fun begin(context: Context, intent: Intent, promise: Promise) = synchronized(START_LOCK) {
       startPromise?.reject("SUPERSEDED", "Another call replaced this startup.")
@@ -146,8 +164,13 @@ class LafinaReminderService : Service() {
       intent.putExtra(EXTRA_START_TOKEN, token)
       startPromise = promise
       stopRequested = false
-      try { ContextCompat.startForegroundService(context, intent) }
-      catch (error: Exception) { startPromise = null; throw error }
+      try {
+        ContextCompat.startForegroundService(context, intent)
+        pendingStarts += 1
+      } catch (error: Exception) {
+        startPromise = null
+        throw error
+      }
     }
 
     fun requestStop() = synchronized(START_LOCK) {

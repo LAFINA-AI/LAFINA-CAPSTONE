@@ -73,6 +73,25 @@ class AlarmFireReceiver : BroadcastReceiver() {
 /** Boot, package replace, time or zone change, exact-alarm permission change. */
 class AlarmBootReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
-    LafinaAlarms.restoreAll(context)
+    val pending = goAsync()
+    if (pending == null) {
+      LafinaAlarms.restoreAll(context)
+      return
+    }
+    val appContext = context.applicationContext ?: context
+    bootExecutor.execute {
+      try {
+        LafinaAlarms.restoreAll(appContext)
+      } catch (_: Exception) {
+      } finally {
+        pending.finish()
+      }
+    }
+  }
+
+  companion object {
+    private val bootExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+      Thread(task, "lafina-alarm-boot").apply { isDaemon = true }
+    }
   }
 }

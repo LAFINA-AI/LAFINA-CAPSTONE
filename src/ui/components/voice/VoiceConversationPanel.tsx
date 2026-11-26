@@ -644,9 +644,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     (save: () => Promise<SaveOutcome>): Promise<SaveOutcome> => {
       const running = saveInFlight.current;
       if (running) return running;
-      const tracked = (async (): Promise<SaveOutcome> => {
-        // Always yield first, so `finally` never runs before the assignment.
-        await Promise.resolve();
+      let finished = false;
+      let tracked!: Promise<SaveOutcome>;
+      tracked = (async (): Promise<SaveOutcome> => {
         try {
           const outcome = await save();
           if (outcome.saved)
@@ -658,10 +658,15 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             message: 'That card could not be saved. Nothing was saved.',
           };
         } finally {
-          saveInFlight.current = null;
+          finished = true;
+          if (saveInFlight.current === tracked) {
+            saveInFlight.current = null;
+          }
         }
       })();
-      saveInFlight.current = tracked;
+      if (!finished) {
+        saveInFlight.current = tracked;
+      }
       return tracked;
     },
     [],
@@ -2264,10 +2269,21 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   // Between calls the badge follows the connection; a running call keeps
   // the mode it started with.
   useEffect(() => {
-    const apply = (state: {
-      isConnected: boolean | null;
-      isInternetReachable?: boolean | null;
-    }) => {
+    let active = true;
+    let receivedEvent = false;
+    const apply = (
+      state: {
+        isConnected: boolean | null;
+        isInternetReachable?: boolean | null;
+      },
+      fromEvent: boolean,
+    ) => {
+      if (!active) return;
+      if (fromEvent) {
+        receivedEvent = true;
+      } else if (receivedEvent) {
+        return;
+      }
       connectedRef.current =
         state.isConnected === false || state.isInternetReachable === false
           ? false
@@ -2281,11 +2297,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         prev.mode === next.mode && prev.reason === next.reason ? prev : next,
       );
     };
-    const unsubscribe = NetInfo.addEventListener(apply);
+    const unsubscribe = NetInfo.addEventListener(state => apply(state, true));
     void NetInfo.fetch()
-      .then(apply)
+      .then(state => apply(state, false))
       .catch(() => undefined);
-    return () => unsubscribe();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [userId]);
 
   // The online call could not reach the internet when it started: carry on

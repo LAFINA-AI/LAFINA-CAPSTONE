@@ -81,6 +81,26 @@ export const needsBatteryGuidance = (health: AlarmHealth): boolean =>
 /** How long after Dismiss opening LAFINA still plays the morning briefing. */
 export const BRIEFING_WINDOW_MS = 10 * 60 * 1000;
 
+const NATIVE_ALARM_TIMEOUT_MS = 5_000;
+
+const boundedNativeAlarm = <T>(work: Promise<T>, what: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() =>
+        reject(new Error(`${what} did not answer within ${NATIVE_ALARM_TIMEOUT_MS} ms`)),
+      NATIVE_ALARM_TIMEOUT_MS,
+    );
+    work.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+
 let activeOwner: string | null = null;
 let lifecycleSeq = 0;
 let pending: Promise<void> = Promise.resolve();
@@ -118,12 +138,17 @@ export const reconcileAlarms = (userId: string | null): Promise<void> => {
       return;
     }
     try {
-      const booked = await module.reconcile(alarms.map(toNative));
+      const booked = await boundedNativeAlarm(
+        Promise.resolve(module.reconcile(alarms.map(toNative))),
+        'Alarm reconcile',
+      );
       const existingById = new Map(alarms.map(a => [a.id, a.nextTriggerAt]));
       db.transactionSync(tx => {
         for (const entry of booked) {
+          if (!entry || typeof entry.id !== 'string') continue;
           const nextIso =
-            typeof entry.nextTriggerMs === 'number'
+            typeof entry.nextTriggerMs === 'number' &&
+            Number.isFinite(entry.nextTriggerMs)
               ? new Date(entry.nextTriggerMs).toISOString()
               : null;
           if (existingById.get(entry.id) !== nextIso) {
@@ -148,17 +173,22 @@ export const syncAlarmEvents = async (
   if (!module) return [];
   let events: AlarmNativeEvent[] = [];
   try {
-    events = await module.drainEvents();
+    events = await boundedNativeAlarm(
+      Promise.resolve(module.drainEvents()),
+      'Alarm event drain',
+    );
   } catch (error) {
     console.warn('[alarmService] Could not read alarm events:', error);
     return [];
   }
   let changed = false;
   const dismissedBriefings: Alarm[] = [];
-  if (events.length > 0) {
+  if (Array.isArray(events) && events.length > 0) {
     db.transactionSync(tx => {
       for (const event of events) {
-        const at = new Date(event.atMs).toISOString();
+        if (!event || typeof event.alarmId !== 'string') continue;
+        const atMs = Number.isFinite(event.atMs) ? event.atMs : now;
+        const at = new Date(atMs).toISOString();
         if (event.kind === 'one_shot_done') {
           alarmsStore.markOneShotDone(event.alarmId, event.generation, tx);
           changed = true;
@@ -170,7 +200,8 @@ export const syncAlarmEvents = async (
         if (
           userId &&
           event.kind === 'dismissed' &&
-          now - event.atMs < BRIEFING_WINDOW_MS
+          now - atMs >= -60_000 &&
+          now - atMs < BRIEFING_WINDOW_MS
         ) {
           const alarm = alarmsStore.get(event.alarmId, userId, tx);
           if (alarm?.briefing) dismissedBriefings.push(alarm);

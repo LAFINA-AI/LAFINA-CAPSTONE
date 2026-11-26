@@ -158,9 +158,11 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   // owner, query and editor session it started under are still current.
   const ownerRef = useRef(userId);
   ownerRef.current = userId;
+  const mountedRef = useRef(true);
   const queryTokenRef = useRef(0);
   const editorTokenRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setSelectedFilter = useCallback(
     (filter: FilterType) => {
@@ -248,12 +250,20 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     }
   }, [cursor, userId, selectedFilter, searchQuery, loadNotes]);
 
-  useEffect(
-    () => () => {
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-    },
-    [],
-  );
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      if (aiTimerRef.current) {
+        clearTimeout(aiTimerRef.current);
+        aiTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const addCategory = useCallback(
     (name: string, color: string) => {
@@ -758,7 +768,10 @@ export const useNotesData = (options: UseNotesDataOptions) => {
       const token = editorTokenRef.current;
       const owner = userId;
 
-      setTimeout(() => {
+      if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+      aiTimerRef.current = setTimeout(() => {
+        aiTimerRef.current = null;
+        if (!mountedRef.current) return;
         setAiLoading(false);
         // Retired if the editor closed, another note opened or the account changed.
         if (editorTokenRef.current !== token || ownerRef.current !== owner)

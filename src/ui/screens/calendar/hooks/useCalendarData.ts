@@ -103,8 +103,8 @@ export const useCalendarData = (
     propOnViewModeChange !== undefined
       ? propOnViewModeChange
       : setLocalViewMode;
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [blocks, setBlocks] = useState<TimeBlock[]>([]);
   const [weekDays, setWeekDays] = useState<Date[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -144,6 +144,13 @@ export const useCalendarData = (
     }
   });
   const [layersModalVisible, setLayersModalVisible] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const activeUserIdRef = useRef(userId);
   activeUserIdRef.current = userId;
   // Codex audit A2: the last successful raw read of each part, with its owner,
@@ -213,7 +220,7 @@ export const useCalendarData = (
           importedBatchesStore.getImportedBatches(userId),
           calendarVisibilityStore.getVisibilityMap(userId),
         ]);
-        if (activeUserIdRef.current !== userId) return;
+        if (!mountedRef.current || activeUserIdRef.current !== userId) return;
         visibilityLoadedKey.current = key;
         setBatches(prev =>
           prev.length === 0 && fetchedBatches.length === 0
@@ -580,7 +587,8 @@ export const useCalendarData = (
         const updatedMap = await calendarVisibilityStore.getVisibilityMap(
           userId,
         );
-        if (activeUserIdRef.current === userId) setVisibilityMap(updatedMap);
+        if (mountedRef.current && activeUserIdRef.current === userId)
+          setVisibilityMap(updatedMap);
       } catch (error) {
         console.error('Failed to toggle visibility:', error);
       }

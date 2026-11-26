@@ -1,4 +1,5 @@
 import RNFS from 'react-native-fs';
+import {generateId} from '../utils';
 
 export interface ImportBatch {
   id: string;
@@ -120,7 +121,7 @@ export const importedBatchesStore = {
     try {
       const batches = await readStoredBatches();
       const newBatch: ImportBatch = {
-        id: 'batch_' + Math.random().toString(36).substring(2, 9),
+        id: generateId('batch'),
         userId,
         timestamp: new Date().toISOString(),
         fileName,
@@ -151,6 +152,49 @@ export const importedBatchesStore = {
     } catch (error) {
       console.error('Failed to delete imported batch:', error);
       throw error;
+    }
+  },
+
+  /** Removes all imported calendar batch records owned by one user (Clear All Data). */
+  clearForUser: async (userId: string): Promise<void> => {
+    try {
+      const batches = await readStoredBatches();
+      const remaining = batches.filter(batch => batch.userId !== userId);
+      if (remaining.length === batches.length) return;
+      await RNFS.writeFile(
+        BATCHES_FILE_PATH,
+        JSON.stringify(remaining, null, 2),
+        'utf8',
+      );
+      cachedBatches = remaining.map(cloneBatch);
+    } catch (error) {
+      console.warn('Failed to clear imported batches for user:', error);
+    }
+  },
+
+  /** Moves guest imported calendar batches to the upgraded account. */
+  transferFromGuest: async (
+    fromUserId: string,
+    toUserId: string,
+  ): Promise<void> => {
+    if (fromUserId === toUserId) return;
+    try {
+      const batches = await readStoredBatches();
+      let changed = false;
+      const next = batches.map(batch => {
+        if (batch.userId !== fromUserId) return batch;
+        changed = true;
+        return {...batch, userId: toUserId};
+      });
+      if (!changed) return;
+      await RNFS.writeFile(
+        BATCHES_FILE_PATH,
+        JSON.stringify(next, null, 2),
+        'utf8',
+      );
+      cachedBatches = next.map(cloneBatch);
+    } catch (error) {
+      console.warn('Failed to transfer imported batches from guest:', error);
     }
   },
 };

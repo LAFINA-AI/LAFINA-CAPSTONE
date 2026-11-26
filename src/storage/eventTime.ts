@@ -308,25 +308,59 @@ export const localToUtc = (
  * The exact zone timing of a wall-time event, or an EventTimeError. A fold is
  * kept only where the wall time really happens twice.
  */
+const pickFromCandidates = (
+  date: string,
+  time: string,
+  zone: string,
+  candidates: number[],
+  fold: FoldChoice | null | undefined,
+  which: 'start' | 'end',
+): string => {
+  if (fold != null && fold !== 'earlier' && fold !== 'later') {
+    throw new EventTimeError('invalid', which, 'Choose earlier or later.');
+  }
+  if (candidates.length === 0) {
+    throw new EventTimeError(
+      'gap',
+      which,
+      `${time} does not exist on ${date} in ${zone} (the clocks change). Choose another time.`,
+    );
+  }
+  if (candidates.length > 1 && !fold) {
+    throw new EventTimeError(
+      'ambiguous',
+      which,
+      `${time} happens twice on ${date} in ${zone} (the clocks change). Choose the earlier or the later one.`,
+    );
+  }
+  return new Date(
+    fold === 'later' ? candidates[candidates.length - 1] : candidates[0],
+  ).toISOString();
+};
+
 export const resolveEventZoneTiming = (
   wall: EventWallTime,
   zone: string,
   folds: EventFolds = {},
 ): EventZoneTiming => {
   const endDate = eventEndDate(wall);
-  const startCount = wallTimeCandidates(wall.date, wall.startTime, zone).length;
-  const endCount = wallTimeCandidates(endDate, wall.endTime, zone).length;
-  const startAt = localToUtc(
+  const startCandidates = wallTimeCandidates(wall.date, wall.startTime, zone);
+  const endCandidates = wallTimeCandidates(endDate, wall.endTime, zone);
+  const startCount = startCandidates.length;
+  const endCount = endCandidates.length;
+  const startAt = pickFromCandidates(
     wall.date,
     wall.startTime,
     zone,
+    startCandidates,
     startCount > 1 ? folds.startFold : null,
     'start',
   );
-  const endAt = localToUtc(
+  const endAt = pickFromCandidates(
     endDate,
     wall.endTime,
     zone,
+    endCandidates,
     endCount > 1 ? folds.endFold : null,
     'end',
   );

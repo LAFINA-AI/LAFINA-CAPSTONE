@@ -47,6 +47,8 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   private val pdfCacheLock = Any()
   private var cachedPdfUri: String? = null
   private var cachedPdfFile: File? = null
+  private val activePdfReaders = mutableMapOf<File, Int>()
+  private val retiredPdfFiles = mutableSetOf<File>()
   private val visionExecutor = Executors.newFixedThreadPool(2)
 
   private fun runVisionTask(promise: Promise, block: () -> Unit) {
@@ -113,23 +115,43 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
 
   private fun clearPdfCacheLocked(expectedUri: String? = null) {
     if (expectedUri != null && cachedPdfUri != expectedUri) return
-    try {
-      cachedPdfFile?.delete()
-    } catch (_: Throwable) {}
+    val old = cachedPdfFile
     cachedPdfUri = null
     cachedPdfFile = null
+    if (old != null) {
+      if ((activePdfReaders[old] ?: 0) > 0) {
+        retiredPdfFiles.add(old)
+      } else {
+        try { old.delete() } catch (_: Throwable) {}
+      }
+    }
   }
 
-  private fun getOrCopyPdfCache(uri: Uri, uriString: String, forceRefresh: Boolean): File {
+  private fun releasePdfLease(file: File) {
+    synchronized(pdfCacheLock) {
+      val next = (activePdfReaders[file] ?: 1) - 1
+      if (next <= 0) {
+        activePdfReaders.remove(file)
+        if (retiredPdfFiles.remove(file) && cachedPdfFile != file) {
+          try { file.delete() } catch (_: Throwable) {}
+        }
+      } else {
+        activePdfReaders[file] = next
+      }
+    }
+  }
+
+  private fun acquirePdfCache(uri: Uri, uriString: String, forceRefresh: Boolean): File {
     synchronized(pdfCacheLock) {
       val existing = cachedPdfFile
       if (!forceRefresh && cachedPdfUri == uriString && existing != null && existing.exists()) {
+        activePdfReaders[existing] = (activePdfReaders[existing] ?: 0) + 1
         return existing
       }
       clearPdfCacheLocked()
       val cacheRoot = File(reactContext.cacheDir, "material_pdf_cache")
       if (!cacheRoot.exists()) cacheRoot.mkdirs()
-      val target = File(cacheRoot, "pdf_${System.currentTimeMillis()}.pdf")
+      val target = File(cacheRoot, "pdf_${System.nanoTime()}.pdf")
       try {
         openInput(uri).use { input ->
           target.outputStream().use { output ->
@@ -148,6 +170,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
         }
         cachedPdfUri = uriString
         cachedPdfFile = target
+        activePdfReaders[target] = 1
         return target
       } catch (e: Throwable) {
         try { target.delete() } catch (_: Throwable) {}
@@ -202,12 +225,6 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
 
     try {
       val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-      val packageManager = activity.packageManager
-      if (intent.resolveActivity(packageManager) == null) {
-        promise.reject("CAMERA_UNAVAILABLE", "No camera app found on device.")
-        return
-      }
-
       val cacheDir = File(reactContext.cacheDir, "camera_captures")
       if (!cacheDir.exists()) cacheDir.mkdirs()
 
@@ -225,6 +242,10 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
 
       pendingCameraPromise = promise
       activity.startActivityForResult(intent, REQUEST_IMAGE_CAPTURE)
+    } catch (e: android.content.ActivityNotFoundException) {
+      pendingCameraPromise = null
+      currentPhotoPath = null
+      promise.reject("CAMERA_UNAVAILABLE", "No camera app found on device.", e)
     } catch (e: Exception) {
       pendingCameraPromise = null
       currentPhotoPath = null
@@ -396,12 +417,12 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun extractPdfWords(uriString: String, promise: Promise) {
     val uri = Uri.parse(uriString)
-    if (!isPdfUri(uri, uriString)) {
-      promise.resolve(null)
-      return
-    }
     runVisionTask(promise) {
       try {
+        if (!isPdfUri(uri, uriString)) {
+          promise.resolve(null)
+          return@runVisionTask
+        }
         CorPdfTextExtractor.ensureInit(reactContext)
         val result = openInput(uri).use { CorPdfTextExtractor.extract(it) }
         val map = Arguments.createMap()
@@ -494,8 +515,14 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
               // Scanned / image-only page: fall back to ML Kit OCR
               try {
                 if (renderer == null) {
-                  pfd = openPdfDescriptor(uri)
-                  renderer = PdfRenderer(pfd!!)
+                  val opened = openPdfDescriptor(uri)
+                  try {
+                    renderer = PdfRenderer(opened)
+                    pfd = opened
+                  } catch (e: Throwable) {
+                    try { opened.close() } catch (_: Throwable) {}
+                    throw e
+                  }
                 }
                 if (recognizer == null) {
                   recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -576,8 +603,9 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
         var ocrPages = 0
         var hasMore = false
 
-        openPdfFile@ run {
-          val pdfFile = getOrCopyPdfCache(uri, uriString, safeStart == 1)
+        val leasedPdf = acquirePdfCache(uri, uriString, safeStart == 1)
+        try {
+          val pdfFile = leasedPdf
           PDDocument.load(pdfFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             pageCount = document.numberOfPages
             val totalCap = minOf(pageCount, safeMaxPages)
@@ -615,8 +643,14 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
               if (normalized.length < 20) {
                 try {
                   if (renderer == null) {
-                    pfd = ParcelFileDescriptor.open(pdfFile, ParcelFileDescriptor.MODE_READ_ONLY)
-                    renderer = PdfRenderer(pfd!!)
+                    val opened = ParcelFileDescriptor.open(pdfFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                    try {
+                      renderer = PdfRenderer(opened)
+                      pfd = opened
+                    } catch (e: Throwable) {
+                      try { opened.close() } catch (_: Throwable) {}
+                      throw e
+                    }
                   }
                   if (recognizer == null) {
                     recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -647,6 +681,8 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
               pagesArray.pushMap(pageMap)
             }
           }
+        } finally {
+          releasePdfLease(leasedPdf)
         }
 
         if (!hasMore) {
@@ -1211,8 +1247,15 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
         recognizer = client
         val bitmapToRecycle = ownedBitmap
 
+        val callbackExecutor = java.util.concurrent.Executor { task ->
+          try {
+            if (!visionExecutor.isShutdown) visionExecutor.execute(task) else task.run()
+          } catch (_: java.util.concurrent.RejectedExecutionException) {
+            task.run()
+          }
+        }
         client.process(loaded.image)
-          .addOnSuccessListener { visionText ->
+          .addOnSuccessListener(callbackExecutor) { visionText ->
             val structuredText = buildCoordinateSortedText(visionText)
             val result: WritableMap = Arguments.createMap()
             result.putString("text", visionText.text)
@@ -1240,10 +1283,13 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
             result.putArray("words", words)
             promise.resolve(result)
           }
-          .addOnFailureListener { e ->
+          .addOnFailureListener(callbackExecutor) { e ->
             promise.reject("OCR_FAILED", e.message, e)
           }
-          .addOnCompleteListener {
+          .addOnCanceledListener(callbackExecutor) {
+            promise.reject("OCR_CANCELLED", "Text recognition was cancelled.")
+          }
+          .addOnCompleteListener(callbackExecutor) {
             try { bitmapToRecycle?.recycle() } catch (_: Throwable) {}
             try { client.close() } catch (_: Throwable) {}
           }

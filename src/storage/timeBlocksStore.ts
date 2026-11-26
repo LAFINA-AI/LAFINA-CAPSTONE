@@ -50,11 +50,20 @@ const scheduleReminderCleanup = (
   const cleanup = (): void => {
     for (const reminder of cleanupRows) {
       try {
-        const {cancelReminderAlarm} = require('../scheduler/reminderAlarm');
+        const {
+          cancelReminderAlarm,
+          finishNativeIncomingCall,
+        } = require('../scheduler/reminderAlarm');
         const {deletePreCachedReminderAudio} = require('../ai/tts/ttsService');
         cancelReminderAlarm(reminder.id).catch((error: unknown) =>
           console.error(
             `[deleteTimeBlock] Failed to cancel alarm for reminder ${reminder.id}:`,
+            error,
+          ),
+        );
+        finishNativeIncomingCall(reminder.id).catch((error: unknown) =>
+          console.error(
+            `[deleteTimeBlock] Failed to finish call for reminder ${reminder.id}:`,
             error,
           ),
         );
@@ -272,7 +281,7 @@ export const timeBlocksStore = {
         'time_block',
         id,
         blockRow.title,
-        ['pending', 'snoozed'],
+        ['pending', 'snoozed', 'triggered'],
       );
       for (const reminder of reminders) {
         executor.executeSync(

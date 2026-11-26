@@ -130,9 +130,9 @@ export const authService = {
     const ownerAtStart = userStore.getActiveSessionToken().userId;
     const generation = getSessionGeneration();
     try {
-      return await cloudClient.request<null>(
+      return await cloudClient.requestOnce<null>(
         '/v1/auth/logout',
-        {method: 'POST'},
+        {method: 'POST', timeoutMs: 5_000},
         true,
       );
     } finally {
@@ -154,6 +154,7 @@ export const authService = {
    */
   getMe: async (): Promise<CloudResult<UserProfileData>> => {
     const ownerAtStart = userStore.getActiveSessionToken().userId;
+    const generation = getSessionGeneration();
     const result = await cloudClient.request<UserProfileData>(
       '/v1/auth/me',
       {method: 'GET'},
@@ -165,7 +166,8 @@ export const authService = {
     if (result.sessionEnded) {
       if (
         ownerAtStart &&
-        userStore.getActiveSessionToken().userId === ownerAtStart
+        userStore.getActiveSessionToken().userId === ownerAtStart &&
+        generation === getSessionGeneration()
       ) {
         cloudClient.clearActiveSession();
       }

@@ -172,6 +172,7 @@ export const MeetingsProvider: React.FC<{
     [],
   );
   const starting = useRef(false);
+  const importing = useRef(false);
   const workEpoch = useRef(0);
   const pendingStart = useRef<Promise<string> | null>(null);
   const captureId = useRef<string | null>(null);
@@ -292,6 +293,7 @@ export const MeetingsProvider: React.FC<{
               text: s.text,
             })),
           });
+          if (!isAlive() || controller.signal.aborted) return;
           if (fallbackRes.status === 'success' && fallbackRes.data) {
             const fallbackData = fallbackRes.data;
             const mappedNotes = normalizeNotes({
@@ -318,6 +320,7 @@ export const MeetingsProvider: React.FC<{
         } catch {
           // Ignore fallback error and report primary error below
         }
+        if (!isAlive() || controller.signal.aborted) return;
 
         const code = error instanceof MeetingError ? error.code : 'unknown';
         if (code === 'cancelled') {
@@ -631,6 +634,7 @@ export const MeetingsProvider: React.FC<{
     const recording = active.current;
     if (!recording || recording.paused) return;
     await meetingRecorder.pause().catch(() => false);
+    if (!isAlive() || active.current !== recording || recording.paused) return;
     recording.accumulatedMs = elapsedOf(recording);
     recording.resumedAt = null;
     recording.paused = true;
@@ -640,19 +644,20 @@ export const MeetingsProvider: React.FC<{
         ? {...current, status: 'paused', elapsedMs: recording.accumulatedMs}
         : current,
     );
-  }, [update]);
+  }, [update, isAlive]);
 
   const resumeRecording = useCallback(async () => {
     const recording = active.current;
     if (!recording || !recording.paused) return;
     await meetingRecorder.resume().catch(() => false);
+    if (!isAlive() || active.current !== recording || !recording.paused) return;
     recording.resumedAt = Date.now();
     recording.paused = false;
     update(recording.meetingId, {status: 'recording'});
     setRecorder(current =>
       current ? {...current, status: 'recording'} : current,
     );
-  }, [update]);
+  }, [update, isAlive]);
 
   const stopRecording = useCallback(
     () => finishActive({process: true}),
@@ -673,8 +678,8 @@ export const MeetingsProvider: React.FC<{
       .catch(() => false);
     recordedMeetingStore.remove(recording.meetingId);
     if (mounted.current) setRecorder(null);
-    refresh();
-  }, [refresh]);
+    if (isAlive()) refresh();
+  }, [refresh, isAlive]);
 
   const recordingId = recorder?.meetingId;
   const recordingStatus = recorder?.status;
@@ -702,16 +707,21 @@ export const MeetingsProvider: React.FC<{
       }
       ticks += 1;
       if (ticks % 6 !== 0) return;
-      void meetingRecorder.isRecording().then(async running => {
-        if (running || active.current !== recording) return;
-        const freeMb = await meetingRecorder
-          .getAvailableStorageMB()
-          .catch(() => Number.POSITIVE_INFINITY);
-        const reason: MeetingErrorCode =
-          freeMb < MIN_FREE_MB ? 'insufficient_storage' : 'recording_failed';
-        setRecorderError(describeMeetingError(reason));
-        await finishActive({reason, process: false});
-      });
+      void meetingRecorder
+        .isRecording()
+        .then(async running => {
+          if (!mounted.current || running || active.current !== recording)
+            return;
+          const freeMb = await meetingRecorder
+            .getAvailableStorageMB()
+            .catch(() => Number.POSITIVE_INFINITY);
+          if (!mounted.current || active.current !== recording) return;
+          const reason: MeetingErrorCode =
+            freeMb < MIN_FREE_MB ? 'insufficient_storage' : 'recording_failed';
+          setRecorderError(describeMeetingError(reason));
+          await finishActive({reason, process: false});
+        })
+        .catch(() => undefined);
     }, 500);
     return () => clearInterval(timer);
   }, [recordingId, recordingStatus, finishActive]);
@@ -774,6 +784,7 @@ export const MeetingsProvider: React.FC<{
       const stillRecording = await meetingRecorder
         .isRecording()
         .catch(() => false);
+      if (cancelled || !isAlive()) return;
       const interrupted = recordedMeetingStore.findInterrupted(userId);
       let reattached = false;
 
@@ -816,6 +827,7 @@ export const MeetingsProvider: React.FC<{
           const audio = await meetingRecorder
             .listMeetingAudio(meeting.id)
             .catch(() => ({chunks: [], totalBytes: 0}));
+          if (cancelled || !isAlive()) return;
           const recordedMs = audio.chunks.reduce(
             (sum, chunk) => sum + chunk.durationMs,
             0,
@@ -849,20 +861,24 @@ export const MeetingsProvider: React.FC<{
           });
         }
       }
+      if (cancelled || !isAlive()) return;
       if (!stillRecording) {
         await meetingRecorder.clearRecoveryState().catch(() => false);
       }
-      if (!cancelled) refresh();
+      if (!cancelled && isAlive()) refresh();
     };
     void recover();
     return () => {
       cancelled = true;
     };
-  }, [available, refresh, userId]);
+  }, [available, refresh, userId, isAlive]);
 
   const importAudio = useCallback(async (): Promise<string | null> => {
+    if (importing.current) return null;
+    importing.current = true;
     const epoch = workEpoch.current;
     const current = () => isAlive() && epoch === workEpoch.current;
+    let meetingId: string | null = null;
     try {
       const res = await pick({
         type: ['audio/*'],
@@ -872,7 +888,7 @@ export const MeetingsProvider: React.FC<{
       }
       if (!current()) return null;
       const file = res[0];
-      const meetingId = generateId('meeting');
+      meetingId = generateId('meeting');
       const rawName = file.name || 'Imported Audio';
       const cleanTitle =
         rawName.replace(/\.[^/.]+$/, '').trim() || 'Imported Audio';
@@ -918,13 +934,18 @@ export const MeetingsProvider: React.FC<{
         return null;
       }
       console.error('[MeetingsContext] Failed to import audio recording:', err);
-      setProcessing(null);
+      if (mounted.current && meetingId) {
+        const failedId = meetingId;
+        setProcessing(prev => (prev?.meetingId === failedId ? null : prev));
+      }
       if (err?.code === 'IMPORT_CANCELLED') {
         return null;
       }
       throw err instanceof Error
         ? err
         : new Error('Could not decode or import the audio file.');
+    } finally {
+      importing.current = false;
     }
   }, [userId, refresh, transcribeMeeting, isAlive]);
 

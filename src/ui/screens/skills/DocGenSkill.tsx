@@ -284,15 +284,39 @@ export function DocGenSkill({
   const p = useSkillsPalette();
   const settingsRevision = useStorageRevision(['local_settings']);
   const [connected, setConnected] = useState(true);
-  useEffect(
-    () =>
-      NetInfo.addEventListener(state =>
-        setConnected(
-          state.isConnected !== false && state.isInternetReachable !== false,
-        ),
-      ),
-    [],
-  );
+  const connectedRef = useRef(true);
+  useEffect(() => {
+    let alive = true;
+    let receivedEvent = false;
+    const applyNet = (
+      state: {
+        isConnected: boolean | null;
+        isInternetReachable?: boolean | null;
+      },
+      fromEvent: boolean,
+    ) => {
+      if (!alive) return;
+      if (fromEvent) {
+        receivedEvent = true;
+      } else if (receivedEvent) {
+        return;
+      }
+      const next =
+        state.isConnected !== false && state.isInternetReachable !== false;
+      if (connectedRef.current !== next) {
+        connectedRef.current = next;
+        setConnected(next);
+      }
+    };
+    const unsub = NetInfo.addEventListener(state => applyNet(state, true));
+    void NetInfo.fetch()
+      .then(state => applyNet(state, false))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+      unsub();
+    };
+  }, []);
 
   const initialDraft = docGenDraftStore.get(userId);
   const [format, setFormatState] = useState<DocumentFormat>(
@@ -327,6 +351,11 @@ export function DocGenSkill({
 
   const capture = useRef<string | null>(null);
   const dictationLock = useRef(false);
+  const enablingOnlineRef = useRef(false);
+  const activeUserRef = useRef(userId);
+  activeUserRef.current = userId;
+  const revisionPromptRef = useRef(revisionPrompt);
+  revisionPromptRef.current = revisionPrompt;
   const mountedRef = useRef(true);
   const [dictationState, setDictationState] = useState<
     'idle' | 'listening' | 'transcribing'
@@ -500,7 +529,7 @@ export function DocGenSkill({
     if (capture.current) {
       if (dictationState === 'listening') {
         setDictationState('transcribing');
-        await stopListening(capture.current);
+        await stopListening(capture.current).catch(() => undefined);
       }
       return;
     }
@@ -529,15 +558,14 @@ export function DocGenSkill({
       const transcript = result.transcript.trim();
       if (!result.cancelled && transcript) {
         if (target === 'revise') {
-          setRevisionPrompt(old => {
-            const combined = old ? `${old} ${transcript}`.trim() : transcript;
-            if (combined.length > MAX_PROMPT_LENGTH) {
-              setNotice({
-                text: `Dictated text reached the ${MAX_PROMPT_LENGTH}-character limit.`,
-              });
-            }
-            return combined.slice(0, MAX_PROMPT_LENGTH);
-          });
+          const old = revisionPromptRef.current;
+          const combined = old ? `${old} ${transcript}`.trim() : transcript;
+          if (combined.length > MAX_PROMPT_LENGTH) {
+            setNotice({
+              text: `Dictated text reached the ${MAX_PROMPT_LENGTH}-character limit.`,
+            });
+          }
+          setRevisionPrompt(combined.slice(0, MAX_PROMPT_LENGTH));
         } else {
           const current = docGenDraftStore.get(userId).prompt;
           const combined = current
@@ -592,52 +620,49 @@ export function DocGenSkill({
     !isGuest && hasCloudSession && onlineModeEnabled && connected;
 
   const enableOnlineMode = async () => {
-    if (enablingOnline) return;
+    if (enablingOnlineRef.current || enablingOnline) return;
+    const reqUserId = userId;
+    enablingOnlineRef.current = true;
     setNotice(null);
     clearError();
     setEnablingOnline(true);
     try {
       const netState = await NetInfo.fetch().catch(() => null);
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       if (
         netState?.isConnected === false ||
         netState?.isInternetReachable === false
       ) {
-        if (mountedRef.current) {
-          setNotice({
-            text: 'Please connect to Wi-Fi or mobile data to enable Online Mode.',
-            danger: true,
-          });
-        }
+        setNotice({
+          text: 'Please connect to Wi-Fi or mobile data to enable Online Mode.',
+          danger: true,
+        });
         return;
       }
       const auth = await accountLinkService
-        .authorizeOnlineMode(userId)
+        .authorizeOnlineMode(reqUserId)
         .catch(() => ({
           status: 'network_error' as const,
           message: 'Could not reach the LAFINA server. Try again.',
         }));
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       if (auth.status !== 'success') {
-        if (mountedRef.current) {
-          setNotice({
-            text: auth.message || 'Could not enable Online Mode right now.',
-            danger: true,
-          });
-        }
+        setNotice({
+          text: auth.message || 'Could not enable Online Mode right now.',
+          danger: true,
+        });
         return;
       }
-      if (!localSettingsStore.set(userId, 'chat.onlineMode', 'true')) {
-        if (mountedRef.current) {
-          setNotice({
-            text: 'Could not save the Online Mode setting on this phone. Try again.',
-            danger: true,
-          });
-        }
+      if (!localSettingsStore.set(reqUserId, 'chat.onlineMode', 'true')) {
+        setNotice({
+          text: 'Could not save the Online Mode setting on this phone. Try again.',
+          danger: true,
+        });
         return;
       }
-      if (mountedRef.current) {
-        setNotice({text: 'Online Mode is now on.'});
-      }
+      setNotice({text: 'Online Mode is now on.'});
     } finally {
+      enablingOnlineRef.current = false;
       if (mountedRef.current) setEnablingOnline(false);
     }
   };

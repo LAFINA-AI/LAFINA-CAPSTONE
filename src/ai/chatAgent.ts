@@ -59,6 +59,7 @@ export interface ChatAgentOptions {
   /** "Sunday 2026-11-15, 9:00 AM". */
   localNow: string;
   isCurrent?: () => boolean;
+  signal?: AbortSignal;
 }
 
 export interface ChatAgentResult {
@@ -186,6 +187,9 @@ export async function runChatAgent(
                 options.referenceDate,
               )
             : null);
+        if (!isCurrent() || options.signal?.aborted) {
+          return 'Request canceled. Nothing was prepared.';
+        }
         if (!intent)
           return 'Nothing was prepared: give the action and its details (deleting needs the student to ask in their own words).';
         const prepared = prepareReviewedCommand(userId, intent, {
@@ -206,14 +210,16 @@ export async function runChatAgent(
   };
 
   for (let step = 0; step < CHAT_AGENT_MAX_STEPS; step++) {
+    if (!isCurrent() || options.signal?.aborted) return abandon();
     const result = await onlineChatSkill.agentStep(history, {
       tools,
       exchange: [...exchange],
       useHandbook: options.useHandbook,
       ...(options.memories?.length ? {memories: options.memories} : {}),
+      ...(options.signal ? {signal: options.signal} : {}),
       localNow: options.localNow,
     });
-    if (!isCurrent()) return abandon();
+    if (!isCurrent() || options.signal?.aborted) return abandon();
     if (result.status !== 'success' || !result.data) return abandon();
     const {reply, toolCalls, sources} = result.data;
     if (toolCalls.length === 0) {

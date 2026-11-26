@@ -224,7 +224,10 @@ export const createNextRecurringReminder = (
   )?.[1];
   const origin = storedOrigin ? new Date(storedOrigin) : at;
   if (!Number.isFinite(origin.getTime())) return null;
-  const leadMs = Math.max(0, at.getTime() - Date.parse(reminder.triggerAt));
+  const triggerMs = Date.parse(reminder.triggerAt);
+  const leadMs = Number.isFinite(triggerMs)
+    ? Math.max(0, at.getTime() - triggerMs)
+    : 0;
   const date = `${origin.getFullYear()}-${String(
     origin.getMonth() + 1,
   ).padStart(2, '0')}-${String(origin.getDate()).padStart(2, '0')}`;
@@ -331,12 +334,18 @@ export const acknowledgeReminderAction = async (
     );
   }
 
-  try {
-    await cancelReminderAlarm(reminder.id, userId, expectedGeneration);
-    await finishNativeIncomingCall(reminder.id, userId, expectedGeneration);
-    await deletePreCachedReminderAudio(reminder.preCastAudioPath);
-  } catch (error) {
-    console.error('[ReminderActions] Acknowledged, but cleanup failed:', error);
+  const cleanupResults = await Promise.allSettled([
+    cancelReminderAlarm(reminder.id, userId, expectedGeneration),
+    finishNativeIncomingCall(reminder.id, userId, expectedGeneration),
+    deletePreCachedReminderAudio(reminder.preCastAudioPath),
+  ]);
+  for (const outcome of cleanupResults) {
+    if (outcome.status === 'rejected') {
+      console.error(
+        '[ReminderActions] Acknowledged, but cleanup failed:',
+        outcome.reason,
+      );
+    }
   }
 
   // Also acknowledge the other pending, snoozed or triggered reminders of the same
@@ -481,14 +490,17 @@ export const autoSnoozeReminderAction = async (
     }
   }
 
-  try {
-    await cancelReminderAlarm(reminder.id, userId, expectedGeneration);
-    await finishNativeIncomingCall(reminder.id, userId, expectedGeneration);
-  } catch (error) {
-    console.error(
-      '[ReminderActions] Marked missed, but cleanup failed:',
-      error,
-    );
+  const missCleanup = await Promise.allSettled([
+    cancelReminderAlarm(reminder.id, userId, expectedGeneration),
+    finishNativeIncomingCall(reminder.id, userId, expectedGeneration),
+  ]);
+  for (const outcome of missCleanup) {
+    if (outcome.status === 'rejected') {
+      console.error(
+        '[ReminderActions] Marked missed, but cleanup failed:',
+        outcome.reason,
+      );
+    }
   }
 
   // Non-blocking ML behavior tracking (Section 2.4.8)

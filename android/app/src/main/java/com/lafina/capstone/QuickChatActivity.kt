@@ -31,7 +31,7 @@ class QuickChatActivity : ReactActivity() {
     /** JS: `quickChatPresence` (true while this panel is the visible screen). */
     const val EVENT_VISIBILITY = "LAFINA_QUICK_CHAT_VISIBILITY"
 
-    private var current: WeakReference<QuickChatActivity>? = null
+    @Volatile private var current: WeakReference<QuickChatActivity>? = null
 
     /** True while a Quick Chat panel exists and is not finishing. */
     val isOpen: Boolean

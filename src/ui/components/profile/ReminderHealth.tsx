@@ -45,6 +45,14 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
   const [message, setMessage] = useState('');
   const [alarmHealth, setAlarmHealth] = useState<AlarmHealth | null>(null);
   const epoch = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     const current = ++epoch.current;
@@ -61,6 +69,7 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
     if (!visible) return undefined;
     setSnapshot(null);
     setMessage('');
+    setBusy(false);
     void refresh();
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') void refresh();
@@ -82,7 +91,7 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
         setMessage('Android settings could not open. Open LAFINA in the system app settings.');
       }
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
     }
   };
 
@@ -96,8 +105,12 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
       if (current !== epoch.current) return;
       setMessage(result.message);
       await refresh();
+    } catch {
+      if (current === epoch.current) {
+        setMessage('Could not refresh reminder registration. Try again.');
+      }
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
     }
   };
 

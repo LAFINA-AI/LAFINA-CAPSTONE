@@ -255,6 +255,7 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
   }
 
   private fun scheduleAutoUnload() {
+    if (executor.isShutdown) return
     mainHandler.removeCallbacks(autoUnloadRunnable)
     mainHandler.postDelayed(autoUnloadRunnable, IDLE_UNLOAD_TIMEOUT_MS)
   }

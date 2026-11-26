@@ -16,8 +16,31 @@ open class LafinaReminderReceiver : BroadcastReceiver() {
       Intent.ACTION_TIME_CHANGED,
       Intent.ACTION_TIMEZONE_CHANGED,
       "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" -> {
-        LafinaReminderModule.restoreScheduledAlarms(context)
+        restoreAsync(context)
       }
+    }
+  }
+
+  protected fun restoreAsync(context: Context) {
+    val pending = goAsync()
+    if (pending == null) {
+      LafinaReminderModule.restoreScheduledAlarms(context)
+      return
+    }
+    val appContext = context.applicationContext ?: context
+    bootExecutor.execute {
+      try {
+        LafinaReminderModule.restoreScheduledAlarms(appContext)
+      } catch (_: Exception) {
+      } finally {
+        pending.finish()
+      }
+    }
+  }
+
+  companion object {
+    private val bootExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+      Thread(task, "lafina-reminder-boot").apply { isDaemon = true }
     }
   }
 }

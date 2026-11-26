@@ -21,8 +21,11 @@ import java.security.KeyFactory
 import java.security.Signature
 import java.security.interfaces.ECPublicKey
 import java.security.spec.X509EncodedKeySpec
+import java.net.HttpURLConnection
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * The native half of in-app updates from the GitHub release: signature checks,
@@ -41,6 +44,33 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
   private val quick = Executors.newSingleThreadExecutor()
   private val downloading = AtomicBoolean(false)
   private val cancelled = AtomicBoolean(false)
+  private val activeConnection = AtomicReference<HttpURLConnection?>(null)
+
+  private fun submitQuick(promise: Promise, code: String, block: () -> Unit) {
+    if (quick.isShutdown) {
+      promise.reject(code, "Updater is shutting down.")
+      return
+    }
+    try {
+      quick.execute(block)
+    } catch (e: RejectedExecutionException) {
+      promise.reject(code, "Updater is shutting down.", e)
+    }
+  }
+
+  private fun submitWorker(promise: Promise, code: String, onRejected: (() -> Unit)? = null, block: () -> Unit) {
+    if (worker.isShutdown) {
+      onRejected?.invoke()
+      promise.reject(code, "Updater is shutting down.")
+      return
+    }
+    try {
+      worker.execute(block)
+    } catch (e: RejectedExecutionException) {
+      onRejected?.invoke()
+      promise.reject(code, "Updater is shutting down.", e)
+    }
+  }
 
   init {
     active = WeakReference(this)
@@ -55,7 +85,7 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
 
   @ReactMethod
   fun getInfo(promise: Promise) {
-    quick.execute {
+    submitQuick(promise, "E_INFO") {
       try {
         val info = OtaBundles.info(reactContext)
         val ready = OtaBundles.readyApk(reactContext)
@@ -111,19 +141,28 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
 
   @ReactMethod
   fun downloadBundle(options: ReadableMap, promise: Promise) {
+    val url: String
+    val version: String
+    val nativeVersionCode: Int
+    val size: Long
+    val sha256: String
+    try {
+      url = options.getString("url") ?: ""
+      version = options.getString("version") ?: ""
+      nativeVersionCode = options.getInt("nativeVersionCode")
+      // JS numbers arrive as doubles; sizes are far below where that loses precision.
+      size = options.getDouble("size").toLong()
+      sha256 = options.getString("sha256") ?: ""
+    } catch (error: Exception) {
+      promise.reject("E_ARGS", "Invalid update options.", error)
+      return
+    }
     if (!downloading.compareAndSet(false, true)) {
       promise.reject("E_BUSY", "An update is already downloading.")
       return
     }
     cancelled.set(false)
-    val url = options.getString("url") ?: ""
-    val version = options.getString("version") ?: ""
-    val nativeVersionCode = options.getInt("nativeVersionCode")
-    // JS numbers arrive as doubles; sizes are far below where that loses precision.
-    val size = options.getDouble("size").toLong()
-    val sha256 = options.getString("sha256") ?: ""
-
-    worker.execute {
+    submitWorker(promise, "E_DOWNLOAD", onRejected = { downloading.set(false) }) {
       try {
         OtaBundles.download(
           context = reactContext,
@@ -134,6 +173,7 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
           sha256 = sha256,
           isCancelled = { cancelled.get() },
           onProgress = { received, total -> emitProgress(received, total) },
+          onConnection = { conn -> activeConnection.set(conn) },
         )
         promise.resolve(true)
       } catch (error: OtaBundles.OtaException) {
@@ -141,6 +181,7 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
       } catch (error: Exception) {
         promise.reject("E_DOWNLOAD", "The update could not be saved. Try again.", error)
       } finally {
+        activeConnection.set(null)
         downloading.set(false)
       }
     }
@@ -149,17 +190,25 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
   /** Downloads (or resumes) the APK of a newer native build; see [OtaBundles.downloadApk]. */
   @ReactMethod
   fun downloadApk(options: ReadableMap, promise: Promise) {
+    val url: String
+    val versionCode: Int
+    val size: Long
+    val sha256: String
+    try {
+      url = options.getString("url") ?: ""
+      versionCode = options.getInt("versionCode")
+      size = options.getDouble("size").toLong()
+      sha256 = options.getString("sha256") ?: ""
+    } catch (error: Exception) {
+      promise.reject("E_ARGS", "Invalid update options.", error)
+      return
+    }
     if (!downloading.compareAndSet(false, true)) {
       promise.reject("E_BUSY", "An update is already downloading.")
       return
     }
     cancelled.set(false)
-    val url = options.getString("url") ?: ""
-    val versionCode = options.getInt("versionCode")
-    val size = options.getDouble("size").toLong()
-    val sha256 = options.getString("sha256") ?: ""
-
-    worker.execute {
+    submitWorker(promise, "E_DOWNLOAD", onRejected = { downloading.set(false) }) {
       try {
         OtaBundles.downloadApk(
           context = reactContext,
@@ -169,6 +218,7 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
           sha256 = sha256,
           isCancelled = { cancelled.get() },
           onProgress = { received, total -> emitProgress(received, total) },
+          onConnection = { conn -> activeConnection.set(conn) },
         )
         promise.resolve(true)
       } catch (error: OtaBundles.OtaException) {
@@ -176,6 +226,7 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
       } catch (error: Exception) {
         promise.reject("E_DOWNLOAD", "The update could not be saved. Try again.", error)
       } finally {
+        activeConnection.set(null)
         downloading.set(false)
       }
     }
@@ -217,21 +268,21 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
     val versionCode = options.getInt("versionCode")
     val sha256 = options.getString("sha256") ?: ""
     val versionName = options.getString("versionName") ?: ""
-    worker.execute {
+    submitWorker(promise, "E_INSTALL") {
       try {
         // Checked again right before it is installed, in case it changed on disk since.
         val apk = OtaBundles.verifiedApk(reactContext, versionCode, sha256)
         if (apk == null) {
           promise.reject("E_VERIFY", "The downloaded update is missing or changed on disk, so it was not installed. Download it again.")
-          return@execute
+          return@submitWorker
         }
         OtaBundles.apkProblem(reactContext, apk, versionCode)?.let { problem ->
           promise.reject("E_SIGNER", problem)
-          return@execute
+          return@submitWorker
         }
         if (!reactContext.packageManager.canRequestPackageInstalls()) {
           promise.reject("E_PERMISSION", "Allow LAFINA to install updates first.")
-          return@execute
+          return@submitWorker
         }
         val installer = reactContext.packageManager.packageInstaller
         // Clean up any abandoned/stale sessions left behind by cancelled attempts.
@@ -278,11 +329,12 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun cancelDownload() {
     cancelled.set(true)
+    activeConnection.getAndSet(null)?.let { conn -> runCatching { conn.disconnect() } }
   }
 
   @ReactMethod
   fun markLaunchSuccessful(promise: Promise) {
-    quick.execute {
+    submitQuick(promise, "E_CONFIRM") {
       try {
         promise.resolve(OtaBundles.markLaunchSuccessful(reactContext))
       } catch (error: Exception) {
@@ -338,6 +390,7 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
 
   override fun invalidate() {
     cancelled.set(true)
+    activeConnection.getAndSet(null)?.let { conn -> runCatching { conn.disconnect() } }
     worker.shutdown()
     quick.shutdown()
     super.invalidate()
@@ -348,7 +401,7 @@ class LafinaUpdaterModule(private val reactContext: ReactApplicationContext) :
     const val EVENT_INSTALL_STATUS = "LafinaUpdaterInstallStatus"
 
     /** The live module, for the install receiver to report through. */
-    private var active: WeakReference<LafinaUpdaterModule>? = null
+    @Volatile private var active: WeakReference<LafinaUpdaterModule>? = null
 
     fun reportInstallStatus(status: String, message: String?) {
       active?.get()?.emitInstallStatus(status, message)

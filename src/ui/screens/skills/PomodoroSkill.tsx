@@ -199,7 +199,7 @@ export function PomodoroSkill({
         ? {...current, deadline: null}
         : {...current, mode, remaining: MODE_SECONDS[mode], deadline: null};
     void apply(draft, {starting: true}).then(started => {
-      if (started)
+      if (started && mountedRef.current)
         setNotice(
           mode === 'Focus 25'
             ? 'LAFINA started your focus session. Tap Pause any time.'
@@ -226,7 +226,11 @@ export function PomodoroSkill({
     }
   };
   const silence = async (value: boolean) => {
-    if (value && (!native || !(await native.silenceAccess()))) {
+    const granted = value
+      ? Boolean(native && (await native.silenceAccess().catch(() => false)))
+      : true;
+    if (!mountedRef.current) return;
+    if (value && !granted) {
       Alert.alert(
         'Allow focus silence',
         'Allow LAFINA to manage Do Not Disturb, then return and turn this on again. Alarms remain allowed.',

@@ -30,6 +30,8 @@ export interface DeliveryReconcileSummary {
   cancelled: number;
   failed: number;
   receipts: number;
+  /** True when a newer reconcile pass superseded this one before completion. */
+  aborted?: boolean;
   /** Set when the pass stopped early (for example, storage unavailable). */
   error?: string;
 }
@@ -155,14 +157,16 @@ const matches = (
   job.registrationState === 'registered' &&
   job.registeredGeneration === job.generation;
 
-let latestRequestedOwner: string | null = null;
+let latestRequestedOwner: string | null | undefined;
+let latestOwnerEpoch = 0;
 
 const reconcile = async (
   activeUserId: string | null,
   isStale: () => boolean = () => false,
 ): Promise<DeliveryReconcileSummary> => {
   const module = getNativeDeliveryModule();
-  if (!module || isStale()) return emptySummary(Boolean(module));
+  if (!module) return emptySummary(false);
+  if (isStale()) return {...emptySummary(true), aborted: true};
   const summary = emptySummary(true);
   const owner = activeUserId && activeUserId.length > 0 ? activeUserId : null;
 
@@ -177,7 +181,7 @@ const reconcile = async (
     }
   }
   summary.receipts = await drainNativeDeliveryReceipts();
-  if (isStale()) return summary;
+  if (isStale()) return {...summary, aborted: true};
 
   const now = Date.now();
   const jobs = deliveryStore.listWithTask();
@@ -195,11 +199,11 @@ const reconcile = async (
       console.warn('[DeliveryReconciler] Could not list registrations:', error);
     }
   }
-  if (isStale()) return summary;
+  if (isStale()) return {...summary, aborted: true};
 
   if (registrations) {
     for (const registration of registrations) {
-      if (isStale()) return summary;
+      if (isStale()) return {...summary, aborted: true};
       const job = byId.get(registration.reminderId);
       if (job && isDesired(job, owner, now) && matches(registration, job)) {
         covered.add(job.reminderId);
@@ -240,7 +244,7 @@ const reconcile = async (
   }
 
   for (const job of jobs) {
-    if (isStale()) return summary;
+    if (isStale()) return {...summary, aborted: true};
     if (!isDesired(job, owner, now) || covered.has(job.reminderId)) continue;
     if (
       registrations === null &&
@@ -269,7 +273,7 @@ const reconcile = async (
     }
   }
 
-  if (isStale()) return summary;
+  if (isStale()) return {...summary, aborted: true};
   try {
     deliveryStore.markSuppressed(owner);
   } catch (error) {
@@ -286,10 +290,20 @@ const reconcile = async (
 export const reconcileReminderDelivery = (
   activeUserId: string | null,
 ): Promise<DeliveryReconcileSummary> => {
-  latestRequestedOwner = activeUserId;
-  const isStale = () => latestRequestedOwner !== activeUserId;
+  const owner = activeUserId && activeUserId.length > 0 ? activeUserId : null;
+  if (owner !== latestRequestedOwner) {
+    latestRequestedOwner = owner;
+    latestOwnerEpoch += 1;
+  }
+  const ownerEpoch = latestOwnerEpoch;
+  const isStale = () => ownerEpoch !== latestOwnerEpoch;
   return serialized(async () => {
-    if (isStale()) return emptySummary(isNativeReminderDeliveryAvailable());
+    if (isStale()) {
+      return {
+        ...emptySummary(isNativeReminderDeliveryAvailable()),
+        aborted: true,
+      };
+    }
     try {
       return await reconcile(activeUserId, isStale);
     } catch (error) {
@@ -359,12 +373,17 @@ export const claimForegroundRing = async (
   const module = getNativeDeliveryModule();
   if (!module?.claimForegroundDelivery) return true;
   try {
-    const outcome = await module.claimForegroundDelivery(
-      reminderId,
-      ownerId,
-      typeof generation === 'number' && Number.isSafeInteger(generation)
-        ? generation
-        : 0,
+    const outcome = await boundedNative(
+      Promise.resolve(
+        module.claimForegroundDelivery(
+          reminderId,
+          ownerId,
+          typeof generation === 'number' && Number.isSafeInteger(generation)
+            ? generation
+            : 0,
+        ),
+      ),
+      'Foreground claim',
     );
     return outcome === 'claimed';
   } catch (error) {
@@ -397,7 +416,7 @@ export const reconcileIfDeliveryChanged = async (
     return null;
   }
   const summary = await reconcileReminderDelivery(ownerId);
-  if (summary.failed === 0 && !summary.error) {
+  if (summary.failed === 0 && !summary.error && !summary.aborted) {
     try {
       lastDeliveryFingerprint = {
         owner: ownerId,
@@ -418,7 +437,10 @@ export const readLiveNativeRegistrations =
     const module = getNativeDeliveryModule();
     if (!module?.listDeliveryRegistrations) return undefined;
     try {
-      const registrations = await module.listDeliveryRegistrations();
+      const registrations = await boundedNative(
+        Promise.resolve(module.listDeliveryRegistrations()),
+        'Registration listing',
+      );
       return new Map(
         (registrations || [])
           .filter(registration => registration && registration.armed !== false)

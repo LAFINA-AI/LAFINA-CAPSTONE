@@ -83,10 +83,15 @@ export const createSyncScheduler = (
     schedule: () => {
       if (disposed) return;
       clearDebounce();
+      const attempt = Math.max(0, options.getBackoffAttempt?.() ?? 0);
+      const delay =
+        attempt > 0
+          ? Math.min(debounceMs * Math.pow(2, attempt), MAX_SYNC_BACKOFF_MS)
+          : debounceMs;
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
         void runNow();
-      }, debounceMs);
+      }, delay);
     },
     runNow,
     start: () => {

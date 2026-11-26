@@ -31,6 +31,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -66,7 +68,9 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
 
   override fun getName(): String = "LafinaVoiceConversation"
 
+  @Volatile private var httpInitialized = false
   private val http: OkHttpClient by lazy {
+    httpInitialized = true
     OkHttpClient.Builder()
       .connectTimeout(15, TimeUnit.SECONDS)
       .readTimeout(0, TimeUnit.MILLISECONDS)
@@ -78,12 +82,23 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
 
   /** Teardown and audio setup run here, never on the JS or socket threads. */
   private val worker = Executors.newSingleThreadExecutor { task -> Thread(task, WORKER_THREAD) }
+  private val sessionLock = Any()
   @Volatile private var session: Session? = null
+
+  private fun runOnWorker(block: () -> Unit): Boolean {
+    if (worker.isShutdown) return false
+    return try {
+      worker.execute(block)
+      true
+    } catch (_: RejectedExecutionException) {
+      false
+    }
+  }
 
   private inner class Session(val key: String, val ticket: MicrophoneLeaseRegistry.Ticket) {
     val ended = AtomicBoolean(false)
     @Volatile var socket: WebSocket? = null
-    @Volatile var startPromise: Promise? = null
+    val startPromise = AtomicReference<Promise?>(null)
     @Volatile var muted = false
     @Volatile var suppressAgentAudio = false
     var appOwnedAudio = false
@@ -93,10 +108,11 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     var noiseSuppressor: NoiseSuppressor? = null
     @Volatile var captureThread: Thread? = null
     @Volatile var captureRunning = false
+    val trackLock = Any()
     @Volatile var track: AudioTrack? = null
     val queue = PlaybackQueue()
     @Volatile var playThread: Thread? = null
-    @Volatile var framesWritten = 0L
+    val framesWritten = AtomicLong(0L)
     @Volatile var lastOutputLevelAt = 0L
     var focusRequest: AudioFocusRequest? = null
     var previousMode = AudioManager.MODE_NORMAL
@@ -136,7 +152,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       promise.reject("BAD_ARGUMENTS", "A session key, address and start message are required.")
       return
     }
-    val existing = session
+    val existing = synchronized(sessionLock) { session }
     if (existing != null) {
       if (!existing.ended.get()) {
         promise.reject("SESSION_BUSY", "A voice conversation is already running.")
@@ -144,12 +160,13 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       }
       // Previous session is already tearing down on the worker thread; wait for release to complete.
       val released = java.util.concurrent.CountDownLatch(1)
-      try {
-        worker.execute { released.countDown() }
-        released.await(2, TimeUnit.SECONDS)
-      } catch (_: Exception) {
+      if (runOnWorker { released.countDown() }) {
+        try {
+          released.await(2, TimeUnit.SECONDS)
+        } catch (_: Exception) {
+        }
       }
-      if (session != null) {
+      if (synchronized(sessionLock) { session } != null) {
         promise.reject("SESSION_BUSY", "A voice conversation is still closing.")
         return
       }
@@ -182,10 +199,28 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     // again from the student's first words (spoken or typed).
     created.suppressAgentAudio =
       options.hasKey("suppressOpeningAudio") && options.getBoolean("suppressOpeningAudio")
-    created.startPromise = promise
-    session = created
+    created.startPromise.set(promise)
+    val installed = synchronized(sessionLock) {
+      if (session != null) {
+        false
+      } else {
+        session = created
+        true
+      }
+    }
+    if (!installed) {
+      created.startPromise.set(null)
+      LafinaMicrophoneLease.release(ticket)
+      promise.reject("SESSION_BUSY", "A voice conversation is already running.")
+      return
+    }
     try {
-      created.socket = http.newWebSocket(Request.Builder().url(url).build(), Listener(created, initiation))
+      val ws = http.newWebSocket(Request.Builder().url(url).build(), Listener(created, initiation))
+      created.socket = ws
+      if (created.ended.get()) {
+        created.socket = null
+        ws.cancel()
+      }
     } catch (e: Exception) {
       Log.w(TAG, "Conversation socket could not be created (${e.javaClass.simpleName})")
       teardown(created, "connect_failed", 1001)
@@ -200,8 +235,8 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       }
       owner.openedAt = SystemClock.elapsedRealtime()
       webSocket.send(initiation)
-      worker.execute {
-        if (owner.ended.get()) return@execute
+      val submitted = runOnWorker {
+        if (owner.ended.get()) return@runOnWorker
         try {
           prepareAudio(owner)
           startCapture(owner)
@@ -209,8 +244,10 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
         } catch (e: Exception) {
           Log.w(TAG, "Conversation audio could not start (${e.javaClass.simpleName})")
           val focus = e is AudioFocusDeniedException
-          owner.startPromise?.reject(if (focus) "AUDIO_FOCUS_DENIED" else "AUDIO_START_FAILED", "Conversation audio could not start.")
-          owner.startPromise = null
+          owner.startPromise.getAndSet(null)?.reject(
+            if (focus) "AUDIO_FOCUS_DENIED" else "AUDIO_START_FAILED",
+            "Conversation audio could not start.",
+          )
           emit(owner.key, "error") {
             putString("code", if (focus) "AUDIO_FOCUS_DENIED" else "AUDIO_START_FAILED")
             putString(
@@ -219,11 +256,14 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
             )
           }
           teardown(owner, "audio_failed", 1000)
-          return@execute
+          return@runOnWorker
         }
-        owner.startPromise?.resolve(true)
-        owner.startPromise = null
+        owner.startPromise.getAndSet(null)?.resolve(true)
         emit(owner.key, "open")
+      }
+      if (!submitted) {
+        owner.startPromise.getAndSet(null)?.reject("ENDED", "The conversation module is shutting down.")
+        teardown(owner, "invalidated", 1001)
       }
     }
 
@@ -293,9 +333,8 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       if (owner.ended.get()) return
       val status = response?.code ?: 0
       Log.w(TAG, "Conversation socket failed (${t.javaClass.simpleName}, message=${t.message}, HTTP $status)")
-      val start = owner.startPromise
+      val start = owner.startPromise.getAndSet(null)
       if (start != null) {
-        owner.startPromise = null
         start.reject(if (status == 401 || status == 403) "REJECTED" else "CONNECT_FAILED", "The conversation could not connect.")
       } else {
         emit(owner.key, "closed") {
@@ -310,8 +349,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
   private fun remoteEnded(owner: Session, code: Int, reason: String) {
     if (owner.ended.get()) return
     Log.i(TAG, "Conversation closed by remote: code=$code, reason=$reason")
-    owner.startPromise?.reject("CONNECT_FAILED", "The conversation closed before it started.")
-    owner.startPromise = null
+    owner.startPromise.getAndSet(null)?.reject("CONNECT_FAILED", "The conversation closed before it started.")
     emit(owner.key, "closed") {
       putInt("code", code)
       // ElevenLabs close reasons are short status text, never credentials.
@@ -343,11 +381,12 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     owner.focusRequest = request
     if (manager.requestAudioFocus(request) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
       // For example during a phone call: do not talk over it.
+      owner.focusRequest = null
       throw AudioFocusDeniedException()
     }
+    owner.audioPrepared = true
     manager.mode = AudioManager.MODE_IN_COMMUNICATION
     routeAudio(manager)
-    owner.audioPrepared = true
     reactContext.currentActivity?.runOnUiThread {
       reactContext.currentActivity?.volumeControlStream = AudioManager.STREAM_VOICE_CALL
     }
@@ -399,13 +438,24 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       recorder.release()
       throw IllegalStateException("AudioRecord did not initialize")
     }
-    if (AcousticEchoCanceler.isAvailable()) {
-      owner.echoCanceler = AcousticEchoCanceler.create(recorder.audioSessionId)?.apply { enabled = true }
+    var aec: AcousticEchoCanceler? = null
+    var ns: NoiseSuppressor? = null
+    try {
+      if (AcousticEchoCanceler.isAvailable()) {
+        aec = AcousticEchoCanceler.create(recorder.audioSessionId)?.apply { enabled = true }
+      }
+      if (NoiseSuppressor.isAvailable()) {
+        ns = NoiseSuppressor.create(recorder.audioSessionId)?.apply { enabled = true }
+      }
+      recorder.startRecording()
+    } catch (e: Exception) {
+      try { ns?.release() } catch (_: Exception) {}
+      try { aec?.release() } catch (_: Exception) {}
+      try { recorder.release() } catch (_: Exception) {}
+      throw e
     }
-    if (NoiseSuppressor.isAvailable()) {
-      owner.noiseSuppressor = NoiseSuppressor.create(recorder.audioSessionId)?.apply { enabled = true }
-    }
-    recorder.startRecording()
+    owner.echoCanceler = aec
+    owner.noiseSuppressor = ns
     owner.recorder = recorder
     owner.captureRunning = true
     emit(owner.key, "mic") { putBoolean("capturing", true) }
@@ -498,7 +548,16 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       .setTransferMode(AudioTrack.MODE_STREAM)
       .setBufferSizeInBytes(maxOf(minBuffer * 2, 6400))
       .build()
-    track.play()
+    if (track.state != AudioTrack.STATE_INITIALIZED) {
+      try { track.release() } catch (_: Exception) {}
+      throw IllegalStateException("AudioTrack did not initialize")
+    }
+    try {
+      track.play()
+    } catch (e: Exception) {
+      try { track.release() } catch (_: Exception) {}
+      throw e
+    }
     owner.track = track
     val thread = Thread({
       while (!owner.ended.get()) {
@@ -537,7 +596,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
             emit(owner.key, "output_level") { putDouble("level", outLevel) }
           }
           offset += written
-          owner.framesWritten += written / 2
+          owner.framesWritten.addAndGet((written / 2).toLong())
         }
       }
     }, "lafina-voice-playback")
@@ -547,7 +606,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
 
   private fun drained(owner: Session, track: AudioTrack): Boolean =
     try {
-      (track.playbackHeadPosition.toLong() and 0xffffffffL) >= owner.framesWritten
+      (track.playbackHeadPosition.toLong() and 0xffffffffL) >= owner.framesWritten.get()
     } catch (_: Exception) {
       true
     }
@@ -555,14 +614,17 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
   /** Silences LAFINA at once: queued and buffered audio are dropped, never replayed. */
   private fun flushPlayback(owner: Session) {
     owner.queue.flush()
-    val track = owner.track ?: return
-    try {
-      track.pause()
-      track.flush()
-      track.stop()
-      owner.framesWritten = 0
-      track.play()
-    } catch (_: Exception) {
+    synchronized(owner.trackLock) {
+      val track = owner.track ?: return
+      if (owner.ended.get()) return
+      try {
+        track.pause()
+        track.flush()
+        track.stop()
+        owner.framesWritten.set(0L)
+        if (!owner.ended.get()) track.play()
+      } catch (_: Exception) {
+      }
     }
     if (owner.speaking) {
       owner.speaking = false
@@ -578,10 +640,10 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       promise.resolve(false)
       return
     }
-    worker.execute {
+    val submitted = runOnWorker {
       if (owner.ended.get()) {
         promise.resolve(false)
-        return@execute
+        return@runOnWorker
       }
       owner.muted = muted
       try {
@@ -593,6 +655,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
         promise.reject("MIC_FAILED", "The microphone could not restart.")
       }
     }
+    if (!submitted) promise.resolve(false)
   }
 
   /** Stops LAFINA's current answer; the conversation and microphone continue. */
@@ -638,7 +701,11 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       promise.resolve(false)
       return
     }
-    worker.execute {
+    val submitted = runOnWorker {
+      teardown(owner, "client", 1000)
+      promise.resolve(true)
+    }
+    if (!submitted) {
       teardown(owner, "client", 1000)
       promise.resolve(true)
     }
@@ -697,8 +764,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       emit(owner.key, "output_level") { putDouble("level", 0.0) }
       emit(owner.key, "playback") { putBoolean("speaking", false) }
     }
-    owner.startPromise?.reject("ENDED", "The conversation ended before it started.")
-    owner.startPromise = null
+    owner.startPromise.getAndSet(null)?.reject("ENDED", "The conversation ended before it started.")
     // A graceful close, so ElevenLabs records a hang-up as a normal close
     // (1000) and real network drops (1006) stay recognisable in its history.
     // Cancelling right after close() aborted the handshake and every hang-up
@@ -713,6 +779,15 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     if (!closing) socket?.cancel()
     stopCapture(owner)
     owner.queue.close()
+    // Unblock any WRITE_BLOCKING call in playThread before joining it.
+    synchronized(owner.trackLock) {
+      try {
+        owner.track?.pause()
+        owner.track?.flush()
+        owner.track?.stop()
+      } catch (_: Exception) {
+      }
+    }
     owner.playThread?.let {
       try {
         it.join(500)
@@ -720,13 +795,13 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       }
     }
     owner.playThread = null
-    try {
-      owner.track?.pause()
-      owner.track?.flush()
-      owner.track?.release()
-    } catch (_: Exception) {
+    synchronized(owner.trackLock) {
+      try {
+        owner.track?.release()
+      } catch (_: Exception) {
+      }
+      owner.track = null
     }
-    owner.track = null
     if (owner.audioPrepared) {
       val manager = audioManager()
       try {
@@ -746,7 +821,9 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       }
     }
     LafinaMicrophoneLease.release(owner.ticket)
-    if (session === owner) session = null
+    synchronized(sessionLock) {
+      if (session === owner) session = null
+    }
     emit(owner.key, "ended") { putString("reason", reason) }
   }
 
@@ -768,6 +845,13 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     session?.let { teardown(it, "invalidated", 1001) }
     reactContext.removeLifecycleEventListener(this)
     worker.shutdown()
+    if (httpInitialized) {
+      try {
+        http.dispatcher.executorService.shutdown()
+        http.connectionPool.evictAll()
+      } catch (_: Exception) {
+      }
+    }
     super.invalidate()
   }
 

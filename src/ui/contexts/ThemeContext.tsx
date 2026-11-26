@@ -197,17 +197,30 @@ export const ThemeProvider: React.FC<{
 
   const capturingRef = useRef(false);
   const revealPendingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const activeUserIdRef = useRef(userId);
+  activeUserIdRef.current = userId;
+  const isDarkModeRef = useRef(isDarkMode);
+  isDarkModeRef.current = isDarkMode;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const toggleTheme = useCallback(
     (origin?: ThemeRevealOrigin | null) => {
-      const flip = (): void =>
-        setIsDarkMode(prev => {
-          const next = !prev;
-          if (userId) {
-            userStore.setDarkModeEnabled(userId, next);
-          }
-          return next;
-        });
+      const reqUserId = userId;
+      const flip = (): void => {
+        const next = !isDarkModeRef.current;
+        isDarkModeRef.current = next;
+        setIsDarkMode(next);
+        if (reqUserId) {
+          userStore.setDarkModeEnabled(reqUserId, next);
+        }
+      };
 
       if (!isThemeRevealAvailable()) {
         flip();
@@ -215,11 +228,25 @@ export const ThemeProvider: React.FC<{
       }
       if (capturingRef.current) return;
       capturingRef.current = true;
-      void captureForReveal(origin).then(captured => {
-        capturingRef.current = false;
-        revealPendingRef.current = captured;
-        flip();
-      });
+      void captureForReveal(origin).then(
+        captured => {
+          capturingRef.current = false;
+          if (!mountedRef.current || activeUserIdRef.current !== reqUserId) {
+            if (captured) revealNewTheme();
+            return;
+          }
+          revealPendingRef.current = captured;
+          flip();
+        },
+        () => {
+          capturingRef.current = false;
+          if (!mountedRef.current || activeUserIdRef.current !== reqUserId) {
+            return;
+          }
+          revealPendingRef.current = false;
+          flip();
+        },
+      );
     },
     [userId],
   );

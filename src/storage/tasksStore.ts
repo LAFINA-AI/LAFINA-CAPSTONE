@@ -322,12 +322,26 @@ export const tasksStore = {
               `UPDATE reminders SET status = 'acknowledged', updated_at = ? WHERE id = ?`,
               [now, rem.id],
             );
+            const remRow = tx.executeSync(
+              `SELECT task, description, scheduled_at, trigger_at, status, snooze_count FROM reminders WHERE id = ?`,
+              [rem.id],
+            ).rows?.[0] as StoredSyncRow | undefined;
+            const remPayload: Record<string, unknown> = remRow
+              ? {
+                  task: remRow.task,
+                  description: remRow.description ?? null,
+                  scheduled_at: remRow.scheduled_at,
+                  trigger_at: remRow.trigger_at,
+                  status: 'acknowledged',
+                  snooze_count: remRow.snooze_count ?? 0,
+                }
+              : { status: 'acknowledged' };
             syncOutboxStore.enqueueMutation(
               userId,
               'reminder',
               String(rem.id),
               'update',
-              { status: 'acknowledged' },
+              remPayload,
               'account',
               userId,
               tx,
@@ -372,6 +386,7 @@ export const tasksStore = {
       const reminders = remindersForSource(executor, userId, 'task', id, taskRow.title, [
         'pending',
         'snoozed',
+        'triggered',
       ]);
 
       for (const reminder of reminders) {
@@ -591,6 +606,7 @@ export const tasksStore = {
       const reminders = remindersForSource(executor, userId, 'event', id, eventRow.title, [
         'pending',
         'snoozed',
+        'triggered',
       ]);
       for (const reminder of reminders) {
         executor.executeSync(

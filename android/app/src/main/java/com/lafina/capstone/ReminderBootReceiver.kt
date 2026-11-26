@@ -9,6 +9,6 @@ import android.content.Intent
  */
 class ReminderBootReceiver : LafinaReminderReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
-    LafinaReminderModule.restoreScheduledAlarms(context)
+    restoreAsync(context)
   }
 }

@@ -285,10 +285,26 @@ export function LessonQaSkill({
     return () => clearTimeout(timer);
   }, [copiedMsgId]);
 
+  const uploadingRef = useRef(false);
+  const askingRef = useRef(false);
   const prevUserIdRef = useRef(userId);
   useEffect(() => {
     if (prevUserIdRef.current === userId) return;
     prevUserIdRef.current = userId;
+    cancelUploadRef.current = true;
+    requestIdRef.current += 1;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    if (activeCaptureRef.current) {
+      void cancelOfflineSpeechCapture(activeCaptureRef.current.captureId).catch(
+        () => undefined,
+      );
+      activeCaptureRef.current = null;
+      setListening(false);
+    }
+    askingRef.current = false;
+    setAsking(false);
+    setStreamingReply('');
     const next = materialStore.listMaterials(userId);
     setMaterials(next);
     setMsgCounts(materialStore.getMessageCountsByScope(userId));
@@ -520,7 +536,9 @@ export function LessonQaSkill({
   };
 
   const handleUpload = async () => {
-    if (uploading) return;
+    if (uploadingRef.current || uploading) return;
+    const reqUserId = userId;
+    uploadingRef.current = true;
     setNotice(null);
     cancelUploadRef.current = false;
     setCancellingUpload(false);
@@ -535,12 +553,16 @@ export function LessonQaSkill({
     try {
       const outcome = await ingestMaterialForUser(userId, {
         onProgress: next => {
-          if (mountedRef.current) setProgress(next);
+          if (mountedRef.current && prevUserIdRef.current === reqUserId)
+            setProgress(next);
         },
-        isCancelled: () => cancelUploadRef.current || !mountedRef.current,
+        isCancelled: () =>
+          cancelUploadRef.current ||
+          !mountedRef.current ||
+          prevUserIdRef.current !== reqUserId,
       });
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || prevUserIdRef.current !== reqUserId) return;
       if (outcome.status === 'cancelled') {
         setNotice({text: 'Upload cancelled.'});
         return;
@@ -566,13 +588,14 @@ export function LessonQaSkill({
         text: `Indexed "${outcome.material.title}" (${outcome.material.chunkCount} passages).${warnText}`,
       });
     } catch (e) {
-      if (mountedRef.current) {
+      if (mountedRef.current && prevUserIdRef.current === reqUserId) {
         setNotice({
           text: (e as Error).message || 'Could not import that file.',
           danger: true,
         });
       }
     } finally {
+      uploadingRef.current = false;
       if (mountedRef.current) {
         setUploading(false);
         setCancellingUpload(false);
@@ -586,7 +609,8 @@ export function LessonQaSkill({
     scopeOverride?: {scopeKey: string; materialIds: string[] | null},
   ) => {
     const trimmed = (override ?? question).trim();
-    if (!trimmed || asking || materials.length === 0) return;
+    if (!trimmed || askingRef.current || asking || materials.length === 0) return;
+    askingRef.current = true;
     setNotice(null);
     if (!override) setQuestion('');
     const reqId = ++requestIdRef.current;
@@ -671,10 +695,13 @@ export function LessonQaSkill({
         });
       }
     } finally {
-      if (mountedRef.current && requestIdRef.current === reqId) {
+      if (requestIdRef.current === reqId) {
+        askingRef.current = false;
         abortControllerRef.current = null;
-        setAsking(false);
-        setStreamingReply('');
+        if (mountedRef.current) {
+          setAsking(false);
+          setStreamingReply('');
+        }
       }
     }
   };
@@ -692,7 +719,9 @@ export function LessonQaSkill({
       return;
     }
     setNotice(null);
+    const reqUserId = userId;
     const permitted = await ensureMicrophonePermission();
+    if (!mountedRef.current || prevUserIdRef.current !== reqUserId) return;
     if (!permitted) {
       setNotice({
         text: 'Allow microphone permission in Settings to dictate questions.',
@@ -700,16 +729,18 @@ export function LessonQaSkill({
       });
       return;
     }
+    let myCaptureId: string | null = null;
     try {
       const handle = startOfflineSpeechCapture({
         mode: 'manual',
         bargeIn: false,
         context: 'main_mic',
       });
+      myCaptureId = handle.captureId;
       activeCaptureRef.current = handle;
       setListening(true);
       const res = await handle.result;
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || prevUserIdRef.current !== reqUserId) return;
       if (activeCaptureRef.current?.captureId === handle.captureId) {
         activeCaptureRef.current = null;
         setListening(false);
@@ -726,9 +757,14 @@ export function LessonQaSkill({
         prev.trim() ? `${prev.trim()} ${transcript}` : transcript,
       );
     } catch (e) {
-      if (!mountedRef.current) return;
-      activeCaptureRef.current = null;
-      setListening(false);
+      if (!mountedRef.current || prevUserIdRef.current !== reqUserId) return;
+      if (
+        myCaptureId === null ||
+        activeCaptureRef.current?.captureId === myCaptureId
+      ) {
+        activeCaptureRef.current = null;
+        setListening(false);
+      }
       if (isMicrophoneBusyError(e)) {
         setNotice({
           text: 'Microphone is busy right now. Try again in a moment.',
@@ -755,11 +791,14 @@ export function LessonQaSkill({
       setNotice({text: 'Copy is unavailable in this build.', danger: true});
       return;
     }
+    const reqUserId = userId;
     try {
       await clipboard.copy(text);
+      if (!mountedRef.current || prevUserIdRef.current !== reqUserId) return;
       if (msgId) setCopiedMsgId(msgId);
       setNotice({text: successLabel});
     } catch (e) {
+      if (!mountedRef.current || prevUserIdRef.current !== reqUserId) return;
       setNotice({
         text: (e as Error).message || 'Could not copy to clipboard.',
         danger: true,

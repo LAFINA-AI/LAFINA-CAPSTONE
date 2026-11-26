@@ -458,14 +458,18 @@ export const playSpeechFile = async (filePath: string): Promise<boolean> => {
 export const stopSpeechPlayback = async (): Promise<void> => {
   activeSpeech?.stop();
   try {
-    await Tts.stop();
+    await bounded(Tts.stop() as Promise<unknown>, TTS_SETTING_TIMEOUT_MS, 'Stop');
   } catch {
-    // Ignore stop errors when engine is idle
+    // Ignore stop errors or timeouts when engine is idle or wedged
   }
   const nativeModule = getNativeAudioPlayer();
   if (nativeModule?.stopAudio) {
     try {
-      await nativeModule.stopAudio();
+      await bounded(
+        nativeModule.stopAudio(),
+        TTS_SETTING_TIMEOUT_MS,
+        'Native audio stop',
+      );
     } catch {
       // Ignore native audio stop errors
     }
@@ -478,24 +482,32 @@ export const stopSpeechPlayback = async (): Promise<void> => {
  */
 export const stopOwnedSpeech = async (token: number): Promise<boolean> => {
   if (!activeSpeech || activeSpeech.token !== token) return false;
+  const seqAtStop = speechSequence;
   activeSpeech.stop();
+  if (speechSequence !== seqAtStop) return true;
   try {
-    await Tts.stop();
+    await bounded(Tts.stop() as Promise<unknown>, TTS_SETTING_TIMEOUT_MS, 'Stop');
   } catch {
     // Ignore stop errors when engine is idle
   }
   return true;
 };
 
-const normalizeUtterance = (text: string): string =>
+const MAX_ANDROID_TTS_CHARS = 3900;
+
+const normalizeUtterance = (text: string): string => {
   // Strip Markdown formatting and list bullets so TTS never speaks asterisks,
   // hashes, or "bullet", and avoid capitalizing LAFINA so Android TTS
   // pronounces it naturally ("lah-fee-nah").
-  chatMarkdownToPlainText(text)
+  const clean = chatMarkdownToPlainText(text)
     .replace(/^\s*[•◦]\s+/gm, '')
     .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
     .replace(/\bLAFINA\b/g, 'lafina')
     .trim();
+  return clean.length > MAX_ANDROID_TTS_CHARS
+    ? clean.slice(0, MAX_ANDROID_TTS_CHARS).trimEnd()
+    : clean;
+};
 
 const eventUtteranceId = (event: unknown): string | null => {
   if (typeof event === 'string') return event;
@@ -526,6 +538,7 @@ const speakOwned = (
     }
     const token = ++speechSequence;
     let settled = false;
+    let speakInvoked = false;
     let ownId: string | null = null;
     let idKnown = false;
     const early: Array<{kind: OwnedSpeechOutcome; id: string | null}> = [];
@@ -551,6 +564,7 @@ const speakOwned = (
 
     const handle = (kind: OwnedSpeechOutcome, event: unknown) => {
       const id = eventUtteranceId(event);
+      if (!speakInvoked) return;
       if (!idKnown && id !== null) {
         early.push({kind, id});
         return;
@@ -600,6 +614,7 @@ const speakOwned = (
         ) as unknown as {remove?: () => void};
       }
 
+      speakInvoked = true;
       const started = Tts.speak(trimmed) as unknown;
       const onId = (id: unknown) => {
         idKnown = true;

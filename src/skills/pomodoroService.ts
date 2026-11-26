@@ -13,6 +13,7 @@ import {newPomodoro, reconcilePomodoro} from './studyLogic';
 import type {PomodoroState} from './studyLogic';
 import {captureOwnerWork} from '../storage/ownerWorkEpoch';
 const changes = new Map<string, number>();
+let nativeOpSeq = 0;
 
 interface FocusNative {
   schedule: (
@@ -30,7 +31,13 @@ const native = (): FocusNative | undefined =>
 const listeners = new Map<string, Set<() => void>>();
 
 const notify = (owner: string): void => {
-  for (const listener of Array.from(listeners.get(owner) ?? [])) listener();
+  for (const listener of Array.from(listeners.get(owner) ?? [])) {
+    try {
+      listener();
+    } catch (error) {
+      console.warn('[pomodoroService] Listener failed:', error);
+    }
+  }
 };
 
 /** The page re-reads the timer when the call changed it. */
@@ -83,11 +90,15 @@ export const applyPomodoro = async (
   try {
     if (options.starting || next.deadline) {
       if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED)
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED)
+            notice = 'Notifications are off. The visual timer still works.';
+        } catch {
           notice = 'Notifications are off. The visual timer still works.';
+        }
       }
       if (!current())
         throw new Error(
@@ -104,12 +115,24 @@ export const applyPomodoro = async (
       }
       if (next.deadline) {
         const focus = native();
+        const myNativeOp = ++nativeOpSeq;
         const exact = await focus?.schedule(
           owner,
           next.deadline,
           next.mode === 'Focus 25',
           next.silence,
         );
+        if (!current()) {
+          if (
+            nativeOpSeq === myNativeOp &&
+            (!ownerCurrent() || !readPomodoro(owner).deadline)
+          ) {
+            await native()?.cancel().catch(() => undefined);
+          }
+          throw new Error(
+            'The timer or active account changed. Please try again.',
+          );
+        }
         if (exact === false)
           notice =
             'Exact alarms are not allowed. The session notification may arrive late.';
@@ -117,7 +140,13 @@ export const applyPomodoro = async (
           notice = 'Background notifications are unavailable in this build.';
       }
     } else {
+      nativeOpSeq += 1;
       await native()?.cancel();
+      if (!current()) {
+        throw new Error(
+          'The timer or active account changed. Please try again.',
+        );
+      }
     }
     notify(owner);
     return {state: next, ...(notice ? {notice} : {})};

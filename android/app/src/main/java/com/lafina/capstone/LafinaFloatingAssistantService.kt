@@ -166,13 +166,19 @@ class LafinaFloatingAssistantService : Service(), FloatingOrbView.Listener {
      * Starts the service. Callers only do this while a LAFINA activity is
      * visible, which is what allows a foreground-service start.
      */
+    @Volatile private var pendingStart = false
+    @Volatile private var stopBeforeStart = false
+
     fun start(context: Context): Boolean {
       if (!canRun(context)) return false
+      stopBeforeStart = false
+      pendingStart = true
       return try {
         ContextCompat.startForegroundService(
             context, Intent(context, LafinaFloatingAssistantService::class.java).setAction(ACTION_START))
         true
       } catch (e: Exception) {
+        pendingStart = false
         Log.w(TAG, "Could not start the floating assistant: ${e.javaClass.simpleName}")
         false
       }
@@ -181,7 +187,11 @@ class LafinaFloatingAssistantService : Service(), FloatingOrbView.Listener {
     fun stop(context: Context) {
       val service = instance
       if (service != null) {
+        stopBeforeStart = false
         service.handler.post { service.shutDown() }
+      } else if (pendingStart) {
+        // Let the pending startForegroundService() enter startForeground() first, then stop.
+        stopBeforeStart = true
       } else {
         context.stopService(Intent(context, LafinaFloatingAssistantService::class.java))
       }
@@ -306,7 +316,9 @@ class LafinaFloatingAssistantService : Service(), FloatingOrbView.Listener {
       hideUntilAppOpen(showToast = false)
       return START_NOT_STICKY
     }
-    if (!canRun(this)) {
+    pendingStart = false
+    if (!canRun(this) || stopBeforeStart) {
+      stopBeforeStart = false
       if (intent != null) {
         // Satisfy startForegroundService() contract before stopping so Android
         // never throws ForegroundServiceDidNotStartInTimeException.
@@ -804,6 +816,8 @@ class LafinaFloatingAssistantService : Service(), FloatingOrbView.Listener {
     Log.i(TAG, "Stopping")
     shuttingDown = true
     handler.removeCallbacks(showRunnable)
+    handler.removeCallbacks(launchCheck)
+    handler.removeCallbacks(hideHintRunnable)
     removeOrb()
     try {
       stopForeground(STOP_FOREGROUND_REMOVE)

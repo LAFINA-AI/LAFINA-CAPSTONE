@@ -187,11 +187,19 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   };
   let offer: UpdateManifest | null = null;
   let inFlight: Promise<UpdateState> | null = null;
+  let quietInFlight = true;
+  let installInFlight = false;
   const listeners = new Set<(next: UpdateState) => void>();
 
   const setState = (patch: Partial<UpdateState>): UpdateState => {
     state = {...state, ...patch};
-    listeners.forEach(listener => listener(state));
+    for (const listener of [...listeners]) {
+      try {
+        listener(state);
+      } catch (error) {
+        console.warn('[updates] Listener failed:', error);
+      }
+    }
     return state;
   };
 
@@ -275,6 +283,7 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
 
   const runCheck = async (quiet: boolean): Promise<UpdateState> => {
     if (!native) return state;
+    quietInFlight = quiet;
     const before = state;
     setState({phase: 'checking', message: null});
     try {
@@ -284,12 +293,12 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
       const nothingNew = (message: string | null = null): UpdateState => {
         offer = null;
         return setState({
-          phase: quiet ? 'idle' : 'up-to-date',
+          phase: quietInFlight ? 'idle' : 'up-to-date',
           version: null,
           title: null,
           notes: null,
           percent: null,
-          message: quiet ? null : message,
+          message: quietInFlight ? null : message,
           kind: null,
           size: null,
           reason: null,
@@ -373,7 +382,7 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
         percent: ready ? 100 : null,
       });
     } catch (error) {
-      if (quiet) {
+      if (quietInFlight) {
         console.log(`[updates] Background check skipped: ${messageOf(error)}`);
         return setState({
           ...before,
@@ -392,8 +401,12 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
    */
   const check = (request: {quiet?: boolean} = {}): Promise<UpdateState> => {
     if (unsupportedReason || !native) return Promise.resolve(state);
-    if (inFlight) return inFlight;
-    if (state.phase === 'downloading') return Promise.resolve(state);
+    if (inFlight) {
+      if (!request.quiet) quietInFlight = false;
+      return inFlight;
+    }
+    if (state.phase === 'downloading' || state.installing)
+      return Promise.resolve(state);
     inFlight = runCheck(Boolean(request.quiet)).finally(() => {
       inFlight = null;
     });
@@ -471,28 +484,38 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
   };
 
   const install = async (): Promise<InstallOutcome> => {
-    const apk = offer?.apk;
+    const manifest = offer;
+    const apk = manifest?.apk;
     if (
+      installInFlight ||
       !native?.installApk ||
       state.phase !== 'ready' ||
       state.kind !== 'apk' ||
       !apk ||
-      !offer
+      !manifest
     ) {
       return 'failed';
     }
-    if (
-      native.canInstallApks &&
-      !(await native.canInstallApks().catch(() => false))
-    ) {
-      return 'needs-permission';
-    }
+    installInFlight = true;
     try {
+      if (
+        native.canInstallApks &&
+        !(await native.canInstallApks().catch(() => false))
+      ) {
+        return 'needs-permission';
+      }
+      if (
+        state.phase !== 'ready' ||
+        state.kind !== 'apk' ||
+        offer !== manifest
+      ) {
+        return 'failed';
+      }
       setState({message: null});
       await native.installApk({
         versionCode: apk.versionCode,
         sha256: apk.sha256,
-        versionName: offer.version,
+        versionName: manifest.version,
       });
       return 'installing';
     } catch (error) {
@@ -520,6 +543,8 @@ export const createUpdateService = (deps: UpdateServiceDeps = {}) => {
         setState({message: text});
       }
       return 'failed';
+    } finally {
+      installInFlight = false;
     }
   };
 

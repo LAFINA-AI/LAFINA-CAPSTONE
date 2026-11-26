@@ -1,5 +1,5 @@
-import React, {useEffect, useMemo, useRef} from 'react';
-import {Animated, Easing, StyleSheet, View} from 'react-native';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {Animated, AppState, Easing, StyleSheet, View} from 'react-native';
 import Svg, {
   Circle,
   ClipPath,
@@ -134,9 +134,19 @@ export const LafinaSynthOrb: React.FC<LafinaSynthOrbProps> = React.memo(
     testID = 'modern-tab-synth-orb',
   }) => {
     const reducedMotion = useReducedMotion();
+    const [appActive, setAppActive] = useState(
+      () => AppState.currentState === 'active',
+    );
+    useEffect(() => {
+      const sub = AppState.addEventListener('change', next => {
+        setAppActive(next === 'active');
+      });
+      return () => sub.remove();
+    }, []);
     const isAnimatedDesign = ANIMATED_DESIGN_SET.has(design);
     const shouldAnimate =
       animate &&
+      appActive &&
       isAnimatedDesign &&
       !reducedMotion &&
       process.env.NODE_ENV !== 'test';

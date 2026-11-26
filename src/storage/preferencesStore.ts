@@ -10,7 +10,7 @@ import {
   GUEST_USER_ID,
 } from '../constants';
 import {generateId} from '../utils';
-import {db} from './database';
+import {db, type DatabaseTransaction} from './database';
 import {buildProfileSyncPayload} from './profileSyncPayload';
 import {syncOutboxStore} from './syncOutboxStore';
 
@@ -205,12 +205,11 @@ export const preferencesStore = {
   save: (
     userId: string,
     preferences: UserPreferences,
+    executor?: DatabaseTransaction,
   ): StoredUserPreferences => {
     const normalized = normalizePreferences(preferences);
     const now = new Date().toISOString();
-
-    try {
-      db.transactionSync(tx => {
+    const apply = (tx: DatabaseTransaction) => {
         const existingResult = tx.executeSync(
           'SELECT id FROM user_preferences WHERE user_id = ?',
           [userId],
@@ -273,7 +272,10 @@ export const preferencesStore = {
             tx,
           );
         }
-      });
+    };
+    try {
+      if (executor) apply(executor);
+      else db.transactionSync(apply);
     } catch (error) {
       console.error('Error saving user preferences:', error);
       throw error;

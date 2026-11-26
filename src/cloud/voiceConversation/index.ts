@@ -242,8 +242,14 @@ export const registerVoiceConversation = (
   // Mounting an idle reminder panel must not displace a retained live panel.
   const update = () => {
     if (controller.isActive() && active !== controller) {
-      if (active?.isActive())
-        active.stopForSystem('Another conversation started.');
+      if (active?.isActive()) {
+        const displaced = active;
+        displaced.stopForSystem('Another conversation started.');
+        pendingRelease = Promise.all([
+          pendingRelease,
+          displaced.endAndWait().catch(() => false),
+        ]).then(() => undefined);
+      }
       active = controller;
     }
     notifyVoiceOwner();
@@ -265,9 +271,10 @@ export const endActiveVoiceConversation = (reason: string): void => {
   const controller = active;
   if (!controller) return;
   controller.stopForSystem(reason);
-  pendingRelease = Promise.all([pendingRelease, controller.endAndWait()]).then(
-    () => undefined,
-  );
+  pendingRelease = Promise.all([
+    pendingRelease,
+    controller.endAndWait().catch(() => false),
+  ]).then(() => undefined);
 };
 
 /** Wait for a previously interrupted conversation to release native audio. */

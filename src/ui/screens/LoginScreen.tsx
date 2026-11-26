@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {Check, Lock, Mail} from 'lucide-react-native';
 import {Fonts} from '../theme';
@@ -30,6 +30,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
+  const mountedRef = useRef(true);
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const {colors, isDarkMode} = useTheme();
 
@@ -51,7 +60,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   const handleLogin = async () => {
-    if (loading) return;
+    if (submittingRef.current || loading) return;
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password.trim()) {
@@ -59,6 +68,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -68,6 +78,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             migrateGuestData: true,
           })
         : await accountLinkService.login(trimmedEmail, password);
+      if (!mountedRef.current) return;
       if (
         (result.status === 'success' || result.status === 'local_only') &&
         result.localUserId
@@ -97,11 +108,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         setError(result.message);
       }
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : 'An error occurred during login',
-      );
+      if (mountedRef.current) {
+        setError(
+          err instanceof Error ? err.message : 'An error occurred during login',
+        );
+      }
     } finally {
-      setLoading(false);
+      submittingRef.current = false;
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 

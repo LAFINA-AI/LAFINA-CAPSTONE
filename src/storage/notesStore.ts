@@ -1,5 +1,6 @@
 import {db, DatabaseTransaction} from './database';
 import {syncOutboxStore} from './syncOutboxStore';
+import {generateId} from '../utils';
 
 export interface Note {
   id: string;
@@ -20,9 +21,12 @@ export interface Note {
 export const mapRowToNote = (row: any): Note => {
   let tags: string[] = [];
   try {
-    tags = JSON.parse(row.tags || '[]');
+    const parsed: unknown = JSON.parse(row.tags || '[]');
+    tags = Array.isArray(parsed)
+      ? parsed.filter((t): t is string => typeof t === 'string')
+      : [];
   } catch {
-    tags = row.tags ? row.tags.split(',') : [];
+    tags = typeof row.tags === 'string' && row.tags ? row.tags.split(',') : [];
   }
 
   return {
@@ -198,8 +202,8 @@ export const notesStore = {
     sets.push('updated_at = ?');
     params.push(now);
     params.push(note.id);
-    const hasCloudChange = Object.keys(note).some(
-      key => key !== 'id' && key !== 'imageUri',
+    const hasCloudChange = fields.some(
+      ({key}) => key !== 'imageUri' && note[key] !== undefined,
     );
 
     try {
@@ -284,7 +288,7 @@ export const notesStore = {
   },
 
   addCustomCategory: (userId: string, name: string, color: string): void => {
-    const id = 'cat_' + Math.random().toString(36).substr(2, 9);
+    const id = generateId('cat');
     const now = new Date().toISOString();
     try {
       db.transactionSync(tx => {

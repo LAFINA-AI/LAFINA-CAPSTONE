@@ -83,6 +83,19 @@ class DraftRegistry {
     },
   ): TransientDraft {
     const now = Date.now();
+    for (const [id, existing] of this.drafts.entries()) {
+      if (
+        (existing.status === 'pending' && now >= existing.expiresAt) ||
+        (existing.status !== 'pending' && now - existing.updatedAt >= DRAFT_TTL_MS)
+      ) {
+        this.drafts.delete(id);
+      }
+    }
+    while (this.drafts.size >= 100) {
+      const oldest = this.drafts.keys().next().value;
+      if (oldest === undefined) break;
+      this.drafts.delete(oldest);
+    }
     const draft: TransientDraft = {
       ...data,
       createdAt: now,

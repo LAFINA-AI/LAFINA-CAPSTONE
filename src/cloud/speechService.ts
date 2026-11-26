@@ -195,11 +195,109 @@ export const createCallSpeechProvider = (
     (() => localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true');
   let capabilityChecked = false;
   let elevenlabsAvailable = false;
+  let capabilityCheckInFlight: Promise<{
+    available: boolean;
+    reason?: string;
+  }> | null = null;
+  let capabilityCheckController: AbortController | null = null;
+  const MAX_PREPARED_AUDIO_PATHS = 8;
+  const MAX_PREPARATION_FAILURES = 32;
   const preparedAudioPaths = new Map<string, string>();
   const preparations = new Map<string, Promise<string | null>>();
   /** Why a preparation failed, so the fallback notice gives the real reason. */
   const preparationFailures = new Map<string, string>();
-  const preparationControllers = new Set<AbortController>();
+  const preparationControllers = new Map<string, AbortController>();
+  const setPreparedAudioPath = (key: string, path: string) => {
+    const previous = preparedAudioPaths.get(key);
+    if (previous && previous !== path) {
+      RNFS.unlink(previous).catch(() => undefined);
+    }
+    preparedAudioPaths.delete(key);
+    while (preparedAudioPaths.size >= MAX_PREPARED_AUDIO_PATHS) {
+      const oldestKey = preparedAudioPaths.keys().next().value;
+      if (oldestKey === undefined) break;
+      const oldestPath = preparedAudioPaths.get(oldestKey);
+      preparedAudioPaths.delete(oldestKey);
+      if (oldestPath) RNFS.unlink(oldestPath).catch(() => undefined);
+    }
+    preparedAudioPaths.set(key, path);
+  };
+  const recordPreparationFailure = (key: string, reason: string) => {
+    preparationFailures.delete(key);
+    while (preparationFailures.size >= MAX_PREPARATION_FAILURES) {
+      const oldestKey = preparationFailures.keys().next().value;
+      if (oldestKey === undefined) break;
+      preparationFailures.delete(oldestKey);
+    }
+    preparationFailures.set(key, reason);
+  };
+  const ensureElevenLabsCapability = (
+    signal: AbortSignal,
+  ): Promise<{available: boolean; reason?: string} | null> => {
+    if (signal.aborted) return Promise.resolve(null);
+    if (capabilityChecked && !capabilityCheckInFlight) {
+      return Promise.resolve({available: elevenlabsAvailable});
+    }
+    if (!capabilityCheckInFlight || capabilityCheckController?.signal.aborted) {
+      const sharedController = new AbortController();
+      capabilityCheckController = sharedController;
+      const run = cloudClient
+        .request<{
+          provider: string;
+          enabled: boolean;
+        }>(
+          '/v1/ai/tts/capabilities',
+          {method: 'GET', signal: sharedController.signal},
+          true,
+        )
+        .then(
+          capability => {
+            const available =
+              capability.status === 'success' &&
+              capability.data?.provider === 'elevenlabs' &&
+              capability.data.enabled === true;
+            if (!disposed && !sharedController.signal.aborted) {
+              elevenlabsAvailable = available;
+              // A temporary outage must not disable online voice for the lifetime of Chat.
+              capabilityChecked = available;
+            }
+            return {
+              available,
+              reason: available
+                ? undefined
+                : capability.error ||
+                  'The online voice is not available right now.',
+            };
+          },
+          () => ({
+            available: false,
+            reason: 'The online voice is not available right now.',
+          }),
+        );
+      capabilityCheckInFlight = run;
+      void run.finally(() => {
+        void Promise.resolve().then(() => {
+          if (capabilityCheckInFlight === run) {
+            capabilityCheckInFlight = null;
+            capabilityCheckController = null;
+          }
+        });
+      });
+    }
+    const shared = capabilityCheckInFlight;
+    let onAbort: (() => void) | null = null;
+    const aborted = new Promise<null>(resolve => {
+      onAbort = () => resolve(null);
+      signal.addEventListener('abort', onAbort, {once: true});
+    });
+    return Promise.race([
+      shared.then(result => {
+        if (onAbort) signal.removeEventListener('abort', onAbort);
+        return result;
+      }),
+      aborted,
+    ]);
+  };
   const safeUserId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
   let activePlaybackController: AbortController | null = null;
   let cancellationSequence = 0;
@@ -334,25 +432,13 @@ export const createCallSpeechProvider = (
       voiceStillCurrent(voiceId);
 
     try {
-      if (!capabilityChecked) {
-        const capability = await cloudClient.request<{
-          provider: string;
-          enabled: boolean;
-        }>(
-          '/v1/ai/tts/capabilities',
-          {method: 'GET', signal: controller.signal},
-          true,
-        );
-        if (!stillWanted()) return null;
-        elevenlabsAvailable =
-          capability.status === 'success' &&
-          capability.data?.provider === 'elevenlabs' &&
-          capability.data.enabled === true;
-        // A temporary outage must not disable online voice for the lifetime of Chat.
-        capabilityChecked = elevenlabsAvailable;
-        if (!elevenlabsAvailable)
+      if (!capabilityChecked || capabilityCheckInFlight) {
+        const capability = await ensureElevenLabsCapability(controller.signal);
+        if (!stillWanted() || !capability) return null;
+        if (!capability.available) {
           outcome.reason =
-            capability.error || 'The online voice is not available right now.';
+            capability.reason || 'The online voice is not available right now.';
+        }
       }
       // Never invoke the retired Gemini endpoint on an old/unmigrated server.
       if (!elevenlabsAvailable || !stillWanted()) return null;
@@ -484,7 +570,7 @@ export const createCallSpeechProvider = (
       const controller = new AbortController();
       const failure: RequestOutcome = {};
       preparationFailures.delete(cacheKey);
-      preparationControllers.add(controller);
+      preparationControllers.set(cacheKey, controller);
       try {
         const audioPath = await requestElevenLabsAudio(
           normalizedText,
@@ -494,7 +580,9 @@ export const createCallSpeechProvider = (
           failure,
         );
         if (!audioPath) {
-          if (failure.reason) preparationFailures.set(cacheKey, failure.reason);
+          if (failure.reason) {
+            recordPreparationFailure(cacheKey, failure.reason);
+          }
           return null;
         }
         if (
@@ -506,10 +594,12 @@ export const createCallSpeechProvider = (
           RNFS.unlink(audioPath).catch(() => undefined);
           return null;
         }
-        preparedAudioPaths.set(cacheKey, audioPath);
+        setPreparedAudioPath(cacheKey, audioPath);
         return audioPath;
       } finally {
-        preparationControllers.delete(controller);
+        if (preparationControllers.get(cacheKey) === controller) {
+          preparationControllers.delete(cacheKey);
+        }
       }
     })();
 
@@ -529,7 +619,10 @@ export const createCallSpeechProvider = (
     cancellationSequence += 1;
     activePlaybackController?.abort();
     activePlaybackController = null;
-    for (const controller of preparationControllers) controller.abort();
+    capabilityCheckController?.abort();
+    capabilityCheckController = null;
+    capabilityCheckInFlight = null;
+    for (const controller of preparationControllers.values()) controller.abort();
     await Promise.resolve(stopSpeechPlayback()).catch(() => undefined);
   };
 
@@ -658,6 +751,11 @@ export const createCallSpeechProvider = (
       }
     }
     const key = JSON.stringify([voiceId, normalizeText(chunk)]);
+    const controller = preparationControllers.get(key);
+    if (controller) {
+      preparationControllers.delete(key);
+      controller.abort();
+    }
     const path = preparedAudioPaths.get(key);
     if (path) {
       preparedAudioPaths.delete(key);
@@ -675,6 +773,7 @@ export const createCallSpeechProvider = (
 
   const speakChunks = async (chunks: string[]): Promise<CallSpeechResult> => {
     const chain = ++speechChain;
+    wakeStreams();
     const current = () => chain === speechChain && !disposed;
     let fallbackReason: string | undefined;
     for (let index = 0; index < chunks.length; index += 1) {
@@ -691,13 +790,14 @@ export const createCallSpeechProvider = (
       }
       if (result.source === 'native_tts') {
         if (next) releasePrepared(next, voiceIdAtStart);
-        // Online speech failed: read the rest with the device voice at once
-        // instead of retrying ElevenLabs for every remaining piece.
+        // Online speech failed: read remaining pieces sequentially with the
+        // device voice so long replies stay under Android's utterance cap
+        // and Stop can cancel between pieces.
         fallbackReason = result.fallbackReason;
-        const rest = chunks.slice(index + 1).join(' ');
-        if (rest) {
+        for (let restIdx = index + 1; restIdx < chunks.length; restIdx += 1) {
+          if (!current()) return {source: 'cancelled'};
           try {
-            await speakTextWithTts(rest);
+            await speakTextWithTts(chunks[restIdx]);
           } catch {
             fallbackReason =
               fallbackReason || 'Speech could not play on this device.';
@@ -723,6 +823,7 @@ export const createCallSpeechProvider = (
       const chunks = splitForSpeech(spoken);
       if (chunks.length <= 1 || options?.fallbackAudioPath) {
         speechChain += 1;
+        wakeStreams();
         return await runSpeakText(spoken || text, options);
       }
       return await speakChunks(chunks);
@@ -733,6 +834,7 @@ export const createCallSpeechProvider = (
 
   const startSpeechStream = (): SpeechStream => {
     const chain = ++speechChain;
+    wakeStreams();
     const current = () => chain === speechChain && !disposed;
     let latest = '';
     let finished = false;
@@ -810,16 +912,32 @@ export const createCallSpeechProvider = (
             releasePrepared(piece, voiceIdAtStart);
             break;
           }
+          const waitForCapability = !capabilityChecked;
           upcoming = nextSegment();
+          let prefetchedNext: string | null = null;
           void upcoming
-            .then(next => (next && current() ? prepareText(next) : undefined))
+            .then(async next => {
+              if (!next || !current() || deviceVoice) return;
+              if (waitForCapability) {
+                await Promise.resolve();
+                if (capabilityCheckInFlight) {
+                  await capabilityCheckInFlight.catch(() => undefined);
+                  await Promise.resolve();
+                }
+                if (!current() || deviceVoice) return;
+              }
+              prefetchedNext = next;
+              return prepareText(next);
+            })
             .catch(() => undefined);
           const result = await runSpeakText(piece);
           releasePrepared(piece, voiceIdAtStart);
           if (result.source === 'cancelled' || !current()) {
+            if (prefetchedNext) releasePrepared(prefetchedNext, voiceIdAtStart);
             return {source: 'cancelled'};
           }
           if (result.source === 'native_tts') {
+            if (prefetchedNext) releasePrepared(prefetchedNext, voiceIdAtStart);
             deviceVoice = true;
             fallbackReason = result.fallbackReason;
           } else {
@@ -861,29 +979,38 @@ export const createCallSpeechProvider = (
         notify();
       },
       finish: (finalReply: string) => {
-        if (!finished && current()) {
-          // Keep what was already spoken when the saved reply differs only in
-          // letter case (lafina's name) or adds a note at the end.
-          const said = speakableText(latest).slice(0, consumed).toLowerCase();
-          if (
-            consumed === 0 ||
-            speakableText(finalReply).toLowerCase().startsWith(said)
-          ) {
-            latest = finalReply;
+        if (!finished) {
+          if (current()) {
+            // Keep what was already spoken when the saved reply differs only in
+            // letter case (lafina's name) or adds a note at the end.
+            const said = speakableText(latest).slice(0, consumed).toLowerCase();
+            if (
+              consumed === 0 ||
+              speakableText(finalReply).toLowerCase().startsWith(said)
+            ) {
+              latest = finalReply;
+            }
+            finished = true;
+            markComplete();
+            begin();
+            notify();
+          } else {
+            finished = true;
+            markComplete();
+            notify();
           }
-          finished = true;
-          markComplete();
-          begin();
-          notify();
         }
         if (!started) resolveDone({source: 'cancelled'});
         return done;
       },
       cancel: () => {
-        if (!current()) return;
+        const ownsActive = current();
         finished = true;
         markComplete();
-        void stopSpeech();
+        notify();
+        if (ownsActive) {
+          void stopSpeech();
+        }
         if (!started) resolveDone({source: 'cancelled'});
       },
     };
@@ -898,29 +1025,14 @@ export const createCallSpeechProvider = (
     )
       return;
     const controller = new AbortController();
-    preparationControllers.add(controller);
+    const warmKey = '__warmup__';
+    preparationControllers.set(warmKey, controller);
     try {
-      const capability = await cloudClient.request<{
-        provider: string;
-        enabled: boolean;
-      }>(
-        '/v1/ai/tts/capabilities',
-        {method: 'GET', signal: controller.signal},
-        true,
-      );
-      if (
-        !disposed &&
-        !controller.signal.aborted &&
-        !capabilityChecked &&
-        capability.status === 'success' &&
-        capability.data?.provider === 'elevenlabs' &&
-        capability.data.enabled === true
-      ) {
-        elevenlabsAvailable = true;
-        capabilityChecked = true;
-      }
+      await ensureElevenLabsCapability(controller.signal);
     } finally {
-      preparationControllers.delete(controller);
+      if (preparationControllers.get(warmKey) === controller) {
+        preparationControllers.delete(warmKey);
+      }
     }
   };
 
@@ -931,7 +1043,10 @@ export const createCallSpeechProvider = (
     cancellationSequence += 1;
     activePlaybackController?.abort();
     activePlaybackController = null;
-    for (const controller of preparationControllers) controller.abort();
+    capabilityCheckController?.abort();
+    capabilityCheckController = null;
+    capabilityCheckInFlight = null;
+    for (const controller of preparationControllers.values()) controller.abort();
     // Only silence native playback this provider may own; disposing an idle
     // provider (for example a closed preview sheet) must not stop other speech.
     if (activeSpeechOperations > 0) {

@@ -75,7 +75,12 @@ const mapRow = (row: Row): RecordedMeeting => {
       : null,
     notes: notes && typeof notes === 'object' ? normalizeNotes(notes) : null,
     notesEdited: row.notes_edited === 1,
-    sectionCache: parseJson<Record<string, MeetingNotes>>(row.section_cache_json, {}),
+    sectionCache: (() => {
+      const parsed = parseJson<unknown>(row.section_cache_json, {});
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, MeetingNotes>)
+        : {};
+    })(),
     recovered: row.recovered === 1,
     source: row.source === 'upload' ? 'upload' : 'recording',
     sourceFileName: typeof row.source_file_name === 'string' ? row.source_file_name : null,
@@ -228,12 +233,20 @@ export const recordedMeetingStore = {
     });
   },
 
-  findInterrupted: (userId: string): RecordedMeeting[] =>
-    recordedMeetingStore
-      .list(userId)
-      .filter((meeting) =>
-        ['recording', 'paused', 'importing', 'transcribing', 'generating_notes'].includes(
-          meeting.status,
-        ),
-      ),
+  findInterrupted: (userId: string): RecordedMeeting[] => {
+    try {
+      return (
+        db.executeSync(
+          `SELECT * FROM recorded_meetings
+            WHERE user_id = ? AND deleted_at IS NULL
+              AND status IN ('recording', 'paused', 'importing', 'transcribing', 'generating_notes')
+            ORDER BY started_at DESC, rowid DESC`,
+          [userId],
+        ).rows ?? []
+      ).map(mapRow);
+    } catch (error) {
+      console.error('Error loading interrupted meetings:', error);
+      return [];
+    }
+  },
 };

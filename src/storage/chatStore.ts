@@ -665,7 +665,7 @@ export const chatStore = {
     const rows = db.executeSync(
       `SELECT s.title,
          (SELECT m.content FROM messages m WHERE m.session_id = s.id AND m.sender = 'user'
-          ORDER BY m.created_at ASC, m.id ASC LIMIT 1) AS first_user
+          ORDER BY m.created_at ASC, m.seq ASC LIMIT 1) AS first_user
        FROM chat_sessions s
        WHERE s.id = ?`,
       [chosen.sessionId],
@@ -1146,7 +1146,7 @@ export const chatStore = {
         const parsed: unknown = row.metadata_json
           ? JSON.parse(String(row.metadata_json))
           : {};
-        if (parsed && typeof parsed === 'object')
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
           metadata = parsed as Record<string, unknown>;
       } catch {
         metadata = {};
@@ -1189,7 +1189,7 @@ export const chatStore = {
         const parsed: unknown = row.metadata_json
           ? JSON.parse(String(row.metadata_json))
           : {};
-        if (parsed && typeof parsed === 'object') {
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
           metadata = parsed as Record<string, unknown>;
         }
       } catch {
@@ -1229,16 +1229,20 @@ export const chatStore = {
     executor?: DatabaseTransaction,
     sessionId?: string | null,
   ): string[] => {
-    const read = (tx: DatabaseTransaction): string[] => {
-      const scope = sessionId
-        ? {
-            sql: 'm.session_id = ?',
-            params: [sessionFor(userId, tx, sessionId).sessionId],
-          }
-        : {
-            sql: `m.session_id IN (${OWNED_SESSIONS})`,
-            params: ownedSessionParams(userId),
-          };
+    const read = (tx: Executor): string[] => {
+      let scope: {sql: string; params: string[]};
+      if (sessionId) {
+        const resolved = executor
+          ? sessionFor(userId, executor, sessionId)
+          : findSessionFor(userId, sessionId);
+        if (!resolved) return [];
+        scope = {sql: 'm.session_id = ?', params: [resolved.sessionId]};
+      } else {
+        scope = {
+          sql: `m.session_id IN (${OWNED_SESSIONS})`,
+          params: ownedSessionParams(userId),
+        };
+      }
       return tx
         .executeSync(
           `SELECT m.attachment_json FROM messages m JOIN chat_sessions s ON s.id = m.session_id
@@ -1250,7 +1254,7 @@ export const chatStore = {
           (uri): uri is string => typeof uri === 'string' && uri.length > 0,
         );
     };
-    return executor ? read(executor) : db.transactionSync(read);
+    return read(executor ?? db);
   },
 
   /** Access check for opening/sharing a file: the URI must be in one of the caller's own chats. */
@@ -1287,8 +1291,8 @@ export const chatStore = {
         [...ownedSessionParams(userId), sessionId],
       );
       tx.executeSync(
-        `UPDATE chat_sessions SET title = 'Default Chat' WHERE id = ?`,
-        [sessionId],
+        `UPDATE chat_sessions SET title = 'Default Chat' WHERE id = ? AND user_id = ?`,
+        [sessionId, userId],
       );
       setCurrentChat(userId, null, tx);
     };

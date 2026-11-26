@@ -51,9 +51,17 @@ internal object FocusTimer {
     val p = prefs(c)
     p.edit().putLong("deadline", deadline).putString("owner", owner).putBoolean("focus", focus).commit()
     val am = c.getSystemService(AlarmManager::class.java)
-    val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
-    if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, deadline, pending(c))
-    else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, deadline, pending(c))
+    var exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
+    if (exact) {
+      try {
+        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, deadline, pending(c))
+      } catch (_: SecurityException) {
+        exact = false
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, deadline, pending(c))
+      }
+    } else {
+      am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, deadline, pending(c))
+    }
     val nm = c.getSystemService(NotificationManager::class.java)
     if (silence && focus && nm.isNotificationPolicyAccessGranted) {
       p.edit().putInt("previousFilter", nm.currentInterruptionFilter).putBoolean("silencing", true).commit()
@@ -92,7 +100,7 @@ internal object FocusTimer {
 
 class FocusTimerReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
-    FocusTimer.receive(context)
+    runCatching { FocusTimer.receive(context) }
   }
 }
 

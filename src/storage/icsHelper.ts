@@ -414,38 +414,6 @@ const resolveDtend = (vevent: any, dtstart: Date): Date => {
 export const MAX_ICS_BYTES = 5 * 1024 * 1024;
 export const MAX_ICS_OCCURRENCES = 10000;
 
-const resolveIcsUtcInstant = (
-  prop: {value?: string; timezone?: string} | undefined,
-  rawValue?: string,
-): Date => {
-  const digits = cleanIcsValue(prop?.value ?? '')
-    .trim()
-    .replace(/Z$/i, '');
-  const match = ICS_DATE_TIME.exec(digits);
-  const isUtc =
-    rawValue !== undefined && /Z$/i.test(cleanIcsValue(rawValue).trim());
-  if (
-    match &&
-    match[4] !== undefined &&
-    !isUtc &&
-    prop?.timezone &&
-    isKnownTimeZone(prop.timezone)
-  ) {
-    try {
-      const date = `${match[1]}-${match[2]}-${match[3]}`;
-      const time = `${match[4]}:${match[5]}`;
-      const sec = Number(match[6] ?? '0');
-      const ms =
-        Date.parse(localToUtc(date, time, prop.timezone, 'earlier')) +
-        sec * 1000;
-      if (Number.isFinite(ms)) return new Date(ms);
-    } catch {
-      // Fall back to raw value parsing below.
-    }
-  }
-  return parseIcsToUtcDate(prop?.value ?? '');
-};
-
 const deriveWallEnd = (start: IcsWall, durationMs: number): IcsWall => {
   const safeDurationMs = durationMs > 0 ? durationMs : 60 * 60 * 1000;
   if (!start.time) return {date: start.date};
@@ -496,7 +464,12 @@ const expandRecurringEvent = (
     for (const ex of vevent.exdate) {
       if (ex && ex.value) {
         const cleanEx = cleanIcsValue(ex.value);
-        ruleSet.exdate(parseIcsDateWithValueTime(cleanEx, dtstart));
+        for (const part of cleanEx.split(',')) {
+          const trimmed = part.trim();
+          if (trimmed) {
+            ruleSet.exdate(parseIcsDateWithValueTime(trimmed, dtstart));
+          }
+        }
       }
     }
   }
@@ -609,7 +582,18 @@ const sanitizeIcsContent = (
       const cleanValue = cleanIcsValue(value);
       if (STRICT_DATE_KEYS.includes(baseKey)) {
         if (!isStrictIcsDateTime(cleanValue)) invalid = true;
-      } else if (!/^\d{8}$/.test(cleanValue.replace(/Z$/, '').split('T')[0])) {
+      } else if (baseKey === 'RDATE' || baseKey === 'EXDATE') {
+        const parts = cleanValue
+          .split(',')
+          .map(part => part.trim())
+          .filter(Boolean);
+        if (
+          parts.length === 0 ||
+          !parts.every(part => /^\d{8}$/.test(part.replace(/Z$/i, '').split('T')[0]))
+        ) {
+          invalid = true;
+        }
+      } else if (!/^\d{8}$/.test(cleanValue.replace(/Z$/i, '').split('T')[0])) {
         invalid = true;
       }
     }
@@ -946,38 +930,63 @@ export const parseIcsString = (
         }
         // Repetitions are retained as floating local wall times, just like events
         // created in Calendar, rather than cut off relative to their original date.
-        const trueUtcStart = resolveIcsUtcInstant(vevent.dtstart, raw?.dtstart);
-        const shift = Math.round(
+        // RFC 5545 BYDAY is defined in DTSTART's own wall timezone (TZID, UTC, or floating),
+        // not always UTC, so compute day shift against DTSTART's written source date.
+        const sourceStart = parseIcsToUtcDate(vevent.dtstart?.value ?? '');
+        const bydayShift = Math.round(
           (Date.parse(`${start.date}T00:00:00Z`) -
-            Date.parse(`${formatUtcDate(trueUtcStart)}T00:00:00Z`)) /
+            Date.parse(`${formatUtcDate(sourceStart)}T00:00:00Z`)) /
             86400000,
         );
+        const here = deviceTimeZone();
         const codes = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
         let localRule = rrule.replace(
           /BYDAY=([^;]+)/i,
           (_match: string, days: string) =>
             `BYDAY=${days
               .split(',')
-              .map(
-                day =>
-                  codes[(codes.indexOf(day.toUpperCase()) + shift + 7) % 7],
-              )
+              .map(day => {
+                const idx = codes.indexOf(day.toUpperCase());
+                return idx === -1
+                  ? day
+                  : codes[(idx + bydayShift + 7) % 7];
+              })
               .join(',')}`,
         );
         localRule = localRule.replace(
-          /UNTIL=(\d{8})(?:T(\d{6})Z?)?/i,
-          (_match: string, day: string, time?: string) => {
-            let lastDate = `${day.slice(0, 4)}-${day.slice(4, 6)}-${day.slice(
+          /UNTIL=(\d{8})(?:T(\d{6})(Z)?)?/i,
+          (_match: string, day: string, time?: string, utcFlag?: string) => {
+            const isoDate = `${day.slice(0, 4)}-${day.slice(4, 6)}-${day.slice(
               6,
               8,
             )}`;
+            if (utcFlag && time && here) {
+              const utcIso = `${isoDate}T${time.slice(0, 2)}:${time.slice(
+                2,
+                4,
+              )}:${time.slice(4, 6)}Z`;
+              try {
+                const local = localDateTime(utcIso, here);
+                const lastDate =
+                  start.time && local.time < start.time
+                    ? addDaysToDate(local.date, -1)
+                    : local.date;
+                return `UNTIL=${lastDate.replace(/-/g, '')}`;
+              } catch {
+                // Fall through to shift-based date handling below.
+              }
+            }
+            let lastDate = isoDate;
             if (
               time &&
               `${time.slice(0, 2)}:${time.slice(2, 4)}` <
-                formatUtcTime(trueUtcStart)
+                formatUtcTime(sourceStart)
             )
               lastDate = addDaysToDate(lastDate, -1);
-            return `UNTIL=${addDaysToDate(lastDate, shift).replace(/-/g, '')}`;
+            return `UNTIL=${addDaysToDate(lastDate, bydayShift).replace(
+              /-/g,
+              '',
+            )}`;
           },
         );
         if (type === 'time_block')

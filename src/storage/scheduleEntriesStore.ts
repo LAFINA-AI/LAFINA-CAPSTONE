@@ -204,6 +204,17 @@ const parseEntries = (raw: string | null): ScheduleAttachedEntry[] => {
   }
 };
 
+const readEntriesStrict = (
+  userId: string,
+  tx: Pick<DatabaseTransaction, 'executeSync'>,
+): ScheduleAttachedEntry[] => {
+  const row = tx.executeSync(
+    'SELECT value FROM local_settings WHERE user_id = ? AND key = ?',
+    [userId, SCHEDULE_ENTRIES_KEY],
+  ).rows?.[0];
+  return parseEntries(typeof row?.value === 'string' ? row.value : null);
+};
+
 const writeEntries = (
   userId: string,
   entries: ScheduleAttachedEntry[],
@@ -276,8 +287,10 @@ export const scheduleEntriesStore = {
       createdAt: now,
       updatedAt: now,
     };
-    const existing = scheduleEntriesStore.getAll(input.userId);
-    writeEntries(input.userId, [...existing, entry]);
+    db.transactionSync(tx => {
+      const existing = readEntriesStrict(input.userId, tx);
+      writeEntries(input.userId, [...existing, entry], tx);
+    });
     return entry;
   },
 
@@ -290,41 +303,45 @@ export const scheduleEntriesStore = {
       entryType?: ScheduleEntryType;
     },
   ): ScheduleAttachedEntry | null => {
-    const existing = scheduleEntriesStore.getAll(userId);
     let updated: ScheduleAttachedEntry | null = null;
-    const next = existing.map(item => {
-      if (item.id !== entryId) return item;
-      const entryType = patch.entryType ?? item.entryType;
-      const rawContent =
-        patch.content !== undefined ? patch.content.trim() : item.content;
-      if (!rawContent) {
-        throw new Error(
-          entryType === 'link' ? 'Enter a link URL.' : 'Enter note text.',
-        );
+    db.transactionSync(tx => {
+      const existing = readEntriesStrict(userId, tx);
+      const next = existing.map(item => {
+        if (item.id !== entryId) return item;
+        const entryType = patch.entryType ?? item.entryType;
+        const rawContent =
+          patch.content !== undefined ? patch.content.trim() : item.content;
+        if (!rawContent) {
+          throw new Error(
+            entryType === 'link' ? 'Enter a link URL.' : 'Enter note text.',
+          );
+        }
+        const content =
+          entryType === 'link' ? normalizeEntryUrl(rawContent) : rawContent;
+        updated = {
+          ...item,
+          entryType,
+          title: patch.title !== undefined ? patch.title.trim() : item.title,
+          content,
+          updatedAt: new Date().toISOString(),
+        };
+        return updated;
+      });
+      if (updated) {
+        writeEntries(userId, next, tx);
       }
-      const content =
-        entryType === 'link' ? normalizeEntryUrl(rawContent) : rawContent;
-      updated = {
-        ...item,
-        entryType,
-        title: patch.title !== undefined ? patch.title.trim() : item.title,
-        content,
-        updatedAt: new Date().toISOString(),
-      };
-      return updated;
     });
-    if (updated) {
-      writeEntries(userId, next);
-    }
     return updated;
   },
 
   deleteEntry: (userId: string, entryId: string): void => {
-    const existing = scheduleEntriesStore.getAll(userId);
-    const next = existing.filter(item => item.id !== entryId);
-    if (next.length !== existing.length) {
-      writeEntries(userId, next);
-    }
+    db.transactionSync(tx => {
+      const existing = readEntriesStrict(userId, tx);
+      const next = existing.filter(item => item.id !== entryId);
+      if (next.length !== existing.length) {
+        writeEntries(userId, next, tx);
+      }
+    });
   },
 
   /** Moves all entries from an old target key to a new target key (e.g., class rename/reschedule). */
@@ -334,21 +351,23 @@ export const scheduleEntriesStore = {
     newTargetId: string,
   ): void => {
     if (!oldTargetId || !newTargetId || oldTargetId === newTargetId) return;
-    const existing = scheduleEntriesStore.getAll(userId);
-    let changed = false;
-    const now = new Date().toISOString();
-    const next = existing.map(entry => {
-      if (entry.targetId !== oldTargetId) return entry;
-      changed = true;
-      return {
-        ...entry,
-        targetId: newTargetId,
-        updatedAt: now,
-      };
+    db.transactionSync(tx => {
+      const existing = readEntriesStrict(userId, tx);
+      let changed = false;
+      const now = new Date().toISOString();
+      const next = existing.map(entry => {
+        if (entry.targetId !== oldTargetId) return entry;
+        changed = true;
+        return {
+          ...entry,
+          targetId: newTargetId,
+          updatedAt: now,
+        };
+      });
+      if (changed) {
+        writeEntries(userId, next, tx);
+      }
     });
-    if (changed) {
-      writeEntries(userId, next);
-    }
   },
 
   /** Deletes all attached entries belonging to a deleted schedule target. */
@@ -359,11 +378,13 @@ export const scheduleEntriesStore = {
   ): void => {
     const targets = new Set([targetId, ...fallbackIds].filter(Boolean));
     if (targets.size === 0) return;
-    const existing = scheduleEntriesStore.getAll(userId);
-    const next = existing.filter(entry => !targets.has(entry.targetId));
-    if (next.length !== existing.length) {
-      writeEntries(userId, next);
-    }
+    db.transactionSync(tx => {
+      const existing = readEntriesStrict(userId, tx);
+      const next = existing.filter(entry => !targets.has(entry.targetId));
+      if (next.length !== existing.length) {
+        writeEntries(userId, next, tx);
+      }
+    });
   },
 
   /** Replaces, creates, or clears the synced untitled form note for an Event. */
@@ -374,31 +395,55 @@ export const scheduleEntriesStore = {
   ): void => {
     const clean = noteText.trim();
     const targetId = baseScheduleEntityId(eventId);
-    const existing = scheduleEntriesStore.getAll(userId);
-    const match = existing.find(
-      e =>
-        e.targetKind === 'event' &&
-        e.targetId === targetId &&
-        e.entryType === 'note' &&
-        !e.title,
-    );
-    if (!clean) {
-      if (match) {
-        scheduleEntriesStore.deleteEntry(userId, match.id);
+    db.transactionSync(tx => {
+      const existing = readEntriesStrict(userId, tx);
+      const match = existing.find(
+        e =>
+          e.targetKind === 'event' &&
+          e.targetId === targetId &&
+          e.entryType === 'note' &&
+          !e.title,
+      );
+      if (!clean) {
+        if (match) {
+          writeEntries(
+            userId,
+            existing.filter(item => item.id !== match.id),
+            tx,
+          );
+        }
+        return;
       }
-      return;
-    }
-    if (match) {
-      scheduleEntriesStore.updateEntry(userId, match.id, {content: clean});
-    } else {
-      scheduleEntriesStore.addEntry({
-        userId,
-        targetKind: 'event',
-        targetId,
-        entryType: 'note',
-        content: clean,
-      });
-    }
+      const now = new Date().toISOString();
+      if (match) {
+        writeEntries(
+          userId,
+          existing.map(item =>
+            item.id === match.id ? {...item, content: clean, updatedAt: now} : item,
+          ),
+          tx,
+        );
+      } else {
+        writeEntries(
+          userId,
+          [
+            ...existing,
+            {
+              id: generateId('sched_entry'),
+              userId,
+              targetKind: 'event',
+              targetId,
+              entryType: 'note',
+              title: '',
+              content: clean,
+              createdAt: now,
+              updatedAt: now,
+            },
+          ],
+          tx,
+        );
+      }
+    });
   },
 
   clear: (userId: string, executor?: DatabaseTransaction): void => {

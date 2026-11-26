@@ -221,8 +221,9 @@ export async function pickAndExtractMaterial(
   let knownSize = pickedFile.sizeBytes;
   if (!knownSize) {
     const stat = await RNFS.stat(pickedFile.uri).catch(() => null);
-    if (stat && typeof stat.size === 'number' && stat.size > 0) {
-      knownSize = stat.size;
+    const statBytes = Number(stat?.size ?? 0);
+    if (Number.isFinite(statBytes) && statBytes > 0) {
+      knownSize = statBytes;
     }
   }
   if (!knownSize && vision?.getFileSize) {
@@ -259,8 +260,11 @@ export async function pickAndExtractMaterial(
       if (vision?.extractDocumentPages) {
         let nextStartPage = 1;
         let hasMore = true;
+        let batchIterations = 0;
+        const maxBatches = Math.ceil(MAX_MATERIAL_PDF_PAGES / PDF_BATCH_SIZE) + 2;
         try {
-          while (hasMore) {
+          while (hasMore && batchIterations < maxBatches) {
+            batchIterations += 1;
             if (isCancelled()) return {status: 'cancelled'};
             const batch = await vision.extractDocumentPages(
               pickedFile.uri,
@@ -268,6 +272,7 @@ export async function pickAndExtractMaterial(
               PDF_BATCH_SIZE,
               MAX_MATERIAL_PDF_PAGES,
             );
+            if (isCancelled()) return {status: 'cancelled'};
             if (!batch) {
               throw new Error(
                 'Could not read that PDF. Make sure it is a valid PDF file.',
@@ -306,7 +311,8 @@ export async function pickAndExtractMaterial(
             hasMore =
               batch.hasMore === true &&
               typeof batch.nextStartPage === 'number' &&
-              batch.nextStartPage > nextStartPage;
+              batch.nextStartPage > nextStartPage &&
+              batch.nextStartPage <= MAX_MATERIAL_PDF_PAGES;
             if (hasMore && typeof batch.nextStartPage === 'number') {
               nextStartPage = batch.nextStartPage;
             } else {

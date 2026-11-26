@@ -23,7 +23,13 @@ export const chatReplyFormatStore = {
   /** Returns false when the choice could not be saved. */
   save(userId: string, format: ChatReplyFormat): boolean {
     if (!localSettingsStore.set(userId, CHAT_REPLY_FORMAT_KEY, format)) return false;
-    for (const listener of listeners) listener(userId, format);
+    for (const listener of Array.from(listeners)) {
+      try {
+        listener(userId, format);
+      } catch (error) {
+        console.warn('[chatReplyFormatStore] listener failed:', error);
+      }
+    }
     return true;
   },
 

@@ -3,6 +3,7 @@ import { cloudClient, CloudResult } from '../cloud';
 /** A whole (non-streamed) reply gets as long as a streamed one. */
 const CHAT_REQUEST_TIMEOUT_MS = 65_000;
 import { localSettingsStore, userStore } from '../storage';
+import { getSessionGeneration } from '../storage/sessionEpoch';
 import { isUstpSchoolEnabled } from '../storage/ustpEligibility';
 import {directProviderTestEnabled, directTestChat} from '../cloud/directProviderTest';
 import type {RequestTrace} from '../ai/benchmark/requestTrace';
@@ -429,9 +430,20 @@ export const onlineChatSkill = {
       }
       return result;
     }
+    const ownerAtStart = userStore.getActiveSessionToken().userId;
+    const generationAtStart = getSessionGeneration();
     const useHandbook = handbookAllowed(options.useHandbook);
     const memoryField = options.memories?.length ? { memories: options.memories } : {};
     const fallback = (why: string) => {
+      if (
+        userStore.getActiveSessionToken().userId !== ownerAtStart ||
+        getSessionGeneration() !== generationAtStart
+      ) {
+        return Promise.resolve<CloudResult<OnlineChatReply>>({
+          status: 'server_unavailable',
+          error: 'The active sign-in changed. Please try again.',
+        });
+      }
       trace?.note({streamed: false, transportNote: `stream → regular endpoint (${why})`});
       return onlineChatSkill.sendChatMessage(bounded, {
         useHandbook,
@@ -543,6 +555,7 @@ export const onlineChatSkill = {
       '/v1/ai/chat/agent',
       {
         method: 'POST',
+        ...(options.signal ? {signal: options.signal} : {}),
         timeoutMs: CHAT_REQUEST_TIMEOUT_MS,
         body: JSON.stringify({
           messages: bounded,

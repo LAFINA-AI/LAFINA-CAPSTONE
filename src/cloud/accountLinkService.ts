@@ -7,6 +7,10 @@ import {
 import {cloudClient, CloudResultStatus} from './cloudClient';
 import {normalizeEmail, validatePassword} from '../storage/authUtils';
 import {guestMigration} from '../storage/guestMigration';
+import {
+  getSessionGeneration,
+  subscribeSessionChanges,
+} from '../storage/sessionEpoch';
 import {userStore} from '../storage/userStore';
 import {reconcileAlarms} from '../scheduler/alarmService';
 import {reconcileReminderDelivery} from '../scheduler/deliveryReconciler';
@@ -116,11 +120,19 @@ const lastProfileRefreshByUser = new Map<
   string,
   {timestamp: number; role: string}
 >();
+const profileRefreshAttempts = new Map<string, Promise<AccountFlowResult>>();
+subscribeSessionChanges(() => {
+  lastProfileRefreshByUser.clear();
+});
 
 const attachAuthenticatedCloudSession = async (
   localUserId: string,
   authData: AuthResponseData,
 ): Promise<AccountFlowResult> => {
+  const generation = getSessionGeneration();
+  const sameSession = () =>
+    userStore.getActiveSessionToken().userId === localUserId &&
+    getSessionGeneration() === generation;
   const localUser = userStore.getUserById(localUserId);
   if (!localUser?.email) {
     return {
@@ -152,9 +164,16 @@ const attachAuthenticatedCloudSession = async (
           : 'Cloud credentials could not be stored securely.',
     };
   }
+  if (!sameSession()) {
+    return {
+      status: 'auth_required',
+      message:
+        'The active local account changed before cloud verification finished.',
+    };
+  }
 
   const profileResult = await authService.getMe();
-  if (userStore.getActiveSessionToken().userId !== localUserId) {
+  if (!sameSession()) {
     return {
       status: 'auth_required',
       message:
@@ -283,9 +302,13 @@ const persistDeferredCloudCredential = async (
   localUserId: string,
   password: string,
 ): Promise<boolean> => {
+  const generation = getSessionGeneration();
   try {
     const encryptedCredential = await secureKeystore.encryptString(password);
-    if (userStore.getActiveSessionToken().userId !== localUserId) {
+    if (
+      userStore.getActiveSessionToken().userId !== localUserId ||
+      getSessionGeneration() !== generation
+    ) {
       return false;
     }
     userStore.savePendingCloudCredential(localUserId, encryptedCredential);
@@ -317,7 +340,11 @@ const shouldDiscardDeferredCredential = (status: AccountFlowStatus): boolean =>
 
 const runDeferredCloudLink = async (
   localUserId: string,
+  generation: number,
 ): Promise<AccountFlowResult> => {
+  const sameSession = () =>
+    userStore.getActiveSessionToken().userId === localUserId &&
+    getSessionGeneration() === generation;
   const localUser = userStore.getUserById(localUserId);
   const activeSession = userStore.getActiveSessionToken();
 
@@ -356,7 +383,7 @@ const runDeferredCloudLink = async (
         'FastAPI linking is queued and will retry when the connection returns.',
     };
   }
-  if (userStore.getActiveSessionToken().userId !== localUserId) {
+  if (!sameSession()) {
     return {
       status: 'auth_required',
       message:
@@ -370,7 +397,7 @@ const runDeferredCloudLink = async (
       activeSession.pendingCloudCredential,
     );
   } catch (error: unknown) {
-    if (userStore.getActiveSessionToken().userId === localUserId) {
+    if (sameSession()) {
       clearDeferredCredentialSafely(localUserId);
     }
     return {
@@ -383,7 +410,7 @@ const runDeferredCloudLink = async (
           : 'The secure FastAPI link could not be resumed. Sign in once to retry.',
     };
   }
-  if (userStore.getActiveSessionToken().userId !== localUserId) {
+  if (!sameSession()) {
     password = '';
     return {
       status: 'auth_required',
@@ -404,7 +431,7 @@ const runDeferredCloudLink = async (
         allowRegisterFallback: !isAlreadyLinked,
       },
     );
-    if (userStore.getActiveSessionToken().userId !== localUserId) {
+    if (!sameSession()) {
       return {
         status: 'auth_required',
         message:
@@ -546,18 +573,20 @@ const restoreAccountFromCloud = async (
 const completeDeferredCloudLink = async (
   localUserId: string,
 ): Promise<AccountFlowResult> => {
-  const existingAttempt = deferredLinkAttempts.get(localUserId);
+  const generation = getSessionGeneration();
+  const key = `${localUserId}:${generation}`;
+  const existingAttempt = deferredLinkAttempts.get(key);
   if (existingAttempt) {
     return await existingAttempt;
   }
 
-  const attempt = runDeferredCloudLink(localUserId);
-  deferredLinkAttempts.set(localUserId, attempt);
+  const attempt = runDeferredCloudLink(localUserId, generation);
+  deferredLinkAttempts.set(key, attempt);
   try {
     return await attempt;
   } finally {
-    if (deferredLinkAttempts.get(localUserId) === attempt) {
-      deferredLinkAttempts.delete(localUserId);
+    if (deferredLinkAttempts.get(key) === attempt) {
+      deferredLinkAttempts.delete(key);
     }
   }
 };
@@ -797,6 +826,10 @@ export const accountLinkService = {
     localUserId: string,
     options?: {skipIfFresh?: boolean},
   ): Promise<AccountFlowResult> => {
+    const generation = getSessionGeneration();
+    const sameSession = () =>
+      userStore.getActiveSessionToken().userId === localUserId &&
+      getSessionGeneration() === generation;
     const localUser = userStore.getUserById(localUserId);
     let activeSession = userStore.getActiveSessionToken();
     if (!localUser?.email || activeSession.userId !== localUserId) {
@@ -808,6 +841,13 @@ export const accountLinkService = {
     }
     if (!activeSession.accessToken) {
       const linkResult = await completeDeferredCloudLink(localUserId);
+      if (!sameSession()) {
+        return {
+          status: 'auth_required',
+          message:
+            'The active local account changed while refreshing the profile.',
+        };
+      }
       if (linkResult.status !== 'success') {
         return linkResult;
       }
@@ -831,54 +871,70 @@ export const accountLinkService = {
         };
       }
     }
-    const profileResult = await authService.getMe();
-    if (userStore.getActiveSessionToken().userId !== localUserId) {
-      return {
-        status: 'auth_required',
-        message:
-          'The active local account changed while refreshing the profile.',
-      };
+    const attemptKey = `${localUserId}:${generation}`;
+    const existing = profileRefreshAttempts.get(attemptKey);
+    if (existing) {
+      return await existing;
     }
-    if (profileResult.status !== 'success' || !profileResult.data) {
-      if (
-        profileResult.status === 'auth_required' &&
-        profileResult.sessionEnded
-      ) {
-        cloudClient.clearActiveSession();
+    const run = (async (): Promise<AccountFlowResult> => {
+      const profileResult = await authService.getMe();
+      if (!sameSession()) {
+        return {
+          status: 'auth_required',
+          message:
+            'The active local account changed while refreshing the profile.',
+        };
       }
-      const mapped = mapCloudFailure(
-        profileResult.status,
-        profileResult.error || 'The live FastAPI profile could not be loaded.',
-      );
-      return profileResult.status === 'auth_required'
-        ? {
-            ...mapped,
-            status: 'auth_required',
-            message: profileResult.error || mapped.message,
-          }
-        : mapped;
-    }
-    const profile: UserProfileData = profileResult.data;
-    if (normalizeEmail(profile.email) !== normalizeEmail(localUser.email)) {
-      cloudClient.clearActiveSession();
+      if (profileResult.status !== 'success' || !profileResult.data) {
+        if (
+          profileResult.status === 'auth_required' &&
+          profileResult.sessionEnded
+        ) {
+          cloudClient.clearActiveSession();
+        }
+        const mapped = mapCloudFailure(
+          profileResult.status,
+          profileResult.error ||
+            'The live FastAPI profile could not be loaded.',
+        );
+        return profileResult.status === 'auth_required'
+          ? {
+              ...mapped,
+              status: 'auth_required',
+              message: profileResult.error || mapped.message,
+            }
+          : mapped;
+      }
+      const profile: UserProfileData = profileResult.data;
+      if (normalizeEmail(profile.email) !== normalizeEmail(localUser.email!)) {
+        cloudClient.clearActiveSession();
+        return {
+          status: 'auth_required',
+          message:
+            'The stored cloud session belongs to a different email. Sign in again while online.',
+        };
+      }
+      const effectiveRole = resolveEffectiveProfileRole(profile);
+      userStore.linkCloudAccount(localUserId, profile.id, effectiveRole);
+      lastProfileRefreshByUser.set(localUserId, {
+        timestamp: Date.now(),
+        role: effectiveRole,
+      });
       return {
-        status: 'auth_required',
-        message:
-          'The stored cloud session belongs to a different email. Sign in again while online.',
+        status: 'success',
+        localUserId,
+        role: effectiveRole,
+        message: 'Cloud profile and role synchronized.',
       };
+    })();
+    profileRefreshAttempts.set(attemptKey, run);
+    try {
+      return await run;
+    } finally {
+      if (profileRefreshAttempts.get(attemptKey) === run) {
+        profileRefreshAttempts.delete(attemptKey);
+      }
     }
-    const effectiveRole = resolveEffectiveProfileRole(profile);
-    userStore.linkCloudAccount(localUserId, profile.id, effectiveRole);
-    lastProfileRefreshByUser.set(localUserId, {
-      timestamp: Date.now(),
-      role: effectiveRole,
-    });
-    return {
-      status: 'success',
-      localUserId,
-      role: effectiveRole,
-      message: 'Cloud profile and role synchronized.',
-    };
   },
 
   /**

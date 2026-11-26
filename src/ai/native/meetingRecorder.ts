@@ -146,6 +146,7 @@ export const meetingRecorder = {
     const mod = getNative();
     if (!mod) {
       recordingClaimed = false;
+      claimedMeetingId = null;
       return {meetingId: '', chunkFiles: [], chunkDurationsMs: []};
     }
     let stopped = false;
@@ -176,7 +177,12 @@ export const meetingRecorder = {
   isRecording: async (): Promise<boolean> => {
     const mod = getNative();
     if (!mod) return false;
-    return mod.isRecording();
+    const active = await mod.isRecording();
+    if (!active && recordingClaimed) {
+      recordingClaimed = false;
+      claimedMeetingId = null;
+    }
+    return active;
   },
 
   isPaused: async (): Promise<boolean> => {

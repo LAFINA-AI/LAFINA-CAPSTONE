@@ -47,12 +47,15 @@ class LafinaAlarmService : Service() {
     const val NOTIFICATION_ID = 7402
     private const val ACTION_RING = "com.lafina.capstone.ALARM_RING"
     private const val MAX_RING_MS = 10 * 60_000L
-    private const val EXTRA_LABEL = "label"
-    private const val EXTRA_VIBRATE = "vibrate"
-    private const val EXTRA_SOUND = "sound"
+    internal const val EXTRA_LABEL = "label"
+    internal const val EXTRA_VIBRATE = "vibrate"
+    internal const val EXTRA_SOUND = "sound"
+    private const val CHANNEL_FALLBACK_ID = "lafina_alarm_fallback_v1"
 
     @Volatile private var instance: LafinaAlarmService? = null
     @Volatile var ringing: RingRequest? = null
+      private set
+    @Volatile var fallbackRinging: RingRequest? = null
       private set
 
     fun start(context: Context, request: RingRequest): Boolean {
@@ -74,13 +77,39 @@ class LafinaAlarmService : Service() {
       }
     }
 
+    private fun createFallbackChannel(context: Context) {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+      val alarmAttributes = AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_ALARM)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .build()
+      val sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+          ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+      val channel = NotificationChannel(CHANNEL_FALLBACK_ID, "LAFINA alarm fallback", NotificationManager.IMPORTANCE_HIGH).apply {
+        description = "Audible fallback when Android blocks the alarm foreground service"
+        lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        setSound(sound, alarmAttributes)
+        enableVibration(true)
+        vibrationPattern = AlertPreferencesContract.STANDARD_ALARM_WAVEFORM
+        setBypassDnd(true)
+      }
+      (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
+    }
+
     private fun postFallbackAlarmNotification(context: Context, request: RingRequest) {
       try {
-        createChannel(context)
+        fallbackRinging = request
+        createFallbackChannel(context)
         val fullScreen = PendingIntent.getActivity(
             context,
             0,
             Intent(context, AlarmRingingActivity::class.java).apply {
+              putExtra(LafinaAlarms.EXTRA_ALARM_ID, request.alarmId)
+              putExtra(LafinaAlarms.EXTRA_GENERATION, request.generation)
+              putExtra(LafinaAlarms.EXTRA_IS_TEST, request.isTest)
+              putExtra(EXTRA_LABEL, request.label)
+              putExtra(EXTRA_VIBRATE, request.vibrate)
+              putExtra(EXTRA_SOUND, request.soundUri)
               addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -89,7 +118,7 @@ class LafinaAlarmService : Service() {
             1,
             Intent(context, AlarmFireReceiver::class.java).setAction(LafinaAlarms.ACTION_DISMISS),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, CHANNEL_FALLBACK_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(request.label)
             .setContentText("LAFINA alarm")
@@ -108,7 +137,29 @@ class LafinaAlarmService : Service() {
 
     /** Dismiss or Snooze from the ringing screen, the notification or JS. */
     fun finish(context: Context, kind: String) {
-      val active = instance ?: return
+      val active = instance
+      if (active == null || ringing == null) {
+        // Service did not start (fallback notification path): still cancel and record outcome.
+        val fallback = fallbackRinging
+        fallbackRinging = null
+        try { NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID) } catch (_: Exception) {}
+        if (fallback != null && !fallback.isTest) {
+          val now = System.currentTimeMillis()
+          if (kind == AlarmEvent.SNOOZED) {
+            synchronized(LafinaAlarms.LOCK) {
+              val registry = LafinaAlarms.registry(context)
+              registry.get(fallback.alarmId)?.takeIf { it.generation == fallback.generation }?.let { current ->
+                val until = AlarmSchedule.snoozeUntil(current, now)
+                registry.put(current.copy(snoozeUntilMs = until))
+                LafinaAlarms.bookSnooze(context, current, until)
+              }
+            }
+          }
+          LafinaAlarms.recordEvent(context, AlarmEvent(fallback.alarmId, kind, now, fallback.generation))
+        }
+        try { context.sendBroadcast(Intent(LafinaAlarms.ACTION_STOPPED).setPackage(context.packageName)) } catch (_: Exception) {}
+        return
+      }
       if (Looper.myLooper() == Looper.getMainLooper()) {
         active.stop(kind)
       } else {
@@ -182,6 +233,7 @@ class LafinaAlarmService : Service() {
       }
       stopSound()
     }
+    fallbackRinging = null
     ringing = request
     createChannel(this)
     val notification = buildNotification(request)
@@ -193,13 +245,14 @@ class LafinaAlarmService : Service() {
       }
     } catch (_: Exception) {
       ringing = null
+      if (instance === this) instance = null
       postFallbackAlarmNotification(this, request)
       stopSelf()
       return START_NOT_STICKY
     }
     acquireWakeLock()
-    startSound(request)
     handler.removeCallbacksAndMessages(null)
+    startSound(request)
     handler.postDelayed({ stop(AlarmEvent.TIMED_OUT) }, MAX_RING_MS)
     return START_NOT_STICKY
   }
@@ -217,7 +270,7 @@ class LafinaAlarmService : Service() {
         code,
         Intent(this, AlarmFireReceiver::class.java).setAction(action),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-    val snoozeMinutes = if (request.isTest) null else LafinaAlarms.registry(this).get(request.alarmId)?.snoozeMinutes
+    val snoozeMinutes = if (request.isTest) null else synchronized(LafinaAlarms.LOCK) { LafinaAlarms.registry(this).get(request.alarmId)?.snoozeMinutes }
     return NotificationCompat.Builder(this, CHANNEL_ID)
         .setSmallIcon(R.mipmap.ic_launcher)
         .setContentTitle(request.label)
@@ -283,8 +336,11 @@ class LafinaAlarmService : Service() {
         @Suppress("DEPRECATION")
         getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
       }
-      @Suppress("DEPRECATION")
-      vibrator?.vibrate(VibrationEffect.createWaveform(waveform, 0), attributes)
+      try {
+        @Suppress("DEPRECATION")
+        vibrator?.vibrate(VibrationEffect.createWaveform(waveform, 0), attributes)
+      } catch (_: Exception) {
+      }
     }
 
     fun tryCandidate(index: Int) {
@@ -345,8 +401,11 @@ class LafinaAlarmService : Service() {
         @Suppress("DEPRECATION")
         getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
       }
-      @Suppress("DEPRECATION")
-      vibrator?.vibrate(VibrationEffect.createWaveform(waveform, 0), attributes)
+      try {
+        @Suppress("DEPRECATION")
+        vibrator?.vibrate(VibrationEffect.createWaveform(waveform, 0), attributes)
+      } catch (_: Exception) {
+      }
     }
   }
 
@@ -363,10 +422,14 @@ class LafinaAlarmService : Service() {
   }
 
   private fun acquireWakeLock() {
-    if (wakeLock?.isHeld == true) return
-    wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
+    val lock = wakeLock ?: (getSystemService(Context.POWER_SERVICE) as PowerManager)
         .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "lafina:alarm")
-        .apply { acquire(MAX_RING_MS + 60_000L) }
+        .apply { setReferenceCounted(false) }
+        .also { wakeLock = it }
+    try {
+      lock.acquire(MAX_RING_MS + 60_000L)
+    } catch (_: Exception) {
+    }
   }
 
   /** Ends the ring: Dismiss, Snooze or the 10-minute limit. */
@@ -407,7 +470,10 @@ class LafinaAlarmService : Service() {
   override fun onDestroy() {
     stopSound()
     wakeLock?.let { if (it.isHeld) it.release() }
-    if (instance === this) instance = null
+    if (instance === this) {
+      ringing = null
+      instance = null
+    }
     super.onDestroy()
   }
 }

@@ -133,8 +133,25 @@ class FloatingOrbView(context: Context, private val listener: Listener) : View(c
     animate().cancel()
   }
 
-  private fun animationsOn(): Boolean =
-      Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+  private var cachedAnimationsOn: Boolean = readAnimationsOn()
+
+  private fun readAnimationsOn(): Boolean = try {
+    Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+  } catch (_: Exception) {
+    true
+  }
+
+  override fun onAttachedToWindow() {
+    super.onAttachedToWindow()
+    cachedAnimationsOn = readAnimationsOn()
+  }
+
+  override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
+    super.onWindowFocusChanged(hasWindowFocus)
+    if (hasWindowFocus) cachedAnimationsOn = readAnimationsOn()
+  }
+
+  private fun animationsOn(): Boolean = cachedAnimationsOn
 
   private fun goIdle() {
     val target = FloatingOrbLookRules.idleAlpha(look)

@@ -24,25 +24,29 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
   private var activeMediaPlayer: MediaPlayer? = null
   private var activePlaybackPromise: Promise? = null
   private var audioFocusRequest: AudioFocusRequest? = null
+  private var activeFocusListener: AudioManager.OnAudioFocusChangeListener? = null
 
   override fun getName(): String = "LafinaAudioPlayer"
 
   @ReactMethod
   fun playAudio(filePath: String, promise: Promise) {
+    val file = File(filePath)
+    if (!file.exists()) {
+      promise.reject("FILE_NOT_FOUND", "Audio file not found: $filePath")
+      return
+    }
+    val preparedPath = file.absolutePath
     reactContext.runOnUiQueueThread {
       try {
-        val file = File(filePath)
-        if (!file.exists()) {
-          promise.reject("FILE_NOT_FOUND", "Audio file not found: $filePath")
-          return@runOnUiQueueThread
-        }
-
         interruptActivePlayback()
 
         val audioManager = reactContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        requestPlaybackFocus(audioManager)
-
         val mp = MediaPlayer()
+        if (!requestPlaybackFocus(audioManager, mp)) {
+          releasePlayer(mp)
+          promise.reject("AUDIO_FOCUS_DENIED", "Audio focus was denied.")
+          return@runOnUiQueueThread
+        }
         activeMediaPlayer = mp
         activePlaybackPromise = promise
 
@@ -53,7 +57,7 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
               .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
               .build()
           )
-          setDataSource(file.absolutePath)
+          setDataSource(preparedPath)
         }
 
         mp.setOnCompletionListener {
@@ -89,7 +93,17 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
             releasePlayer(player)
             return@setOnPreparedListener
           }
-          player.start()
+          try {
+            player.start()
+          } catch (e: Exception) {
+            Log.e("LafinaAudioPlayer", "MediaPlayer.start failed", e)
+            val failedPromise = activePlaybackPromise
+            releasePlayer(player)
+            activeMediaPlayer = null
+            activePlaybackPromise = null
+            abandonPlaybackFocus(audioManager)
+            failedPromise?.reject("PLAY_ERROR", e.message ?: "Playback start failed", e)
+          }
         }
         mp.prepareAsync()
       } catch (e: Exception) {
@@ -149,38 +163,42 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
     }
   }
 
-  private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
-    if (focusChange == AudioManager.AUDIOFOCUS_LOSS ||
-        focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-      reactContext.runOnUiQueueThread {
-        interruptActivePlayback()
+  private fun requestPlaybackFocus(audioManager: AudioManager, ownerPlayer: MediaPlayer): Boolean {
+    val listener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+      if (focusChange == AudioManager.AUDIOFOCUS_LOSS ||
+          focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+        reactContext.runOnUiQueueThread {
+          if (activeMediaPlayer === ownerPlayer) {
+            interruptActivePlayback()
+          }
+        }
       }
     }
-  }
-
-  private fun requestPlaybackFocus(audioManager: AudioManager) {
-    try {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    activeFocusListener = listener
+    return try {
+      val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val attrs = AudioAttributes.Builder()
           .setUsage(AudioAttributes.USAGE_MEDIA)
           .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
           .build()
         val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
           .setAudioAttributes(attrs)
-          .setOnAudioFocusChangeListener(focusChangeListener)
+          .setOnAudioFocusChangeListener(listener)
           .build()
         audioFocusRequest = request
         audioManager.requestAudioFocus(request)
       } else {
         @Suppress("DEPRECATION")
         audioManager.requestAudioFocus(
-          focusChangeListener,
+          listener,
           AudioManager.STREAM_MUSIC,
           AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
         )
       }
+      result != AudioManager.AUDIOFOCUS_REQUEST_FAILED
     } catch (e: Exception) {
       Log.w("LafinaAudioPlayer", "Audio focus request failed (continuing anyway)", e)
+      true
     }
   }
 
@@ -190,9 +208,12 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
         audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
         audioFocusRequest = null
       } else {
-        @Suppress("DEPRECATION")
-        audioManager.abandonAudioFocus(focusChangeListener)
+        activeFocusListener?.let {
+          @Suppress("DEPRECATION")
+          audioManager.abandonAudioFocus(it)
+        }
       }
+      activeFocusListener = null
     } catch (e: Exception) {
       Log.w("LafinaAudioPlayer", "Abandon audio focus failed", e)
     }

@@ -779,6 +779,22 @@ export const initDatabase = async (
     assertFileIsUsable(database);
     selectDurabilityProtocol(database);
 
+    const ensurePerformanceIndexes = (
+      tx: Pick<DatabaseTransaction, 'executeSync'>,
+    ) => {
+      tx.executeSync(
+        `CREATE INDEX IF NOT EXISTS idx_tasks_user_undated_open_v2
+         ON tasks(user_id, created_at, id)
+         WHERE deleted_at IS NULL AND is_completed = 0 AND (due_date IS NULL OR due_date = '')`,
+      );
+      tx.executeSync(
+        `CREATE INDEX IF NOT EXISTS idx_handbook_chunks_collection_chapter_seq
+         ON handbook_chunks(collection, chapter, seq)`,
+      );
+      tx.executeSync('DROP INDEX IF EXISTS idx_notes_user_sort');
+      tx.executeSync('DROP INDEX IF EXISTS idx_messages_session');
+    };
+
     if (
       installedVersion === targetVersion &&
       installedVersion >= BASELINE_SCHEMA_VERSION
@@ -789,6 +805,18 @@ export const initDatabase = async (
         ).rows[0],
       );
       if (hasUsersTable) {
+        if (targetVersion >= 32) {
+          const hasPerfIndex = Boolean(
+            database.executeSync(
+              "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_handbook_chunks_collection_chapter_seq' LIMIT 1",
+            ).rows[0],
+          );
+          if (!hasPerfIndex) {
+            database.transactionSync(tx => {
+              ensurePerformanceIndexes(tx);
+            });
+          }
+        }
         return;
       }
     }
@@ -799,6 +827,9 @@ export const initDatabase = async (
         if (migration.version > installedVersion) {
           migration.up(tx);
         }
+      }
+      if (targetVersion >= 32) {
+        ensurePerformanceIndexes(tx);
       }
       if (installedVersion < targetVersion) {
         tx.executeSync(`PRAGMA user_version = ${targetVersion}`);

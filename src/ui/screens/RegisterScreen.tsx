@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
   Pressable,
@@ -65,6 +65,16 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const [privacyVisible, setPrivacyVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const submittingRef = useRef(false);
+  const submitSeqRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const {colors, isDarkMode} = useTheme();
   const strength = useMemo(() => getPasswordStrength(password), [password]);
@@ -83,6 +93,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   };
 
   const handleOfflineOnlyRegistration = async () => {
+    if (submittingRef.current) return;
+    const seq = ++submitSeqRef.current;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -92,24 +105,32 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         password,
         ...(fromGuest ? {migrateGuestData: true} : {}),
       });
+      if (!mountedRef.current) return;
       if (result.status === 'offline_only' && result.localUserId) {
         completeRegistration(result.localUserId, result.message);
       } else {
         setError(result.message);
       }
     } catch (registrationError: unknown) {
-      setError(
-        registrationError instanceof Error
-          ? registrationError.message
-          : 'Offline registration failed.',
-      );
+      if (mountedRef.current) {
+        setError(
+          registrationError instanceof Error
+            ? registrationError.message
+            : 'Offline registration failed.',
+        );
+      }
     } finally {
-      setLoading(false);
+      if (submitSeqRef.current === seq) {
+        submittingRef.current = false;
+        if (mountedRef.current) {
+          setLoading(false);
+        }
+      }
     }
   };
 
   const handleRegister = async () => {
-    if (loading) return;
+    if (submittingRef.current || loading) return;
 
     if (!username.trim() || !email.trim() || !password) {
       setError('Please fill in all fields');
@@ -132,6 +153,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
       return;
     }
 
+    const seq = ++submitSeqRef.current;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -142,11 +165,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         password,
         ...(fromGuest ? {migrateGuestData: true} : {}),
       });
+      if (!mountedRef.current) return;
 
       if (
         result.status === 'offline' ||
         result.status === 'server_unavailable'
       ) {
+        submittingRef.current = false;
         setLoading(false);
         Alert.alert(
           result.status === 'offline'
@@ -179,9 +204,16 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
 
       setError(result.message);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Registration failed');
+      }
     } finally {
-      setLoading(false);
+      if (submitSeqRef.current === seq) {
+        submittingRef.current = false;
+        if (mountedRef.current) {
+          setLoading(false);
+        }
+      }
     }
   };
 

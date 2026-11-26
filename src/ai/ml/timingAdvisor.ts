@@ -15,7 +15,6 @@ import {localSettingsStore} from '../../storage/localSettingsStore';
 import {
   extractStudentFeatures,
   featuresToVector,
-  getEwmaLatency,
   getInteractionHistory,
   getInteractionSummary,
 } from './featureExtractor';
@@ -381,9 +380,9 @@ export const getAdaptiveScheduleRecommendation = (
     );
     let baseOffsetMinutes = Math.round(regressionResult.predictedValue);
 
-    // 5. EWMA Latency Drift Adjustment:
+    // 5. EWMA Latency Drift Adjustment (reuses snapshot already loaded in extractStudentFeatures):
     // If student has high smoothed response latency (e.g. >90s), advance lead time by an extra buffer
-    const ewmaLatency = getEwmaLatency(userId);
+    const ewmaLatency = features.ewmaLatencySeconds;
     let latencyBufferMinutes = 0;
     if (ewmaLatency > 90) {
       latencyBufferMinutes = Math.min(10, Math.floor((ewmaLatency - 60) / 30));
@@ -513,8 +512,8 @@ export const getAdaptiveGrowthInsights = (
   userId: string,
 ): AdaptiveGrowthInsights => {
   const enabled = isAdaptiveTimingEnabled(userId);
-  const summary = getInteractionSummary(userId);
   const history = getInteractionHistory(userId);
+  const summary = getInteractionSummary(userId, history);
   const mlReady = enabled && history.length >= MIN_HISTORY_SAMPLES_FOR_ML;
 
   const recentSlice = history.slice(-20);

@@ -32,7 +32,15 @@ const states = new Map<string, JobState<unknown>>();
 const generations = new Map<string, number>();
 const controllers = new Map<string, AbortController>();
 const listeners = new Set<() => void>();
-const emit = () => listeners.forEach(l => l());
+const emit = () => {
+  for (const listener of [...listeners]) {
+    try {
+      listener();
+    } catch (error) {
+      console.warn('[studyJobs] Listener failed:', error);
+    }
+  }
+};
 
 subscribeOwnerWorkInvalidation(owner => {
   const keys = new Set([...states.keys(), ...controllers.keys()]);
@@ -101,10 +109,11 @@ export function useStudyJob<T>(owner: string, kind: string) {
   const run = useCallback(
     async (operation: (ctx: StudyJobContext) => Promise<T>) => {
       if (states.get(key)?.busy) return;
+      const workCurrent = captureOwnerWork(owner);
+      if (!workCurrent()) return;
       const myGen = (generations.get(key) ?? 0) + 1;
       generations.set(key, myGen);
       const controller = new AbortController();
-      const workCurrent = captureOwnerWork(owner);
       controllers.set(key, controller);
       const isCancelled = () =>
         generations.get(key) !== myGen ||
@@ -138,7 +147,14 @@ export function useStudyJob<T>(owner: string, kind: string) {
           setProgress: setJobProgress,
         }) as StudyJobContext;
         const result = await operation(ctx);
-        if (isCancelled()) return;
+        if (isCancelled()) {
+          if (controllers.get(key) === controller) controllers.delete(key);
+          if (generations.get(key) === myGen && states.get(key)?.busy) {
+            states.set(key, {...EMPTY});
+            emit();
+          }
+          return;
+        }
         if (controllers.get(key) === controller) controllers.delete(key);
         states.set(key, {
           busy: false,
@@ -149,7 +165,14 @@ export function useStudyJob<T>(owner: string, kind: string) {
           startedAt: null,
         });
       } catch (e) {
-        if (isCancelled()) return;
+        if (isCancelled()) {
+          if (controllers.get(key) === controller) controllers.delete(key);
+          if (generations.get(key) === myGen && states.get(key)?.busy) {
+            states.set(key, {...EMPTY});
+            emit();
+          }
+          return;
+        }
         if (controllers.get(key) === controller) controllers.delete(key);
         states.set(key, {
           busy: false,

@@ -52,6 +52,7 @@ export const transcribeMeetingChunks = async (
   const segments: TranscriptSegment[] = [];
   const totalChunks = chunkFiles.length;
   let offsetMs = 0;
+  let completedChunks = 0;
   let failedChunks = 0;
   let cancelled = false;
   let lastError: string | null = null;
@@ -68,6 +69,7 @@ export const transcribeMeetingChunks = async (
       chunkDurationsMs[index] > 0
         ? chunkDurationsMs[index]
         : DEFAULT_CHUNK_DURATION_MS;
+    let chunkSucceeded = false;
     try {
       // ponytail: try ElevenLabs cloud STT first, fall back to local Whisper
       let chunkSegments: TranscriptSegment[] | null = null;
@@ -77,6 +79,10 @@ export const transcribeMeetingChunks = async (
           offsetMs,
           options.userId,
         );
+      }
+      if (options.shouldCancel?.()) {
+        cancelled = true;
+        break;
       }
       if (!chunkSegments) {
         chunkSegments = await meetingRecorder.transcribeChunk(
@@ -94,6 +100,8 @@ export const transcribeMeetingChunks = async (
           });
         }
       }
+      chunkSucceeded = true;
+      completedChunks += 1;
     } catch (err) {
       failedChunks += 1;
       lastError = err instanceof Error ? err.message : String(err);
@@ -102,7 +110,7 @@ export const transcribeMeetingChunks = async (
         err,
       );
     } finally {
-      if (!keepAudio) {
+      if (!keepAudio && chunkSucceeded) {
         await meetingRecorder.deleteAudioFile(chunkPath).catch(() => false);
       }
     }
@@ -111,12 +119,12 @@ export const transcribeMeetingChunks = async (
   }
 
   const fullTranscript = segments.map((s) => s.text).join(' ');
-  if (!keepAudio && !cancelled) {
+  if (!keepAudio && !cancelled && failedChunks === 0) {
     await meetingRecorder.clearRecoveryState().catch(() => false);
   }
   return {
     meetingId,
-    completedChunks: cancelled ? segments.length : totalChunks,
+    completedChunks,
     totalChunks,
     failedChunks,
     segments,

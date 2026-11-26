@@ -32,6 +32,8 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
 
   private val main = Handler(Looper.getMainLooper())
   private var overlay: RevealOverlay? = null
+  private var pendingCapturePromise: Promise? = null
+  @Volatile private var invalidated = false
 
   override fun getName(): String = "LafinaThemeReveal"
 
@@ -43,7 +45,12 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
       return
     }
     main.post {
+      var snapshot: Bitmap? = null
       try {
+        if (invalidated) {
+          promise.resolve(false)
+          return@post
+        }
         val window = activity.window
         val decor = window.decorView as? ViewGroup
         if (decor == null || decor.width <= 0 || decor.height <= 0) {
@@ -56,15 +63,20 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
         val cx = if (x >= 0) content[0] + (x * density).toFloat() else decor.width / 2f
         val cy = if (y >= 0) content[1] + (y * density).toFloat() else decor.height / 2f
 
-        val snapshot = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
-        PixelCopy.request(window, snapshot, { result ->
-          if (result != PixelCopy.SUCCESS || !decor.isAttachedToWindow) {
-            if (!snapshot.isRecycled) snapshot.recycle()
-            promise.resolve(false)
+        val captured = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
+        snapshot = captured
+        pendingCapturePromise?.resolve(false)
+        pendingCapturePromise = promise
+        PixelCopy.request(window, captured, { result ->
+          val supersededOrInvalidated = pendingCapturePromise !== promise
+          if (pendingCapturePromise === promise) pendingCapturePromise = null
+          if (invalidated || supersededOrInvalidated || result != PixelCopy.SUCCESS || !decor.isAttachedToWindow) {
+            if (!captured.isRecycled) captured.recycle()
+            if (!supersededOrInvalidated) promise.resolve(false)
             return@request
           }
           val previous = overlay
-          val next = RevealOverlay(activity, snapshot, cx, cy)
+          val next = RevealOverlay(activity, captured, cx, cy)
           decor.addView(
             next,
             ViewGroup.LayoutParams(
@@ -78,6 +90,8 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
           promise.resolve(true)
         }, main)
       } catch (error: Exception) {
+        if (pendingCapturePromise === promise) pendingCapturePromise = null
+        snapshot?.let { if (!it.isRecycled) it.recycle() }
         promise.resolve(false)
       }
     }
@@ -135,6 +149,7 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
       postOnAnimation {
         postOnAnimation {
           if (!isAttachedToWindow) {
+            remove()
             onDone()
             return@postOnAnimation
           }
@@ -168,8 +183,10 @@ class LafinaThemeRevealModule(private val reactContext: ReactApplicationContext)
   }
 
   override fun invalidate() {
-    main.removeCallbacksAndMessages(null)
+    invalidated = true
     main.post {
+      pendingCapturePromise?.resolve(false)
+      pendingCapturePromise = null
       overlay?.remove()
       overlay = null
     }

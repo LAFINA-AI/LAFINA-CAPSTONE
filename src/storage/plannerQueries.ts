@@ -114,7 +114,7 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
           : expand(
               rows(
                 `SELECT * FROM tasks
-                  WHERE user_id = ? AND is_completed IN (0, 1)
+                  WHERE user_id = ?
                     AND due_date BETWEEN ? AND ? AND deleted_at IS NULL
                     AND (recurrence_rule IS NULL OR recurrence_rule = '')
                   ORDER BY due_date, due_time, id`,

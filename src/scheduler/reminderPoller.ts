@@ -86,8 +86,25 @@ const runReminderPoll = async (userId: string, seq: number): Promise<void> => {
           `[ReminderPoller] Triggering reminder: ${reminder.id} - ${reminder.task}`,
         );
 
-        // 1. Mark status as triggered immediately to avoid double-triggers
+        // 1. Re-verify inside the write transaction (user may have acknowledged,
+        // snoozed, or deleted while claimForegroundRing awaited native).
+        let committedTrigger = false;
         db.transactionSync(tx => {
+          const row = tx.executeSync(
+            `SELECT user_id, status, trigger_at FROM reminders WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
+            [reminder.id],
+          ).rows?.[0] as
+            | {user_id?: string; status?: string; trigger_at?: string}
+            | undefined;
+          if (
+            !row ||
+            row.user_id !== userId ||
+            (row.status !== 'pending' && row.status !== 'snoozed') ||
+            new Date(String(row.trigger_at ?? '')).getTime() >
+              Date.now() + 30 * 1000
+          ) {
+            return;
+          }
           remindersStore.updateReminderStatus(
             reminder.id,
             'triggered',
@@ -105,7 +122,9 @@ const runReminderPoll = async (userId: string, seq: number): Promise<void> => {
             'queued',
             tx,
           );
+          committedTrigger = true;
         });
+        if (!committedTrigger) continue;
         if (job) {
           deliveryStore.recordEvent({
             reminderId: job.reminderId,

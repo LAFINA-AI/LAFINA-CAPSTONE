@@ -4,6 +4,7 @@
 #include <android/log.h>
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <string>
 #include <thread>
 #include "whisper.h"
@@ -49,7 +50,16 @@ std::atomic<bool> gVoiceAbort{false};
 bool voiceAbortRequested(void *) { return gVoiceAbort.load(std::memory_order_relaxed); }
 
 size_t assetRead(void *context, void *output, size_t size) {
-  return static_cast<size_t>(AAsset_read(static_cast<AAsset *>(context), output, size));
+  if (context == nullptr || output == nullptr || size == 0) return 0;
+  auto *asset = static_cast<AAsset *>(context);
+  auto *dst = static_cast<uint8_t *>(output);
+  size_t total = 0;
+  while (total < size) {
+    const int n = AAsset_read(asset, dst + total, size - total);
+    if (n <= 0) break;
+    total += static_cast<size_t>(n);
+  }
+  return total;
 }
 
 bool assetEof(void *context) {
@@ -91,13 +101,87 @@ std::string escapeJson(const std::string &value) {
   }
   return escaped;
 }
+
+// Decodes UTF-8 into UTF-16 so 4-byte scalar values and truncated trailing
+// multi-byte sequences never trigger Android ART's NewStringUTF Modified-UTF-8 abort.
+jstring utf8ToJString(JNIEnv *env, const std::string &utf8) {
+  std::u16string u16;
+  u16.reserve(utf8.size());
+  const size_t len = utf8.size();
+  size_t i = 0;
+  while (i < len) {
+    const unsigned char c0 = static_cast<unsigned char>(utf8[i]);
+    if (c0 < 0x80) {
+      u16.push_back(static_cast<char16_t>(c0));
+      ++i;
+      continue;
+    }
+    uint32_t cp = 0;
+    size_t seqLen = 0;
+    uint32_t minCp = 0;
+    if ((c0 & 0xE0) == 0xC0) {
+      cp = c0 & 0x1F;
+      seqLen = 2;
+      minCp = 0x80;
+    } else if ((c0 & 0xF0) == 0xE0) {
+      cp = c0 & 0x0F;
+      seqLen = 3;
+      minCp = 0x800;
+    } else if ((c0 & 0xF8) == 0xF0) {
+      cp = c0 & 0x07;
+      seqLen = 4;
+      minCp = 0x10000;
+    } else {
+      u16.push_back(0xFFFD);
+      ++i;
+      continue;
+    }
+    if (i + seqLen > len) {
+      break;
+    }
+    bool valid = true;
+    for (size_t j = 1; j < seqLen; ++j) {
+      const unsigned char cx = static_cast<unsigned char>(utf8[i + j]);
+      if ((cx & 0xC0) != 0x80) {
+        valid = false;
+        break;
+      }
+      cp = (cp << 6) | (cx & 0x3F);
+    }
+    if (!valid || cp < minCp || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
+      u16.push_back(0xFFFD);
+      ++i;
+      continue;
+    }
+    if (cp <= 0xFFFF) {
+      u16.push_back(static_cast<char16_t>(cp));
+    } else {
+      cp -= 0x10000;
+      u16.push_back(static_cast<char16_t>(0xD800 + (cp >> 10)));
+      u16.push_back(static_cast<char16_t>(0xDC00 + (cp & 0x3FF)));
+    }
+    i += seqLen;
+  }
+  return env->NewString(reinterpret_cast<const jchar *>(u16.data()), static_cast<jsize>(u16.size()));
+}
 }
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lafina_LafinaWhisperBridge_initContext(
     JNIEnv *env, jobject, jobject assetManager, jstring assetPath) {
+  if (assetManager == nullptr || assetPath == nullptr) {
+    return 0;
+  }
   const char *path = env->GetStringUTFChars(assetPath, nullptr);
+  if (path == nullptr) {
+    return 0;
+  }
   AAssetManager *manager = AAssetManager_fromJava(env, assetManager);
+  if (manager == nullptr) {
+    env->ReleaseStringUTFChars(assetPath, path);
+    __android_log_print(ANDROID_LOG_ERROR, kTag, "AAssetManager_fromJava returned null");
+    return 0;
+  }
   AAsset *asset = AAssetManager_open(manager, path, AASSET_MODE_STREAMING);
   env->ReleaseStringUTFChars(assetPath, path);
   if (asset == nullptr) {
@@ -124,7 +208,7 @@ Java_com_lafina_LafinaWhisperBridge_transcribe(
     jint requestedThreads,
     jboolean commandMode) {
   auto *context = reinterpret_cast<whisper_context *>(contextPointer);
-  if (context == nullptr) return env->NewStringUTF("");
+  if (context == nullptr || samples == nullptr) return env->NewStringUTF("");
   const jsize sampleCount = env->GetArrayLength(samples);
   if (sampleCount <= 0) return env->NewStringUTF("");
   jfloat *audio = env->GetFloatArrayElements(samples, nullptr);
@@ -178,7 +262,9 @@ Java_com_lafina_LafinaWhisperBridge_transcribe(
       if (noSpeechProb > kHardSegmentNoSpeechLimit) {
         continue;
       }
-      const std::string segment = trim(whisper_full_get_segment_text(context, index));
+      const char *rawSegment = whisper_full_get_segment_text(context, index);
+      if (rawSegment == nullptr) continue;
+      const std::string segment = trim(rawSegment);
       if (segment.empty()) continue;
       if (!transcript.empty()) transcript += " ";
       transcript += segment;
@@ -193,7 +279,7 @@ Java_com_lafina_LafinaWhisperBridge_transcribe(
     __android_log_print(ANDROID_LOG_ERROR, kTag, "whisper_full failed: %d", result);
   }
   transcript = trim(transcript);
-  return env->NewStringUTF(transcript.c_str());
+  return utf8ToJString(env, transcript);
 }
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -204,7 +290,7 @@ Java_com_lafina_LafinaWhisperBridge_transcribeWithTimestamps(
     jfloatArray samples,
     jint requestedThreads) {
   auto *context = reinterpret_cast<whisper_context *>(contextPointer);
-  if (context == nullptr) return env->NewStringUTF("[]");
+  if (context == nullptr || samples == nullptr) return env->NewStringUTF("[]");
   const jsize sampleCount = env->GetArrayLength(samples);
   if (sampleCount <= 0) return env->NewStringUTF("[]");
   jfloat *audio = env->GetFloatArrayElements(samples, nullptr);
@@ -244,7 +330,9 @@ Java_com_lafina_LafinaWhisperBridge_transcribeWithTimestamps(
       if (noSpeechProb > kHardSegmentNoSpeechLimit) {
         continue;
       }
-      const std::string segmentText = trim(whisper_full_get_segment_text(context, index));
+      const char *rawSegmentText = whisper_full_get_segment_text(context, index);
+      if (rawSegmentText == nullptr) continue;
+      const std::string segmentText = trim(rawSegmentText);
       if (segmentText.empty()) continue;
       const int64_t t0 = static_cast<int64_t>(whisper_full_get_segment_t0(context, index)) * 10;
       const int64_t t1 = static_cast<int64_t>(whisper_full_get_segment_t1(context, index)) * 10;
@@ -257,7 +345,7 @@ Java_com_lafina_LafinaWhisperBridge_transcribeWithTimestamps(
     __android_log_print(ANDROID_LOG_ERROR, kTag, "whisper_full with timestamps failed: %d", result);
   }
   json += "]";
-  return env->NewStringUTF(json.c_str());
+  return utf8ToJString(env, json);
 }
 
 extern "C" JNIEXPORT void JNICALL

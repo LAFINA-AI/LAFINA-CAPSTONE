@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <limits>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -135,6 +136,70 @@ bool trimAtStopTag(std::string &output) {
   }
   return false;
 }
+
+// Decodes UTF-8 into UTF-16 so 4-byte scalar values (e.g. emojis) and truncated trailing
+// multi-byte sequences never trigger Android ART's NewStringUTF Modified-UTF-8 abort.
+jstring utf8ToJString(JNIEnv *env, const std::string &utf8) {
+  std::u16string u16;
+  u16.reserve(utf8.size());
+  const size_t len = utf8.size();
+  size_t i = 0;
+  while (i < len) {
+    const unsigned char c0 = static_cast<unsigned char>(utf8[i]);
+    if (c0 < 0x80) {
+      u16.push_back(static_cast<char16_t>(c0));
+      ++i;
+      continue;
+    }
+    uint32_t cp = 0;
+    size_t seqLen = 0;
+    uint32_t minCp = 0;
+    if ((c0 & 0xE0) == 0xC0) {
+      cp = c0 & 0x1F;
+      seqLen = 2;
+      minCp = 0x80;
+    } else if ((c0 & 0xF0) == 0xE0) {
+      cp = c0 & 0x0F;
+      seqLen = 3;
+      minCp = 0x800;
+    } else if ((c0 & 0xF8) == 0xF0) {
+      cp = c0 & 0x07;
+      seqLen = 4;
+      minCp = 0x10000;
+    } else {
+      u16.push_back(0xFFFD);
+      ++i;
+      continue;
+    }
+    if (i + seqLen > len) {
+      // Truncated trailing UTF-8 sequence when tokenBudget stops mid-character.
+      break;
+    }
+    bool valid = true;
+    for (size_t j = 1; j < seqLen; ++j) {
+      const unsigned char cx = static_cast<unsigned char>(utf8[i + j]);
+      if ((cx & 0xC0) != 0x80) {
+        valid = false;
+        break;
+      }
+      cp = (cp << 6) | (cx & 0x3F);
+    }
+    if (!valid || cp < minCp || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
+      u16.push_back(0xFFFD);
+      ++i;
+      continue;
+    }
+    if (cp <= 0xFFFF) {
+      u16.push_back(static_cast<char16_t>(cp));
+    } else {
+      cp -= 0x10000;
+      u16.push_back(static_cast<char16_t>(0xD800 + (cp >> 10)));
+      u16.push_back(static_cast<char16_t>(0xDC00 + (cp & 0x3FF)));
+    }
+    i += seqLen;
+  }
+  return env->NewString(reinterpret_cast<const jchar *>(u16.data()), static_cast<jsize>(u16.size()));
+}
 }  // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
@@ -204,7 +269,7 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_lafina_capstone_LafinaLlamaBridge_generate(
     JNIEnv *env, jobject, jlong contextPointer, jstring prompt, jint maxTokens) {
   auto *handle = reinterpret_cast<LafinaLlamaContext *>(contextPointer);
-  if (handle == nullptr || handle->model == nullptr || handle->ctx == nullptr || prompt == nullptr) {
+  if (handle == nullptr || prompt == nullptr) {
     return env->NewStringUTF("");
   }
 
@@ -219,6 +284,9 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
   }
 
   std::lock_guard<std::mutex> lock(handle->mutex);
+  if (handle->model == nullptr || handle->ctx == nullptr) {
+    return env->NewStringUTF("");
+  }
   llama_memory_t memory = llama_get_memory(handle->ctx);
 
   const llama_vocab *vocab = llama_model_get_vocab(handle->model);
@@ -233,7 +301,7 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
       promptStr.rfind("<|begin_of_text|>", 0) == 0;
   const bool addSpecial = !hasExplicitBos && llama_vocab_get_add_bos(vocab);
 
-  const int32_t needed = -llama_tokenize(
+  const int32_t rawNeeded = llama_tokenize(
       vocab,
       promptStr.c_str(),
       static_cast<int32_t>(promptStr.size()),
@@ -241,10 +309,11 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
       0,
       addSpecial,
       true);
-  if (needed <= 0) {
-    __android_log_print(ANDROID_LOG_ERROR, kTag, "Failed to size prompt tokens (%d)", needed);
+  if (rawNeeded >= 0 || rawNeeded == std::numeric_limits<int32_t>::min()) {
+    __android_log_print(ANDROID_LOG_ERROR, kTag, "Failed to size prompt tokens (%d)", rawNeeded);
     return env->NewStringUTF("");
   }
+  const int32_t needed = -rawNeeded;
 
   std::vector<llama_token> promptTokens(static_cast<size_t>(needed));
   const int32_t tokenized = llama_tokenize(
@@ -356,6 +425,7 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
         __android_log_print(ANDROID_LOG_ERROR, kTag, "llama_decode failed during generation");
         llama_memory_clear(memory, true);
         handle->cached.clear();
+        output.clear();
         break;
       }
       handle->cached.push_back(tokenId);
@@ -363,7 +433,7 @@ Java_com_lafina_capstone_LafinaLlamaBridge_generate(
   }
 
   llama_sampler_free(sampler);
-  return env->NewStringUTF(output.c_str());
+  return utf8ToJString(env, output);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -382,13 +452,23 @@ Java_com_lafina_capstone_LafinaLlamaBridge_freeModel(
   if (handle == nullptr) {
     return;
   }
-  if (handle->ctx != nullptr) {
-    llama_free(handle->ctx);
+  // Signal cancellation lock-free first so any in-flight generate() exits promptly.
+  handle->cancel.store(true, std::memory_order_relaxed);
+  llama_context *ctxToFree = nullptr;
+  llama_model *modelToFree = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(handle->mutex);
+    ctxToFree = handle->ctx;
+    modelToFree = handle->model;
     handle->ctx = nullptr;
-  }
-  if (handle->model != nullptr) {
-    llama_model_free(handle->model);
     handle->model = nullptr;
+    handle->cached.clear();
+  }
+  if (ctxToFree != nullptr) {
+    llama_free(ctxToFree);
+  }
+  if (modelToFree != nullptr) {
+    llama_model_free(modelToFree);
   }
   delete handle;
 }

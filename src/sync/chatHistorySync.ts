@@ -1,5 +1,6 @@
 import {cloudClient} from '../cloud/cloudClient';
 import {chatSyncStore} from '../storage/chatSyncStore';
+import {getSessionGeneration} from '../storage/sessionEpoch';
 import {userStore} from '../storage/userStore';
 import {syncWorker} from './syncWorker';
 
@@ -41,8 +42,10 @@ export const chatHistorySync = {
 
   deleteCloudCopy: async (userId: string): Promise<ChatCloudDeleteResult> => {
     const ownerAtStart = userStore.getActiveSessionToken().userId;
+    const generation = getSessionGeneration();
     const accountChanged = (): boolean =>
-      userStore.getActiveSessionToken().userId !== ownerAtStart;
+      userStore.getActiveSessionToken().userId !== ownerAtStart ||
+      getSessionGeneration() !== generation;
     chatSyncStore.setEnabled(userId, false);
     // A pass already running may still send chats; wait for it (and the
     // follow-up pass, which no longer sends chat) so none land after the purge.

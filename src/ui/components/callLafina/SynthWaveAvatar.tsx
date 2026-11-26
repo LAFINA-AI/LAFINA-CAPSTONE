@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {AppState, StyleSheet, View} from 'react-native';
 import Svg, {Defs, LinearGradient, Path, Stop} from 'react-native-svg';
 import type {ConversationPhase} from '../../../cloud/voiceConversation/types';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -146,8 +146,19 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = React.memo(
       [isModern, isDarkMode, modernThemeExtras.synthWaveStops],
     );
 
+    const [appActive, setAppActive] = useState(
+      () => AppState.currentState === 'active',
+    );
+    useEffect(() => {
+      const sub = AppState.addEventListener('change', next => {
+        setAppActive(next === 'active');
+      });
+      return () => sub.remove();
+    }, []);
+
     const animated =
       !paused &&
+      appActive &&
       !reducedMotion &&
       MOVING.has(phase) &&
       // Jest: no background timers (they cause act() warnings).

@@ -1,6 +1,6 @@
 import {useReducedMotion} from '../hooks/useReducedMotion';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {StyleSheet, useWindowDimensions, View} from 'react-native';
+import {AppState, StyleSheet, useWindowDimensions, View} from 'react-native';
 import Svg, {Defs, LinearGradient, Path, Stop} from 'react-native-svg';
 import {useTheme} from '../contexts/ThemeContext';
 import {
@@ -43,7 +43,18 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
   const startRef = useRef(Date.now());
   const readyAtRef = useRef<number | null>(null);
   const finishedRef = useRef(onFinished);
+  const doneCalledRef = useRef(false);
+  const [appActive, setAppActive] = useState(
+    () => AppState.currentState === 'active',
+  );
   const [frame, setFrame] = useState<Frame>(EMPTY_FRAME);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', next => {
+      setAppActive(next === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   finishedRef.current = onFinished;
 
@@ -79,18 +90,20 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
   );
 
   useEffect(() => {
-    if (!ready) return undefined;
+    if (!ready || doneCalledRef.current) return undefined;
     const now = Date.now() - startRef.current;
     if (readyAtRef.current === null) readyAtRef.current = now;
     const doneAt = splashDoneAt(readyAtRef.current, timing) ?? now;
-    const timer = setTimeout(
-      () => finishedRef.current(),
-      Math.max(0, doneAt - now),
-    );
+    const timer = setTimeout(() => {
+      if (doneCalledRef.current) return;
+      doneCalledRef.current = true;
+      finishedRef.current();
+    }, Math.max(0, doneAt - now));
     return () => clearTimeout(timer);
   }, [ready, timing]);
 
   useEffect(() => {
+    if (!appActive) return undefined;
     let raf = 0;
     let cancelled = false;
 
@@ -115,7 +128,7 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [traceStrand, timing]);
+  }, [appActive, traceStrand, timing]);
 
   const gradient = useMemo(
     () => stops.map(([offset, colour]) => ({offset, colour})),

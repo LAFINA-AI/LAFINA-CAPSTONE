@@ -287,7 +287,11 @@ export const onAlertPreferencesChanged = (
 
 const emitChanged = (userId: string, prefs: AlertPreferences): void => {
   for (const listener of Array.from(listeners)) {
-    listener(userId, prefs);
+    try {
+      listener(userId, prefs);
+    } catch (error) {
+      console.warn('[AlertPreferences] listener failed:', error);
+    }
   }
 };
 

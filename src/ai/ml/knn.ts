@@ -26,11 +26,14 @@ export function euclideanDistance(
   }
   let sumSq = 0;
   for (let i = 0; i < x.length; i++) {
-    const diff = (x[i] ?? 0) - (y[i] ?? 0);
-    const weight = weights && weights[i] !== undefined ? weights[i] : 1.0;
+    const xi = Number.isFinite(x[i]) ? x[i] : 0;
+    const yi = Number.isFinite(y[i]) ? y[i] : 0;
+    const diff = xi - yi;
+    const rawWeight = weights && weights[i] !== undefined ? weights[i] : 1.0;
+    const weight = Number.isFinite(rawWeight) && rawWeight >= 0 ? rawWeight : 1.0;
     sumSq += weight * diff * diff;
   }
-  return Math.sqrt(sumSq);
+  return Number.isFinite(sumSq) ? Math.sqrt(sumSq) : Number.POSITIVE_INFINITY;
 }
 
 export class KnnClassifier {

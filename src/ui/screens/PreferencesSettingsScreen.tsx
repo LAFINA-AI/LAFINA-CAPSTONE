@@ -266,6 +266,18 @@ export const PreferencesSettingsScreen: React.FC<
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = React.useRef(true);
+  const activeUserRef = React.useRef(userId);
+  activeUserRef.current = userId;
+  const isSavingRef = React.useRef(false);
+  const deletingCloudChatsRef = React.useRef(false);
+
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Chat history sync (ADR-040) applies at once; it is not part of Save.
   const handleChatSyncChange = (value: string) => {
@@ -288,11 +300,16 @@ export const PreferencesSettingsScreen: React.FC<
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
+            if (deletingCloudChatsRef.current) return;
+            const reqUserId = userId;
+            deletingCloudChatsRef.current = true;
             setIsDeletingCloudChats(true);
             setChatSyncEnabled(false);
             void chatHistorySync
-              .deleteCloudCopy(userId)
+              .deleteCloudCopy(reqUserId)
               .then(result => {
+                if (!mountedRef.current || activeUserRef.current !== reqUserId)
+                  return;
                 if (result.status === 'deleted') {
                   Alert.alert(
                     'Deleted from Cloud',
@@ -302,13 +319,18 @@ export const PreferencesSettingsScreen: React.FC<
                   Alert.alert('Not Deleted', result.message);
                 }
               })
-              .catch(() =>
+              .catch(() => {
+                if (!mountedRef.current || activeUserRef.current !== reqUserId)
+                  return;
                 Alert.alert(
                   'Not Deleted',
                   'The cloud copy could not be deleted.',
-                ),
-              )
-              .finally(() => setIsDeletingCloudChats(false));
+                );
+              })
+              .finally(() => {
+                deletingCloudChatsRef.current = false;
+                if (mountedRef.current) setIsDeletingCloudChats(false);
+              });
           },
         },
       ],
@@ -346,11 +368,14 @@ export const PreferencesSettingsScreen: React.FC<
   const pillShapeStyle = isModern ? styles.modernPillButton : null;
 
   const refreshModelsState = React.useCallback(async () => {
+    const reqUserId = userId;
     const [allStatuses, currentSelection] = await Promise.all([
-      getAllModelsStatus(userId),
-      Promise.resolve(getSelectedOfflineModelId(userId)),
+      getAllModelsStatus(reqUserId),
+      Promise.resolve(getSelectedOfflineModelId(reqUserId)),
     ]);
+    if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
     const rec = await getDeviceAiRecommendation(allStatuses);
+    if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
     const statusMap: Record<string, ModelStatus> = {};
     for (const item of allStatuses) {
       if (item.modelId) {
@@ -411,9 +436,12 @@ export const PreferencesSettingsScreen: React.FC<
     if (!engineReady || downloadingModelId !== null) {
       return;
     }
+    const reqUserId = userId;
     try {
-      await downloadOfflineModel(modelId, undefined, userId);
+      await downloadOfflineModel(modelId, undefined, reqUserId);
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       await refreshModelsState();
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       Alert.alert(
         'AI Model Ready',
         `${
@@ -425,10 +453,12 @@ export const PreferencesSettingsScreen: React.FC<
       if (/cancel/i.test(message)) {
         return;
       }
-      Alert.alert(
-        'Download Error',
-        message || 'Could not download model. Check internet connection.',
-      );
+      if (mountedRef.current && activeUserRef.current === reqUserId) {
+        Alert.alert(
+          'Download Error',
+          message || 'Could not download model. Check internet connection.',
+        );
+      }
     }
   };
 
@@ -458,17 +488,21 @@ export const PreferencesSettingsScreen: React.FC<
   };
 
   const handleOpenPermissions = async () => {
+    const reqUserId = userId;
     try {
       const [status, alarms] = await Promise.all([
         getReminderPermissionStatus(),
         getAlarmHealth(),
       ]);
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       setPermissionStatus(status);
       setAlarmHealth(alarms);
     } catch {
       // Ignore
     }
-    setPermissionModalVisible(true);
+    if (mountedRef.current && activeUserRef.current === reqUserId) {
+      setPermissionModalVisible(true);
+    }
   };
 
   const wakeOptions = useMemo(
@@ -502,7 +536,9 @@ export const PreferencesSettingsScreen: React.FC<
   };
 
   const handleSave = async (): Promise<void> => {
-    if (isSaving) return;
+    if (isSavingRef.current || isSaving) return;
+    const reqUserId = userId;
+    isSavingRef.current = true;
     setIsSaving(true);
     setError(null);
 
@@ -552,9 +588,10 @@ export const PreferencesSettingsScreen: React.FC<
         });
       }
       const refreshResult = await refreshPendingReminderLeadTimes(
-        userId,
+        reqUserId,
         updatedPreferences.reminderLeadMinutes,
       );
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       onSaved(updatedPreferences);
       if (refreshResult.failedCount > 0) {
         Alert.alert(
@@ -565,9 +602,14 @@ export const PreferencesSettingsScreen: React.FC<
       onBack();
     } catch (saveError) {
       console.error('Failed saving preference settings:', saveError);
-      setError('Preferences could not be saved. Please try again.');
+      if (mountedRef.current && activeUserRef.current === reqUserId) {
+        setError('Preferences could not be saved. Please try again.');
+      }
     } finally {
-      setIsSaving(false);
+      isSavingRef.current = false;
+      if (mountedRef.current) {
+        setIsSaving(false);
+      }
     }
   };
 

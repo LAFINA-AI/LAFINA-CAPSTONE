@@ -433,11 +433,8 @@ export async function downloadOfflineModel(
   if (!preset.url || !preset.filename) {
     throw new Error(`Model ${modelId} is built-in and does not require downloading.`);
   }
-  // Never download hundreds of MB that this build cannot load (audit H4).
-  if (!(await isOfflineModelEngineAvailable())) {
-    throw new Error(OFFLINE_ENGINE_UNAVAILABLE_MESSAGE);
-  }
-  // One download at a time across every screen (audit M3).
+  // One download at a time across every screen (audit M3), claimed BEFORE the
+  // first await so rapid double taps cannot race past isOfflineModelEngineAvailable.
   if (activeDownload) {
     throw new Error(
       `${getOfflineModelPreset(activeDownload.modelId).name} is already downloading. Wait for it to finish or cancel it first.`,
@@ -458,8 +455,17 @@ export async function downloadOfflineModel(
       status: 'downloading',
     },
   };
-  // Claimed before the first await so a second tap cannot start a twin.
   activeDownload = job;
+
+  // Never download hundreds of MB that this build cannot load (audit H4).
+  if (!(await isOfflineModelEngineAvailable())) {
+    if (activeDownload === job) activeDownload = null;
+    throw new Error(OFFLINE_ENGINE_UNAVAILABLE_MESSAGE);
+  }
+  if (job.cancelled) {
+    if (activeDownload === job) activeDownload = null;
+    throw new Error('Download cancelled.');
+  }
 
   const report = (progress: ModelDownloadProgress): void => {
     job.progress = progress;
@@ -521,11 +527,19 @@ export async function downloadOfflineModel(
     throw error;
   }
 
+  if (job.cancelled) {
+    if (activeDownload === job) activeDownload = null;
+    await RNFS.unlink(tempPath).catch(() => {});
+    publishDownload();
+    throw new Error('Download cancelled.');
+  }
   publishDownload();
   let expectedBytes = 0;
 
   return new Promise((resolve, reject) => {
-    const download = RNFS.downloadFile({
+    let download: ReturnType<typeof RNFS.downloadFile>;
+    try {
+      download = RNFS.downloadFile({
       fromUrl: preset.url!,
       toFile: tempPath,
       progressInterval: 250,
@@ -549,7 +563,12 @@ export async function downloadOfflineModel(
           status: 'downloading',
         });
       },
-    });
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      void fail(errorMessage).catch(reject);
+      return;
+    }
 
     job.jobId = download.jobId;
 
@@ -582,6 +601,13 @@ export async function downloadOfflineModel(
         }
         if (size <= preset.minValidSizeBytes) {
           await fail(`The ${preset.name} download is too small to be a valid model.`);
+          return;
+        }
+        if (job.cancelled) {
+          if (activeDownload === job) activeDownload = null;
+          await RNFS.unlink(tempPath).catch(() => {});
+          publishDownload();
+          reject(new Error('Download cancelled.'));
           return;
         }
         if (await RNFS.exists(destinationPath)) {

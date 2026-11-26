@@ -179,9 +179,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent =
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    let kbScrollTimer: ReturnType<typeof setTimeout> | null = null;
     const showSub = Keyboard.addListener(showEvent, () => {
       setIsKeyboardOpen(true);
-      setTimeout(() => {
+      if (kbScrollTimer) clearTimeout(kbScrollTimer);
+      kbScrollTimer = setTimeout(() => {
+        kbScrollTimer = null;
         modalScrollRef.current?.scrollToEnd({ animated: true });
       }, 50);
     });
@@ -189,6 +192,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       setIsKeyboardOpen(false);
     });
     return () => {
+      if (kbScrollTimer) clearTimeout(kbScrollTimer);
       showSub.remove();
       hideSub.remove();
     };
@@ -257,9 +261,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     return () => {
       timers.forEach(id => clearTimeout(id));
       timers.clear();
+      shakeAnim.stopAnimation();
+      pulseAnim.stopAnimation();
       stopSpeaking();
     };
-  }, [stopSpeaking]);
+  }, [pulseAnim, shakeAnim, stopSpeaking]);
 
   // AGY-PORT 04: a planner change waits on this card until the student confirms.
   const review = useCommandReview(userId, 'voice');
@@ -267,11 +273,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   reviewRef.current = review;
 
   useEffect(() => {
-    if (review?.proposal) {
-      setTimeout(() => {
-        modalScrollRef.current?.scrollToEnd({ animated: true });
-      }, 50);
-    }
+    if (!review?.proposal) return undefined;
+    const timer = setTimeout(() => {
+      modalScrollRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    return () => clearTimeout(timer);
   }, [review?.proposal]);
 
   /** Stops any capture this sheet started; its late result is ignored. */
@@ -370,7 +376,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       clearInterval(waveIntervalRef.current);
       waveIntervalRef.current = null;
     }
-    waveBars.forEach(bar => bar.setValue(0.2));
+    waveBars.forEach(bar => {
+      bar.stopAnimation();
+      bar.setValue(0.2);
+    });
   }, [waveBars]);
 
   const startWaveform = useCallback(() => {
@@ -469,6 +478,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const triggerErrorShake = useCallback(
     (nextState: VoiceState = 'idle') => {
       setVoiceState('error');
+      shakeAnim.stopAnimation();
       Animated.sequence([
         Animated.timing(shakeAnim, {
           toValue: 10,
@@ -490,7 +500,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           duration: 50,
           useNativeDriver: true,
         }),
-      ]).start(() => {
+      ]).start(({finished}) => {
+        if (!finished) return;
         safeSetTimeout(() => {
           setVoiceState(nextState);
         }, 1500);
@@ -795,7 +806,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       } catch (err) {
         stream?.cancel();
         console.error(err);
-        triggerErrorShake('idle');
+        if (activeCaptureRef.current === uiCaptureId) {
+          triggerErrorShake('idle');
+        }
       }
     }, NLU_PARSER_DELAY_MS);
   };

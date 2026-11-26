@@ -246,13 +246,14 @@ export const isDraftCancel = (text: string): boolean => {
 export type CallClosingKind = 'goodbye' | 'thanks' | 'none';
 
 const GOODBYE_PHRASE =
-  "bye(?: bye)?|byee+|good ?bye|goodnight|good night|nighty? night|see (?:you|ya)(?: later| tomorrow| soon| next time)?|talk (?:to you )?(?:later|soon|tomorrow)|ttyl|later|take care|ingat(?: ka)?|gtg|got to go|gotta go|i have to go|i need to go|i(?:'m| am) (?:off|going|leaving)|that's all|that is all|that'll be all|that will be all|that's it|that is it|i'm done|im done|i am done|we're done|we are done|all done|nothing else|nothing more|no more|that's everything|that is everything|end (?:the |this )?call|hang up|you can hang up|end it|paalam|sige bye";
+  "byee+|bye|good ?bye|goodnight|good night|nighty? night|see (?:you|ya)(?: tomorrow| soon| next time)?|talk (?:to you )?(?:later|soon|tomorrow)|ttyl|later|take care|ingat(?: ka)?|gtg|got to go|gotta go|i have to go|i need to go|i(?:'m| am) (?:off|going|leaving)|that's all|that is all|that'll be all|that will be all|that's it|that is it|i'm done|im done|i am done|we're done|we are done|all done|nothing else|nothing more|no more|that's everything|that is everything|end (?:the |this )?call|hang up|you can hang up|end it|paalam";
 const THANKS_PHRASE =
-  'thanks?(?: a lot| so much| very much)?|thank you(?: so much| very much| a lot)?|thank u|thx|tnx|ty|tysm|salamat(?: po)?|maraming salamat(?: po)?|appreciate it|much appreciated|i appreciate it';
+  'thanks?(?: a lot| so much| very much)?|thank you(?: so much| very much| a lot)?|thank u|thx|tnx|ty|tysm|salamat|maraming salamat|appreciate it|much appreciated|i appreciate it';
 const CLOSING_FILLER =
-  'ok|okay|okey|alright|all right|sige|oh|um+|uh+|so|well|no|nope|nah|yes|yeah|yep|great|perfect|cool|nice|awesome|got it|lafina|po|again|for (?:the help|your help|helping|everything)|for (?:that|this)|have a (?:good|nice|great) (?:day|night|one)|you too|bye for now|for now';
+  'ok|okay|okey|alright|all right|sige|oh|um+|uh+|so|well|no|nope|nah|yes|yeah|yep|great|perfect|cool|nice|awesome|got it|lafina|po|again|for (?:the help|your help|helping|everything)|for (?:that|this)|have a (?:good|nice|great) (?:day|night|one)|you too|for now';
+const CLOSING_TOKEN_GROUP = `(?:${GOODBYE_PHRASE}|${THANKS_PHRASE}|${CLOSING_FILLER})`;
 const CLOSING_TOKEN_RE = new RegExp(
-  `^(?:(?:${GOODBYE_PHRASE}|${THANKS_PHRASE}|${CLOSING_FILLER})\\s*)+$`,
+  `^${CLOSING_TOKEN_GROUP}(?:\\s+${CLOSING_TOKEN_GROUP})*$`,
 );
 const GOODBYE_RE = new RegExp(`\\b(?:${GOODBYE_PHRASE})\\b`);
 const THANKS_RE = new RegExp(`\\b(?:${THANKS_PHRASE})\\b`);

@@ -3003,10 +3003,26 @@ const readOwnerEpoch = (
   }`;
 };
 
+const MAX_IN_MEMORY_REVIEWS = 200;
+const MAX_IN_MEMORY_UNDO_ENTRIES = 100;
+
 const pruneReviews = (now: number): void => {
   for (const [id, review] of reviews) {
     if (review.expiresAt <= now || review.sessionId !== sessionId)
       reviews.delete(id);
+  }
+  if (reviews.size >= MAX_IN_MEMORY_REVIEWS) {
+    for (const [id, review] of reviews) {
+      if (review.state !== 'pending') {
+        reviews.delete(id);
+        if (reviews.size < MAX_IN_MEMORY_REVIEWS) break;
+      }
+    }
+  }
+  while (reviews.size >= MAX_IN_MEMORY_REVIEWS) {
+    const oldest = reviews.keys().next().value;
+    if (oldest === undefined) break;
+    reviews.delete(oldest);
   }
 };
 
@@ -5250,30 +5266,31 @@ const inverseOf = (
     };
   }
   if (op.op === 'update_note') {
-    const note = notesStore
-      .getAll(
-        String(
-          tx.executeSync('SELECT user_id FROM notes WHERE id = ?', [
-            op.target.id,
-          ]).rows?.[0]?.user_id ?? '',
-        ),
-      )
-      .find(n => n.id === op.target.id);
-    if (!note) return null;
+    const row = tx.executeSync(
+      'SELECT title, body, is_pinned, category FROM notes WHERE id = ? AND deleted_at IS NULL LIMIT 1',
+      [op.target.id],
+    ).rows?.[0] as
+      | {title?: unknown; body?: unknown; is_pinned?: unknown; category?: unknown}
+      | undefined;
+    if (!row) return null;
+    const noteTitle = String(row.title ?? '');
+    const noteBody = String(row.body ?? '');
+    const notePinned = Number(row.is_pinned ?? 0) === 1;
+    const noteCategory = row.category == null ? '' : String(row.category);
     const label =
-      typeof op.isPinned === 'boolean' && op.body === note.body
-        ? `${op.isPinned ? 'Pinned' : 'Unpinned'} “${note.title}”`
-        : op.body !== note.body
-        ? `Updated checklist in “${note.title}”`
-        : `Updated “${note.title}”`;
+      typeof op.isPinned === 'boolean' && op.body === noteBody
+        ? `${op.isPinned ? 'Pinned' : 'Unpinned'} “${noteTitle}”`
+        : op.body !== noteBody
+        ? `Updated checklist in “${noteTitle}”`
+        : `Updated “${noteTitle}”`;
     return {
       inverse: {
         op: 'update_note',
         target: op.target,
-        title: note.title,
-        body: note.body,
-        ...(typeof op.isPinned === 'boolean' ? {isPinned: note.isPinned} : {}),
-        ...(op.category ? {category: note.category} : {}),
+        title: noteTitle,
+        body: noteBody,
+        ...(typeof op.isPinned === 'boolean' ? {isPinned: notePinned} : {}),
+        ...(op.category ? {category: noteCategory} : {}),
         isLowRiskMetaOnly: true,
       },
       label,
@@ -5310,6 +5327,11 @@ const rememberUndo = (
   for (const [token, entry] of undoEntries) {
     if (entry.expiresAt <= now) undoEntries.delete(token);
   }
+  while (undoEntries.size >= MAX_IN_MEMORY_UNDO_ENTRIES) {
+    const oldest = undoEntries.keys().next().value;
+    if (oldest === undefined) break;
+    undoEntries.delete(oldest);
+  }
   const expiresAt = now + UNDO_TTL_MS;
   undoEntries.set(operationId, {
     ownerId,
@@ -5334,13 +5356,20 @@ export const undoLowRiskCommand = (
   token: string,
 ): UndoResult => {
   const entry = undoEntries.get(token);
-  if (
-    !entry ||
-    entry.ownerId !== activeUserId ||
-    entry.sessionId !== sessionId ||
-    Date.now() >= entry.expiresAt
-  ) {
+  if (!entry) {
+    return {
+      status: 'refused',
+      reply: 'That change can no longer be undone.',
+    };
+  }
+  if (entry.sessionId !== sessionId || Date.now() >= entry.expiresAt) {
     undoEntries.delete(token);
+    return {
+      status: 'refused',
+      reply: 'That change can no longer be undone.',
+    };
+  }
+  if (entry.ownerId !== activeUserId) {
     return {
       status: 'refused',
       reply: 'That change can no longer be undone.',

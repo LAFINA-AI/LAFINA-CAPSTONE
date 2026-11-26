@@ -16,6 +16,8 @@ import {alertPreferencesStore} from './alertPreferencesStore';
 import {noteSessionChange} from './sessionEpoch';
 import {ATTACHMENT_CLEANUP_TABLE} from './attachmentCleanupSchema';
 import {materialStore} from './materialStore';
+import {transferPersonalFileCleanupFromGuest} from './personalFileCleanup';
+import {importedBatchesStore} from './importedBatchesStore';
 import {
   refreshAcademicMemories,
   removeAcademicMemories,
@@ -414,6 +416,7 @@ export const guestMigration = {
         `DELETE FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ?`,
         [GUEST_USER_ID],
       );
+      transferPersonalFileCleanupFromGuest(tx, GUEST_USER_ID, cloudUserId);
 
       // 3. Migrate guest alarms up to owner limit, drop extras, then remove guest user
       if (cloudUserId !== GUEST_USER_ID) {
@@ -619,5 +622,6 @@ export const guestMigration = {
         );
       }
     });
+    void importedBatchesStore.transferFromGuest(GUEST_USER_ID, cloudUserId);
   },
 };

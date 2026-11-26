@@ -79,6 +79,27 @@ class LafinaMeetingService : Service() {
         var activeMeetingId: String? = null
             private set
 
+        @Volatile
+        private var liveInstance: LafinaMeetingService? = null
+
+        internal fun sanitizeMeetingId(raw: String?): String? {
+            if (raw.isNullOrBlank()) return null
+            val trimmed = raw.trim()
+            if (trimmed == "." || trimmed == ".." || trimmed.contains('/') || trimmed.contains('\\') || trimmed.contains('\u0000')) {
+                return null
+            }
+            val name = File(trimmed).name
+            if (name.isBlank() || name == "." || name == ".." || name != trimmed) return null
+            return name
+        }
+
+        internal fun requestInProcessStop(expectedMeetingId: String?): Boolean {
+            val svc = liveInstance ?: return false
+            if (expectedMeetingId != null && expectedMeetingId != activeMeetingId) return false
+            svc.requestStopRecording()
+            return true
+        }
+
         /** Microphone ticket acquired by the bridge, waiting for this service to claim it. */
         val leaseHandoff = PendingLeaseHandoff { LafinaMicrophoneLease.release(it) }
 
@@ -169,6 +190,7 @@ class LafinaMeetingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        liveInstance = this
         LafinaMicrophoneLease.configure(this)
         ensureChannel()
     }
@@ -184,6 +206,7 @@ class LafinaMeetingService : Service() {
                 if (recording.get()) {
                     paused.set(true)
                     isPausedState = true
+                    audioLevel = 0.0
                     activeMeetingId?.let { writeRecoveryState(this, it, currentTitle, "paused") }
                     updateForegroundNotification("Recording paused: $currentTitle")
                 }
@@ -202,8 +225,11 @@ class LafinaMeetingService : Service() {
                 try {
                     if (expectedId != null && expectedId != activeMeetingId) return START_NOT_STICKY
                     requestStopRecording()
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                    stopSelf()
+                    // Let a live worker thread finish syncing and patching the final WAV chunk
+                    // before its finally block tears down the foreground service.
+                    if (workerThread?.isAlive != true) {
+                        abortStartBeforeRecording()
+                    }
                 } finally {
                     if (token != null) pendingStops.remove(token)
                 }
@@ -213,7 +239,9 @@ class LafinaMeetingService : Service() {
     }
 
     override fun onDestroy() {
+        if (liveInstance === this) liveInstance = null
         requestStopRecording()
+        audioLevel = 0.0
         super.onDestroy()
     }
 
@@ -246,9 +274,13 @@ class LafinaMeetingService : Service() {
             LafinaMicrophoneLease.release(handedOff)
             return
         }
-        currentTitle = title
-        enterForeground(title)
-
+        val safeMeetingId = sanitizeMeetingId(meetingId)
+        if (safeMeetingId == null) {
+            Log.w(TAG, "Invalid meetingId rejected; aborting meeting service")
+            LafinaMicrophoneLease.release(handedOff)
+            stopSelf()
+            return
+        }
         val hasPerm = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.RECORD_AUDIO
@@ -256,7 +288,16 @@ class LafinaMeetingService : Service() {
         if (!hasPerm) {
             Log.w(TAG, "RECORD_AUDIO permission not granted; aborting meeting service")
             LafinaMicrophoneLease.release(handedOff)
-            abortStartBeforeRecording()
+            stopSelf()
+            return
+        }
+        currentTitle = title
+        try {
+            enterForeground(title)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not enter microphone foreground service: ${e.javaClass.simpleName}")
+            LafinaMicrophoneLease.release(handedOff)
+            stopSelf()
             return
         }
         val ticket = handedOff
@@ -270,14 +311,15 @@ class LafinaMeetingService : Service() {
 
         acquireWakeLock()
         resetChunks()
-        activeMeetingId = meetingId
+        activeMeetingId = safeMeetingId
         paused.set(false)
         isPausedState = false
+        audioLevel = 0.0
         recording.set(true)
         isRunning = true
-        writeRecoveryState(this, meetingId, title, "recording")
+        writeRecoveryState(this, safeMeetingId, title, "recording")
 
-        val outDir = File(meetingsRootDir(this), meetingId)
+        val outDir = File(meetingsRootDir(this), safeMeetingId)
         if (!outDir.exists()) outDir.mkdirs()
 
         try {
@@ -440,11 +482,14 @@ class LafinaMeetingService : Service() {
                             fos.write(byteBuf.array(), 0, read * 2)
                             samplesWritten += read
                         } else if (read < 0) {
-                            Log.w(TAG, "AudioRecord read error: $read")
+                            Log.w(TAG, "AudioRecord read error: $read; stopping capture loop")
+                            recording.set(false)
                             break
                         }
                     }
-                    fos.fd.sync()
+                    if (samplesWritten > 0L) {
+                        fos.fd.sync()
+                    }
                 }
 
                 if (samplesWritten > SAMPLE_RATE / 2) {
@@ -461,6 +506,7 @@ class LafinaMeetingService : Service() {
             Log.e(TAG, "Capture loop error: ${e.message}", e)
         } finally {
             recording.set(false)
+            audioLevel = 0.0
             activeRecorder = null
             try {
                 recorder.stop()

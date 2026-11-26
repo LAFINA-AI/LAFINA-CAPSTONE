@@ -79,8 +79,9 @@ internal class SileroVadProcessor(private val reactContext: ReactApplicationCont
         modelFile.outputStream().use { output -> input.copyTo(output) }
       }
     }
-    val options = OrtSession.SessionOptions().apply { setIntraOpNumThreads(1) }
-    session = environment.createSession(modelFile.absolutePath, options)
+    session = OrtSession.SessionOptions().apply { setIntraOpNumThreads(1) }.use { options ->
+      environment.createSession(modelFile.absolutePath, options)
+    }
   }
 
   fun reset() {
@@ -194,6 +195,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
   @Volatile private var activeRecorder: AudioRecord? = null
   @Volatile private var whisperContext: Long = 0L
   @Volatile private var invalidated: Boolean = false
+  private val unloadRequested = AtomicBoolean(false)
   private var vadProcessor: SileroVadProcessor? = null
 
   // 60-second inactivity auto-unload mechanism to conserve system RAM and battery
@@ -278,7 +280,13 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     }
   }
 
+  @Synchronized
+  private fun ensureVadProcessor(): SileroVadProcessor {
+    return vadProcessor ?: SileroVadProcessor(reactContext).also { vadProcessor = it }
+  }
+
   private fun scheduleInactivityUnload() {
+    if (invalidated) return
     mainHandler.removeCallbacks(inactivityUnloadRunnable)
     mainHandler.postDelayed(inactivityUnloadRunnable, INACTIVITY_UNLOAD_TIMEOUT_MS)
   }
@@ -289,7 +297,11 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
 
   @Synchronized
   private fun unloadModelsInternal() {
-    if (activeCaptureId.get() != null) return
+    if (activeCaptureId.get() != null) {
+      unloadRequested.set(true)
+      return
+    }
+    unloadRequested.set(false)
     try {
       if (whisperContext != 0L) {
         LafinaWhisperBridge.freeContext(whisperContext)
@@ -409,11 +421,15 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       }
       return
     }
-    if (!activeCaptureId.compareAndSet(null, captureId)) {
+    val claimed = synchronized(this) {
+      activeCaptureId.compareAndSet(null, captureId)
+    }
+    if (!claimed) {
       LafinaMicrophoneLease.release(ticket)
       promise.reject("CAPTURE_BUSY", "Another offline speech capture is already active.")
       return
     }
+    unloadRequested.set(false)
 
     stopRequested.set(false)
     discardRequested.set(false)
@@ -545,10 +561,12 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       } finally {
         // The real worker has returned: AudioRecord is released and Whisper is done, so
         // only now does this capture give up its own ticket (never anyone else's).
-        activeRecorder = null
-        activeCaptureId.compareAndSet(captureId, null)
+        synchronized(this) {
+          activeRecorder = null
+          activeCaptureId.compareAndSet(captureId, null)
+        }
         LafinaMicrophoneLease.release(ticket)
-        if (invalidated) {
+        if (invalidated || unloadRequested.getAndSet(false)) {
           unloadModelsInternal()
         } else {
           scheduleInactivityUnload()
@@ -671,7 +689,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       } catch (_: Exception) {
         null
       }
-      val vad = vadProcessor ?: SileroVadProcessor(reactContext).also { vadProcessor = it }
+      val vad = ensureVadProcessor()
       vad.reset()
       val waitSeconds = when {
         mode == MODE_MANUAL -> MANUAL_CAPTURE_LIMIT_SECONDS
@@ -733,6 +751,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
 
       activeRecorder = recorder
       recorder.startRecording()
+      var consecutiveZeroReads = 0
       while (!stopRequested.get() && audioSize < audio.size) {
         val read = try {
           recorder.read(frame, 0, frame.size, AudioRecord.READ_BLOCKING)
@@ -740,10 +759,20 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
           if (stopRequested.get()) break
           throw error
         }
-        if (read <= 0) {
+        if (read < 0) {
           if (stopRequested.get()) break
+          throw IllegalStateException("AudioRecord read error: $read")
+        }
+        if (read == 0) {
+          if (stopRequested.get()) break
+          consecutiveZeroReads += 1
+          if (consecutiveZeroReads >= MAX_CONSECUTIVE_ZERO_READS) {
+            throw IllegalStateException("Microphone stalled with repeated zero-length reads.")
+          }
+          try { Thread.sleep(10) } catch (_: InterruptedException) { break }
           continue
         }
+        consecutiveZeroReads = 0
         val streamFrameStart = totalStreamSamples
         val streamFrameEnd = streamFrameStart + read
         totalStreamSamples = streamFrameEnd
@@ -954,7 +983,10 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       activeRecorder?.stop()
     } catch (_: Exception) {
     }
-    unloadModelsInternal()
+    unloadRequested.set(true)
+    if (!submitWarmup { unloadModelsInternal() }) {
+      unloadModelsInternal()
+    }
     promise.resolve(true)
   }
 
@@ -988,6 +1020,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     private const val REMINDER_WAIT_FOR_SPEECH_SECONDS = 20
     private const val MAX_UTTERANCE_SECONDS = 15
     private const val CALL_COMMAND_LIMIT_SECONDS = 4
+    private const val MAX_CONSECUTIVE_ZERO_READS = 100
     private const val MANUAL_CAPTURE_LIMIT_SECONDS = 30
     private const val MAIN_SILENCE_AFTER_SPEECH_MS = 1_000
     private const val CALL_COMMAND_SILENCE_AFTER_SPEECH_MS = 650

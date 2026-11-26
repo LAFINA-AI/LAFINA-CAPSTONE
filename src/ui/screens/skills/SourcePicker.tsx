@@ -137,15 +137,39 @@ export function SourcePicker({
   const settingsRevision = useStorageRevision(['local_settings']);
   const initialVisibleNotes = compactList ? 3 : 5;
   const [connected, setConnected] = useState(true);
-  useEffect(
-    () =>
-      NetInfo.addEventListener(state =>
-        setConnected(
-          state.isConnected !== false && state.isInternetReachable !== false,
-        ),
-      ),
-    [],
-  );
+  const connectedRef = useRef(true);
+  useEffect(() => {
+    let alive = true;
+    let receivedEvent = false;
+    const applyNet = (
+      state: {
+        isConnected: boolean | null;
+        isInternetReachable?: boolean | null;
+      },
+      fromEvent: boolean,
+    ) => {
+      if (!alive) return;
+      if (fromEvent) {
+        receivedEvent = true;
+      } else if (receivedEvent) {
+        return;
+      }
+      const next =
+        state.isConnected !== false && state.isInternetReachable !== false;
+      if (connectedRef.current !== next) {
+        connectedRef.current = next;
+        setConnected(next);
+      }
+    };
+    const unsub = NetInfo.addEventListener(state => applyNet(state, true));
+    void NetInfo.fetch()
+      .then(state => applyNet(state, false))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+      unsub();
+    };
+  }, []);
 
   const [mode, setMode] = useState<SourceMode>(() => modeFromSource(source));
   const [notes, setNotes] = useState<NoteSnapshot[]>([]);
@@ -158,6 +182,16 @@ export function SourcePicker({
   const [readingFile, setReadingFile] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const mountedRef = useRef(true);
+  const activeUserRef = useRef(userId);
+  activeUserRef.current = userId;
+  const readingFileRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -395,9 +429,12 @@ export function SourcePicker({
   }, [activeMaterialId, userId]);
 
   const upload = async () => {
-    if (readingFile) return;
+    if (readingFileRef.current || readingFile) return;
+    const reqUserId = userId;
+    readingFileRef.current = true;
     setError('');
     setInfo('');
+    try {
     const picked = await pickDocument([
       'text/plain',
       'text/markdown',
@@ -406,6 +443,7 @@ export function SourcePicker({
       MIME_DOCX,
       MIME_PPTX,
     ]);
+    if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
     if (picked.status === 'cancelled') return;
     if (picked.status === 'failed') {
       setError(picked.message);
@@ -414,6 +452,7 @@ export function SourcePicker({
     let knownSize = picked.file.sizeBytes;
     if (!knownSize) {
       const stat = await RNFS.stat(picked.file.uri).catch(() => null);
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       const statSize = Number(stat?.size);
       if (Number.isFinite(statSize) && statSize > 0) knownSize = statSize;
     }
@@ -517,6 +556,7 @@ export function SourcePicker({
       } else {
         text = await readTextFileSafely(picked.file.uri);
       }
+      if (!mountedRef.current || activeUserRef.current !== reqUserId) return;
       if (!text.trim()) throw new Error('This file is empty.');
       const trimmed = text.trim();
       emitSource({
@@ -531,9 +571,16 @@ export function SourcePicker({
       }
       setInfo(infoNotes.join(' '));
     } catch (e) {
-      setError((e as Error).message || 'Could not read the selected file.');
+      if (mountedRef.current && activeUserRef.current === reqUserId) {
+        setError((e as Error).message || 'Could not read the selected file.');
+      }
     } finally {
-      setReadingFile(false);
+      if (mountedRef.current) {
+        setReadingFile(false);
+      }
+    }
+    } finally {
+      readingFileRef.current = false;
     }
   };
 

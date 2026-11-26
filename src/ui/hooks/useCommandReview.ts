@@ -71,6 +71,13 @@ export const useCommandReview = (
     operationId: string;
     done: Promise<ReviewDecisionResult | null>;
   } | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const ownerRef = useRef(userId);
   ownerRef.current = userId;
 
@@ -192,7 +199,7 @@ export const useCommandReview = (
         // else (applied, stale, expired, cancelled) retires it.
         const retry =
           outcome?.status === 'refused' && outcome.reason === 'failed';
-        if (!retry && ownerRef.current === current.ownerId) {
+        if (!retry && mountedRef.current && ownerRef.current === current.ownerId) {
           // An older version of the applied card still rendered goes too
           // (there is one open card per surface).
           setProposal(onScreen =>
@@ -209,7 +216,9 @@ export const useCommandReview = (
       } finally {
         busyRef.current = false;
         inFlightRef.current = null;
-        setBusy(false);
+        if (mountedRef.current) {
+          setBusy(false);
+        }
         finish(result);
       }
     },

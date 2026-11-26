@@ -323,12 +323,24 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   useEffect(
     () => () => {
       closingRef.current = true;
+      clearResultTimeout();
       if (snoozeTimerRef.current) {
         clearTimeout(snoozeTimerRef.current);
         snoozeTimerRef.current = null;
       }
+      if (claimCheckRef.current.timer) {
+        clearTimeout(claimCheckRef.current.timer);
+        claimCheckRef.current.timer = null;
+      }
+      greetingGateRef.current?.resolve();
+      greetingGateRef.current = null;
+      try {
+        Vibration.cancel();
+      } catch {
+        // Ignore vibration cancel failure on unmount
+      }
     },
-    [],
+    [clearResultTimeout],
   );
 
   const resetPresentation = useCallback((): void => {
@@ -661,10 +673,12 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         }
       } catch (error) {
         console.error('[CallScreen] Could not answer reminder call:', error);
-        setOnlineView(false);
-        setReply(
-          'LAFINA could not start the voice call. Use the buttons below.',
-        );
+        if (attempt === attemptRef.current && !closingRef.current) {
+          setOnlineView(false);
+          setReply(
+            'LAFINA could not start the voice call. Use the buttons below.',
+          );
+        }
       } finally {
         if (attempt === attemptRef.current) {
           answeringRef.current = false;
@@ -772,8 +786,12 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     } catch (error) {
       console.error('[CallScreen] Could not answer reminder call:', error);
       if (goOnline) void stopOnline();
-      setOnlineView(false);
-      setReply('LAFINA could not start the voice call. Use the buttons below.');
+      if (attempt === attemptRef.current && !closingRef.current) {
+        setOnlineView(false);
+        setReply(
+          'LAFINA could not start the voice call. Use the buttons below.',
+        );
+      }
     } finally {
       // The reminder has been read (or the answer failed): audio may open.
       releaseGreetingGate();

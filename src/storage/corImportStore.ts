@@ -526,9 +526,9 @@ export const corImportStore = {
           affiliation: record.previousSetup.affiliation,
           corStatus:
             record.previousSetup.corStatus === 'confirmed' &&
-            record.previousSetup.confirmedImportId
-              ? 'confirmed'
-              : 'pending',
+            !record.previousSetup.confirmedImportId
+              ? 'pending'
+              : record.previousSetup.corStatus,
           confirmedImportId: record.previousSetup.confirmedImportId,
           confirmedAt: record.previousSetup.confirmedAt,
         },

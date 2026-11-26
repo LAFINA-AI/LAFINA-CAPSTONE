@@ -50,11 +50,10 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
   override fun invalidate() {
     reactContext.removeActivityEventListener(this)
     reactContext.removeLifecycleEventListener(this)
-    try {
-      activeRingtone?.stop()
-    } catch (_: Exception) {
+    stopRingtoneInternal()
+    if (liveContext?.get() === reactContext) {
+      liveContext = null
     }
-    activeRingtone = null
     super.invalidate()
   }
 
@@ -93,10 +92,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
               task,
               if (style in DeliveryContract.STYLES) style else DeliveryContract.STYLE_CALL)
       if (options.hasKey("autoSnoozeMinutes") && options.hasKey("remainingSnoozes")) {
-        check(reactContext.getSharedPreferences("lafina_call_policies", Context.MODE_PRIVATE).edit()
-          .putString(registration.identity.uri(ACTION_CALL), JSONObject()
-            .put("minutes", options.getInt("autoSnoozeMinutes"))
-            .put("remaining", options.getInt("remainingSnoozes")).toString()).commit())
+        saveCallPolicy(reactContext, registration.identity, options.getInt("autoSnoozeMinutes"), options.getInt("remainingSnoozes"))
       }
       scheduleRegistration(reactContext, registration)
       promise.resolve(true)
@@ -261,14 +257,12 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       synchronized(DELIVERY_LOCK) {
         NotificationManagerCompat.from(reactContext).cancel(DeliveryContract.notificationTag(reminderId), CALL_NOTIFICATION_ID)
         stopRingtoneInternal()
-        if (ownerId.isNotBlank() && generation > 0.0) {
-          val pending = PendingReminderCalls(reactContext)
-          val row = pending.get(ownerId, reminderId, generation.toLong())
-          if (row != null) {
-            cancelCallDeadline(reactContext, DeliveryIdentity(ownerId, reminderId, generation.toLong()))
-            row.put("silenced", true)
-            pending.put(row)
-          }
+        val pending = PendingReminderCalls(reactContext)
+        val row = pending.get(ownerId, reminderId, generation.toLong())
+        if (row != null) {
+          cancelCallDeadline(reactContext, DeliveryIdentity(ownerId, reminderId, generation.toLong()))
+          row.put("silenced", true)
+          pending.put(row)
         }
       }
       promise.resolve(true)
@@ -312,7 +306,10 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         if (silenceOnly) {
           row.put("silenced", true).put("deadlineMs", System.currentTimeMillis() + 15 * 60_000L)
           pending.put(row)
-        } else pending.remove(ownerId, reminderId, generation.toLong())
+        } else {
+          pending.remove(ownerId, reminderId, generation.toLong())
+          removeCallPolicy(reactContext, DeliveryIdentity(ownerId, reminderId, generation.toLong()))
+        }
       }
       promise.resolve(true)
     } } catch (e: Exception) { promise.reject("CALL_FINISH_ERROR", e.message, e) }
@@ -519,18 +516,23 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
 
   override fun onNewIntent(intent: Intent) {
     val payload = payloadFromIntent(intent) ?: return
+    val ownerId = intent.getStringExtra(EXTRA_OWNER_ID)
+    if (!ownerId.isNullOrBlank()) {
+      val activeOwner = synchronized(DELIVERY_LOCK) { registry(reactContext).activeOwner() }
+      if (activeOwner != null && activeOwner != ownerId) return
+    }
     persistPendingCall(
         reactContext,
         payload.getString("reminderId") ?: return,
         payload.getString("task") ?: "",
         payload.getString("action") ?: ACTION_CALL,
-        intent.getStringExtra(EXTRA_OWNER_ID),
+        ownerId,
         if (intent.hasExtra(EXTRA_GENERATION)) intent.getLongExtra(EXTRA_GENERATION, 0L) else null
     )
     if (reactContext.hasActiveReactInstance()) {
       reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
           .emit(EVENT_CALL_TRIGGER, synchronized(DELIVERY_LOCK) {
-            PendingReminderCalls(reactContext).get(intent.getStringExtra(EXTRA_OWNER_ID).orEmpty(),
+            PendingReminderCalls(reactContext).get(ownerId.orEmpty(),
               intent.getStringExtra("reminderId").orEmpty(), intent.getLongExtra(EXTRA_GENERATION, 0))?.let { pendingPayload(it) } ?: payload
           })
     }
@@ -621,6 +623,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         val previous = core.get(reminderId)
         if (previous != null && previous.identity != registration.identity) {
           cancelIdentity(context, previous.identity)
+          removeCallPolicy(context, previous.identity)
           core.remove(reminderId)
           core.receipt("superseded", previous.identity)
         }
@@ -663,6 +666,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         core.get(reminderId)?.let { registration ->
           cancelIdentity(context, registration.identity)
           if (removePersisted) {
+            removeCallPolicy(context, registration.identity)
             core.remove(reminderId)
             core.receipt("cancelled", registration.identity)
           }
@@ -777,19 +781,16 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       val prefs = AlertPreferencesStoreNative.read(context)
       val channelId = createCallChannel(context)
       val timeoutMs = AlertPreferencesContract.clampRingTimeoutSec(prefs.callRingTimeoutSec) * 1000L
-      persistPendingCall(context, identity.reminderId, task, ACTION_CALL, identity.ownerId, identity.generation)
-      synchronized(DELIVERY_LOCK) {
-        val store = PendingReminderCalls(context)
-        val row = store.get(identity.ownerId, identity.reminderId, identity.generation) ?: return
-        row.put("action", ACTION_CALL).put("silenced", false)
-        store.put(row)
-      }
       synchronized(DELIVERY_LOCK) {
         val pending = PendingReminderCalls(context)
-        val row = pending.get(identity.ownerId, identity.reminderId, identity.generation) ?: return
-        row.put("deadlineMs", System.currentTimeMillis() + timeoutMs)
+        val now = System.currentTimeMillis()
+        val row = pending.get(identity.ownerId, identity.reminderId, identity.generation)
+          ?: JSONObject().put("reminderId", identity.reminderId).put("ownerId", identity.ownerId)
+            .put("generation", identity.generation).put("atMs", now)
+        val deadlineMs = now + timeoutMs
+        row.put("task", task).put("action", ACTION_CALL).put("silenced", false).put("deadlineMs", deadlineMs)
         pending.put(row)
-        scheduleCallDeadline(context, identity, row.getLong("deadlineMs"))
+        scheduleCallDeadline(context, identity, deadlineMs)
       }
       // Tapping the notification opens LAFINA (after unlock). The full-screen intent
       // targets the lock-screen call activity: MainActivity must not show over the
@@ -829,6 +830,39 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
 
     /** The module's React context, so a broadcast can reach an app already on screen. */
     @Volatile private var liveContext: WeakReference<ReactApplicationContext>? = null
+
+    fun hasActiveBridge(): Boolean = liveContext?.get()?.hasActiveReactInstance() == true
+
+    private const val CALL_POLICIES_PREFS = "lafina_call_policies"
+    private const val MAX_CALL_POLICY_ENTRIES = 200
+
+    private fun saveCallPolicy(context: Context, identity: DeliveryIdentity, minutes: Int, remaining: Int) {
+      synchronized(DELIVERY_LOCK) {
+        val prefs = context.getSharedPreferences(CALL_POLICIES_PREFS, Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        val all = prefs.all
+        if (all.size >= MAX_CALL_POLICY_ENTRIES) {
+          val activeKeys = registry(context).list().map { it.identity.uri(ACTION_CALL) }.toSet()
+          val pendingKeys = PendingReminderCalls(context).all()
+            .map { DeliveryIdentity(it.optString("ownerId"), it.optString("reminderId"), it.optLong("generation")).uri(ACTION_CALL) }
+            .toSet()
+          for (key in all.keys) {
+            if (key !in activeKeys && key !in pendingKeys) editor.remove(key)
+          }
+        }
+        check(editor.putString(identity.uri(ACTION_CALL), JSONObject()
+          .put("minutes", minutes)
+          .put("remaining", remaining).toString()).commit())
+      }
+    }
+
+    private fun removeCallPolicy(context: Context, identity: DeliveryIdentity) {
+      try {
+        context.getSharedPreferences(CALL_POLICIES_PREFS, Context.MODE_PRIVATE)
+          .edit().remove(identity.uri(ACTION_CALL)).apply()
+      } catch (_: Exception) {
+      }
+    }
 
     /**
      * Android shows a full-screen intent only as a heads-up while the phone is
@@ -1075,8 +1109,8 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         return@synchronized
       }
       NotificationManagerCompat.from(context).cancel(identity.notificationTag(), CALL_NOTIFICATION_ID)
-      val policy = context.getSharedPreferences("lafina_call_policies", Context.MODE_PRIVATE).getString(identity.uri(ACTION_CALL), null)
-      val snapshot = policy?.let { JSONObject(it) } ?: JSONObject().put("remaining", 1).put("minutes", 5)
+      val policy = context.getSharedPreferences(CALL_POLICIES_PREFS, Context.MODE_PRIVATE).getString(identity.uri(ACTION_CALL), null)
+      val snapshot = policy?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject().put("remaining", 1).put("minutes", 5)
       if (row.optString("action") == "timeout") return@synchronized
       val count = row.optInt("timeoutCount") + 1
       val exhausted = count > snapshot.optInt("remaining", 1)

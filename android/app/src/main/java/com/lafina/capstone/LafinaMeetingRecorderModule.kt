@@ -1,6 +1,8 @@
 package com.lafina.capstone
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.MediaCodec
 import android.media.MediaExtractor
@@ -36,6 +38,8 @@ class LafinaMeetingRecorderModule(
         private const val WAV_HEADER_BYTES = 44
         private const val WHISPER_IDLE_RELEASE_SEC = 45L
         private const val LEASE_HANDOFF_TIMEOUT_MS = 15_000L
+        private const val MAX_WAV_CHUNK_BYTES = 32L * 1024L * 1024L
+        private const val MAX_POST_EOS_STALL_POLLS = 200
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -71,11 +75,16 @@ class LafinaMeetingRecorderModule(
 
     private fun scheduleWhisperRelease() {
         whisperRelease?.cancel(false)
-        whisperRelease = transcribeExecutor.schedule(
-            { freeWhisperContext() },
-            WHISPER_IDLE_RELEASE_SEC,
-            TimeUnit.SECONDS
-        )
+        if (transcribeExecutor.isShutdown) return
+        whisperRelease = try {
+            transcribeExecutor.schedule(
+                { freeWhisperContext() },
+                WHISPER_IDLE_RELEASE_SEC,
+                TimeUnit.SECONDS
+            )
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            null
+        }
     }
 
     private fun freeWhisperContext() {
@@ -98,6 +107,19 @@ class LafinaMeetingRecorderModule(
 
     @ReactMethod
     fun startRecording(meetingId: String, title: String, promise: Promise) {
+        val safeMeetingId = LafinaMeetingService.sanitizeMeetingId(meetingId)
+        if (safeMeetingId == null) {
+            promise.reject("INVALID_MEETING_ID", "Meeting ID is invalid.")
+            return
+        }
+        val hasAudioPermission = ContextCompat.checkSelfPermission(
+            reactContext,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasAudioPermission) {
+            promise.reject("PERMISSION_DENIED", "Microphone permission is required to record a meeting.")
+            return
+        }
         try {
             if (LafinaMeetingService.isRunning) {
                 promise.reject("ALREADY_RECORDING", "A meeting is already being recorded.")
@@ -126,10 +148,10 @@ class LafinaMeetingRecorderModule(
             return
         }
         try {
-            LafinaMeetingService.leaseHandoff.offer(meetingId, ticket)
+            LafinaMeetingService.leaseHandoff.offer(safeMeetingId, ticket)
             val intent = Intent(reactContext, LafinaMeetingService::class.java).apply {
                 action = LafinaMeetingService.ACTION_START
-                putExtra(LafinaMeetingService.EXTRA_MEETING_ID, meetingId)
+                putExtra(LafinaMeetingService.EXTRA_MEETING_ID, safeMeetingId)
                 putExtra(LafinaMeetingService.EXTRA_MEETING_TITLE, title)
             }
             ContextCompat.startForegroundService(reactContext, intent)
@@ -138,7 +160,7 @@ class LafinaMeetingRecorderModule(
                 { LafinaMeetingService.leaseHandoff.abandon(ticket) },
                 LEASE_HANDOFF_TIMEOUT_MS
             )
-            promise.resolve(meetingId)
+            promise.resolve(safeMeetingId)
         } catch (e: Exception) {
             LafinaMeetingService.leaseHandoff.abandon(ticket)
             promise.reject("MEETING_START_ERROR", e.message, e)
@@ -181,6 +203,18 @@ class LafinaMeetingRecorderModule(
         stopRecordingOwned(meetingId, promise)
     }
 
+    private fun submitTranscribe(promise: Promise, code: String, block: () -> Unit) {
+        if (transcribeExecutor.isShutdown) {
+            promise.reject(code, "Meeting recorder is shutting down.")
+            return
+        }
+        try {
+            transcribeExecutor.execute(block)
+        } catch (e: java.util.concurrent.RejectedExecutionException) {
+            promise.reject(code, "Meeting recorder is shutting down.", e)
+        }
+    }
+
     private fun stopRecordingOwned(meetingId: String?, promise: Promise) {
         val stopToken = if (meetingId != null) java.util.UUID.randomUUID().toString() else null
         if (stopToken != null) LafinaMeetingService.pendingStops.add(stopToken)
@@ -193,7 +227,10 @@ class LafinaMeetingRecorderModule(
                 }
                 reactContext.startService(stopIntent)
             } catch (error: Exception) {
-                if (stopToken != null) {
+                // Fall back to direct in-process stop signal when Android blocks background startService.
+                if (LafinaMeetingService.requestInProcessStop(meetingId)) {
+                    if (stopToken != null) LafinaMeetingService.pendingStops.remove(stopToken)
+                } else if (stopToken != null) {
                     LafinaMeetingService.pendingStops.remove(stopToken)
                     promise.reject("MEETING_STOP_ERROR", error.message, error)
                     return
@@ -201,7 +238,7 @@ class LafinaMeetingRecorderModule(
             }
         }
 
-        transcribeExecutor.execute {
+        submitTranscribe(promise, "MEETING_STOP_ERROR") {
             try {
                 var waited = 0
                 val stillStopping = {
@@ -214,7 +251,7 @@ class LafinaMeetingRecorderModule(
                 }
                 if (stillStopping()) {
                     promise.reject("MEETING_STOP_ERROR", "Recording has not stopped yet. Please try again.")
-                    return@execute
+                    return@submitTranscribe
                 }
                 // Shutdown acknowledgements never expose another capture's file paths.
                 val chunks = if (meetingId == null) LafinaMeetingService.snapshotChunks() else emptyList()
@@ -292,22 +329,27 @@ class LafinaMeetingRecorderModule(
 
     @ReactMethod
     fun transcribeChunkWithTimestamps(audioPath: String, chunkOffsetMs: Double, promise: Promise) {
-        transcribeExecutor.execute {
+        submitTranscribe(promise, "MEETING_TRANSCRIBE_ERROR") {
             try {
                 val file = File(audioPath)
                 if (!file.exists()) {
                     promise.reject("FILE_NOT_FOUND", "Audio chunk file not found: $audioPath")
-                    return@execute
+                    return@submitTranscribe
+                }
+                val fileLen = file.length()
+                if (fileLen <= WAV_HEADER_BYTES) {
+                    promise.resolve(Arguments.createArray())
+                    return@submitTranscribe
+                }
+                if (fileLen > MAX_WAV_CHUNK_BYTES) {
+                    promise.reject("FILE_TOO_LARGE", "Audio chunk exceeds maximum supported size.")
+                    return@submitTranscribe
                 }
                 val audioBytes = file.readBytes()
-                if (audioBytes.size <= WAV_HEADER_BYTES) {
-                    promise.resolve(Arguments.createArray())
-                    return@execute
-                }
-                val pcmBytes = audioBytes.copyOfRange(WAV_HEADER_BYTES, audioBytes.size)
-                val sampleCount = pcmBytes.size / 2
+                val pcmLength = audioBytes.size - WAV_HEADER_BYTES
+                val sampleCount = pcmLength / 2
                 val floatSamples = FloatArray(sampleCount)
-                val byteBuffer = ByteBuffer.wrap(pcmBytes).order(ByteOrder.LITTLE_ENDIAN)
+                val byteBuffer = ByteBuffer.wrap(audioBytes, WAV_HEADER_BYTES, pcmLength).order(ByteOrder.LITTLE_ENDIAN)
                 for (i in 0 until sampleCount) {
                     floatSamples[i] = byteBuffer.short / 32768.0f
                 }
@@ -315,7 +357,7 @@ class LafinaMeetingRecorderModule(
                 val context = obtainWhisperContext()
                 if (context == 0L) {
                     promise.reject("WHISPER_INIT_ERROR", "Failed to initialize Whisper model")
-                    return@execute
+                    return@submitTranscribe
                 }
                 val cores = Runtime.getRuntime().availableProcessors()
                 val threads = cores.coerceAtLeast(2).coerceAtMost(4)
@@ -344,9 +386,13 @@ class LafinaMeetingRecorderModule(
     }
 
     override fun invalidate() {
+        importCancelled = true
         mainHandler.removeCallbacksAndMessages(null)
         if (!transcribeExecutor.isShutdown) {
-            transcribeExecutor.execute { freeWhisperContext() }
+            try {
+                transcribeExecutor.execute { freeWhisperContext() }
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
+            }
             transcribeExecutor.shutdown()
         }
         super.invalidate()
@@ -355,10 +401,16 @@ class LafinaMeetingRecorderModule(
     @ReactMethod
     fun deleteAudioFile(path: String, promise: Promise) {
         try {
-            val f = File(path)
+            val root = LafinaMeetingService.meetingsRootDir(reactContext).canonicalFile
+            val rootPrefix = root.path + File.separator
+            val f = File(path).canonicalFile
+            if (!f.path.startsWith(rootPrefix)) {
+                promise.resolve(false)
+                return
+            }
             val deleted = if (f.exists()) f.delete() else true
-            val parent = f.parentFile
-            if (parent != null && parent.exists() && parent.listFiles()?.isEmpty() == true) {
+            val parent = f.parentFile?.canonicalFile
+            if (parent != null && parent.path.startsWith(rootPrefix) && parent.exists() && parent.listFiles()?.isEmpty() == true) {
                 parent.delete()
             }
             promise.resolve(deleted)
@@ -375,7 +427,11 @@ class LafinaMeetingRecorderModule(
     @ReactMethod
     fun listMeetingAudio(meetingId: String, promise: Promise) {
         try {
-            val safeId = File(meetingId).name
+            val safeId = LafinaMeetingService.sanitizeMeetingId(meetingId)
+            if (safeId == null) {
+                promise.reject("INVALID_MEETING_ID", "Invalid meeting identifier.")
+                return
+            }
             val dir = File(LafinaMeetingService.meetingsRootDir(reactContext), safeId)
             val chunks = Arguments.createArray()
             var totalBytes = 0L
@@ -410,7 +466,11 @@ class LafinaMeetingRecorderModule(
     @ReactMethod
     fun deleteMeetingAudio(meetingId: String, promise: Promise) {
         try {
-            val safeId = File(meetingId).name
+            val safeId = LafinaMeetingService.sanitizeMeetingId(meetingId)
+            if (safeId == null) {
+                promise.resolve(false)
+                return
+            }
             val dir = File(LafinaMeetingService.meetingsRootDir(reactContext), safeId)
             if (dir.exists() && dir.isDirectory) {
                 dir.listFiles()?.forEach { if (!it.delete() && it.exists()) throw java.io.IOException("Could not delete recording") }
@@ -429,8 +489,13 @@ class LafinaMeetingRecorderModule(
      */
     @ReactMethod
     fun importAudioFile(fileUri: String, meetingId: String, promise: Promise) {
+        val safeMeetingId = LafinaMeetingService.sanitizeMeetingId(meetingId)
+        if (safeMeetingId == null) {
+            promise.reject("INVALID_MEETING_ID", "Invalid meeting identifier.")
+            return
+        }
         importCancelled = false
-        transcribeExecutor.execute {
+        submitTranscribe(promise, "AUDIO_IMPORT_ERROR") {
             var extractor: MediaExtractor? = null
             var codec: MediaCodec? = null
             var pfd: android.os.ParcelFileDescriptor? = null
@@ -440,12 +505,12 @@ class LafinaMeetingRecorderModule(
                 if (importCancelled) {
                     promise.reject("IMPORT_CANCELLED", "Audio import was cancelled.")
                     resolved = true
-                    return@execute
+                    return@submitTranscribe
                 }
                 if (LafinaMeetingService.isRunning) {
                     promise.reject("RECORDING_IN_PROGRESS", "Cannot import audio while a live recording is in progress.")
                     resolved = true
-                    return@execute
+                    return@submitTranscribe
                 }
 
                 val stat = StatFs(reactContext.filesDir.absolutePath)
@@ -453,11 +518,10 @@ class LafinaMeetingRecorderModule(
                 if (freeMb < 50L) {
                     promise.reject("INSUFFICIENT_STORAGE", "At least 50 MB of free storage is required to import an audio recording.")
                     resolved = true
-                    return@execute
+                    return@submitTranscribe
                 }
 
                 val uri = Uri.parse(fileUri)
-                val safeMeetingId = File(meetingId).name
                 val dir = File(LafinaMeetingService.meetingsRootDir(reactContext), safeMeetingId)
                 meetingDir = dir
                 if (!dir.exists()) {
@@ -489,7 +553,7 @@ class LafinaMeetingRecorderModule(
                 if (audioTrackIndex < 0 || audioFormat == null) {
                     promise.reject("NO_AUDIO_TRACK", "No audio track was found in the selected file.")
                     resolved = true
-                    return@execute
+                    return@submitTranscribe
                 }
 
                 extractor.selectTrack(audioTrackIndex)
@@ -528,9 +592,12 @@ class LafinaMeetingRecorderModule(
 
                 fun flushCurrentChunk() {
                     if (chunkBufferCount <= 0) return
+                    val curFreeMb = StatFs(reactContext.filesDir.absolutePath).availableBytes / (1024L * 1024L)
+                    if (curFreeMb < 50L) {
+                        throw IllegalStateException("Not enough free storage left to continue importing audio.")
+                    }
                     val chunkFile = File(dir, String.format("chunk_%03d.wav", chunkIndex))
-                    val shortsToSave = chunkBuffer.copyOfRange(0, chunkBufferCount)
-                    writeWavFile(chunkFile, shortsToSave, TARGET_SAMPLE_RATE)
+                    writeWavFile(chunkFile, chunkBuffer, chunkBufferCount, TARGET_SAMPLE_RATE)
 
                     val durationMs = (chunkBufferCount * 1000L) / TARGET_SAMPLE_RATE
                     totalDurationMs += durationMs
@@ -560,13 +627,14 @@ class LafinaMeetingRecorderModule(
                     }
                 }
 
+                var postInputEosStalls = 0
                 while (!isOutputEOS) {
                     if (importCancelled) {
                         dir.listFiles()?.forEach { it.delete() }
                         dir.delete()
                         promise.reject("IMPORT_CANCELLED", "Audio import was cancelled.")
                         resolved = true
-                        return@execute
+                        return@submitTranscribe
                     }
                     if (!isInputEOS) {
                         val inIndex = codec.dequeueInputBuffer(timeoutUs)
@@ -645,6 +713,12 @@ class LafinaMeetingRecorderModule(
                             appendSamples(targetShorts)
                         }
                         codec.releaseOutputBuffer(outIndex, false)
+                        postInputEosStalls = 0
+                    } else if (isInputEOS) {
+                        postInputEosStalls += 1
+                        if (postInputEosStalls >= MAX_POST_EOS_STALL_POLLS) {
+                            break
+                        }
                     }
                 }
 
@@ -655,7 +729,7 @@ class LafinaMeetingRecorderModule(
                     dir.delete()
                     promise.reject("EMPTY_AUDIO", "The imported file contains no playable audio data.")
                     resolved = true
-                    return@execute
+                    return@submitTranscribe
                 }
 
                 val result = Arguments.createMap().apply {
@@ -705,8 +779,8 @@ class LafinaMeetingRecorderModule(
         return output
     }
 
-    private fun writeWavFile(file: File, pcmShorts: ShortArray, sampleRate: Int) {
-        val pcmByteCount = pcmShorts.size * 2
+    private fun writeWavFile(file: File, pcmShorts: ShortArray, sampleCount: Int, sampleRate: Int) {
+        val pcmByteCount = sampleCount * 2
         val riffSize = 36 + pcmByteCount
         val header = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN).apply {
             put("RIFF".toByteArray(Charsets.US_ASCII))
@@ -723,13 +797,20 @@ class LafinaMeetingRecorderModule(
             put("data".toByteArray(Charsets.US_ASCII))
             putInt(pcmByteCount)
         }
-        val pcmBytes = ByteBuffer.allocate(pcmByteCount).order(ByteOrder.LITTLE_ENDIAN)
-        for (s in pcmShorts) {
-            pcmBytes.putShort(s)
-        }
+        val ioShortsPerBlock = 8192
+        val ioBuf = ByteBuffer.allocate(ioShortsPerBlock * 2).order(ByteOrder.LITTLE_ENDIAN)
         FileOutputStream(file).use { fos ->
             fos.write(header.array())
-            fos.write(pcmBytes.array())
+            var offset = 0
+            while (offset < sampleCount) {
+                val count = minOf(ioShortsPerBlock, sampleCount - offset)
+                ioBuf.clear()
+                for (i in 0 until count) {
+                    ioBuf.putShort(pcmShorts[offset + i])
+                }
+                fos.write(ioBuf.array(), 0, count * 2)
+                offset += count
+            }
         }
     }
 }

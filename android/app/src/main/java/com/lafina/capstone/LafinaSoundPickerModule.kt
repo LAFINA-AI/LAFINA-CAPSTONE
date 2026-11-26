@@ -23,8 +23,11 @@ import com.facebook.react.bridge.ReactMethod
 class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext), ActivityEventListener, LifecycleEventListener {
 
-  private var pendingPickerPromise: Promise? = null
-  private var pendingPickerKind: String = KIND_ALARM
+  private val pendingPickerPromise = java.util.concurrent.atomic.AtomicReference<Promise?>(null)
+  @Volatile private var pendingPickerKind: String = KIND_ALARM
+  private val titleExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+    Thread(task, "lafina-sound-title").apply { isDaemon = true }
+  }
   private var previewPlayer: MediaPlayer? = null
   private var previewFocusRequest: AudioFocusRequest? = null
   private val handler = Handler(Looper.getMainLooper())
@@ -53,16 +56,13 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
     } else {
       handler.post { stopPreviewInternal() }
     }
-    pendingPickerPromise?.let {
-      pendingPickerPromise = null
-      it.resolve(
-        Arguments.createMap().apply {
-          putBoolean("cancelled", true)
-          putNull("uri")
-          putString("title", "")
-        },
-      )
-    }
+    pendingPickerPromise.getAndSet(null)?.resolve(
+      Arguments.createMap().apply {
+        putBoolean("cancelled", true)
+        putNull("uri")
+        putString("title", "")
+      },
+    )
   }
 
   override fun invalidate() {
@@ -74,7 +74,8 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
     } else {
       handler.post { stopPreviewInternal() }
     }
-    pendingPickerPromise = null
+    pendingPickerPromise.set(null)
+    titleExecutor.shutdown()
     super.invalidate()
   }
 
@@ -108,7 +109,7 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
       promise.reject("NO_ACTIVITY", "Cannot open tone picker without an active screen.")
       return
     }
-    if (pendingPickerPromise != null) {
+    if (!pendingPickerPromise.compareAndSet(null, promise)) {
       promise.reject("PICKER_BUSY", "A tone picker is already open.")
       return
     }
@@ -129,13 +130,13 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
         }
       }
 
-    pendingPickerPromise = promise
     pendingPickerKind = normalizedKind
     try {
       activity.startActivityForResult(intent, REQUEST_CODE_PICK_TONE)
     } catch (e: Exception) {
-      pendingPickerPromise = null
-      promise.reject("PICKER_LAUNCH_ERROR", e.message, e)
+      if (pendingPickerPromise.compareAndSet(promise, null)) {
+        promise.reject("PICKER_LAUNCH_ERROR", e.message, e)
+      }
     }
   }
 
@@ -146,9 +147,8 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
     data: Intent?,
   ) {
     if (requestCode != REQUEST_CODE_PICK_TONE) return
-    val promise = pendingPickerPromise ?: return
     val kind = pendingPickerKind
-    pendingPickerPromise = null
+    val promise = pendingPickerPromise.getAndSet(null) ?: return
 
     if (resultCode != Activity.RESULT_OK) {
       promise.resolve(
@@ -202,13 +202,21 @@ class LafinaSoundPickerModule(private val reactContext: ReactApplicationContext)
       )
       return
     }
-    promise.resolve(
-      Arguments.createMap().apply {
-        putBoolean("cancelled", false)
-        putString("uri", uriString)
-        putString("title", resolveTitleSync(uriString, kind))
-      },
-    )
+    val resolveTask = Runnable {
+      val title = resolveTitleSync(uriString, kind)
+      promise.resolve(
+        Arguments.createMap().apply {
+          putBoolean("cancelled", false)
+          putString("uri", uriString)
+          putString("title", title)
+        },
+      )
+    }
+    try {
+      if (!titleExecutor.isShutdown) titleExecutor.execute(resolveTask) else resolveTask.run()
+    } catch (_: java.util.concurrent.RejectedExecutionException) {
+      resolveTask.run()
+    }
   }
 
   @ReactMethod

@@ -67,6 +67,13 @@ export const AppUpdatePrompt: React.FC<AppUpdatePromptProps> = ({
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   /** The version already offered this session, so it is not offered twice. */
   const offeredVersion = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const remember = useCallback((next: UpdateMemory) => {
     memory.current = next;
@@ -86,8 +93,9 @@ export const AppUpdatePrompt: React.FC<AppUpdatePromptProps> = ({
       if (!force && !shouldAutoCheck(memory.current, at)) return;
       remember({ ...memory.current, lastAutoCheckAt: at });
       const result = await service.check({ quiet: true });
-      if (result.phase !== 'available') return;
+      if (!mountedRef.current || result.phase !== 'available') return;
       const net = await readNetwork();
+      if (!mountedRef.current) return;
       setNetwork(net);
       if (shouldAutoDownload(result, net)) void service.download();
     },
@@ -115,7 +123,9 @@ export const AppUpdatePrompt: React.FC<AppUpdatePromptProps> = ({
         ) {
           void service.check();
         }
-        void readNetwork().then(setNetwork);
+        void readNetwork().then(net => {
+          if (mountedRef.current) setNetwork(net);
+        });
         setSheet({ mode: 'update' });
       }),
     [service],
@@ -132,7 +142,9 @@ export const AppUpdatePrompt: React.FC<AppUpdatePromptProps> = ({
     if (!state.version || offeredVersion.current === `${state.version}:${state.phase}`) return;
     if (!shouldPrompt(state, memory.current, now())) return;
     offeredVersion.current = `${state.version}:${state.phase}`;
-    void readNetwork().then(setNetwork);
+    void readNetwork().then(net => {
+      if (mountedRef.current) setNetwork(net);
+    });
     setSheet({ mode: 'update' });
   }, [suppressed, sheet, queuedWhatsNew, state, now]);
 

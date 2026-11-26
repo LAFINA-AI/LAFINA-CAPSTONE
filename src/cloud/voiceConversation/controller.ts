@@ -275,6 +275,7 @@ export class VoiceConversationController {
   private readonly clock: ConversationClock;
   private readonly limits: VoiceConversationLimits;
   private readonly timers: ReturnType<typeof ownTimers>;
+  private readonly activeToolTimers = new Set<unknown>();
   private readonly listeners = new Set<
     (snapshot: ConversationSnapshot) => void
   >();
@@ -310,14 +311,21 @@ export class VoiceConversationController {
   private silenceRequestedAt: number | null = null;
   private turnCounter = 0;
   private speechPaused = false;
+  private desiredMuted = false;
+  private activeToolsForTurn = 0;
   /** endAfterReply is waiting for LAFINA's next spoken answer to finish. */
-  private endAfter: {sawSpeech: boolean} | null = null;
+  private endAfter: {sawSpeech: boolean; maxMs: number} | null = null;
   private muteQueue: Promise<boolean> = Promise.resolve(true);
 
-  private queueMute(live: LiveSession, muted: boolean): Promise<boolean> {
+  private queueMute(
+    live: LiveSession,
+    resolveMuted: () => boolean,
+  ): Promise<boolean> {
     const operation = this.muteQueue.then(() =>
       this.live === live
-        ? this.deps.transport.setMuted(live.key, muted).catch(() => false)
+        ? this.deps.transport
+            .setMuted(live.key, resolveMuted())
+            .catch(() => false)
         : false,
     );
     this.muteQueue = operation.catch(() => false);
@@ -384,9 +392,11 @@ export class VoiceConversationController {
       this.end();
       return;
     }
-    this.endAfter = {sawSpeech: false};
+    const alreadySpeaking = this.snapshot.phase === 'speaking';
+    this.endAfter = {sawSpeech: alreadySpeaking, maxMs};
     const gen = this.generation;
-    this.timers.set('endAfterReply', maxMs, () => {
+    const capMs = alreadySpeaking ? Math.max(maxMs, 45_000) : maxMs;
+    this.timers.set('endAfterReply', capMs, () => {
       if (gen !== this.generation || !this.endAfter) return;
       this.endAfter = null;
       this.log('endAfterReply: no answer heard in time; ending');
@@ -407,7 +417,17 @@ export class VoiceConversationController {
     if (!waiting) return;
     const phase = this.snapshot.phase;
     if (phase === 'speaking') {
-      waiting.sawSpeech = true;
+      if (!waiting.sawSpeech) {
+        waiting.sawSpeech = true;
+        const gen = this.generation;
+        // Once LAFINA starts speaking, widen the safety cap so a longer goodbye
+        // finishes instead of being clipped by the no-answer timeout.
+        this.timers.set('endAfterReply', Math.max(waiting.maxMs, 45_000), () => {
+          if (gen !== this.generation || !this.endAfter) return;
+          this.endAfter = null;
+          this.end();
+        });
+      }
       return;
     }
     if (!waiting.sawSpeech || before !== 'speaking' || phase !== 'listening')
@@ -523,6 +543,8 @@ export class VoiceConversationController {
     const gen = ++this.generation;
     this.waitingForStudent = false;
     this.studentSpokeSinceAnswer = false;
+    this.desiredMuted = false;
+    this.activeToolsForTurn = 0;
     this.openingQuiet = this.deps.quietOpening === true;
     this.limitReason = null;
     const stale = () => gen !== this.generation || this.disposed;
@@ -544,6 +566,7 @@ export class VoiceConversationController {
       micCapturing: false,
       level: 0,
       outputLevel: 0,
+      toolPhrase: null,
       turns: [],
       endsAt: null,
       lastTiming: null,
@@ -893,6 +916,7 @@ export class VoiceConversationController {
       micCapturing: false,
       level: 0,
       outputLevel: 0,
+      toolPhrase: null,
       endsAt: null,
     });
   }
@@ -910,6 +934,7 @@ export class VoiceConversationController {
         micCapturing: false,
         level: 0,
         outputLevel: 0,
+        toolPhrase: null,
         endsAt: null,
       });
   };
@@ -932,6 +957,7 @@ export class VoiceConversationController {
       micCapturing: false,
       level: 0,
       outputLevel: 0,
+      toolPhrase: null,
       endsAt: null,
     });
   };
@@ -947,18 +973,25 @@ export class VoiceConversationController {
 
   setMuted = async (muted: boolean): Promise<void> => {
     const live = this.live;
-    if (!live || this.snapshot.muted === muted) return;
+    if (!live || this.desiredMuted === muted) return;
+    this.desiredMuted = muted;
     if (this.speechPaused) {
       this.update({muted, level: 0});
       return;
     }
     const gen = this.generation;
-    const ok = await this.queueMute(live, muted);
-    if (gen !== this.generation) return;
+    const ok = await this.queueMute(
+      live,
+      () => this.speechPaused || this.desiredMuted,
+    );
+    if (gen !== this.generation || this.live !== live) return;
     if (ok) {
-      this.update({muted, level: muted ? 0 : this.snapshot.level});
-      if (!muted) this.resetInactivity(gen);
-    } else {
+      if (this.desiredMuted === muted) {
+        this.update({muted, level: muted ? 0 : this.snapshot.level});
+        if (!muted) this.resetInactivity(gen);
+      }
+    } else if (this.desiredMuted === muted) {
+      this.desiredMuted = this.snapshot.muted;
       this.update({
         notice: muted
           ? 'The microphone could not be muted. End the call to stop capture.'
@@ -974,9 +1007,14 @@ export class VoiceConversationController {
     if (this.speechPaused === paused) return this.muteQueue;
     const gen = this.generation;
     this.speechPaused = paused;
-    const ok = await this.queueMute(live, paused || this.snapshot.muted);
+    const ok = await this.queueMute(
+      live,
+      () => this.speechPaused || this.desiredMuted,
+    );
     if (gen !== this.generation || this.live !== live) return false;
-    if (!ok && paused) this.speechPaused = false;
+    if (!ok && paused && this.speechPaused === paused) {
+      this.speechPaused = false;
+    }
     return ok;
   };
 
@@ -1003,6 +1041,7 @@ export class VoiceConversationController {
   /** Stops LAFINA's current answer; the conversation keeps listening. */
   stopResponse = (): void => {
     this.turnGeneration += 1;
+    this.activeToolsForTurn = 0;
     this.deps.onTurnInterrupted?.();
     const live = this.live;
     if (!live) return;
@@ -1017,9 +1056,9 @@ export class VoiceConversationController {
       this.snapshot.phase === 'thinking' ||
       this.snapshot.phase === 'tool_working'
     ) {
-      this.update({phase: 'listening', outputLevel: 0});
+      this.update({phase: 'listening', outputLevel: 0, toolPhrase: null});
     } else {
-      this.update({outputLevel: 0});
+      this.update({outputLevel: 0, toolPhrase: null});
     }
   };
 
@@ -1211,7 +1250,9 @@ export class VoiceConversationController {
         const live = this.live;
         if (!live) return;
         const turn = this.turnGeneration;
+        this.activeToolsForTurn += 1;
         const toolPhrase = getToolWorkingPhrase(toolName, params.kind);
+        this.timers.clear('thinking');
         if (this.snapshot.phase !== 'speaking') {
           this.update({phase: 'tool_working', toolPhrase});
         }
@@ -1219,10 +1260,11 @@ export class VoiceConversationController {
           let answer =
             'This app cannot perform that request in this conversation.';
           let failed = false;
+          let toolTimerHandle: unknown = null;
           try {
             if (!this.deps.onClientTool) failed = true;
-            else
-              answer = await this.deps.onClientTool(
+            else {
+              const toolPromise = this.deps.onClientTool(
                 toolName,
                 params,
                 () =>
@@ -1233,19 +1275,41 @@ export class VoiceConversationController {
                   this.deps.gates.isOnlineMode() &&
                   this.deps.gates.hasConsent(),
               );
+              const timeoutPromise = new Promise<never>((_resolve, reject) => {
+                toolTimerHandle = this.clock.setTimeout(
+                  () => reject(new Error('tool timeout')),
+                  this.limits.thinkingTimeoutMs,
+                );
+                this.activeToolTimers.add(toolTimerHandle);
+              });
+              answer = await Promise.race([toolPromise, timeoutPromise]);
+            }
           } catch {
             failed = true;
             answer =
               'The app could not complete that request. Nothing was changed.';
+          } finally {
+            if (toolTimerHandle !== null) {
+              this.activeToolTimers.delete(toolTimerHandle);
+              this.clock.clearTimeout(toolTimerHandle);
+            }
           }
           if (gen !== this.generation || this.live !== live) return;
           if (turn !== this.turnGeneration) {
             answer =
               'Request canceled because the student interrupted or changed their request. Nothing further was changed.';
             failed = true;
-          }
-          if (this.snapshot.phase === 'tool_working') {
-            this.update({phase: 'thinking', toolPhrase: null});
+          } else {
+            this.activeToolsForTurn = Math.max(0, this.activeToolsForTurn - 1);
+            if (
+              this.activeToolsForTurn === 0 &&
+              this.snapshot.phase === 'tool_working'
+            ) {
+              this.update({phase: 'thinking', toolPhrase: null});
+              this.timers.set('thinking', this.limits.thinkingTimeoutMs, () => {
+                if (gen === this.generation) void this.explainSilence(gen);
+              });
+            }
           }
           await this.deps.transport
             .sendMessage(
@@ -1325,6 +1389,7 @@ export class VoiceConversationController {
         return;
       case 'interruption':
         this.turnGeneration += 1;
+        this.activeToolsForTurn = 0;
         this.deps.onTurnInterrupted?.();
         this.silenceRequestedAt =
           this.snapshot.phase === 'speaking' ? this.clock.now() : null;
@@ -1334,7 +1399,7 @@ export class VoiceConversationController {
           this.snapshot.phase === 'thinking' ||
           this.snapshot.phase === 'tool_working'
         ) {
-          this.update({phase: 'listening', outputLevel: 0});
+          this.update({phase: 'listening', outputLevel: 0, toolPhrase: null});
         }
         return;
       case 'client_error': {
@@ -1439,6 +1504,7 @@ export class VoiceConversationController {
     // The student's first words end the quiet opening; answers count again.
     this.openingQuiet = false;
     this.turnGeneration += 1;
+    this.activeToolsForTurn = 0;
     // New words from the student: they are not leaving after all.
     this.cancelEndAfterReply();
     // A new turn closes the previous answer.
@@ -1462,7 +1528,7 @@ export class VoiceConversationController {
     this.firstTextAt = null;
     this.firstAudioAt = null;
     if (this.snapshot.phase !== 'speaking')
-      this.update({phase: 'thinking', notice: null});
+      this.update({phase: 'thinking', notice: null, toolPhrase: null});
     const gen = this.generation;
     this.timers.set('thinking', this.limits.thinkingTimeoutMs, () => {
       if (gen === this.generation) void this.explainSilence(gen);
@@ -1532,7 +1598,11 @@ export class VoiceConversationController {
       text: sanitized,
       status: pending.interrupted ? 'interrupted' : 'final',
     });
-    if (this.deps.appOwnedAudio) this.deps.onAgentText?.(sanitized);
+    if (this.deps.appOwnedAudio) {
+      this.deps.onAgentText?.(sanitized);
+    } else {
+      this.settleIfHeard();
+    }
   }
 
   /**
@@ -1701,21 +1771,30 @@ export class VoiceConversationController {
   /** Releases everything this controller owns. Safe to call repeatedly. */
   private teardown() {
     this.speechPaused = false;
+    this.desiredMuted = false;
+    this.activeToolsForTurn = 0;
     this.endAfter = null;
     this.abort?.abort();
     this.abort = null;
     this.timers.clearAll();
+    for (const handle of this.activeToolTimers) {
+      this.clock.clearTimeout(handle);
+    }
+    this.activeToolTimers.clear();
     const live = this.live;
     this.live = null;
     if (live) {
       live.unsubscribe();
       this.transportEndingPending = true;
-      this.transportEnding = this.deps.transport
+      const ending = this.deps.transport
         .end(live.key)
         .catch(() => false)
         .finally(() => {
-          this.transportEndingPending = false;
+          if (this.transportEnding === ending) {
+            this.transportEndingPending = false;
+          }
         });
+      this.transportEnding = ending;
       void this.deps.api
         .end(live.sessionId, live.conversationId)
         .catch(() => undefined);

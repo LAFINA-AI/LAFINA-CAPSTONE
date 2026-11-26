@@ -82,8 +82,8 @@ const retireTaskReminders = (
     ).map(r => r.id);
     for (const id of ids) {
       remindersStore.deleteReminder(id);
-      void cancelReminderAlarm(id);
-      void finishNativeIncomingCall(id);
+      void cancelReminderAlarm(id).catch(() => undefined);
+      void finishNativeIncomingCall(id).catch(() => undefined);
     }
   } catch (err) {
     console.warn('[To-Do] Could not retire linked reminders:', err);

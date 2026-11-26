@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {NativeModules} from 'react-native';
 import {notesEditStore} from '../../../storage/notesEditStore';
 import {readSkillState, writeSkillState} from '../../../skills/skillsState';
@@ -39,6 +39,23 @@ export function SummarizerSkill({
   );
   const [savedNoteKey, setSavedNoteKey] = useState<string | null>(null);
   const [savedCardsKey, setSavedCardsKey] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const prevUserIdRef = useRef(userId);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (prevUserIdRef.current === userId) return;
+    prevUserIdRef.current = userId;
+    setSource({text: '', label: ''});
+    setResult(readSkillState(userId, 'summary', null));
+    setNotice(null);
+    setSavedNoteKey(null);
+    setSavedCardsKey(null);
+  }, [userId]);
   const job = useStudyJob<Summary>(userId, 'summary');
   const cards = useStudyJob<{deckTitle: string; sourceText: string}>(
     userId,
@@ -69,21 +86,25 @@ export function SummarizerSkill({
       });
       return;
     }
-    void job.run(async ({signal}) => {
+    const reqUserId = userId;
+    const reqSource = source;
+    const reqLength = length;
+    void job.run(async ({signal, isCancelled}) => {
       const text = await studyReply(
-        userId,
-        `Summarize this source. Length: ${length}. ${
-          length === 'Key points'
+        reqUserId,
+        `Summarize this source. Length: ${reqLength}. ${
+          reqLength === 'Key points'
             ? 'Use concise bullet points.'
-            : length === 'Short'
+            : reqLength === 'Short'
             ? 'Use one short paragraph.'
             : 'Use structured headings and explain key ideas.'
         } Preserve uncertainty and do not add outside facts.`,
-        source.text,
+        reqSource.text,
         {signal},
       );
-      const next = {text, source, length};
-      writeSkillState(userId, 'summary', next);
+      if (isCancelled()) throw new Error('Cancelled.');
+      const next = {text, source: reqSource, length: reqLength};
+      writeSkillState(reqUserId, 'summary', next);
       return next;
     });
   };
@@ -150,14 +171,19 @@ export function SummarizerSkill({
       setNotice({text: 'Copy is unavailable in this build.', danger: true});
       return;
     }
+    const reqUserId = userId;
     try {
       await clipboard.copy(result.text);
-      setNotice({text: 'Copied.'});
+      if (mountedRef.current && prevUserIdRef.current === reqUserId) {
+        setNotice({text: 'Copied.'});
+      }
     } catch (e) {
-      setNotice({
-        text: (e as Error).message || 'Could not copy to clipboard.',
-        danger: true,
-      });
+      if (mountedRef.current && prevUserIdRef.current === reqUserId) {
+        setNotice({
+          text: (e as Error).message || 'Could not copy to clipboard.',
+          danger: true,
+        });
+      }
     }
   };
   return (

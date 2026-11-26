@@ -16,8 +16,34 @@ internal class SkillsFileMissingException(message: String) : IllegalStateExcepti
 internal class SkillsFileInvalidException(message: String) : IllegalArgumentException(message)
 
 internal object SkillsFileOpenPolicy {
+  private fun decodeFileUriPath(encoded: String): String {
+    if (!encoded.contains('%')) return encoded
+    val bytes = java.io.ByteArrayOutputStream(encoded.length)
+    var i = 0
+    while (i < encoded.length) {
+      val ch = encoded[i]
+      if (ch == '%' && i + 2 < encoded.length) {
+        val hi = Character.digit(encoded[i + 1], 16)
+        val lo = Character.digit(encoded[i + 2], 16)
+        if (hi >= 0 && lo >= 0) {
+          bytes.write((hi shl 4) or lo)
+          i += 3
+          continue
+        }
+      }
+      bytes.write(ch.toString().toByteArray(Charsets.UTF_8))
+      i += 1
+    }
+    return String(bytes.toByteArray(), Charsets.UTF_8)
+  }
+
   fun resolveDocumentFile(skillsRoot: File, rawPath: String): File {
-    val trimmed = rawPath.removePrefix("file://").trim()
+    val raw = rawPath.trim()
+    val trimmed = if (raw.startsWith("file://")) {
+      decodeFileUriPath(raw.removePrefix("file://")).trim()
+    } else {
+      raw
+    }
     if (trimmed.isEmpty()) {
       throw SkillsFileInvalidException("That saved file path is not allowed.")
     }

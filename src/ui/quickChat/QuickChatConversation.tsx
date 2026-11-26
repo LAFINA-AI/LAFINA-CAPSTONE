@@ -177,6 +177,7 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
       const outcome = await quickChatController.send(userId, text, {
         onlineMode,
         onReplyText: replySoFar => {
+          if (!mounted.current || !sendingRef.current) return;
           latest = replySoFar;
           if (!flushRef.current) {
             flushRef.current = setTimeout(showLatest, STREAM_REPAINT_MS);
@@ -229,7 +230,7 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
       decision = await review.confirm({temporaryChat: true});
     } catch (error) {
       console.warn('[QuickChat] Confirm failed:', error);
-      setCardNotice(QUICK_CHAT_SAVE_FAILED_TEXT);
+      if (mounted.current) setCardNotice(QUICK_CHAT_SAVE_FAILED_TEXT);
       return;
     }
     if (!decision || !mounted.current) return;

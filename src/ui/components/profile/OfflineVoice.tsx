@@ -115,13 +115,17 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
 
   const save = async (choice: SpeechChoice, done: string) => {
     if (!settings) return;
+    const ticket = epoch.current;
     await stopPreview();
+    if (ticket !== epoch.current) return;
     try {
       setSettings(speechSettingsStore.save(userId, choice, settings.revision));
       await applySpeechPreferences(userId);
+      if (ticket !== epoch.current) return;
       setNotice(done);
       onChanged?.();
     } catch (error) {
+      if (ticket !== epoch.current) return;
       setNotice(error instanceof Error ? error.message : 'Could not save. Reopen this sheet.');
       try {
         setSettings(speechSettingsStore.read(userId));
@@ -129,21 +133,25 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
         setSettings(null);
       }
     }
-    await refresh();
+    if (ticket === epoch.current) await refresh();
   };
 
   const reset = async () => {
     if (!settings) return;
+    const ticket = epoch.current;
     await stopPreview();
+    if (ticket !== epoch.current) return;
     try {
       setSettings(speechSettingsStore.reset(userId, settings.revision));
       await applySpeechPreferences(userId);
+      if (ticket !== epoch.current) return;
       setNotice('Back to the automatic voice and normal speed and pitch.');
       onChanged?.();
     } catch (error) {
+      if (ticket !== epoch.current) return;
       setNotice(error instanceof Error ? error.message : 'Could not reset. Reopen this sheet.');
     }
-    await refresh();
+    if (ticket === epoch.current) await refresh();
   };
 
   const play = async () => {

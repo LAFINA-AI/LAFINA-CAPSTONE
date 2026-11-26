@@ -79,6 +79,13 @@ const state: QuickChatState = {
 
 const listeners = new Set<Listener>();
 let now = (): number => Date.now();
+let activeController: AbortController | null = null;
+
+const abortActive = (): void => {
+  const controller = activeController;
+  activeController = null;
+  controller?.abort();
+};
 
 const notify = (): void => {
   listeners.forEach(listener => {
@@ -91,6 +98,7 @@ const notify = (): void => {
 };
 
 const reset = (ownerId: string | null): void => {
+  abortActive();
   state.ownerId = ownerId;
   state.messages = [];
   state.lastResult = null;
@@ -163,6 +171,10 @@ export const quickChatController = {
 
     const isCurrent = (): boolean =>
       state.generation === generation && state.ownerId === userId;
+    abortActive();
+    const controller =
+      typeof AbortController !== 'undefined' ? new AbortController() : null;
+    activeController = controller;
 
     let result: ChatOrchestratorResult;
     try {
@@ -171,6 +183,7 @@ export const quickChatController = {
         temporaryHistory: history,
         reviewSurface: 'quick',
         onlineMode: options.onlineMode === true,
+        ...(controller ? {signal: controller.signal} : {}),
         ...(options.referenceDate
           ? {referenceDate: options.referenceDate}
           : {}),
@@ -180,6 +193,7 @@ export const quickChatController = {
         isCurrent,
       });
     } catch (error) {
+      if (activeController === controller) activeController = null;
       if (isCurrent()) {
         state.messages = state.messages.filter(m => m.id !== userMessage.id);
         state.busy = false;
@@ -188,6 +202,7 @@ export const quickChatController = {
       }
       return {status: 'stopped'};
     }
+    if (activeController === controller) activeController = null;
 
     // A change the pipeline already applied (low-risk action with Undo) is
     // real data even when the reply is stale, so the main app still refreshes.
@@ -236,6 +251,7 @@ export const quickChatController = {
     const pending = state.messages[state.messages.length - 1];
     state.generation += 1;
     state.busy = false;
+    abortActive();
     if (pending?.sender === 'user') {
       state.messages = state.messages.slice(0, -1);
     }
@@ -296,6 +312,10 @@ export const quickChatController = {
   /** The words behind the card `operationId` for this owner, or null. */
   getCardSource(userId: string, operationId: string): string | null {
     if (!userId || state.ownerId !== userId) return null;
+    if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
+      reset(userId);
+      return null;
+    }
     const source = state.cardSource;
     return source && source.operationId === operationId ? source.text : null;
   },
@@ -313,6 +333,10 @@ export const quickChatController = {
   /** The last completed reply for this owner (review card, Undo, text), or null. */
   getLastResult(userId: string): ChatOrchestratorResult | null {
     if (!userId || state.ownerId !== userId) return null;
+    if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
+      reset(userId);
+      return null;
+    }
     return state.lastResult;
   },
 
@@ -360,6 +384,7 @@ export const quickChatController = {
 
   /** Test-only reset; `clock` replaces Date.now for idle-expiry tests. */
   resetForTests(clock?: () => number): void {
+    abortActive();
     now = clock ?? ((): number => Date.now());
     state.ownerId = null;
     state.messages = [];

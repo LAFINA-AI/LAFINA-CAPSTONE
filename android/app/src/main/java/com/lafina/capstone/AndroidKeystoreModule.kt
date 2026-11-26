@@ -1,7 +1,9 @@
 package com.lafina.capstone
 
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
+import java.security.UnrecoverableKeyException
 import android.util.Base64
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -23,13 +25,26 @@ class AndroidKeystoreModule(reactContext: ReactApplicationContext) :
 
     override fun getName(): String = "AndroidKeystoreModule"
 
-    private fun getOrCreateSecretKey(): SecretKey {
+    @Synchronized
+    private fun getOrCreateSecretKey(forceRecreate: Boolean = false): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
         keyStore.load(null)
 
-        if (keyStore.containsAlias(KEY_ALIAS)) {
-            val entry = keyStore.getEntry(KEY_ALIAS, null) as KeyStore.SecretKeyEntry
-            return entry.secretKey
+        if (forceRecreate) {
+            try {
+                if (keyStore.containsAlias(KEY_ALIAS)) keyStore.deleteEntry(KEY_ALIAS)
+            } catch (_: Exception) {
+            }
+        } else if (keyStore.containsAlias(KEY_ALIAS)) {
+            val entry = try {
+                keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry
+            } catch (_: Exception) {
+                null
+            }
+            if (entry?.secretKey != null) {
+                return entry.secretKey
+            }
+            try { keyStore.deleteEntry(KEY_ALIAS) } catch (_: Exception) {}
         }
 
         val keyGenerator =
@@ -47,21 +62,32 @@ class AndroidKeystoreModule(reactContext: ReactApplicationContext) :
         return keyGenerator.generateKey()
     }
 
+    private fun encryptWithKey(plainText: String, secretKey: SecretKey): String {
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+
+        val iv = cipher.iv
+        val encryptedBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+
+        val combined = ByteArray(iv.size + encryptedBytes.size)
+        System.arraycopy(iv, 0, combined, 0, iv.size)
+        System.arraycopy(encryptedBytes, 0, combined, iv.size, encryptedBytes.size)
+
+        return Base64.encodeToString(combined, Base64.NO_WRAP)
+    }
+
     @ReactMethod
     fun encryptString(plainText: String, promise: Promise) {
         try {
-            val secretKey = getOrCreateSecretKey()
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-
-            val iv = cipher.iv
-            val encryptedBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
-
-            val combined = ByteArray(iv.size + encryptedBytes.size)
-            System.arraycopy(iv, 0, combined, 0, iv.size)
-            System.arraycopy(encryptedBytes, 0, combined, iv.size, encryptedBytes.size)
-
-            val encoded = Base64.encodeToString(combined, Base64.NO_WRAP)
+            val encoded = try {
+                encryptWithKey(plainText, getOrCreateSecretKey())
+            } catch (e: Exception) {
+                if (e is KeyPermanentlyInvalidatedException || e is UnrecoverableKeyException) {
+                    encryptWithKey(plainText, getOrCreateSecretKey(forceRecreate = true))
+                } else {
+                    throw e
+                }
+            }
             promise.resolve(encoded)
         } catch (e: Exception) {
             promise.reject("KEYSTORE_ENCRYPT_ERROR", e.message, e)

@@ -17,7 +17,10 @@ class MainActivity : ReactActivity() {
   override fun onNewIntent(intent: Intent?) {
     super.onNewIntent(intent)
     setIntent(intent)
-    handleLockScreenIntent(intent)
+    // When the React bridge is active, LafinaReminderModule.onNewIntent already persisted and emitted the call.
+    if (!LafinaReminderModule.hasActiveBridge()) {
+      handleLockScreenIntent(intent)
+    }
   }
 
   private fun handleLockScreenIntent(intent: Intent?) {

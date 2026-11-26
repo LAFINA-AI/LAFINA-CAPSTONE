@@ -1,6 +1,9 @@
 import {secureKeystore} from '../utils/keystore';
 import {userStore} from '../storage/userStore';
-import {getSessionGeneration} from '../storage/sessionEpoch';
+import {
+  getSessionGeneration,
+  subscribeSessionChanges,
+} from '../storage/sessionEpoch';
 import {NativeModules, Platform} from 'react-native';
 
 export type CloudResultStatus =
@@ -286,37 +289,60 @@ const postStreaming = (
       if (text.length > delivered) {
         const chunk = text.slice(delivered);
         delivered = text.length;
-        options.onText(chunk);
-        if (options.isComplete?.()) {
-          finish({kind: 'response', status: xhr.status, text});
-          xhr.abort();
+        try {
+          options.onText(chunk);
+          if (options.isComplete?.()) {
+            finish({kind: 'response', status: xhr.status, text});
+            xhr.abort();
+          }
+        } catch (error) {
+          finish({
+            kind: 'failed',
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+          try {
+            xhr.abort();
+          } catch {
+            // Ignore secondary abort failures.
+          }
         }
       }
     };
-    xhr.open('POST', url);
-    Object.entries(headers).forEach(([name, value]) =>
-      xhr.setRequestHeader(name, value),
-    );
-    xhr.timeout = options.timeoutMs ?? STREAM_TIMEOUT_MS;
-    xhr.onprogress = deliver;
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 3) deliver();
-    };
-    xhr.onload = () => {
-      deliver();
+    try {
+      xhr.open('POST', url);
+      Object.entries(headers).forEach(([name, value]) =>
+        xhr.setRequestHeader(name, value),
+      );
+      xhr.timeout = options.timeoutMs ?? STREAM_TIMEOUT_MS;
+      xhr.onprogress = deliver;
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 3) deliver();
+      };
+      xhr.onload = () => {
+        if (xhr.status === 0) {
+          finish({kind: 'failed', error: new Error('Network request failed')});
+          return;
+        }
+        deliver();
+        finish({
+          kind: 'response',
+          status: xhr.status,
+          text: xhr.responseText || '',
+        });
+      };
+      xhr.onerror = () =>
+        finish({kind: 'failed', error: new Error('Network request failed')});
+      xhr.ontimeout = () =>
+        finish({kind: 'failed', error: new Error('timed out')});
+      xhr.onabort = () => finish({kind: 'aborted'});
+      options.signal?.addEventListener('abort', onAbort);
+      xhr.send(body);
+    } catch (error) {
       finish({
-        kind: 'response',
-        status: xhr.status,
-        text: xhr.responseText || '',
+        kind: 'failed',
+        error: error instanceof Error ? error : new Error(String(error)),
       });
-    };
-    xhr.onerror = () =>
-      finish({kind: 'failed', error: new Error('Network request failed')});
-    xhr.ontimeout = () =>
-      finish({kind: 'failed', error: new Error('timed out')});
-    xhr.onabort = () => finish({kind: 'aborted'});
-    options.signal?.addEventListener('abort', onAbort);
-    xhr.send(body);
+    }
   });
 
 /**
@@ -358,7 +384,8 @@ const renewAccessToken = (
   if (!current()) {
     return Promise.resolve(fail('failed', 'account changed during renewal'));
   }
-  const existing = renewals.get(owner);
+  const renewalKey = `${owner}:${generation}`;
+  const existing = renewals.get(renewalKey);
   if (existing) return existing;
 
   let task: Promise<RenewalOutcome> | null = null;
@@ -388,6 +415,11 @@ const renewAccessToken = (
         {method: 'POST', body: JSON.stringify({refresh_token: refreshToken})},
         false,
       );
+      // Signed out or switched account while refresh was in flight: never
+      // report 'ended' for the new session or overwrite its tokens.
+      if (!current()) {
+        return fail('failed', 'account changed during renewal');
+      }
       const access = result.data?.access_token;
       const refresh = result.data?.refresh_token;
       if (
@@ -409,10 +441,6 @@ const renewAccessToken = (
           `server answered ${result.httpStatus ?? result.status}`,
         );
       }
-      // Signed out or switched account meanwhile: keep the tokens off it.
-      if (!current()) {
-        return fail('failed', 'account changed during renewal');
-      }
       await cloudClient.establishSession(owner, access, refresh);
       return 'renewed';
     } catch (error) {
@@ -421,13 +449,13 @@ const renewAccessToken = (
         error instanceof Error ? error.message : 'unexpected error',
       );
     } finally {
-      if (task && renewals.get(owner) === task) {
-        renewals.delete(owner);
+      if (task && renewals.get(renewalKey) === task) {
+        renewals.delete(renewalKey);
       }
     }
   })();
 
-  renewals.set(owner, task);
+  renewals.set(renewalKey, task);
   return task;
 };
 
@@ -435,9 +463,14 @@ const renewAccessToken = (
 const renewedSince = async (
   usedToken: string | null,
   expectedOwner?: string | null,
+  expectedGeneration?: number,
 ): Promise<RenewalOutcome> => {
   const activeOwner = userStore.getActiveSessionToken().userId;
-  if (expectedOwner && activeOwner !== expectedOwner) {
+  if (
+    (expectedOwner && activeOwner !== expectedOwner) ||
+    (expectedGeneration !== undefined &&
+      getSessionGeneration() !== expectedGeneration)
+  ) {
     return 'failed';
   }
   const current = cloudClient.getAccessToken();
@@ -452,26 +485,35 @@ const renewedSince = async (
 const withRenewal = async <T>(
   requiresAuth: boolean,
   signal: AbortSignal | null | undefined,
-  once: () => Promise<CloudResult<T>>,
+  once: (sentTokenRef: {token: string | null}) => Promise<CloudResult<T>>,
 ): Promise<CloudResult<T>> => {
   const ownerAtStart = requiresAuth
     ? userStore.getActiveSessionToken().userId
     : null;
-  const usedToken = requiresAuth ? cloudClient.getAccessToken() : null;
+  const sentTokenRef = {
+    token: requiresAuth ? cloudClient.getAccessToken() : null,
+  };
   const generation = getSessionGeneration();
   const current = () =>
     !requiresAuth ||
     (userStore.getActiveSessionToken().userId === ownerAtStart &&
       getSessionGeneration() === generation);
-  const first = await once();
+  const first = await once(sentTokenRef);
   if (!current()) return accountChangedResult();
   if (!shouldRenew(first, requiresAuth, signal)) return first;
-  const outcome = await renewedSince(usedToken, ownerAtStart);
+  const outcome = await renewedSince(
+    sentTokenRef.token,
+    ownerAtStart,
+    generation,
+  );
   if (!current()) return accountChangedResult();
   if (outcome === 'ended') return {...first, sessionEnded: true};
   if (outcome === 'failed') return first;
   if (!current()) return accountChangedResult();
-  const retried = await once();
+  const retryTokenRef = {
+    token: requiresAuth ? cloudClient.getAccessToken() : null,
+  };
+  const retried = await once(retryTokenRef);
   if (!current()) return accountChangedResult();
   // A brand-new token rejected too: the account itself is signed out.
   return retried.status === 'auth_required' && retried.httpStatus === 401
@@ -644,8 +686,8 @@ export const cloudClient = {
     options: CloudRequestOptions = {},
     requiresAuth: boolean = true,
   ): Promise<CloudResult<T>> => {
-    return withRenewal(requiresAuth, options.signal, () =>
-      cloudClient.requestOnce<T>(endpoint, options, requiresAuth),
+    return withRenewal(requiresAuth, options.signal, sentTokenRef =>
+      cloudClient.requestOnce<T>(endpoint, options, requiresAuth, sentTokenRef),
     );
   },
 
@@ -657,6 +699,7 @@ export const cloudClient = {
     endpoint: string,
     options: CloudRequestOptions = {},
     requiresAuth: boolean = true,
+    sentTokenRef?: {token: string | null},
   ): Promise<CloudResult<T>> => {
     const current = requestFence(requiresAuth);
     if (options.signal?.aborted) {
@@ -683,6 +726,7 @@ export const cloudClient = {
 
     if (requiresAuth) {
       const token = cloudClient.getAccessToken();
+      if (sentTokenRef) sentTokenRef.token = token;
       if (!token) {
         return {
           status: 'auth_required',
@@ -697,6 +741,9 @@ export const cloudClient = {
 
     for (let index = 0; index < apiBaseUrls.length; index += 1) {
       if (!current()) return accountChangedResult();
+      if (options.signal?.aborted) {
+        return {status: 'server_unavailable', error: 'Request cancelled.'};
+      }
       const baseUrl = apiBaseUrls[index];
       const hasFallback = index < apiBaseUrls.length - 1;
       const timeoutController =
@@ -713,6 +760,9 @@ export const cloudClient = {
       });
       const onCallerAbort = () => timeoutController?.abort();
       options.signal?.addEventListener('abort', onCallerAbort, {once: true});
+      if (options.signal?.aborted) {
+        timeoutController?.abort();
+      }
       const timeoutId = timeoutController
         ? setTimeout(() => {
             timedOut = true;
@@ -823,8 +873,8 @@ export const cloudClient = {
     requiresAuth: boolean = true,
   ): Promise<CloudResult<string>> => {
     // A 401 arrives before any text, so retrying cannot repeat part of a reply.
-    return withRenewal(requiresAuth, options.signal, () =>
-      cloudClient.streamOnce(endpoint, body, options, requiresAuth),
+    return withRenewal(requiresAuth, options.signal, sentTokenRef =>
+      cloudClient.streamOnce(endpoint, body, options, requiresAuth, sentTokenRef),
     );
   },
 
@@ -834,8 +884,12 @@ export const cloudClient = {
     body: unknown,
     options: CloudStreamOptions,
     requiresAuth: boolean = true,
+    sentTokenRef?: {token: string | null},
   ): Promise<CloudResult<string>> => {
     const current = requestFence(requiresAuth);
+    if (options.signal?.aborted) {
+      return {status: 'server_unavailable', error: 'cancelled'};
+    }
     if (!(await cloudClient.isOnline())) {
       return {
         status: 'offline',
@@ -843,12 +897,16 @@ export const cloudClient = {
       };
     }
     if (!current()) return accountChangedResult();
+    if (options.signal?.aborted) {
+      return {status: 'server_unavailable', error: 'cancelled'};
+    }
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
     };
     if (requiresAuth) {
       const token = cloudClient.getAccessToken();
+      if (sentTokenRef) sentTokenRef.token = token;
       if (!token) {
         return {
           status: 'auth_required',
@@ -859,8 +917,19 @@ export const cloudClient = {
     }
     const payload = JSON.stringify(body);
     let received = false;
+    const streamController =
+      typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const onCallerAbort = () => streamController?.abort();
+    options.signal?.addEventListener('abort', onCallerAbort, {once: true});
+    if (options.signal?.aborted) streamController?.abort();
+    const unsubscribeSession = requiresAuth
+      ? subscribeSessionChanges(() => {
+          if (!current()) streamController?.abort();
+        })
+      : () => undefined;
     const forward: CloudStreamOptions = {
       ...options,
+      signal: streamController?.signal ?? options.signal,
       onText: chunk => {
         if (!current()) return;
         received = true;
@@ -869,49 +938,57 @@ export const cloudClient = {
     };
 
     let lastError: unknown = null;
-    for (let index = 0; index < apiBaseUrls.length; index += 1) {
-      if (!current()) return accountChangedResult();
-      const baseUrl = apiBaseUrls[index];
-      const hasFallback = index < apiBaseUrls.length - 1;
-      const outcome = await postStreaming(
-        `${baseUrl}${endpoint}`,
-        headers,
-        payload,
-        forward,
-      );
-      if (!current()) return accountChangedResult();
-      if (outcome.kind === 'aborted') {
-        return {status: 'server_unavailable', error: 'cancelled'};
-      }
-      if (outcome.kind === 'failed') {
-        lastError = outcome.error;
-        // Never retry elsewhere once part of a reply was shown.
-        if (received || !hasFallback) break;
-        continue;
-      }
-      if ([502, 503, 504].includes(outcome.status) && hasFallback) {
-        continue;
-      }
-      if (outcome.status < 200 || outcome.status >= 300) {
-        let errorData: {detail?: unknown} | null = null;
-        try {
-          errorData = JSON.parse(outcome.text);
-        } catch {
-          errorData = {detail: null};
+    try {
+      for (let index = 0; index < apiBaseUrls.length; index += 1) {
+        if (!current()) return accountChangedResult();
+        if (options.signal?.aborted) {
+          return {status: 'server_unavailable', error: 'cancelled'};
         }
-        return errorResult(
-          outcome.status,
-          errorData,
-          endpoint,
-          'POST',
-          requiresAuth,
+        const baseUrl = apiBaseUrls[index];
+        const hasFallback = index < apiBaseUrls.length - 1;
+        const outcome = await postStreaming(
+          `${baseUrl}${endpoint}`,
+          headers,
+          payload,
+          forward,
         );
+        if (!current()) return accountChangedResult();
+        if (outcome.kind === 'aborted') {
+          return {status: 'server_unavailable', error: 'cancelled'};
+        }
+        if (outcome.kind === 'failed') {
+          lastError = outcome.error;
+          // Never retry elsewhere once part of a reply was shown.
+          if (received || !hasFallback) break;
+          continue;
+        }
+        if ([502, 503, 504].includes(outcome.status) && hasFallback) {
+          continue;
+        }
+        if (outcome.status < 200 || outcome.status >= 300) {
+          let errorData: {detail?: unknown} | null = null;
+          try {
+            errorData = JSON.parse(outcome.text);
+          } catch {
+            errorData = {detail: null};
+          }
+          return errorResult(
+            outcome.status,
+            errorData,
+            endpoint,
+            'POST',
+            requiresAuth,
+          );
+        }
+        return {
+          status: 'success',
+          data: outcome.text,
+          httpStatus: outcome.status,
+        };
       }
-      return {
-        status: 'success',
-        data: outcome.text,
-        httpStatus: outcome.status,
-      };
+    } finally {
+      options.signal?.removeEventListener('abort', onCallerAbort);
+      unsubscribeSession();
     }
     const reason = received
       ? 'The connection dropped while the reply was arriving.'

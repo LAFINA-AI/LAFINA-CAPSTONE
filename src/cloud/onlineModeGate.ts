@@ -69,6 +69,7 @@ export const resolveOnlineMode = async (
       message: 'Could not reach the LAFINA server. Try again.',
     }));
   if (auth.status === 'success') return {enabled: true, reason: 'on'};
+  if (auth.status === 'offline') return off('offline', auth.message);
   if (auth.status === 'auth_required') return off('auth_required', auth.message);
   return off('unavailable', auth.message);
 };

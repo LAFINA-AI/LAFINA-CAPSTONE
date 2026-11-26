@@ -259,8 +259,10 @@ export const ProductTour: React.FC<ProductTourProps> = ({
     setHole(next);
   }, []);
 
+  const moveEpoch = useRef(0);
   const moveHole = useCallback(
     (next: ScreenRect | null) => {
+      const epoch = ++moveEpoch.current;
       const from = shownHole.current;
       move.stopAnimation();
       move.removeAllListeners();
@@ -269,14 +271,17 @@ export const ProductTour: React.FC<ProductTourProps> = ({
         return;
       }
       move.setValue(0);
-      move.addListener(({value}) => showHole(lerp(from, next, value)));
+      move.addListener(({value}) => {
+        if (moveEpoch.current === epoch) showHole(lerp(from, next, value));
+      });
       Animated.timing(move, {
         toValue: 1,
         duration: MOVE_MS,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: false,
         isInteraction: false,
-      }).start(() => {
+      }).start(({finished}) => {
+        if (!finished || moveEpoch.current !== epoch) return;
         move.removeAllListeners();
         showHole(next);
       });
@@ -284,7 +289,15 @@ export const ProductTour: React.FC<ProductTourProps> = ({
     [move, reduceMotion, showHole],
   );
 
-  useEffect(() => () => move.removeAllListeners(), [move]);
+  useEffect(
+    () => () => {
+      moveEpoch.current += 1;
+      move.stopAnimation();
+      move.removeAllListeners();
+      cardOpacity.stopAnimation();
+    },
+    [move, cardOpacity],
+  );
 
   // Synchronize active tab and screen sub-state whenever the step changes.
   useEffect(() => {

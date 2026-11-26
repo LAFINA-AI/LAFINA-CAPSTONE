@@ -165,6 +165,11 @@ class ActionService {
 
   clearSessionActions(sessionId: string): void {
     this.retiredSessions.add(sessionId);
+    while (this.retiredSessions.size > 100) {
+      const oldest = this.retiredSessions.values().next().value;
+      if (oldest === undefined) break;
+      this.retiredSessions.delete(oldest);
+    }
     draftRegistry.clearSessionDrafts(sessionId);
     for (const [id, record] of this.actions.entries()) {
       if (record.envelope.sessionId === sessionId) {
@@ -254,6 +259,11 @@ class ActionService {
       createdEpoch: Date.now(),
       updatedEpoch: Date.now(),
     };
+    while (this.actions.size >= 200) {
+      const oldest = this.actions.keys().next().value;
+      if (oldest === undefined) break;
+      this.actions.delete(oldest);
+    }
     this.actions.set(actionId, record);
 
     // 4. Execution branching

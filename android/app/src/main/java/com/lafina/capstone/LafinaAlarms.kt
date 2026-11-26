@@ -177,7 +177,11 @@ object LafinaAlarms {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
           },
           PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-      manager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAtMs, show), operation)
+      try {
+        manager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAtMs, show), operation)
+      } catch (_: SecurityException) {
+        manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs, operation)
+      }
     } else {
       // Without exact-alarm access Android may ring a few minutes late; the
       // Alarms screen shows a warning with a shortcut to the setting.

@@ -9,7 +9,7 @@
 import {behaviorStore} from '../../storage/behaviorStore';
 import {preferencesStore} from '../../storage/preferencesStore';
 import type {StudyPeakHour} from '../../storage/preferencesStore';
-import {tasksStore} from '../../storage/tasksStore';
+import {db} from '../../storage/database';
 import {stepEwma} from './ewma';
 import type {
   ReminderInteractionRecord,
@@ -65,7 +65,11 @@ export const getEwmaLatency = (userId: string): number => {
     );
     if (snapshot && snapshot.featureVector) {
       const parsed = JSON.parse(snapshot.featureVector);
-      if (typeof parsed.ewmaValue === 'number' && !isNaN(parsed.ewmaValue)) {
+      if (
+        typeof parsed.ewmaValue === 'number' &&
+        Number.isFinite(parsed.ewmaValue) &&
+        parsed.ewmaValue >= 0
+      ) {
         return parsed.ewmaValue;
       }
     }
@@ -107,13 +111,20 @@ export const extractStudentFeatures = (
   // Calculate academic load: pending tasks due on or before target date
   let academicLoad = 0;
   try {
-    const tasks = tasksStore.getAllTasks(userId);
     const dateFilter = options?.targetDate;
-    academicLoad = tasks.filter(
-      t =>
-        !t.isCompleted &&
-        (!dateFilter || !t.dueDate || t.dueDate <= dateFilter),
-    ).length;
+    const row = dateFilter
+      ? db.executeSync(
+          `SELECT COUNT(*) AS cnt FROM tasks
+           WHERE user_id = ? AND deleted_at IS NULL AND is_completed = 0
+             AND (due_date IS NULL OR due_date = '' OR due_date <= ?)`,
+          [userId, dateFilter],
+        ).rows?.[0]
+      : db.executeSync(
+          `SELECT COUNT(*) AS cnt FROM tasks
+           WHERE user_id = ? AND deleted_at IS NULL AND is_completed = 0`,
+          [userId],
+        ).rows?.[0];
+    academicLoad = Number((row as {cnt?: unknown} | undefined)?.cnt ?? 0);
   } catch (error) {
     console.warn(
       '[FeatureExtractor] Failed to calculate academic load:',
@@ -200,10 +211,10 @@ export const recordReminderInteraction = (
       JSON.stringify(record),
     );
 
-    // 2. Update online EWMA latency snapshot if latency is a valid positive number
+    // 2. Update online EWMA latency snapshot if latency is a valid finite non-negative number
     if (
       typeof event.latencySeconds === 'number' &&
-      !isNaN(event.latencySeconds) &&
+      Number.isFinite(event.latencySeconds) &&
       event.latencySeconds >= 0
     ) {
       let previousEwma = DEFAULT_LATENCY_SECONDS;
@@ -216,9 +227,17 @@ export const recordReminderInteraction = (
       if (latestSnapshot && latestSnapshot.featureVector) {
         try {
           const parsed = JSON.parse(latestSnapshot.featureVector);
-          if (typeof parsed.ewmaValue === 'number') {
+          if (
+            typeof parsed.ewmaValue === 'number' &&
+            Number.isFinite(parsed.ewmaValue) &&
+            parsed.ewmaValue >= 0
+          ) {
             previousEwma = parsed.ewmaValue;
-            sampleCount = parsed.sampleCount || 0;
+            sampleCount =
+              typeof parsed.sampleCount === 'number' &&
+              Number.isFinite(parsed.sampleCount)
+                ? parsed.sampleCount
+                : 0;
           }
         } catch {
           // ignore corrupted snapshot, start fresh
@@ -274,6 +293,7 @@ export const getInteractionHistory = (
  */
 export const getInteractionSummary = (
   userId: string,
+  preloadedHistory?: ReminderInteractionRecord[],
 ): {
   total: number;
   ackRate: number;
@@ -282,7 +302,7 @@ export const getInteractionSummary = (
   avgLatencySeconds: number;
   ewmaLatencySeconds: number;
 } => {
-  const history = getInteractionHistory(userId);
+  const history = preloadedHistory ?? getInteractionHistory(userId);
   const ewmaLatencySeconds = getEwmaLatency(userId);
 
   if (history.length === 0) {
@@ -307,7 +327,11 @@ export const getInteractionSummary = (
       snoozes++;
     else if (item.outcome === 'missed') misses++;
 
-    totalLatency += Math.max(0, item.latencySeconds || 0);
+    totalLatency +=
+      typeof item.latencySeconds === 'number' &&
+      Number.isFinite(item.latencySeconds)
+        ? Math.max(0, item.latencySeconds)
+        : 0;
   }
 
   const total = history.length;

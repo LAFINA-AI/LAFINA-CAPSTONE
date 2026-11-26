@@ -479,12 +479,18 @@ export async function executeMultiActionBatch(
         );
       });
       if (item.kind === 'reminder' && item.savedEntityId) {
-        const delivery = await verifyReminderDelivery(
-          ownerId,
-          item.savedEntityId,
-        );
-        item.deliveryStatus = delivery.status;
-        item.deliveryMessage = delivery.message;
+        try {
+          const delivery = await verifyReminderDelivery(
+            ownerId,
+            item.savedEntityId,
+          );
+          item.deliveryStatus = delivery.status;
+          item.deliveryMessage = delivery.message;
+        } catch {
+          item.deliveryStatus = 'unavailable';
+          item.deliveryMessage =
+            'Saved locally. Alarm delivery could not be verified; open reminder delivery settings.';
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

@@ -2270,6 +2270,7 @@ export class ChatOrchestrator {
                     ...(options.isCurrent
                       ? {isCurrent: options.isCurrent}
                       : {}),
+                    ...(options.signal ? {signal: options.signal} : {}),
                   }),
                 )
               : null;

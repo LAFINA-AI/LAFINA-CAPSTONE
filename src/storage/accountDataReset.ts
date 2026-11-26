@@ -17,6 +17,7 @@ import {corImportStore} from './corImportStore';
 import {scheduleEntriesStore} from './scheduleEntriesStore';
 import {studentSetupStore} from './studentSetupStore';
 import {materialStore} from './materialStore';
+import {importedBatchesStore} from './importedBatchesStore';
 import {syncOutboxStore} from './syncOutboxStore';
 import {invalidateOwnerWork} from './ownerWorkEpoch';
 import {
@@ -215,16 +216,18 @@ const clearPlanner = (tx: DatabaseTransaction, userId: string): void => {
       'UPDATE custom_categories SET deleted_at = ?, updated_at = ? WHERE id = ?',
       [catNow, catNow, catId],
     );
-    syncOutboxStore.enqueueMutation(
-      userId,
-      'custom_category',
-      catId,
-      'delete',
-      {},
-      'account',
-      userId,
-      tx,
-    );
+    if (userId !== GUEST_USER_ID) {
+      syncOutboxStore.enqueueMutation(
+        userId,
+        'custom_category',
+        catId,
+        'delete',
+        {},
+        'account',
+        userId,
+        tx,
+      );
+    }
   }
   // The new ML history is personal derived data, not a device preference.
   tx.executeSync('DELETE FROM user_behavior_logs WHERE user_id = ?', [userId]);
@@ -264,6 +267,7 @@ export const resetPersonalData = (
         throw new DataResetRefused();
       clearPlanner(tx, userId);
     });
+    void importedBatchesStore.clearForUser(userId);
     planner = 'cleared';
   } catch (error) {
     if (error instanceof DataResetRefused) return {admitted: false};
@@ -312,6 +316,8 @@ export const resetPersonalData = (
   if (stillAdmitted(authority, isCurrent)) {
     try {
       db.transactionSync(tx => {
+        if (!stillAdmitted(authority, isCurrent, tx))
+          throw new DataResetRefused();
         // Codex audit A3: saved event defaults are personal scheduling memory.
         const corDraft = corImportStore.getDraft(userId, tx);
         const corDocPath = corDraft?.document?.localPath;
@@ -367,10 +373,12 @@ export const resetPersonalData = (
       void cancelFocusTimer();
       defaults = 'cleared';
     } catch (error) {
-      console.warn(
-        '[DataReset] Saved event defaults were not forgotten:',
-        error,
-      );
+      if (!(error instanceof DataResetRefused)) {
+        console.warn(
+          '[DataReset] Saved event defaults were not forgotten:',
+          error,
+        );
+      }
     }
   }
 
@@ -422,34 +430,41 @@ export const readSkillsDocumentPaths = (
   const prefixFor = (owner: string) =>
     `${root}/skills_documents/${encodeURIComponent(owner)}/`;
   const allowedPrefixes = [prefixFor(userId), prefixFor(GUEST_USER_ID)];
+  let rawValue: unknown;
   try {
     const row = executor.executeSync(
       `SELECT value FROM local_settings WHERE user_id = ? AND key = 'skills.files.v1' LIMIT 1`,
       [userId],
     ).rows[0] as {value?: unknown} | undefined;
-    if (typeof row?.value !== 'string' || !row.value.trim()) return [];
-    const parsed = JSON.parse(row.value) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    const paths: string[] = [];
-    for (const item of parsed) {
-      if (!item || typeof item !== 'object') continue;
-      const uri = (item as {attachment?: {uri?: unknown}}).attachment?.uri;
-      if (typeof uri !== 'string') continue;
-      const filePath = uri.startsWith('file://')
-        ? uri.slice('file://'.length)
-        : uri;
-      if (
-        allowedPrefixes.some(prefix => filePath.startsWith(prefix)) &&
-        !filePath.includes('..')
-      ) {
-        paths.push(filePath);
-      }
-    }
-    return paths;
+    rawValue = row?.value;
   } catch (error) {
     if (strict) throw error;
     return [];
   }
+  if (typeof rawValue !== 'string' || !rawValue.trim()) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawValue);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const paths: string[] = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== 'object') continue;
+    const uri = (item as {attachment?: {uri?: unknown}}).attachment?.uri;
+    if (typeof uri !== 'string') continue;
+    const filePath = uri.startsWith('file://')
+      ? uri.slice('file://'.length)
+      : uri;
+    if (
+      allowedPrefixes.some(prefix => filePath.startsWith(prefix)) &&
+      !filePath.includes('..')
+    ) {
+      paths.push(filePath);
+    }
+  }
+  return paths;
 };
 
 /**

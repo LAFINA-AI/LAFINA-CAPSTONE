@@ -56,12 +56,22 @@ export interface OfflineHandbookAnswer {
 }
 
 const OVERRIDE_RELATIVE_PATH = 'handbook/ustp_handbook_pack.json';
+const MAX_OVERRIDE_PACK_BYTES = 20 * 1024 * 1024;
+const MAX_TERM_PRESENCE_CACHE = 2048;
 
 let readyPromise: Promise<LocalHandbookStatus> | null = null;
 let lastOrigin: HandbookPackOrigin = 'none';
 let cachedStatus: LocalHandbookStatus | null = null;
+let cachedBundledPack: HandbookPack | null | undefined;
 /** False on a native build without SQLite FTS5: the handbook is "not available". */
 let ftsAvailable = true;
+
+function getParsedBundledPack(): HandbookPack | null {
+  if (cachedBundledPack === undefined) {
+    cachedBundledPack = parseHandbookPack(bundledHandbookPack);
+  }
+  return cachedBundledPack;
+}
 
 function overrideFilePath(): string | null {
   const dir =
@@ -115,6 +125,13 @@ async function loadBestAvailablePack(): Promise<{
     try {
       const hasOverride = await RNFS.exists(overridePath);
       if (hasOverride && typeof RNFS.readFile === 'function') {
+        if (typeof RNFS.stat === 'function') {
+          const stat = await RNFS.stat(overridePath).catch(() => null);
+          const bytes = Number(stat?.size ?? 0);
+          if (Number.isFinite(bytes) && bytes > MAX_OVERRIDE_PACK_BYTES) {
+            throw new Error('Override handbook pack exceeds size limit.');
+          }
+        }
         const rawText = await RNFS.readFile(overridePath, 'utf8');
         const parsedOverride = parseHandbookPack(JSON.parse(rawText));
         if (parsedOverride && parsedOverride.chunkCount > 0) {
@@ -132,7 +149,7 @@ async function loadBestAvailablePack(): Promise<{
     }
   }
 
-  const parsedBundled = parseHandbookPack(bundledHandbookPack);
+  const parsedBundled = getParsedBundledPack();
   if (parsedBundled) {
     const combined = withCampusKnowledge(parsedBundled);
     return {
@@ -187,7 +204,7 @@ function buildStatusFromMeta(
       origin: meta.chunkCount > 0 ? origin : 'none',
     };
   }
-  const parsedBundled = parseHandbookPack(bundledHandbookPack);
+  const parsedBundled = getParsedBundledPack();
   return {
     ready,
     populated: Boolean(parsedBundled && parsedBundled.chunkCount > 0),
@@ -282,6 +299,10 @@ function unknownFreeTokens(
         // FTS unavailable: do not invent unknown words.
         present = true;
       }
+      if (termPresenceCache.size >= MAX_TERM_PRESENCE_CACHE) {
+        const oldest = termPresenceCache.keys().next().value;
+        if (oldest !== undefined) termPresenceCache.delete(oldest);
+      }
       termPresenceCache.set(token, present);
     }
     if (!present) {
@@ -360,7 +381,7 @@ export const localHandbookService = {
     if (meta !== null) {
       return meta.chunkCount > 0;
     }
-    const parsedBundled = parseHandbookPack(bundledHandbookPack);
+    const parsedBundled = getParsedBundledPack();
     return Boolean(parsedBundled && parsedBundled.chunkCount > 0);
   },
 
