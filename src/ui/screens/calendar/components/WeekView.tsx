@@ -23,6 +23,8 @@ interface WeekViewProps {
   selectedDate: Date;
   timeFormat24h: boolean;
   showHolidays?: boolean;
+  showUstpCalendar?: boolean;
+  showUstpGraduate?: boolean;
   blocks: TimeBlock[];
   tasks: Task[];
   events: Event[];
@@ -38,6 +40,8 @@ export const WeekView: React.FC<WeekViewProps> = React.memo(({
   selectedDate,
   timeFormat24h,
   showHolidays = true,
+  showUstpCalendar = false,
+  showUstpGraduate = false,
   blocks,
   tasks,
   events,
@@ -59,6 +63,8 @@ export const WeekView: React.FC<WeekViewProps> = React.memo(({
         reminders,
         timeFormat24h,
         showHolidays,
+        showUstpCalendar,
+        showUstpGraduate,
         attachedEntries,
       }),
     [
@@ -69,6 +75,8 @@ export const WeekView: React.FC<WeekViewProps> = React.memo(({
       reminders,
       timeFormat24h,
       showHolidays,
+      showUstpCalendar,
+      showUstpGraduate,
       attachedEntries,
     ],
   );

@@ -10,5 +10,6 @@ export {CalendarOptionsSidebar} from './CalendarOptionsSidebar';
 export {ViewClassesModal} from './ViewClassesModal';
 export {BirthdaysGroupModal} from './BirthdaysGroupModal';
 export {HolidaysGroupModal} from './HolidaysGroupModal';
+export {UstpCalendarGroupModal} from './UstpCalendarGroupModal';
 export {CustomGroupModal} from './CustomGroupModal';
 export {ScheduleItemDetailModal} from './ScheduleItemDetailModal';

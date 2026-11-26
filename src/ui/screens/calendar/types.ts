@@ -4,20 +4,28 @@ import {ImportBatch} from '../../../storage/importedBatchesStore';
 import type {EventFolds} from '../../../storage/eventTime';
 import type {EventMemoryOffer} from '../../../storage/personalMemoryStore';
 import type {Holiday} from './utils/philippineHolidays';
+import type {UstpCalendarOccurrence} from './utils/ustpAcademicCalendar';
 
 // ── View Modes ──
 export type ViewMode = 'month' | 'week' | 'day';
 
 export interface ScheduleTimelineItem {
   id: string;
-  kind: 'event' | 'block' | 'task' | 'reminder' | 'holiday' | 'birthday';
+  kind:
+    | 'event'
+    | 'block'
+    | 'task'
+    | 'reminder'
+    | 'holiday'
+    | 'ustp_event'
+    | 'birthday';
   title: string;
   subtitle: string;
   categoryLabel: string;
   timeLabel: string;
   hour: number;
   sortMinutes: number;
-  tone: 'peach' | 'mint' | 'blueSoft' | 'lilac' | 'holiday';
+  tone: 'peach' | 'mint' | 'blueSoft' | 'lilac' | 'holiday' | 'ustp';
   isAllDay?: boolean;
   accentColor?: string;
   attachmentCount?: number;
@@ -26,6 +34,7 @@ export interface ScheduleTimelineItem {
   rawTask?: Task;
   rawReminder?: Reminder;
   rawHoliday?: Holiday;
+  rawUstpEvent?: UstpCalendarOccurrence;
 }
 
 // ── CalendarScreen Props ──
@@ -93,6 +102,9 @@ export interface CalendarData {
   batches: ImportBatch[];
   visibilityMap: Record<string, boolean>;
   showHolidays: boolean;
+  ustpCalendarEligible: boolean;
+  showUstpCalendar: boolean;
+  showUstpGraduate: boolean;
   username: string;
   layersModalVisible: boolean;
   setLayersModalVisible: (visible: boolean) => void;

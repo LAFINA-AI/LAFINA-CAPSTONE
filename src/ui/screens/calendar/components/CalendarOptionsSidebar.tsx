@@ -38,6 +38,12 @@ import {
   type CustomScheduleGroup,
 } from '../utils/calendarGroups';
 import {HOLIDAY_CALENDAR_ID} from '../utils/philippineHolidays';
+import {
+  USTP_ACADEMIC_YEAR,
+  USTP_ACCENT_COLOR,
+  USTP_CALENDAR_ID,
+  USTP_CALENDAR_NAME,
+} from '../utils/ustpAcademicCalendar';
 import {useSchedulePalette, scheduleCardShadow} from './schedulePalette';
 
 export interface CalendarOptionsSidebarProps {
@@ -45,6 +51,8 @@ export interface CalendarOptionsSidebarProps {
   onClose: () => void;
   classCount: number;
   birthdayCount?: number;
+  ustpCalendarEligible?: boolean;
+  ustpEventCount?: number;
   customGroups?: CustomScheduleGroup[];
   visibilityMap?: Record<string, boolean>;
   profileSummary?: string | null;
@@ -60,6 +68,7 @@ export interface CalendarOptionsSidebarProps {
   onToggleLayer?: (layerId: string, isVisible: boolean) => void;
   onOpenBirthdays?: () => void;
   onOpenHolidays?: () => void;
+  onOpenUstpCalendar?: () => void;
   onOpenCustomGroup?: (groupName?: string | null) => void;
 }
 
@@ -73,6 +82,8 @@ export const CalendarOptionsSidebar: React.FC<CalendarOptionsSidebarProps> = ({
   onClose,
   classCount,
   birthdayCount = 0,
+  ustpCalendarEligible = false,
+  ustpEventCount = 0,
   customGroups = [],
   visibilityMap = {},
   profileSummary,
@@ -88,6 +99,7 @@ export const CalendarOptionsSidebar: React.FC<CalendarOptionsSidebarProps> = ({
   onToggleLayer,
   onOpenBirthdays,
   onOpenHolidays,
+  onOpenUstpCalendar,
   onOpenCustomGroup,
 }) => {
   const {colors, isModern, modernPalette} = useTheme();
@@ -625,6 +637,91 @@ export const CalendarOptionsSidebar: React.FC<CalendarOptionsSidebarProps> = ({
                   </View>
                 );
               })()}
+
+              {/* USTP Academic Calendar (Confirmed USTP students only) */}
+              {ustpCalendarEligible &&
+                (() => {
+                  const ustpVisible =
+                    visibilityMap[USTP_CALENDAR_ID] !== false;
+                  return (
+                    <View
+                      style={[
+                        styles.groupRow,
+                        {borderBottomColor: palette.border},
+                      ]}
+                    >
+                      <TouchableOpacity
+                        testID="sidebar-layer-toggle-ustp"
+                        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                        onPress={() =>
+                          onToggleLayer?.(USTP_CALENDAR_ID, !ustpVisible)
+                        }
+                        style={[
+                          styles.groupCheckbox,
+                          {borderColor: USTP_ACCENT_COLOR},
+                          ustpVisible && {backgroundColor: USTP_ACCENT_COLOR},
+                        ]}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{checked: ustpVisible}}
+                        accessibilityLabel={`Toggle ${USTP_CALENDAR_NAME} visibility`}
+                      >
+                        {ustpVisible && (
+                          <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        testID="calendar-ustp-group-button"
+                        style={styles.groupBody}
+                        onPress={() => {
+                          onClose();
+                          onOpenUstpCalendar?.();
+                        }}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={USTP_CALENDAR_NAME}
+                      >
+                        <View style={styles.menuTextCol}>
+                          <View style={styles.menuTitleRow}>
+                            <GraduationCap
+                              size={14}
+                              color={USTP_ACCENT_COLOR}
+                            />
+                            <Text
+                              style={[styles.menuTitle, {color: palette.text}]}
+                              numberOfLines={1}
+                            >
+                              {USTP_CALENDAR_NAME}
+                            </Text>
+                            {ustpEventCount > 0 && (
+                              <View
+                                style={[
+                                  styles.badgePill,
+                                  {backgroundColor: `${USTP_ACCENT_COLOR}1E`},
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.badgePillText,
+                                    {color: USTP_ACCENT_COLOR},
+                                  ]}
+                                >
+                                  {ustpEventCount}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text
+                            style={[styles.menuDesc, {color: palette.muted}]}
+                          >
+                            {USTP_ACADEMIC_YEAR} exams, enrollment & campus
+                            dates
+                          </Text>
+                        </View>
+                        <ChevronRight size={15} color={palette.muted} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })()}
 
               {/* User Custom Groups */}
               {customGroups.map(group => {

@@ -6,11 +6,13 @@ import {
   Calendar,
   CheckCircle2,
   Flag,
+  GraduationCap,
   Paperclip,
 } from 'lucide-react-native';
 import {ScheduleTimelineItem} from '../types';
 import type {Task} from '../../../../storage';
 import {BIRTHDAY_ACCENT_COLOR} from '../utils/calendarGroups';
+import {USTP_ACCENT_COLOR} from '../utils/ustpAcademicCalendar';
 import {useSchedulePalette} from './schedulePalette';
 
 interface ScheduleItemCardProps {
@@ -34,6 +36,10 @@ export const ScheduleItemCard: React.FC<ScheduleItemCardProps> = ({
       ? palette.isDarkMode
         ? 'rgba(11, 128, 67, 0.22)'
         : '#E6F4EA'
+      : item.tone === 'ustp'
+      ? palette.isDarkMode
+        ? 'rgba(29, 78, 216, 0.22)'
+        : '#EFF6FF'
       : item.tone === 'lilac'
       ? palette.isDarkMode
         ? 'rgba(233, 30, 99, 0.18)'
@@ -51,6 +57,9 @@ export const ScheduleItemCard: React.FC<ScheduleItemCardProps> = ({
   const renderIcon = () => {
     if (item.kind === 'holiday') {
       return <Flag size={18} color="#0B8043" />;
+    }
+    if (item.kind === 'ustp_event') {
+      return <GraduationCap size={18} color={USTP_ACCENT_COLOR} />;
     }
     if (item.kind === 'birthday') {
       return <Cake size={18} color={BIRTHDAY_ACCENT_COLOR} />;

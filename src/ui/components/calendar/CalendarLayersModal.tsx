@@ -14,6 +14,12 @@ import { CALENDAR_LAYER_SWATCHES, Fonts, Shadows } from '../../theme';
 import { ImportBatch } from '../../../storage/importedBatchesStore';
 import { HOLIDAY_CALENDAR_ID, HOLIDAY_CALENDAR_NAME } from '../../screens/calendar/utils/philippineHolidays';
 import {
+  USTP_ACADEMIC_YEAR,
+  USTP_ACCENT_COLOR,
+  USTP_CALENDAR_ID,
+  USTP_CALENDAR_NAME,
+} from '../../screens/calendar/utils/ustpAcademicCalendar';
+import {
   BIRTHDAY_ACCENT_COLOR,
   BIRTHDAYS_GROUP_ID,
   CLASSES_GROUP_ID,
@@ -28,6 +34,7 @@ interface CalendarLayersModalProps {
   username: string;
   batches: ImportBatch[];
   customGroups?: CustomScheduleGroup[];
+  ustpCalendarEligible?: boolean;
   visibilityMap: Record<string, boolean>;
   onToggleVisibility: (calendarId: string, isVisible: boolean) => void;
   onRemoveBatch: (batch: ImportBatch) => void;
@@ -43,6 +50,7 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
   username,
   batches,
   customGroups = [],
+  ustpCalendarEligible = false,
   visibilityMap,
   onToggleVisibility,
   onRemoveBatch,
@@ -55,6 +63,7 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
   const tasksVisible = visibilityMap[TASKS_GROUP_ID] !== false;
   const remindersVisible = visibilityMap[REMINDERS_GROUP_ID] !== false;
   const holidaysVisible = visibilityMap[HOLIDAY_CALENDAR_ID] !== false;
+  const ustpVisible = visibilityMap[USTP_CALENDAR_ID] !== false;
 
   /**
    * Generates a stable color from the calendar filename to display next to the checkbox.
@@ -248,6 +257,31 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
                     <Text style={[styles.itemSub, { color: colors.textSecondary }]}>Regular and special non-working days</Text>
                   </View>
                 </TouchableOpacity>
+
+                {/* Built-in USTP Academic Calendar layer (confirmed USTP students only) */}
+                {ustpCalendarEligible && (
+                  <TouchableOpacity
+                    testID="layers-modal-toggle-ustp"
+                    style={[styles.item, { borderBottomColor: colors.border }]}
+                    activeOpacity={0.7}
+                    onPress={() => onToggleVisibility(USTP_CALENDAR_ID, !ustpVisible)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: ustpVisible }}
+                    accessibilityLabel={USTP_CALENDAR_NAME}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      { borderColor: USTP_ACCENT_COLOR },
+                      ustpVisible && { backgroundColor: USTP_ACCENT_COLOR }
+                    ]}>
+                      {ustpVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{USTP_CALENDAR_NAME}</Text>
+                      <Text style={[styles.itemSub, { color: colors.textSecondary }]}>{USTP_ACADEMIC_YEAR} exams, enrollment & campus dates</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
 
                 {/* Imported Calendars */}
                 {batches.length === 0 ? (

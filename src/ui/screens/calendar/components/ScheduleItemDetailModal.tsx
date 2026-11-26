@@ -61,6 +61,14 @@ import {
 } from '../utils/calendarGroups';
 import {groupClassBlocks} from '../utils/classScheduleHelpers';
 import {describeHoliday} from '../utils/philippineHolidays';
+import {
+  USTP_ACADEMIC_YEAR,
+  USTP_AUDIENCE_LABELS,
+  USTP_CALENDAR_SOURCE_LABEL,
+  USTP_CATEGORY_LABELS,
+  USTP_TERM_LABELS,
+  formatUstpDateRange,
+} from '../utils/ustpAcademicCalendar';
 import {scheduleCardShadow, useSchedulePalette} from './schedulePalette';
 
 export interface ScheduleItemDetailModalProps {
@@ -98,6 +106,7 @@ const resolveItemDateString = (
   selectedDate: Date,
 ): string => {
   if (item.rawHoliday?.date) return item.rawHoliday.date;
+  if (item.rawUstpEvent?.date) return item.rawUstpEvent.date;
   if (item.rawEvent?.date) return item.rawEvent.date;
   if (item.rawBlock?.date) return item.rawBlock.date;
   if (item.rawTask?.dueDate) return item.rawTask.dueDate;
@@ -493,6 +502,38 @@ export const ScheduleItemDetailModal: React.FC<
           icon: <CalendarIcon size={15} color={iconColor} />,
         });
       }
+    } else if (item.kind === 'ustp_event' && item.rawUstpEvent) {
+      const ev = item.rawUstpEvent.event;
+      rows.push({
+        key: 'ustp-term',
+        label: 'Academic Term',
+        value: `${USTP_TERM_LABELS[ev.term]} · ${USTP_ACADEMIC_YEAR}`,
+        icon: <BookOpen size={15} color={iconColor} />,
+      });
+      rows.push({
+        key: 'ustp-dates',
+        label: 'Scheduled Dates',
+        value: formatUstpDateRange(ev.startDate, ev.endDate),
+        icon: <CalendarIcon size={15} color={iconColor} />,
+      });
+      rows.push({
+        key: 'ustp-audience',
+        label: 'Audience',
+        value: `${USTP_AUDIENCE_LABELS[ev.audience]} · ${
+          USTP_CATEGORY_LABELS[ev.category]
+        }`,
+        icon: <Users size={15} color={iconColor} />,
+      });
+      rows.push({
+        key: 'ustp-source',
+        label: 'Source',
+        value: `${USTP_CALENDAR_SOURCE_LABEL} (PDF p. ${ev.pdfPage})`,
+        icon: <FileText size={15} color={iconColor} />,
+      });
+      const noteParts = [ev.description, ev.caveatNote].filter(Boolean);
+      if (noteParts.length > 0) {
+        legacyNote = noteParts.join('\n\n');
+      }
     } else if (item.kind === 'reminder' && item.rawReminder) {
       const rem = item.rawReminder;
       if (rem.status) {
@@ -525,6 +566,8 @@ export const ScheduleItemDetailModal: React.FC<
   const editButtonLabel =
     item.kind === 'holiday'
       ? 'All Holidays'
+      : item.kind === 'ustp_event'
+      ? 'All USTP Dates'
       : item.kind === 'reminder'
       ? 'Delete'
       : 'Edit';

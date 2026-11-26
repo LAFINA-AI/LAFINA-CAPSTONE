@@ -39,6 +39,7 @@ import {
   ViewClassesModal,
   BirthdaysGroupModal,
   HolidaysGroupModal,
+  UstpCalendarGroupModal,
   CustomGroupModal,
   ScheduleItemDetailModal,
 } from './components';
@@ -62,6 +63,11 @@ import {
   type CustomScheduleGroup,
 } from './utils/calendarGroups';
 import {HOLIDAY_CALENDAR_ID} from './utils/philippineHolidays';
+import {
+  USTP_CALENDAR_ID,
+  USTP_GRADUATE_CALENDAR_ID,
+  getUstpAcademicEvents,
+} from './utils/ustpAcademicCalendar';
 import {CalendarScreenProps, ScheduleTimelineItem, ViewMode} from './types';
 import {
   baseScheduleEntityId,
@@ -125,6 +131,8 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
     null,
   );
   const [holidaysModalVisible, setHolidaysModalVisible] = useState(false);
+  const [ustpCalendarModalVisible, setUstpCalendarModalVisible] =
+    useState(false);
   const [customGroupModalState, setCustomGroupModalState] = useState<{
     visible: boolean;
     groupName: string | null;
@@ -511,6 +519,10 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
       setBirthdaysModalVisible(true);
     } else if (item.kind === 'holiday') {
       setHolidaysModalVisible(true);
+    } else if (item.kind === 'ustp_event') {
+      if (calendar.ustpCalendarEligible) {
+        setUstpCalendarModalVisible(true);
+      }
     } else if (item.kind === 'reminder' && item.rawReminder) {
       const rem = item.rawReminder;
       Alert.alert('Delete Reminder', `Delete "${rem.task}"?`, [
@@ -784,6 +796,8 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             weekStartsMonday={calendar.weekStartsMonday}
             timeFormat24h={calendar.timeFormat24h}
             showHolidays={calendar.showHolidays}
+            showUstpCalendar={calendar.showUstpCalendar}
+            showUstpGraduate={calendar.showUstpGraduate}
             blocks={calendar.blocks}
             allTasks={calendar.allTasks}
             allEvents={calendar.allEvents}
@@ -803,6 +817,8 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             selectedDate={calendar.selectedDate}
             timeFormat24h={calendar.timeFormat24h}
             showHolidays={calendar.showHolidays}
+            showUstpCalendar={calendar.showUstpCalendar}
+            showUstpGraduate={calendar.showUstpGraduate}
             blocks={calendar.blocks}
             tasks={calendar.allTasks}
             events={calendar.allEvents}
@@ -824,6 +840,8 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
               selectedDate={calendar.selectedDate}
               timeFormat24h={calendar.timeFormat24h}
               showHolidays={calendar.showHolidays}
+              showUstpCalendar={calendar.showUstpCalendar}
+              showUstpGraduate={calendar.showUstpGraduate}
               blocks={calendar.blocks}
               tasks={calendar.allTasks}
               events={calendar.allEvents}
@@ -1018,6 +1036,31 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           />
         )}
 
+        {ustpCalendarModalVisible && calendar.ustpCalendarEligible && (
+          <UstpCalendarGroupModal
+            visible={ustpCalendarModalVisible}
+            ustpCalendarVisible={calendar.showUstpCalendar}
+            includeGraduate={calendar.showUstpGraduate}
+            onToggleVisibility={isVisible => {
+              void calendar.handleToggleVisibility(USTP_CALENDAR_ID, isVisible);
+            }}
+            onToggleGraduate={include => {
+              void calendar.handleToggleVisibility(
+                USTP_GRADUATE_CALENDAR_ID,
+                include,
+              );
+            }}
+            onSelectEventDate={dateStr => {
+              const chosen = new Date(`${dateStr}T12:00:00`);
+              if (!Number.isNaN(chosen.getTime())) {
+                calendar.setSelectedDate(chosen);
+                calendar.setCurrentDate(chosen);
+              }
+            }}
+            onClose={() => setUstpCalendarModalVisible(false)}
+          />
+        )}
+
         {customGroupModalState.visible && (
           <CustomGroupModal
             visible={customGroupModalState.visible}
@@ -1041,6 +1084,14 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             onClose={() => setCalendarMenuVisible(false)}
             classCount={classSummary.count}
             birthdayCount={birthdayCount}
+            ustpCalendarEligible={calendar.ustpCalendarEligible}
+            ustpEventCount={
+              calendar.ustpCalendarEligible
+                ? getUstpAcademicEvents({
+                    includeGraduate: calendar.showUstpGraduate,
+                  }).length
+                : 0
+            }
             customGroups={customGroups}
             visibilityMap={calendar.visibilityMap}
             profileSummary={classSummary.profileText}
@@ -1061,6 +1112,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
               setBirthdaysModalVisible(true);
             }}
             onOpenHolidays={() => setHolidaysModalVisible(true)}
+            onOpenUstpCalendar={() => setUstpCalendarModalVisible(true)}
             onOpenCustomGroup={groupName =>
               setCustomGroupModalState({
                 visible: true,
@@ -1077,6 +1129,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
             username={calendar.username}
             batches={calendar.batches}
             customGroups={customGroups}
+            ustpCalendarEligible={calendar.ustpCalendarEligible}
             visibilityMap={calendar.visibilityMap}
             onToggleVisibility={calendar.handleToggleVisibility}
             onRemoveBatch={calendar.handleRemoveBatch}

@@ -14,6 +14,7 @@ export type ScheduleEntryTargetKind =
   | 'task'
   | 'reminder'
   | 'holiday'
+  | 'ustp_event'
   | 'birthday';
 
 export type ScheduleEntryType = 'note' | 'link';
@@ -39,7 +40,14 @@ export interface ResolvedScheduleEntryTarget {
 
 export interface ScheduleEntryTargetInput {
   id?: string;
-  kind: 'event' | 'block' | 'task' | 'reminder' | 'holiday' | 'birthday';
+  kind:
+    | 'event'
+    | 'block'
+    | 'task'
+    | 'reminder'
+    | 'holiday'
+    | 'ustp_event'
+    | 'birthday';
   rawEvent?: Pick<
     Event,
     'id' | 'location' | 'linkedCalendarBlock' | 'recurrenceRule'
@@ -51,6 +59,7 @@ export interface ScheduleEntryTargetInput {
   rawTask?: Pick<Task, 'id' | 'recurrenceRule'>;
   rawReminder?: Pick<Reminder, 'id'>;
   rawHoliday?: {date: string; name: string};
+  rawUstpEvent?: {event: {id: string}};
 }
 
 /** Strips the synthetic `_occur_YYYY-MM-DD` suffix from expanded recurrences. */
@@ -138,6 +147,15 @@ export function resolveScheduleEntryTarget(
       targetId: `${input.rawHoliday.date}::${input.rawHoliday.name}`,
       fallbackIds: [],
       isSharedAcrossSessions: false,
+    };
+  }
+
+  if (input.kind === 'ustp_event' && input.rawUstpEvent) {
+    return {
+      targetKind: 'ustp_event',
+      targetId: `ustp::${input.rawUstpEvent.event.id}`,
+      fallbackIds: [],
+      isSharedAcrossSessions: true,
     };
   }
 

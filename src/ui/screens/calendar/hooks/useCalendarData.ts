@@ -34,6 +34,11 @@ import {
 } from './calendarImportPersistence';
 import {HOLIDAY_CALENDAR_ID} from '../utils/philippineHolidays';
 import {
+  USTP_CALENDAR_ID,
+  USTP_GRADUATE_CALENDAR_ID,
+} from '../utils/ustpAcademicCalendar';
+import {isUstpSchoolEnabled} from '../../../../storage/ustpEligibility';
+import {
   BIRTHDAYS_GROUP_ID,
   CLASSES_GROUP_ID,
   REMINDERS_GROUP_ID,
@@ -875,6 +880,17 @@ export const useCalendarData = (
   // Bounded and loaded with the schedule (no full read per render).
   const getOverdueTasks = useCallback(() => overdue.items, [overdue]);
 
+  // Confirmed USTP COR gate: re-evaluated whenever userId or refreshTrigger updates.
+  const ustpCalendarEligible = useMemo(() => {
+    void refreshTrigger;
+    return isUstpSchoolEnabled(userId);
+  }, [userId, refreshTrigger]);
+
+  const showUstpCalendar =
+    ustpCalendarEligible && visibilityMap[USTP_CALENDAR_ID] !== false;
+  const showUstpGraduate =
+    ustpCalendarEligible && visibilityMap[USTP_GRADUATE_CALENDAR_ID] === true;
+
   return {
     currentDate,
     selectedDate,
@@ -908,6 +924,9 @@ export const useCalendarData = (
     batches,
     visibilityMap,
     showHolidays: visibilityMap[HOLIDAY_CALENDAR_ID] !== false,
+    ustpCalendarEligible,
+    showUstpCalendar,
+    showUstpGraduate,
     username,
     layersModalVisible,
     setLayersModalVisible,

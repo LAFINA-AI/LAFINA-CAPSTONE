@@ -6,7 +6,7 @@ import {
   StyleSheet,
   type LayoutChangeEvent,
 } from 'react-native';
-import {Cake, Flag} from 'lucide-react-native';
+import {Cake, Flag, GraduationCap} from 'lucide-react-native';
 import type {
   TimeBlock,
   Task,
@@ -17,6 +17,7 @@ import type {
 import type {ScheduleTimelineItem} from '../types';
 import {buildDayTimelineItems, formatLocalDate} from '../utils/calendarHelpers';
 import {BIRTHDAY_ACCENT_COLOR} from '../utils/calendarGroups';
+import {USTP_ACCENT_COLOR} from '../utils/ustpAcademicCalendar';
 import {WeekStrip} from './WeekStrip';
 import {ScheduleItemCard} from './ScheduleItemCard';
 import {useSchedulePalette} from './schedulePalette';
@@ -28,6 +29,8 @@ interface DayViewProps {
   selectedDate: Date;
   timeFormat24h: boolean;
   showHolidays?: boolean;
+  showUstpCalendar?: boolean;
+  showUstpGraduate?: boolean;
   blocks: TimeBlock[];
   tasks: Task[];
   events: Event[];
@@ -95,6 +98,8 @@ export const DayView: React.FC<DayViewProps> = React.memo(({
   selectedDate,
   timeFormat24h,
   showHolidays = true,
+  showUstpCalendar = false,
+  showUstpGraduate = false,
   blocks,
   tasks,
   events,
@@ -159,6 +164,8 @@ export const DayView: React.FC<DayViewProps> = React.memo(({
         reminders,
         timeFormat24h,
         showHolidays,
+        showUstpCalendar,
+        showUstpGraduate,
         attachedEntries,
       }),
     [
@@ -169,6 +176,8 @@ export const DayView: React.FC<DayViewProps> = React.memo(({
       reminders,
       timeFormat24h,
       showHolidays,
+      showUstpCalendar,
+      showUstpGraduate,
       attachedEntries,
     ],
   );
@@ -269,20 +278,35 @@ export const DayView: React.FC<DayViewProps> = React.memo(({
           <View style={styles.allDayList}>
             {allDayItems.map(item => {
               const isHoliday = item.kind === 'holiday';
+              const isUstp = item.kind === 'ustp_event';
               const accent =
                 item.accentColor ||
-                (isHoliday ? '#0B8043' : BIRTHDAY_ACCENT_COLOR);
+                (isHoliday
+                  ? '#0B8043'
+                  : isUstp
+                  ? USTP_ACCENT_COLOR
+                  : BIRTHDAY_ACCENT_COLOR);
               const chipBg = isHoliday
                 ? palette.isDarkMode
                   ? 'rgba(11, 128, 67, 0.22)'
                   : '#E6F4EA'
+                : isUstp
+                ? palette.isDarkMode
+                  ? 'rgba(29, 78, 216, 0.24)'
+                  : '#EFF6FF'
                 : palette.isDarkMode
                 ? 'rgba(233, 30, 99, 0.18)'
                 : '#FCE4EC';
               return (
                 <TouchableOpacity
                   key={item.id}
-                  testID={isHoliday ? 'holiday-chip' : 'birthday-chip'}
+                  testID={
+                    isHoliday
+                      ? 'holiday-chip'
+                      : isUstp
+                      ? 'ustp-event-chip'
+                      : 'birthday-chip'
+                  }
                   activeOpacity={0.8}
                   onPress={() => onPressItem(item)}
                   style={[
@@ -297,6 +321,8 @@ export const DayView: React.FC<DayViewProps> = React.memo(({
                 >
                   {isHoliday ? (
                     <Flag size={13} color={accent} />
+                  ) : isUstp ? (
+                    <GraduationCap size={13} color={accent} />
                   ) : (
                     <Cake size={13} color={accent} />
                   )}

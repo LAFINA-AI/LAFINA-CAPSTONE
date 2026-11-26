@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Flag,
+  GraduationCap,
   Paperclip,
   Plus,
 } from 'lucide-react-native';
@@ -36,6 +37,10 @@ import {
 } from '../utils/calendarHelpers';
 import {BIRTHDAY_ACCENT_COLOR, isBirthdayEvent} from '../utils/calendarGroups';
 import {getHolidaysOn} from '../utils/philippineHolidays';
+import {
+  USTP_ACCENT_COLOR,
+  getUstpEventsOn,
+} from '../utils/ustpAcademicCalendar';
 import {useSchedulePalette, scheduleCardShadow} from './schedulePalette';
 
 interface MonthViewProps {
@@ -44,6 +49,8 @@ interface MonthViewProps {
   weekStartsMonday: boolean;
   timeFormat24h: boolean;
   showHolidays?: boolean;
+  showUstpCalendar?: boolean;
+  showUstpGraduate?: boolean;
   blocks: TimeBlock[];
   allTasks: Task[];
   allEvents: Event[];
@@ -62,6 +69,7 @@ interface DayIndicators {
   task: boolean;
   reminder: boolean;
   holiday: boolean;
+  ustp: boolean;
   birthday: boolean;
   titles: Set<string>;
 }
@@ -72,6 +80,8 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
   weekStartsMonday,
   timeFormat24h,
   showHolidays = true,
+  showUstpCalendar = false,
+  showUstpGraduate = false,
   blocks,
   allTasks,
   allEvents,
@@ -128,6 +138,7 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
           task: false,
           reminder: false,
           holiday: false,
+          ustp: false,
           birthday: false,
           titles: new Set(),
         };
@@ -136,11 +147,18 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
       return entry;
     };
 
-    if (showHolidays !== false) {
+    if (showHolidays !== false || showUstpCalendar) {
       for (let d = 1; d <= totalDays; d++) {
         const dateKey = formatLocalDate(new Date(year, month, d));
-        if (getHolidaysOn(dateKey).length > 0) {
+        if (showHolidays !== false && getHolidaysOn(dateKey).length > 0) {
           ensure(dateKey).holiday = true;
+        }
+        if (
+          showUstpCalendar &&
+          getUstpEventsOn(dateKey, {includeGraduate: showUstpGraduate}).length >
+            0
+        ) {
+          ensure(dateKey).ustp = true;
         }
       }
     }
@@ -184,6 +202,8 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
     allTasks,
     reminders,
     showHolidays,
+    showUstpCalendar,
+    showUstpGraduate,
     year,
     month,
     totalDays,
@@ -217,6 +237,8 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
         reminders,
         timeFormat24h,
         showHolidays,
+        showUstpCalendar,
+        showUstpGraduate,
         attachedEntries,
       }),
     [
@@ -227,6 +249,8 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
       reminders,
       timeFormat24h,
       showHolidays,
+      showUstpCalendar,
+      showUstpGraduate,
       attachedEntries,
     ],
   );
@@ -243,6 +267,9 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
   const renderPlanIcon = (item: ScheduleTimelineItem) => {
     if (item.kind === 'holiday') {
       return <Flag size={18} color="#0B8043" />;
+    }
+    if (item.kind === 'ustp_event') {
+      return <GraduationCap size={18} color={USTP_ACCENT_COLOR} />;
     }
     if (item.kind === 'birthday') {
       return <Cake size={18} color={BIRTHDAY_ACCENT_COLOR} />;
@@ -357,6 +384,14 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
                         style={[styles.dot, {backgroundColor: '#0B8043'}]}
                       />
                     ) : null}
+                    {dots?.ustp ? (
+                      <View
+                        style={[
+                          styles.dot,
+                          {backgroundColor: USTP_ACCENT_COLOR},
+                        ]}
+                      />
+                    ) : null}
                     {dots?.birthday ? (
                       <View
                         style={[
@@ -462,6 +497,8 @@ export const MonthView: React.FC<MonthViewProps> = React.memo(({
                           color:
                             item.kind === 'holiday'
                               ? '#0B8043'
+                              : item.kind === 'ustp_event'
+                              ? USTP_ACCENT_COLOR
                               : item.kind === 'birthday'
                               ? BIRTHDAY_ACCENT_COLOR
                               : palette.muted,

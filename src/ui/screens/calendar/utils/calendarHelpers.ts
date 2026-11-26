@@ -20,6 +20,12 @@ import {
   parseBirthdayEvent,
 } from './birthdayEvents';
 import {getHolidaysOn} from './philippineHolidays';
+import {
+  USTP_ACCENT_COLOR,
+  USTP_CATEGORY_LABELS,
+  USTP_TERM_LABELS,
+  getUstpEventsOn,
+} from './ustpAcademicCalendar';
 
 const SHORT_MONTHS = [
   'Jan',
@@ -229,6 +235,7 @@ export const countAttachmentsForTimelineItem = (
     | 'rawTask'
     | 'rawReminder'
     | 'rawHoliday'
+    | 'rawUstpEvent'
   >,
   attachedEntries?: ScheduleAttachedEntry[],
 ): number => {
@@ -329,6 +336,8 @@ export const buildDayTimelineItems = ({
   reminders = [],
   timeFormat24h,
   showHolidays = true,
+  showUstpCalendar = false,
+  showUstpGraduate = false,
   attachedEntries,
 }: {
   date: Date;
@@ -338,6 +347,8 @@ export const buildDayTimelineItems = ({
   reminders?: Reminder[];
   timeFormat24h: boolean;
   showHolidays?: boolean;
+  showUstpCalendar?: boolean;
+  showUstpGraduate?: boolean;
   attachedEntries?: ScheduleAttachedEntry[];
 }): ScheduleTimelineItem[] => {
   const dateStr = formatLocalDate(date);
@@ -365,6 +376,34 @@ export const buildDayTimelineItems = ({
         isAllDay: true,
         accentColor: '#0B8043',
         rawHoliday: h,
+      });
+    }
+  }
+
+  if (showUstpCalendar) {
+    for (const occ of getUstpEventsOn(dateStr, {
+      includeGraduate: showUstpGraduate,
+    })) {
+      const ev = occ.event;
+      const termCat = `${USTP_TERM_LABELS[ev.term]} · ${
+        USTP_CATEGORY_LABELS[ev.category]
+      }`;
+      items.push({
+        id: `ustp-${ev.id}-${occ.date}${
+          occ.endpointRole ? `-${occ.endpointRole}` : ''
+        }`,
+        kind: 'ustp_event',
+        title: occ.displayTitle,
+        subtitle: ev.needsConfirmation ? `${termCat} (confirm)` : termCat,
+        categoryLabel:
+          ev.audience === 'gr' ? 'USTP · Graduate' : 'USTP Calendar',
+        timeLabel: occ.dayLabel,
+        hour: 0,
+        sortMinutes: -15,
+        tone: 'ustp',
+        isAllDay: true,
+        accentColor: USTP_ACCENT_COLOR,
+        rawUstpEvent: occ,
       });
     }
   }
