@@ -53,6 +53,7 @@ export function getTruthfulStateText(props: {
     phase === 'tool_working';
 
   if (phase === 'connecting') return 'Connecting…';
+  if (phase === 'reconnecting') return 'Reconnecting…';
   if (muted && isActive) return 'Muted. LAFINA cannot hear you';
   if (hasReviewItem && (phase === 'listening' || phase === 'idle'))
     return 'Waiting for confirmation';

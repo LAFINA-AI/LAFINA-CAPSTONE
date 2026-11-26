@@ -35,6 +35,7 @@ const EASE = 0.35;
 /** Phases where the wave moves; the others show one still frame. */
 const MOVING = new Set<ConversationPhase>([
   'connecting',
+  'reconnecting',
   'listening',
   'thinking',
   'tool_working',
@@ -60,7 +61,7 @@ function getTargetAmplitude(
   if (phase === 'listening') {
     return 0.14;
   }
-  if (phase === 'connecting') {
+  if (phase === 'connecting' || phase === 'reconnecting') {
     return 0.18;
   }
   // idle, ended, failed, restart_required
@@ -170,7 +171,11 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = React.memo(
           ? []
           : buildStrands(
               0,
-              modulate(phase, 0, targetFor(phase, muted, userLevel, outputLevel)),
+              modulate(
+                phase,
+                0,
+                targetFor(phase, muted, userLevel, outputLevel),
+              ),
               size,
             ),
       [animated, phase, muted, userLevel, outputLevel, size],

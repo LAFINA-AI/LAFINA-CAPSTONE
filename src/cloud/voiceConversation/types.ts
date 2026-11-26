@@ -15,6 +15,11 @@ export type ConversationPhase =
   | 'thinking'
   | 'tool_working'
   | 'speaking'
+  /**
+   * The connection dropped and the same call is reconnecting by itself
+   * (ADR-046). Transcript, timer and cards stay; nothing is sent meanwhile.
+   */
+  | 'reconnecting'
   /** Stopped by something other than the student (background, call, network): restart explicitly. */
   | 'restart_required'
   | 'ended'
@@ -82,6 +87,10 @@ export interface ConversationSnapshot {
   /** Epoch ms when the server-side session limit ends the conversation. */
   endsAt: number | null;
   lastTiming: ConversationTiming | null;
+  /** Which reconnect attempt is running (1-based) while `reconnecting`. */
+  reconnectAttempt?: number | null;
+  /** How many times this call has reconnected by itself. */
+  reconnects?: number;
 }
 
 export interface VoiceCapabilities {
@@ -95,6 +104,18 @@ export interface VoiceCapabilities {
    * since sending an override it does not allow would end the call.
    */
   openingLine?: boolean;
+  /**
+   * The server links a reconnect to the dropped session (`resumeOf`) and
+   * accepts the call's earlier turns (`call_recap`). Absent: the app carries
+   * the memory in the student context only (ADR-046).
+   */
+  resume?: boolean;
+}
+
+/** One earlier turn of this call, for a reconnect's `call_recap`. */
+export interface CallRecapTurn {
+  role: 'user' | 'assistant';
+  text: string;
 }
 
 export interface VoiceSessionGrant {
@@ -134,7 +155,13 @@ export type ApiOutcome<T> =
 export interface VoiceConversationApi {
   capabilities(signal: AbortSignal): Promise<ApiOutcome<VoiceCapabilities>>;
   createSession(
-    body: {requestId: string; voiceId: string | null; useHandbook: boolean},
+    body: {
+      requestId: string;
+      voiceId: string | null;
+      useHandbook: boolean;
+      /** The dropped session this one continues (only when `resume`). */
+      resumeOf?: string;
+    },
     signal: AbortSignal,
   ): Promise<ApiOutcome<VoiceSessionGrant>>;
   connected(sessionId: string, conversationId: string): Promise<unknown>;
@@ -150,7 +177,11 @@ export type TransportEvent =
   | {kind: 'output_level'; level: number}
   | {kind: 'mic'; capturing: boolean}
   | {kind: 'level'; level: number}
-  | {kind: 'closed'; code: number; reason: string}
+  /**
+   * `recoverable`: native kept the microphone and speaker open and waits for
+   * `reconnect` (or `end`). Absent on older builds.
+   */
+  | {kind: 'closed'; code: number; reason: string; recoverable?: boolean}
   | {kind: 'error'; code: string; message: string}
   | {kind: 'audio_focus_lost'}
   | {kind: 'backgrounded'}
@@ -166,7 +197,23 @@ export interface VoiceTransport {
     appOwnedAudio?: boolean;
     /** Drop the agent's audio until the student first speaks or types. */
     suppressOpeningAudio?: boolean;
+    /** Open with the microphone off (the student muted before a reconnect). */
+    startMuted?: boolean;
   }): Promise<void>;
+  /**
+   * Opens a new socket for a session whose socket dropped (or was detached),
+   * keeping the microphone, speaker and audio route. Optional: older builds
+   * lack it, and the controller then starts a new native session instead.
+   */
+  reconnect?(options: {
+    sessionKey: string;
+    url: string;
+    initiation: string;
+    allowLocalTestServer?: boolean;
+    suppressOpeningAudio?: boolean;
+  }): Promise<void>;
+  /** Closes the socket but keeps the audio, ready for `reconnect`. */
+  detach?(sessionKey: string): Promise<boolean>;
   setMuted(sessionKey: string, muted: boolean): Promise<boolean>;
   stopResponse(sessionKey: string): Promise<boolean>;
   sendMessage(sessionKey: string, json: string): Promise<boolean>;
@@ -197,6 +244,8 @@ export interface ConversationController {
   endAndWait(): Promise<boolean>;
   stopForSystem(reason: string): void;
   setMuted(muted: boolean): Promise<void> | void;
+  /** Continues a stopped call with its memory (one tap; ADR-046). */
+  resume?(): Promise<void>;
 }
 
 /** Where finished turns go (the account's chat history). Called once per turn. */

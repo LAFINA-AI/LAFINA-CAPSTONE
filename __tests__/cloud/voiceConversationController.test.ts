@@ -1236,7 +1236,10 @@ it('caps oversized studentContext at 12000 characters in the initiation payload'
   await app.controller.start();
   const initiation = JSON.parse(app.calls.transportStart[0].initiation);
   expect(initiation.custom_llm_extra_body.student_context).toHaveLength(12_000);
-  expect(initiation.dynamic_variables.student_context).toHaveLength(12_000);
+  // ADR-046: the summary goes only to LAFINA's server, never into the voice
+  // provider's stored dynamic variables.
+  expect(initiation.dynamic_variables.student_context).toBeUndefined();
+  expect(initiation.dynamic_variables.lafina_voice_grant).toBe('grant-token');
   app.controller.end();
 });
 

@@ -150,4 +150,27 @@ class VoiceConversationRulesTest {
   fun `initiation limit accommodates full 12000-char student context`() {
     assertTrue(VoiceConversationRules.MAX_INITIATION_CHARS >= 32 * 1024)
   }
+
+  @Test
+  fun `network and server drops keep the audio for a reconnect`() {
+    assertTrue(VoiceConversationRules.isRecoverableClose(1006, "network"))
+    assertTrue(VoiceConversationRules.isRecoverableClose(1006, ""))
+    assertTrue(VoiceConversationRules.isRecoverableClose(1001, null))
+    assertTrue(VoiceConversationRules.isRecoverableClose(1011, "internal error"))
+    assertTrue(VoiceConversationRules.isRecoverableClose(1002, "custom_llm generation failed"))
+  }
+
+  @Test
+  fun `normal, policy and auth closes end the call`() {
+    assertFalse(VoiceConversationRules.isRecoverableClose(1000, ""))
+    assertFalse(VoiceConversationRules.isRecoverableClose(1000, "Conversation ended"))
+    assertFalse(VoiceConversationRules.isRecoverableClose(1008, "quota exceeded"))
+    assertFalse(VoiceConversationRules.isRecoverableClose(4001, "unauthorized"))
+  }
+
+  @Test
+  fun `the audio hold outlasts the app's reconnect window`() {
+    assertTrue(VoiceConversationRules.RECONNECT_HOLD_MS > 30_000L)
+    assertTrue(VoiceConversationRules.RECONNECT_HOLD_MS <= 60_000L)
+  }
 }

@@ -31,7 +31,7 @@ Before this ADR, voice in LAFINA was push-to-talk only: offline whisper.cpp prod
 5. **Lifecycle (`VoiceConversationController`).**
    - Every start has a generation. Late answers, events or timers from an older start are ignored.
    - Ending during session creation closes the server session and never opens the mic.
-   - Background, screen lock, audio-focus loss (calls, reminder calls), socket close, network loss, Online Mode off, sign-out or an account switch all stop the session and show **Start again**. Nothing restarts by itself.
+   - Background, screen lock, audio-focus loss (calls, reminder calls), socket close, network loss, Online Mode off, sign-out or an account switch all stop the session and show **Start again**. Nothing restarts by itself. *(Amended by ADR-046: a network or server drop now reconnects by itself within fixed bounds; background, lock and audio-focus loss still stop the call and offer Continue call.)*
    - Bounds: 20 s to connect, a 5-minute server limit, 2 minutes of silence, and a 25 s slow-turn notice that asks the server once for the real reason (for example billing).
    - No automatic retries of billable calls.
 6. **Mute** stops and releases `AudioRecord` (verified: no recording client while muted). **Stop** flushes playback and suppresses the rest of that answer until the next user turn.

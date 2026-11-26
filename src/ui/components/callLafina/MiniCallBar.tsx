@@ -51,13 +51,16 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
     phase === 'listening' ||
     phase === 'thinking' ||
     phase === 'tool_working';
-  const statusText = muted
-    ? 'Muted'
-    : phase === 'speaking'
-    ? 'Lafina is speaking…'
-    : phase === 'thinking' || phase === 'tool_working'
-    ? 'Thinking…'
-    : 'Listening…';
+  const statusText =
+    phase === 'reconnecting'
+      ? 'Reconnecting…'
+      : muted
+      ? 'Muted'
+      : phase === 'speaking'
+      ? 'Lafina is speaking…'
+      : phase === 'thinking' || phase === 'tool_working'
+      ? 'Thinking…'
+      : 'Listening…';
 
   return (
     <View

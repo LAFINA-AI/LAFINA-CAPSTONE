@@ -18,6 +18,7 @@ import type {ConversationController} from './types';
 import {nativeVoiceTransport} from './nativeTransport';
 import {voiceConversationApi} from './voiceConversationApi';
 import {buildStudentVoiceContext} from './localVoiceData';
+import {buildChatRecap} from './callRecap';
 import {isUstpSchoolEnabled} from '../../storage/ustpEligibility';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {chatMemoryService} from '../chatMemoryService';
@@ -29,9 +30,13 @@ export {
   VoiceConversationController,
   FAILURE_MESSAGES,
   DEFAULT_LIMITS,
+  NETWORK_DROP_REASON,
+  RECONNECT_FAILED_REASON,
+  classifyDrop,
   reminderCallContext,
 } from './controller';
 export {buildStudentVoiceContext} from './localVoiceData';
+export {buildChatRecap, callRecapTurns} from './callRecap';
 export type {VoiceConversationDeps, VoiceConversationGates} from './controller';
 export {
   LAFINA_VOICE_SYSTEM_PROMPT,
@@ -50,10 +55,12 @@ export type * from './types';
 
 /**
  * v2 (2026-11-14): the disclosure now says a 7-day summary, notes and saved
- * memories are shared when a call starts. Raising the version makes students
- * who agreed to the older wording see and accept the new text once.
+ * memories are shared when a call starts. v3 (2026-11-26, ADR-046): and the
+ * last few messages of the chat the call writes into, so LAFINA remembers
+ * what was said. Raising the version makes students who agreed to the older
+ * wording see and accept the new text once.
  */
-export const VOICE_CONSENT_KEY = 'voiceConversation.consent.v2';
+export const VOICE_CONSENT_KEY = 'voiceConversation.consent.v3';
 export const ONLINE_MODE_KEY = 'chat.onlineMode';
 
 /** Chat listens for this so its Online Mode switch stays in step. */
@@ -194,7 +201,13 @@ export const defaultVoiceConversationDeps = (
   // Server-side handbook search only with a confirmed USTP COR setup.
   useHandbook: () =>
     handbookPreference.read(userId) && isUstpSchoolEnabled(userId),
-  getStudentContext: () => buildStudentVoiceContext(userId),
+  // The chat's recent conversation first: the context is cut from the end.
+  getStudentContext: () =>
+    [buildChatRecap(userId), buildStudentVoiceContext(userId)]
+      .filter(Boolean)
+      .join('\n\n'),
+  // ADR-046: a network or server drop reconnects the same call.
+  autoReconnect: true,
   getOpeningLine: () => callGreetingFor(userId, 'online'),
   api: directProviderTestEnabled() ? directTestVoiceApi : voiceConversationApi,
   transport: nativeVoiceTransport,
@@ -233,6 +246,22 @@ export const startVoiceConversation = async (
   active = controller;
   notifyVoiceOwner();
   await controller.start();
+  notifyVoiceOwner();
+};
+
+/** Continue call: like a start, but the call keeps its memory (ADR-046). */
+export const resumeVoiceConversation = async (
+  controller: ConversationController,
+): Promise<void> => {
+  const token = ++acquisition;
+  if (active && active !== controller) {
+    await active.endAndWait().catch(() => false);
+  }
+  await pendingRelease;
+  if (token !== acquisition) return;
+  active = controller;
+  notifyVoiceOwner();
+  await (controller.resume ? controller.resume() : controller.start());
   notifyVoiceOwner();
 };
 

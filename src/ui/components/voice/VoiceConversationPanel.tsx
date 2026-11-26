@@ -198,6 +198,7 @@ const PHASE_TEXT: Record<ConversationPhase, string> = {
   thinking: 'Thinking…',
   tool_working: 'Working…',
   speaking: 'Speaking. Talk to interrupt',
+  reconnecting: 'Reconnecting…',
   restart_required: 'Call stopped',
   ended: 'Call ended',
   failed: 'Call Lafina unavailable',
@@ -216,6 +217,8 @@ const statusLine = (
   hasReviewItem = false,
   offline = false,
 ) => {
+  // ADR-046: the same call is coming back; nothing is heard meanwhile.
+  if (snapshot.phase === 'reconnecting') return PHASE_TEXT.reconnecting;
   const active =
     snapshot.phase === 'listening' ||
     snapshot.phase === 'speaking' ||
@@ -352,11 +355,16 @@ const NO_OPEN_CARD_REPLY =
 const cardLabel = (title: string | undefined): string =>
   title ? ` ("${title}")` : '';
 
+/**
+ * A reconnecting call is still the same call: its timer, cards and controls
+ * stay (ADR-046).
+ */
 const LIVE = new Set<ConversationPhase>([
   'listening',
   'thinking',
   'tool_working',
   'speaking',
+  'reconnecting',
 ]);
 
 const isVoiceDraftRevision = (text: string): boolean => {
@@ -2222,12 +2230,32 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     [activeMultiBatch],
   );
 
+  /** What is on screen, told to LAFINA when the call reconnects (ADR-046). */
+  const callStateRef = useRef<() => string | null>(() => null);
+  callStateRef.current = () => {
+    const parts: string[] = [];
+    const pending = latestPendingReview(ownerRef.current, 'voice');
+    if (pending)
+      parts.push(
+        `a review card${cardLabel(
+          pending.title,
+        )} is waiting for the student to save or cancel; nothing is saved yet.`,
+      );
+    if (activeMemoryProposal)
+      parts.push('a memory card is waiting for the student to save or cancel.');
+    if (activeMultiBatch)
+      parts.push(
+        'a card with several changes is waiting for the student to save or cancel.',
+      );
+    return parts.length ? parts.join(' ') : null;
+  };
   const onlineConversation = useVoiceConversation(userId, {
     onFinalUserText,
     onTurnInterrupted: () => {
       turnTicket.current += 1;
     },
     onClientTool,
+    getCallState: () => callStateRef.current(),
     deps: resolvedDepsFactory,
   });
   /** The offline call's turn: the device reads it and LAFINA says the line. */
@@ -2373,10 +2401,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [snapshot.phase, openSkill]);
   const live = LIVE.has(snapshot.phase);
   const connecting = snapshot.phase === 'connecting';
+  const reconnecting = snapshot.phase === 'reconnecting';
+  const pulsing = connecting || reconnecting;
   const reducedMotion = useReducedMotion();
   const connectingPulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (!connecting || reducedMotion || process.env.NODE_ENV === 'test') {
+    if (!pulsing || reducedMotion || process.env.NODE_ENV === 'test') {
       connectingPulse.setValue(0);
       return undefined;
     }
@@ -2396,7 +2426,26 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     );
     loop.start();
     return () => loop.stop();
-  }, [connecting, connectingPulse, reducedMotion]);
+  }, [pulsing, connectingPulse, reducedMotion]);
+  // ADR-046: one soft buzz when the line drops, and a spoken status for
+  // screen readers when it drops and when it comes back.
+  const wasReconnecting = useRef(false);
+  useEffect(() => {
+    if (reconnecting === wasReconnecting.current) return;
+    wasReconnecting.current = reconnecting;
+    if (reconnecting) {
+      if (callSettings.callConnectedHaptics) {
+        try {
+          Vibration.vibrate(20);
+        } catch {
+          // best-effort
+        }
+      }
+      AccessibilityInfo.announceForAccessibility?.('Reconnecting the call');
+    } else if (LIVE.has(snapshot.phase)) {
+      AccessibilityInfo.announceForAccessibility?.('Call reconnected');
+    }
+  }, [reconnecting, snapshot.phase, callSettings.callConnectedHaptics]);
   useEffect(() => {
     if (
       snapshot.phase !== 'ended' &&
@@ -2611,6 +2660,20 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [startCall]);
 
   /** The online call failed or dropped: carry on with the phone's voice. */
+  /**
+   * ADR-046: the online call stopped (the app left the screen, a phone call,
+   * or a drop that could not reconnect). Continue keeps the transcript and
+   * tells LAFINA the call is continuing, so it picks up instead of greeting.
+   */
+  const handleContinue = useCallback(() => {
+    void ttsService.stop();
+    modeRef.current = 'online';
+    onlineAttempt.current = false;
+    // resetCallState only touches refs and state setters.
+    resetCallState();
+    callsRef.current.online.resume();
+  }, []);
+
   const handleCallOffline = useCallback(() => {
     startCall({mode: 'offline', reason: 'online_unavailable'});
   }, [startCall]);
@@ -2873,6 +2936,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [claimTurnId, presentReview]);
 
   const failure = snapshot.failure;
+  // ADR-046: an online call that stopped part-way can continue with its memory.
+  const canContinue =
+    !offline &&
+    !failure &&
+    snapshot.phase === 'restart_required' &&
+    snapshot.turns.some(turn => turn.status !== 'provisional');
   // The note is hidden when LAFINA just said the same thing (a save used to
   // show "Saved locally. Alarm registered." twice).
   const shownNote =
@@ -2997,6 +3066,20 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   Connecting
                 </Text>
               </>
+            ) : reconnecting ? (
+              <>
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={styles.pillSpinner}
+                />
+                <Text
+                  style={[styles.pillText, {color: colors.primary}]}
+                  testID="call-reconnecting-badge"
+                >
+                  Reconnecting
+                </Text>
+              </>
             ) : offline ? (
               <>
                 <Cpu
@@ -3088,7 +3171,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         >
           {live || !showOverlayContent ? (
             <View style={styles.avatarRingHost}>
-              {connecting && !showOverlayContent ? (
+              {pulsing && !showOverlayContent ? (
                 <Animated.View
                   pointerEvents="none"
                   style={[
@@ -3267,7 +3350,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                       ? modernPalette.blueSoft
                       : `${colors.blue}16`,
                     title: 'Knows your upcoming plans',
-                    body: 'LAFINA looks at your next 7 days, recent notes and saved memories so its answers fit your schedule. Reminder calls also share that reminder.',
+                    body: 'LAFINA looks at your next 7 days, recent notes, saved memories and the last few messages of this chat, so its answers fit your schedule and it remembers what you were talking about. Reminder calls also share that reminder.',
                   },
                   {
                     key: 'control',
@@ -3872,17 +3955,45 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               ) : failure?.kind === 'signin_required' ||
                 failure?.kind === 'not_configured' ||
                 failure?.kind === 'voice_unavailable' ? null : (
-                <TouchableOpacity
-                  style={[styles.secondaryButton, themed.secondary]}
-                  onPress={handleStart}
-                  accessibilityRole="button"
-                  testID="voice-conversation-restart"
-                >
-                  <RotateCcw size={14} color={colors.textPrimary} />
-                  <Text style={[styles.secondaryText, themed.text]}>
-                    {failure ? 'Try again' : 'Start again'}
-                  </Text>
-                </TouchableOpacity>
+                <>
+                  {canContinue ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryButton,
+                        {backgroundColor: colors.primary},
+                      ]}
+                      onPress={handleContinue}
+                      accessibilityRole="button"
+                      accessibilityHint="Continues this call. LAFINA remembers what you were talking about."
+                      testID="voice-conversation-continue"
+                    >
+                      <PhoneCall size={14} color={colors.textOnPrimary} />
+                      <Text
+                        style={[
+                          styles.primaryText,
+                          {color: colors.textOnPrimary},
+                        ]}
+                      >
+                        Continue call
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, themed.secondary]}
+                    onPress={handleStart}
+                    accessibilityRole="button"
+                    testID="voice-conversation-restart"
+                  >
+                    <RotateCcw size={14} color={colors.textPrimary} />
+                    <Text style={[styles.secondaryText, themed.text]}>
+                      {failure
+                        ? 'Try again'
+                        : canContinue
+                        ? 'New call'
+                        : 'Start again'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
               )}
               {!offline &&
               failure?.kind !== 'mic_denied' &&

@@ -117,6 +117,8 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
 
   const phase = snapshot?.phase ?? 'idle';
   const live = LIVE_PHASES.has(phase) && !resolution;
+  // ADR-046: the line dropped and is coming back; the call is not over.
+  const reconnecting = phase === 'reconnecting' && !resolution;
   const muted = !!snapshot?.muted;
   // Before the conversation connects, the app itself reads the reminder.
   const announcing =
@@ -125,7 +127,7 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
     (callState === 'speaking' || callState === 'speaking_listening');
   const avatarPhase: ConversationPhase = announcing
     ? 'speaking'
-    : live
+    : live || reconnecting
     ? phase
     : 'connecting';
 
@@ -147,6 +149,7 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
     if (pendingAction === 'end') return 'Ending the call…';
     if (pendingAction) return 'Wrapping up…';
     if (announcing) return 'LAFINA is reading your reminder…';
+    if (reconnecting) return 'Reconnecting…';
     if (!live) return 'Connecting to LAFINA…';
     if (muted) return 'Muted. LAFINA cannot hear you';
     if (phase === 'tool_working') return snapshot?.toolPhrase || 'Working…';
@@ -157,7 +160,14 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
 
   const controlsEnabled = live && !pendingAction;
   const endEnabled = !resolution && pendingAction !== 'end';
-  const pillLabel = muted && live ? 'Muted' : live ? 'Online' : 'Connecting';
+  const pillLabel =
+    muted && live
+      ? 'Muted'
+      : live
+      ? 'Online'
+      : reconnecting
+      ? 'Reconnecting'
+      : 'Connecting';
 
   const send = async (): Promise<void> => {
     const text = typed.trim();

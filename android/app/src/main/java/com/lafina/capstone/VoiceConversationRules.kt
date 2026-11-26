@@ -61,6 +61,27 @@ object VoiceConversationRules {
       null
     }
 
+  /** Close codes after which the call reconnects instead of ending (ADR-046). */
+  val RECOVERABLE_CLOSE_CODES = setOf(1001, 1006, 1011, 1012, 1013, 1014)
+
+  /**
+   * Whether a dropped socket keeps the session's audio for a reconnect:
+   * network loss and server-side errors, or a failed custom-LLM turn. A
+   * normal close (1000), policy, auth and quota closes end the call. JS has
+   * the final say (`classifyDrop` in controller.ts): it ends a parked session
+   * it does not reconnect.
+   */
+  fun isRecoverableClose(code: Int, reason: String?): Boolean {
+    val text = reason.orEmpty()
+    if (Regex("custom_llm|llm_error|generation failed|network", RegexOption.IGNORE_CASE).containsMatchIn(text)) {
+      return true
+    }
+    return code in RECOVERABLE_CLOSE_CODES
+  }
+
+  /** A session without a socket keeps the microphone and speaker this long at most. */
+  const val RECONNECT_HOLD_MS = 35_000L
+
   /** Only these client messages may be sent from JavaScript besides audio. */
   val ALLOWED_CLIENT_TYPES = setOf("user_message", "user_activity", "client_tool_result", "contextual_update")
 

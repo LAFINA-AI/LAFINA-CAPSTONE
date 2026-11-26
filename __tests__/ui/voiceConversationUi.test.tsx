@@ -604,7 +604,9 @@ describe('a live conversation', () => {
         const utils = renderPanel(userId, transport);
         expect(
           utils.getByTestId('voice-conversation-consent'),
-        ).toHaveTextContent(/next 7 days.*notes and saved memories/);
+        ).toHaveTextContent(
+          /next 7 days.*notes, saved memories and the last few messages of this chat/,
+        );
         expect(utils.queryByTestId('voice-conversation-start')).toBeNull();
         utils.unmount();
       } finally {

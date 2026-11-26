@@ -12,6 +12,7 @@ import type {
   VoiceConversationApi,
   VoiceTransport,
 } from './types';
+import {callRecapTurns} from './callRecap';
 import {
   DEFAULT_VOICE_PREFERENCES,
   voicePreferenceContext,
@@ -32,9 +33,14 @@ import {
  * - Every start gets a new generation. `end`, `stopForSystem` and `dispose`
  *   bump it, so a late answer, event or timer from an older start is ignored
  *   and can never reopen capture or start audio.
- * - The session is never restarted by itself: anything other than the
- *   student ending it (background, call, network, focus loss) leaves
- *   `restart_required`, and only a new tap starts again.
+ * - A call is one or more segments (one server session and socket each).
+ *   With `autoReconnect` (ADR-046), a network or server drop keeps the call:
+ *   phase `reconnecting`, a few bounded attempts, then the same transcript,
+ *   timer and time limit continue on a new segment, and an answer the drop
+ *   cut short is asked again once. The student's own actions, leaving the
+ *   app, a phone call, sign-out, Online Mode off, consent, auth, quota and
+ *   microphone errors never reconnect: they leave `restart_required`, and
+ *   only a tap (Start or Continue call) starts again.
  * - Finished turns are persisted once each. An answer the student did not
  *   hear to the end is saved as interrupted.
  */
@@ -61,6 +67,16 @@ export interface VoiceConversationLimits {
   /** Turns kept on screen (all finished turns are saved to Chat). */
   maxVisibleTurns: number;
   maxTypedChars: number;
+  /** A dropped call keeps trying to reconnect for this long, then stops. */
+  reconnectWindowMs: number;
+  /** One reconnect attempt (server session + socket) may take this long. */
+  reconnectAttemptTimeoutMs: number;
+  /** The internet reported gone this long while connected: reconnect now. */
+  networkLostGraceMs: number;
+  /** An unanswered student turn this recent is asked again after a reconnect. */
+  replayWindowMs: number;
+  /** At most this many automatic reconnects in one call. */
+  maxReconnects: number;
 }
 
 const humanizeProviderError = (raw: string): string => {
@@ -83,6 +99,77 @@ export const DEFAULT_LIMITS: VoiceConversationLimits = {
   correctionWaitMs: 800,
   maxVisibleTurns: 60,
   maxTypedChars: 1000,
+  reconnectWindowMs: 30_000,
+  reconnectAttemptTimeoutMs: 10_000,
+  networkLostGraceMs: 3_000,
+  replayWindowMs: 90_000,
+  maxReconnects: 5,
+};
+
+/** Spoken by LAFINA after a reconnect (only when the agent accepts an opening line). */
+export const RECONNECT_LINE = "Sorry, I lost you for a second. I'm back.";
+/** Spoken when the student taps Continue call. */
+export const RESUME_LINE = "I'm back. Where were we?";
+export const RECONNECTING_NOTICE = 'The connection dropped. Reconnecting…';
+export const RECONNECTED_NOTICE = 'Reconnected.';
+/** Keeps "connection dropped": the reminder call reads it to offer offline. */
+export const RECONNECT_FAILED_REASON =
+  'The connection dropped and could not be restored. Tap Continue call when you are ready.';
+/** Why an online call stops when the connection drops and cannot reconnect. */
+export const NETWORK_DROP_REASON =
+  'The internet connection dropped, so the online call stopped.';
+const BACKGROUND_REASON =
+  'The conversation stopped when LAFINA left the screen. Nothing listens in the background.';
+const FOCUS_REASON =
+  'A call, a reminder or another app took the audio, so the conversation stopped.';
+
+const RECONNECT_NOTE =
+  'Call reconnected: the connection dropped for a moment and this is the same call continuing. What was said so far is in the recent chat below. Do not greet the student or introduce yourself again; continue naturally.';
+const RESUME_NOTE =
+  "Call continued: the student's previous call stopped (they left the app, another call took the audio, or the connection was lost) and they tapped Continue call. What was said is in the recent chat below. Do not introduce yourself again; continue naturally.";
+
+export type DropKind = 'reconnect' | 'llm' | 'stop';
+
+/**
+ * Whether a socket close is worth reconnecting (ADR-046). Network drops and
+ * server-side errors are; a normal close (the agent or server ended it),
+ * policy, auth and quota closes are not. A failed custom-LLM turn is
+ * reconnected once per call (`llm`).
+ */
+export const classifyDrop = (code: number, reason: string): DropKind => {
+  if (/custom_llm|llm_error|generation failed/i.test(reason)) return 'llm';
+  if (/network/i.test(reason)) return 'reconnect';
+  return [1001, 1006, 1011, 1012, 1013, 1014].includes(code)
+    ? 'reconnect'
+    : 'stop';
+};
+
+/** Retry delays after a failed attempt (the first attempt is immediate). */
+const RECONNECT_BACKOFF_MS = [1000, 2000, 4000, 8000];
+/** While offline during a reconnect, the connection is re-checked this often. */
+const OFFLINE_POLL_MS = 1000;
+/** Two segments that each drop this soon after connecting: stop retrying. */
+const SHORT_SEGMENT_MS = 10_000;
+/** Three drops within this window: stop retrying. */
+const FLAP_WINDOW_MS = 120_000;
+const FLAP_MAX_DROPS = 3;
+/** No reconnect when less than this is left before the time limit. */
+const MIN_SEGMENT_MS = 20_000;
+/** The "Reconnected." line stays this long. */
+const RECONNECTED_NOTICE_MS = 3000;
+
+type SegmentKind = 'start' | 'reconnect' | 'resume';
+/** ok: connected; retry: a reconnect attempt failed for a passing reason; done: handled. */
+type SegmentResult = 'ok' | 'retry' | 'done';
+const RETRYABLE: ReadonlySet<ConversationFailureKind> = new Set([
+  'offline',
+  'connect_failed',
+  'provider',
+]);
+
+const oneLine = (text: string, max = 300): string => {
+  const clean = text.replace(/\s+/g, ' ').replace(/"/g, "'").trim();
+  return clean.length <= max ? clean : `${clean.slice(0, max - 1)}…`;
 };
 
 export interface VoiceConversationDeps {
@@ -124,6 +211,16 @@ export interface VoiceConversationDeps {
     isCurrent: () => boolean,
   ): Promise<string>;
   allowLocalTestServer?: boolean;
+  /**
+   * Reconnect a call by itself after a network or server drop (ADR-046).
+   * Off unless the production deps turn it on.
+   */
+  autoReconnect?: boolean;
+  /**
+   * One short line about what is on the call screen right now (for example
+   * a review card waiting for Confirm), told to LAFINA after a reconnect.
+   */
+  getCallState?(): string | null;
   limits?: Partial<VoiceConversationLimits>;
   /** Timing and lifecycle lines only; never transcripts, URLs or grants. */
   log?(line: string): void;
@@ -136,6 +233,7 @@ const ACTIVE: ReadonlySet<ConversationPhase> = new Set([
   'thinking',
   'tool_working',
   'speaking',
+  'reconnecting',
 ]);
 
 /** Text with at least one letter or digit (any script); anything else is noise. */
@@ -207,7 +305,34 @@ interface LiveSession {
   key: string;
   sessionId: string;
   conversationId: string | null;
+  /** Which segment of the call (event ids restart with each conversation). */
+  segment: number;
   unsubscribe: () => void;
+}
+
+/** A native session whose socket dropped; its audio waits for `reconnect`. */
+interface ParkedSession {
+  key: string;
+  unsubscribe: () => void;
+  /** False once native released it: the next attempt starts a new session. */
+  soft: boolean;
+}
+
+/** The student's latest turn, for asking it again after a drop. */
+interface LastUserTurn {
+  text: string;
+  at: number;
+  /** A client tool ran for it (a card may be on screen): never asked again. */
+  toolRan: boolean;
+  /** LAFINA's answer to it was heard to the end. */
+  answered: boolean;
+  replayed: boolean;
+}
+
+interface ReconnectState {
+  since: number;
+  attempt: number;
+  inFlight: boolean;
 }
 
 interface PendingAnswer {
@@ -340,6 +465,22 @@ export class VoiceConversationController {
   private limitReason: string | null = null;
   private transportEnding: Promise<boolean> = Promise.resolve(true);
   private transportEndingPending = false;
+  // ── Call-scoped (kept across segments) ─────────────────────────────────
+  private segment = 0;
+  private segmentStartedAt = 0;
+  private callCapabilities: VoiceCapabilities | null = null;
+  private callVoice: {id: string; name: string} | null = null;
+  private parked: ParkedSession | null = null;
+  private previousSessionId: string | null = null;
+  private lastUserTurn: LastUserTurn | null = null;
+  private replayPlan: {text: string; heard: string} | null = null;
+  private reconnectState: ReconnectState | null = null;
+  private reconnectCount = 0;
+  private drops: number[] = [];
+  private lastSegmentShort = false;
+  private llmRetried = false;
+  /** LAFINA's reconnect line is shown and heard but not saved to Chat. */
+  private skipPersistText: string | null = null;
   private personaPreferences: VoicePersonaPreferences = {
     ...DEFAULT_VOICE_PREFERENCES,
   };
@@ -422,11 +563,15 @@ export class VoiceConversationController {
         const gen = this.generation;
         // Once LAFINA starts speaking, widen the safety cap so a longer goodbye
         // finishes instead of being clipped by the no-answer timeout.
-        this.timers.set('endAfterReply', Math.max(waiting.maxMs, 45_000), () => {
-          if (gen !== this.generation || !this.endAfter) return;
-          this.endAfter = null;
-          this.end();
-        });
+        this.timers.set(
+          'endAfterReply',
+          Math.max(waiting.maxMs, 45_000),
+          () => {
+            if (gen !== this.generation || !this.endAfter) return;
+            this.endAfter = null;
+            this.end();
+          },
+        );
       }
       return;
     }
@@ -538,16 +683,14 @@ export class VoiceConversationController {
     return clean && clean.length <= 240 ? clean : null;
   }
 
-  start = async (): Promise<void> => {
-    if (this.disposed || ACTIVE.has(this.snapshot.phase)) return; // double tap
-    const gen = ++this.generation;
+  /** Forgets everything one call knew (not the turns on screen). */
+  private resetCall() {
     this.waitingForStudent = false;
     this.studentSpokeSinceAnswer = false;
     this.desiredMuted = false;
     this.activeToolsForTurn = 0;
     this.openingQuiet = this.deps.quietOpening === true;
     this.limitReason = null;
-    const stale = () => gen !== this.generation || this.disposed;
     this.seen = new Set();
     this.pending = null;
     this.provisionalUserId = null;
@@ -556,6 +699,26 @@ export class VoiceConversationController {
       this.firstAudioAt =
       this.silenceRequestedAt =
         null;
+    this.callCapabilities = null;
+    this.callVoice = null;
+    this.previousSessionId = null;
+    this.lastUserTurn = null;
+    this.replayPlan = null;
+    this.reconnectState = null;
+    this.reconnectCount = 0;
+    this.drops = [];
+    this.lastSegmentShort = false;
+    this.llmRetried = false;
+    this.skipPersistText = null;
+  }
+
+  start = async (): Promise<void> => {
+    if (this.disposed || ACTIVE.has(this.snapshot.phase)) return; // double tap
+    const gen = ++this.generation;
+    this.resetCall();
+    // The screen starts empty, so turn ids may start again (resume keeps them).
+    this.segment = 0;
+    this.openingQuiet = this.deps.quietOpening === true;
     this.update({
       phase: 'connecting',
       connectedAt: null,
@@ -570,62 +733,184 @@ export class VoiceConversationController {
       turns: [],
       endsAt: null,
       lastTiming: null,
+      reconnectAttempt: null,
+      reconnects: 0,
     });
+    await this.openSegment(gen, 'start');
+  };
+
+  /**
+   * Continue call (one tap, ADR-046): a new call that keeps the transcript
+   * on screen and tells LAFINA the call is continuing, so it does not greet
+   * the student again. Every start gate runs again.
+   */
+  resume = async (): Promise<void> => {
+    if (this.disposed || ACTIVE.has(this.snapshot.phase)) return;
+    const turns = this.snapshot.turns.filter(t => t.status !== 'provisional');
+    const gen = ++this.generation;
+    this.resetCall();
+    this.openingQuiet = false;
+    this.update({
+      phase: 'connecting',
+      connectedAt: null,
+      failure: null,
+      notice: null,
+      restartReason: null,
+      muted: false,
+      micCapturing: false,
+      level: 0,
+      outputLevel: 0,
+      turns,
+      endsAt: null,
+      lastTiming: null,
+      reconnectAttempt: null,
+      reconnects: 0,
+    });
+    await this.openSegment(gen, 'resume');
+  };
+
+  /** What LAFINA is told first when a segment continues the call. */
+  private segmentNote(kind: SegmentKind): string {
+    if (kind === 'start') return '';
+    const parts = [kind === 'reconnect' ? RECONNECT_NOTE : RESUME_NOTE];
+    const plan = this.replayPlan;
+    const turn = this.lastUserTurn;
+    if (kind === 'reconnect' && plan) {
+      parts.push(
+        `The line dropped while you were answering the student's last request ("${oneLine(
+          plan.text,
+        )}"). It is sent to you again now: answer it in full.${
+          plan.heard
+            ? ` Your answer had started with: "${oneLine(
+                plan.heard,
+              )}". Pick up from there instead of repeating all of it.`
+            : ''
+        }`,
+      );
+    } else if (kind === 'reconnect' && turn && !turn.answered && turn.toolRan) {
+      parts.push(
+        `The line dropped while you were working on the student's last request ("${oneLine(
+          turn.text,
+        )}"). The app already handled that request, so do not run it again; wait for the student.`,
+      );
+    }
+    let state: string | null = null;
+    try {
+      state = this.deps.getCallState?.() ?? null;
+    } catch {
+      state = null;
+    }
+    if (state && state.trim()) parts.push(`On screen now: ${oneLine(state)}`);
+    return parts.join(' ');
+  }
+
+  /** The opening for a segment: the line to send (null: the agent's own) and whether to hide it. */
+  private openingFor(
+    kind: SegmentKind,
+    capabilities: VoiceCapabilities,
+  ): {line: string | null; quiet: boolean} {
+    if (kind === 'start')
+      return {
+        line: this.openingLineFor(capabilities),
+        quiet: this.deps.quietOpening === true,
+      };
+    // The agent's fixed greeting cannot be replaced: hide and silence it.
+    if (capabilities.openingLine !== true) return {line: null, quiet: true};
+    // The answer being asked again is the first thing heard.
+    if (kind === 'reconnect' && this.replayPlan)
+      return {line: '', quiet: false};
+    return {
+      line: kind === 'reconnect' ? RECONNECT_LINE : RESUME_LINE,
+      quiet: false,
+    };
+  }
+
+  /**
+   * Opens one segment: the server session, then the socket and audio. A
+   * reconnect reuses the call's capabilities and voice, keeps its phase
+   * (`reconnecting`), and reports passing failures as `retry`.
+   */
+  private async openSegment(
+    gen: number,
+    kind: SegmentKind,
+  ): Promise<SegmentResult> {
+    const reconnecting = kind === 'reconnect';
+    const stale = () => gen !== this.generation || this.disposed;
+    const stop = (
+      failure: ConversationFailureKind,
+      message?: string,
+    ): SegmentResult => {
+      if (reconnecting && RETRYABLE.has(failure)) return 'retry';
+      this.fail(gen, failure, message);
+      return 'done';
+    };
 
     const {gates, transport, api} = this.deps;
-    if (!transport.available())
-      return this.fail(
-        gen,
-        'not_configured',
-        'Voice conversation needs the updated LAFINA app on Android.',
-      );
-    if (gates.isGuest() || !gates.isSignedInOwner())
-      return this.fail(gen, 'signin_required');
-    if (!gates.isOnlineMode()) return this.fail(gen, 'online_mode_required');
-    if (!gates.hasConsent()) return this.fail(gen, 'consent_required');
-    let online = false;
-    try {
-      online = await gates.isOnline();
-    } catch {
-      online = false;
+    if (!reconnecting) {
+      if (!transport.available())
+        return stop(
+          'not_configured',
+          'Voice conversation needs the updated LAFINA app on Android.',
+        );
+      if (gates.isGuest() || !gates.isSignedInOwner())
+        return stop('signin_required');
+      if (!gates.isOnlineMode()) return stop('online_mode_required');
+      if (!gates.hasConsent()) return stop('consent_required');
+      let online = false;
+      try {
+        online = await gates.isOnline();
+      } catch {
+        online = false;
+      }
+      if (stale()) return 'done';
+      if (!online) return stop('offline');
+      if (!this.checkAdmission(gen)) return 'done';
+      let permitted = false;
+      try {
+        this.permissionPending = true;
+        permitted = await gates.ensureMicPermission();
+      } catch {
+        permitted = false;
+      } finally {
+        this.permissionPending = false;
+      }
+      if (stale()) return 'done';
+      if (!permitted) return stop('mic_denied');
+      if (!this.checkAdmission(gen)) return 'done';
+      if (gates.isForeground?.() === false) {
+        this.stopForSystem(
+          'The app left the screen before microphone access was ready. Tap Start when you return.',
+        );
+        return 'done';
+      }
+      try {
+        this.callVoice = this.deps.getVoice();
+      } catch {
+        return stop(
+          'voice_unavailable',
+          'Your saved online voice could not be read. Choose a voice again in Profile.',
+        );
+      }
+      this.update({
+        voiceName: this.callVoice?.name ?? 'Default voice',
+      });
+    } else {
+      // A reconnect never asks for anything new; access is checked again.
+      if (!this.checkAdmission(gen)) return 'done';
+      if (gates.isForeground?.() === false) {
+        this.stopForSystem(BACKGROUND_REASON);
+        return 'done';
+      }
     }
-    if (stale()) return;
-    if (!online) return this.fail(gen, 'offline');
-    if (!this.checkAdmission(gen)) return;
-    let permitted = false;
-    try {
-      this.permissionPending = true;
-      permitted = await gates.ensureMicPermission();
-    } catch {
-      permitted = false;
-    } finally {
-      this.permissionPending = false;
-    }
-    if (stale()) return;
-    if (!permitted) return this.fail(gen, 'mic_denied');
-    if (!this.checkAdmission(gen)) return;
-    if (gates.isForeground?.() === false)
-      return this.stopForSystem(
-        'The app left the screen before microphone access was ready. Tap Start when you return.',
-      );
-    let voice: {id: string; name: string} | null;
-    try {
-      voice = this.deps.getVoice();
-    } catch {
-      return this.fail(
-        gen,
-        'voice_unavailable',
-        'Your saved online voice could not be read. Choose a voice again in Profile.',
-      );
-    }
-    this.update({
-      voiceName: voice?.name ?? 'Default voice',
-    });
+    const voice = this.callVoice;
+    const connectMs = reconnecting
+      ? this.limits.reconnectAttemptTimeoutMs
+      : this.limits.connectTimeoutMs;
 
     const controller = new AbortController();
     this.abort = controller;
     let apiTimedOut = false;
-    this.timers.set('api_connect', this.limits.connectTimeoutMs, () => {
+    this.timers.set('api_connect', connectMs, () => {
       apiTimedOut = true;
       controller.abort();
     });
@@ -655,34 +940,34 @@ export class VoiceConversationController {
         );
       });
     const startedAt = this.clock.now();
-    const prepared = this.takePrepared();
-    const capabilities = await awaitUntilAborted(
-      prepared ?? api.capabilities(controller.signal),
-    );
+    const known = this.callCapabilities;
+    const prepared = known ? null : this.takePrepared();
+    const capabilities: ApiOutcome<VoiceCapabilities> | null = known
+      ? {ok: true, data: known}
+      : await awaitUntilAborted(
+          prepared ?? api.capabilities(controller.signal),
+        );
     if (stale()) {
       this.timers.clear('api_connect');
-      return;
+      return 'done';
     }
     if (apiTimedOut || !capabilities) {
       this.timers.clear('api_connect');
-      return this.fail(gen, 'connect_failed');
+      return stop('connect_failed');
     }
     if (!capabilities.ok) {
       this.timers.clear('api_connect');
-      return this.failFromApi(gen, capabilities);
+      return stop(...this.apiFailure(capabilities));
     }
     if (!capabilities.data.enabled) {
       this.timers.clear('api_connect');
-      return this.fail(
-        gen,
-        'not_configured',
-        capabilities.data.detail || undefined,
-      );
+      return stop('not_configured', capabilities.data.detail || undefined);
     }
+    this.callCapabilities = capabilities.data;
     // The student may have switched mode or account meanwhile.
     if (!this.checkAdmission(gen)) {
       this.timers.clear('api_connect');
-      return;
+      return 'done';
     }
 
     let sessionClosedOnServer = false;
@@ -691,12 +976,19 @@ export class VoiceConversationController {
       sessionClosedOnServer = true;
       void api.end(sessionId, null).catch(() => undefined);
     };
+    const resumeOf =
+      reconnecting &&
+      capabilities.data.resume === true &&
+      this.previousSessionId
+        ? this.previousSessionId
+        : undefined;
     const sessionPromise = api
       .createSession(
         {
           requestId: this.deps.newRequestId?.() ?? randomId(),
           voiceId: voice?.id ?? null,
           useHandbook: this.deps.useHandbook(),
+          ...(resumeOf ? {resumeOf} : {}),
         },
         controller.signal,
       )
@@ -708,139 +1000,234 @@ export class VoiceConversationController {
       });
     // Built while the server creates the session, not after; handed to
     // native once, never stored or logged.
-    const rawContext = this.deps.getStudentContext?.() ?? '';
+    let rawContext = '';
+    try {
+      rawContext = [this.segmentNote(kind), this.deps.getStudentContext?.()]
+        .filter(Boolean)
+        .join('\n\n');
+    } catch {
+      rawContext = this.segmentNote(kind);
+    }
     const session = await awaitUntilAborted(sessionPromise);
     const sessionAt = this.clock.now();
     this.timers.clear('api_connect');
     if (stale()) {
       // Ended while the server was creating it: close it there too.
       if (session?.ok) closeLateSession(session.data.sessionId);
-      return;
+      return 'done';
     }
     if (apiTimedOut || !session) {
       if (session?.ok) closeLateSession(session.data.sessionId);
-      return this.fail(gen, 'connect_failed');
+      return stop('connect_failed');
     }
-    if (!session.ok) return this.failFromApi(gen, session);
+    if (!session.ok) {
+      // The server would not link this session to the dropped one (too old,
+      // or not ours): continue without the link.
+      if (
+        resumeOf &&
+        (session.status === 'validation_error' ||
+          session.status === 'not_found')
+      ) {
+        this.previousSessionId = null;
+        return 'retry';
+      }
+      return stop(...this.apiFailure(session));
+    }
     if (!this.checkAdmission(gen)) {
       closeLateSession(session.data.sessionId);
-      return;
+      return 'done';
     }
     this.abort = null;
-    if (this.deps.beforeAudio) {
+    if (kind === 'start' && this.deps.beforeAudio) {
       await this.deps.beforeAudio().catch(() => undefined);
       if (stale()) {
         closeLateSession(session.data.sessionId);
-        return;
+        return 'done';
       }
       if (!this.checkAdmission(gen)) {
         closeLateSession(session.data.sessionId);
-        return;
+        return 'done';
       }
     }
+    const parked = this.parked;
+    const soft =
+      reconnecting &&
+      parked !== null &&
+      parked.soft &&
+      typeof transport.reconnect === 'function';
+    // A native session that can no longer be reused is released first, or
+    // the new one would be refused as busy.
+    if (parked && !soft) this.releaseParked();
     if (this.transportEndingPending) {
       await this.transportEnding.catch(() => undefined);
       if (stale()) {
         closeLateSession(session.data.sessionId);
-        return;
+        return 'done';
       }
       if (!this.checkAdmission(gen)) {
         closeLateSession(session.data.sessionId);
-        return;
+        return 'done';
       }
     }
     if (gates.isForeground?.() === false) {
       closeLateSession(session.data.sessionId);
-      return this.stopForSystem(
-        'The app left the screen before audio started.',
+      this.stopForSystem(
+        reconnecting
+          ? BACKGROUND_REASON
+          : 'The app left the screen before audio started.',
       );
+      return 'done';
     }
 
-    const key = `vc-${gen}-${randomId()}`;
+    const key = soft && parked ? parked.key : `vc-${gen}-${randomId()}`;
+    const segment = ++this.segment;
     const live: LiveSession = {
       key,
       sessionId: session.data.sessionId,
       conversationId: null,
+      segment,
       unsubscribe: () => undefined,
     };
-    live.unsubscribe = transport.subscribe(key, event =>
-      this.onEvent(gen, event),
-    );
+    if (soft && parked) {
+      live.unsubscribe = parked.unsubscribe;
+      this.parked = null;
+    } else {
+      live.unsubscribe = transport.subscribe(key, event =>
+        this.onEvent(gen, event, key),
+      );
+    }
     this.live = live;
+    // Event ids start again with each conversation.
+    this.seen = new Set();
     const studentContext =
       rawContext.length > 12000 ? rawContext.slice(0, 12000) : rawContext;
-    const openingLine = this.openingLineFor(capabilities.data);
+    const opening = this.openingFor(kind, capabilities.data);
+    this.openingQuiet = opening.quiet;
+    this.skipPersistText =
+      kind !== 'start' && opening.line ? opening.line : null;
+    const recap =
+      kind !== 'start' && capabilities.data.resume === true
+        ? callRecapTurns(this.snapshot.turns)
+        : [];
+    // student_context goes only to LAFINA's server (custom LLM extra body):
+    // the agent's prompt never reads it, and dynamic variables are kept in
+    // the voice provider's conversation history.
     const initiation = JSON.stringify({
       type: 'conversation_initiation_client_data',
       conversation_config_override: {
         tts: {voice_id: session.data.voiceId},
-        ...(openingLine !== null ? {agent: {first_message: openingLine}} : {}),
+        ...(opening.line !== null
+          ? {agent: {first_message: opening.line}}
+          : {}),
       },
       dynamic_variables: {
         lafina_voice_grant: session.data.grant,
-        ...(studentContext ? {student_context: studentContext} : {}),
       },
       custom_llm_extra_body: {
         lafina_voice_grant: session.data.grant,
         ...(studentContext ? {student_context: studentContext} : {}),
+        ...(recap.length ? {call_recap: recap} : {}),
+        ...(kind !== 'start' && capabilities.data.resume === true
+          ? {call_mode: kind}
+          : {}),
       },
     });
     let timedOut = false;
     try {
       await new Promise<void>((resolve, reject) => {
-        this.timers.set('connect', this.limits.connectTimeoutMs, () => {
+        this.timers.set('connect', connectMs, () => {
           timedOut = true;
           reject(Object.assign(new Error('timeout'), {code: 'TIMEOUT'}));
         });
-        transport
-          .start({
-            sessionKey: key,
-            url: session.data.signedUrl,
-            initiation,
-            allowLocalTestServer: this.deps.allowLocalTestServer === true,
-            appOwnedAudio: this.deps.appOwnedAudio === true,
-            ...(this.deps.quietOpening ? {suppressOpeningAudio: true} : {}),
-          })
-          .then(resolve, reject);
+        const opened =
+          soft && transport.reconnect
+            ? transport.reconnect({
+                sessionKey: key,
+                url: session.data.signedUrl,
+                initiation,
+                allowLocalTestServer: this.deps.allowLocalTestServer === true,
+                suppressOpeningAudio: opening.quiet,
+              })
+            : transport.start({
+                sessionKey: key,
+                url: session.data.signedUrl,
+                initiation,
+                allowLocalTestServer: this.deps.allowLocalTestServer === true,
+                appOwnedAudio: this.deps.appOwnedAudio === true,
+                ...(opening.quiet ? {suppressOpeningAudio: true} : {}),
+                ...(reconnecting && this.snapshot.muted
+                  ? {startMuted: true}
+                  : {}),
+              });
+        opened.then(resolve, reject);
       });
     } catch (error) {
       this.timers.clear('connect');
-      if (stale()) return;
-      if (this.snapshot.phase === 'failed') return;
+      if (stale()) return 'done';
+      if (this.snapshot.phase === 'failed') return 'done';
       const code = (error as {code?: unknown})?.code;
       this.log(
-        `start failed (${typeof code === 'string' ? code : 'unknown'}${
-          timedOut ? ', timeout' : ''
-        })`,
+        `${reconnecting ? 'reconnect' : 'start'} failed (${
+          typeof code === 'string' ? code : 'unknown'
+        }${timedOut ? ', timeout' : ''})`,
       );
-      if (code === 'MIC_IN_USE' || code === 'SESSION_BUSY')
-        return this.fail(gen, 'mic_busy');
-      if (code === 'PERMISSION_DENIED') return this.fail(gen, 'mic_denied');
+      if (code === 'PERMISSION_DENIED') return stop('mic_denied');
+      if (code === 'MIC_IN_USE' || (!reconnecting && code === 'SESSION_BUSY'))
+        return stop('mic_busy');
       if (code === 'AUDIO_FOCUS_DENIED')
-        return this.fail(
-          gen,
+        return stop(
           'audio',
           'Another app or a call is using audio right now. Try again when it ends.',
         );
-      return this.fail(gen, 'connect_failed');
+      if (reconnecting) {
+        // Try again with a new server session; the socket (and, when native
+        // still holds it, the audio) is released or parked again.
+        closeLateSession(session.data.sessionId);
+        if (this.live === live) this.live = null;
+        if (soft && code !== 'NOT_ACTIVE') {
+          this.parked = {key, unsubscribe: live.unsubscribe, soft: true};
+        } else {
+          live.unsubscribe();
+          this.endTransport(key);
+        }
+        return 'retry';
+      }
+      return stop('connect_failed');
     }
     this.timers.clear('connect');
-    if (stale()) return;
-    if (!this.checkAdmission(gen) || !this.live) return;
+    if (stale()) return 'done';
+    if (!this.checkAdmission(gen) || this.live !== live) return 'done';
+    const now = this.clock.now();
     // Timings only, for logcat: how long the student waited, and where.
     this.log(
-      `connected in ${this.clock.now() - startedAt}ms (server ${
-        sessionAt - startedAt
-      }ms, audio ${this.clock.now() - sessionAt}ms, capabilities ${
-        prepared ? 'prepared' : 'fetched'
+      `${reconnecting ? 'reconnected' : 'connected'} in ${
+        now - startedAt
+      }ms (server ${sessionAt - startedAt}ms, audio ${
+        now - sessionAt
+      }ms, capabilities ${known ? 'known' : prepared ? 'prepared' : 'fetched'}${
+        soft ? ', audio kept' : ''
       })`,
     );
-    const endsAt = this.clock.now() + session.data.maxDurationSeconds * 1000;
+    this.segmentStartedAt = now;
+    const sessionEndsAt = now + session.data.maxDurationSeconds * 1000;
+    // A reconnect never gives the call more time than it started with.
+    const endsAt =
+      reconnecting && typeof this.snapshot.endsAt === 'number'
+        ? Math.min(this.snapshot.endsAt, sessionEndsAt)
+        : sessionEndsAt;
+    this.reconnectState = null;
     this.update({
       phase: 'listening',
-      connectedAt: this.clock.now(),
+      connectedAt: reconnecting ? this.snapshot.connectedAt ?? now : now,
       voiceName: voice?.name ?? 'Default voice',
       endsAt,
+      reconnectAttempt: null,
+      ...(reconnecting
+        ? {
+            reconnects: (this.snapshot.reconnects ?? 0) + 1,
+            notice: RECONNECTED_NOTICE,
+          }
+        : {}),
     });
     if (
       this.personaPreferences.language !== 'en' ||
@@ -849,17 +1236,21 @@ export class VoiceConversationController {
     ) {
       void this.sendContext(voicePreferenceContext(this.personaPreferences));
     }
-    this.log('connected');
-    this.limitReason = `The conversation reached its ${Math.round(
-      session.data.maxDurationSeconds / 60,
-    )}-minute limit. Start a new one to keep talking.`;
+    if (!reconnecting) {
+      this.log('connected');
+      this.limitReason = `The conversation reached its ${Math.round(
+        session.data.maxDurationSeconds / 60,
+      )}-minute limit. Start a new one to keep talking.`;
+    }
     // ElevenLabs starts its own clock when the socket opens, before audio is
     // ready here, so end a little early and say why, instead of being cut off
     // by the server and showing "connection closed".
     const limitMs = session.data.maxDurationSeconds * 1000;
     this.timers.set(
       'limit',
-      Math.max(limitMs / 2, limitMs - LIMIT_EARLY_MS),
+      reconnecting
+        ? Math.max(0, endsAt - now - LIMIT_EARLY_MS)
+        : Math.max(limitMs / 2, limitMs - LIMIT_EARLY_MS),
       () => {
         if (gen === this.generation && this.limitReason)
           this.stopForSystem(this.limitReason);
@@ -867,39 +1258,333 @@ export class VoiceConversationController {
     );
     this.studentSpokeSinceAnswer = false;
     this.resetInactivity(gen);
+    if (reconnecting) {
+      this.timers.set('reconnected_notice', RECONNECTED_NOTICE_MS, () => {
+        if (this.snapshot.notice === RECONNECTED_NOTICE)
+          this.update({notice: null});
+      });
+      void this.replayIfNeeded(gen, live);
+    }
+    return 'ok';
+  }
+
+  /**
+   * After a reconnect, the student's unanswered turn is sent once more as a
+   * typed turn. It was already shown, saved and read on the device, so none
+   * of that happens again; its echo is ignored.
+   */
+  private async replayIfNeeded(gen: number, live: LiveSession) {
+    const plan = this.replayPlan;
+    this.replayPlan = null;
+    if (!plan) return;
+    if (this.lastUserTurn) this.lastUserTurn.replayed = true;
+    const sent = await this.deps.transport
+      .sendMessage(
+        live.key,
+        JSON.stringify({type: 'user_message', text: plan.text}),
+      )
+      .catch(() => false);
+    if (!sent || gen !== this.generation || this.live !== live) return;
+    this.log('asked the unanswered turn again');
+    const now = this.clock.now();
+    this.typedEcho = {text: plan.text, at: now};
+    this.openingQuiet = false;
+    this.turnGeneration += 1;
+    this.studentSpokeSinceAnswer = true;
+    this.userFinalAt = now;
+    this.firstTextAt = null;
+    this.firstAudioAt = null;
+    if (this.snapshot.phase !== 'speaking') this.update({phase: 'thinking'});
+    this.timers.set('thinking', this.limits.thinkingTimeoutMs, () => {
+      if (gen === this.generation) void this.explainSilence(gen);
+    });
+  }
+
+  // ── Reconnect ─────────────────────────────────────────────────────────
+
+  /** Whether this controller handles a lost internet connection itself. */
+  handlesNetworkLoss = (): boolean => this.deps.autoReconnect === true;
+
+  /**
+   * The phone's connection changed (NetInfo). With `autoReconnect`, a short
+   * loss is waited out; a longer one reconnects at once instead of waiting
+   * for the dead socket to time out, and a returning connection starts the
+   * next attempt straight away. Without it, any loss stops the call.
+   */
+  networkChanged = (connected: boolean): void => {
+    if (this.disposed) return;
+    const phase = this.snapshot.phase;
+    if (!connected) {
+      if (!this.isActive()) return;
+      if (!this.deps.autoReconnect || phase === 'connecting') {
+        this.stopForSystem(NETWORK_DROP_REASON);
+        return;
+      }
+      const live = this.live;
+      if (!live || phase === 'reconnecting') return;
+      const gen = this.generation;
+      this.timers.set('network_grace', this.limits.networkLostGraceMs, () => {
+        if (gen !== this.generation || this.live !== live) return;
+        const detach =
+          typeof this.deps.transport.detach === 'function' &&
+          typeof this.deps.transport.reconnect === 'function';
+        if (
+          !this.tryReconnect(gen, {
+            code: 1006,
+            reason: 'network',
+            recoverable: detach,
+            detach,
+          })
+        )
+          this.stopForSystem(NETWORK_DROP_REASON);
+      });
+      return;
+    }
+    this.timers.clear('network_grace');
+    const state = this.reconnectState;
+    if (phase === 'reconnecting' && state && !state.inFlight)
+      this.scheduleAttempt(this.generation, 0);
   };
 
-  private failFromApi(
+  /** Starts reconnecting when the drop and the call allow it; false otherwise. */
+  private tryReconnect(
     gen: number,
-    outcome: Extract<ApiOutcome<unknown>, {ok: false}>,
+    drop: {
+      code: number;
+      reason: string;
+      recoverable: boolean;
+      detach?: boolean;
+    },
+  ): boolean {
+    if (!this.deps.autoReconnect || !this.live || this.endAfter) return false;
+    const kind = classifyDrop(drop.code, drop.reason);
+    if (kind === 'stop') return false;
+    if (kind === 'llm') {
+      if (this.llmRetried) return false;
+      this.llmRetried = true;
+    }
+    const now = this.clock.now();
+    if (this.reconnectCount >= this.limits.maxReconnects) {
+      this.log('reconnect skipped: too many this call');
+      return false;
+    }
+    this.drops = this.drops.filter(at => now - at < FLAP_WINDOW_MS);
+    if (this.drops.length >= FLAP_MAX_DROPS - 1) {
+      this.log('reconnect skipped: the connection keeps dropping');
+      return false;
+    }
+    const short = now - this.segmentStartedAt < SHORT_SEGMENT_MS;
+    if (short && this.lastSegmentShort) {
+      this.log('reconnect skipped: it dropped again right after connecting');
+      return false;
+    }
+    const endsAt = this.snapshot.endsAt;
+    if (typeof endsAt === 'number' && endsAt - now < MIN_SEGMENT_MS)
+      return false;
+    this.lastSegmentShort = short;
+    this.drops.push(now);
+    this.beginReconnect(gen, drop);
+    return true;
+  }
+
+  private beginReconnect(
+    gen: number,
+    drop: {
+      code: number;
+      reason: string;
+      recoverable: boolean;
+      detach?: boolean;
+    },
   ) {
+    const live = this.live;
+    if (!live) return;
+    const now = this.clock.now();
+    const pending = this.pending;
+    const turn = this.lastUserTurn;
+    const heard =
+      pending && !pending.committed && pending.audioStarted
+        ? sanitizeSpeechText(pending.text)
+        : '';
+    this.replayPlan =
+      turn &&
+      !turn.answered &&
+      !turn.toolRan &&
+      !turn.replayed &&
+      now - turn.at <= this.limits.replayWindowMs &&
+      this.callCapabilities?.openingLine === true
+        ? {text: turn.text, heard}
+        : null;
+    const soft =
+      drop.recoverable && typeof this.deps.transport.reconnect === 'function';
+    if (soft && drop.detach && this.deps.transport.detach) {
+      const key = live.key;
+      void this.deps.transport
+        .detach(key)
+        .catch(() => false)
+        .then(ok => {
+          if (!ok && this.parked?.key === key) this.parked.soft = false;
+        });
+    }
+    this.dropSegment(soft);
+    this.reconnectCount += 1;
+    this.reconnectState = {since: now, attempt: 0, inFlight: false};
+    this.log(
+      `connection dropped (code=${drop.code}); reconnecting${
+        this.replayPlan ? ', will ask the last turn again' : ''
+      }`,
+    );
+    this.update({
+      phase: 'reconnecting',
+      reconnectAttempt: 1,
+      notice: RECONNECTING_NOTICE,
+      micCapturing: false,
+      level: 0,
+      outputLevel: 0,
+      toolPhrase: null,
+    });
+    this.scheduleAttempt(gen, 0);
+  }
+
+  private scheduleAttempt(gen: number, delayMs: number) {
+    this.timers.set('reconnect', delayMs, () => {
+      void this.attemptReconnect(gen);
+    });
+  }
+
+  private async attemptReconnect(gen: number) {
+    const state = this.reconnectState;
+    if (
+      gen !== this.generation ||
+      this.disposed ||
+      !state ||
+      state.inFlight ||
+      this.snapshot.phase !== 'reconnecting'
+    )
+      return;
+    const now = this.clock.now();
+    if (now - state.since >= this.limits.reconnectWindowMs) {
+      this.log('reconnect gave up');
+      this.stopForSystem(RECONNECT_FAILED_REASON);
+      return;
+    }
+    const endsAt = this.snapshot.endsAt;
+    if (
+      typeof endsAt === 'number' &&
+      endsAt - now < MIN_SEGMENT_MS &&
+      this.limitReason
+    ) {
+      this.stopForSystem(this.limitReason);
+      return;
+    }
+    state.inFlight = true;
+    let online = false;
+    try {
+      online = await this.deps.gates.isOnline();
+    } catch {
+      online = false;
+    }
+    if (gen !== this.generation || this.reconnectState !== state) return;
+    if (!online) {
+      state.inFlight = false;
+      this.scheduleAttempt(gen, OFFLINE_POLL_MS);
+      return;
+    }
+    state.attempt += 1;
+    this.update({reconnectAttempt: state.attempt});
+    const result = await this.openSegment(gen, 'reconnect');
+    if (gen !== this.generation || this.reconnectState !== state) return;
+    state.inFlight = false;
+    if (result === 'retry') {
+      const delay =
+        RECONNECT_BACKOFF_MS[
+          Math.min(state.attempt - 1, RECONNECT_BACKOFF_MS.length - 1)
+        ];
+      this.scheduleAttempt(gen, delay);
+    }
+  }
+
+  /**
+   * Ends the current segment but not the call: the server session closes,
+   * the socket is released (or, `park`, native keeps the audio waiting for
+   * a new socket), and what LAFINA was saying is saved as interrupted.
+   */
+  private dropSegment(park: boolean) {
+    this.speechPaused = false;
+    // A tool still running belongs to the dropped segment: its result is
+    // discarded, so it must not keep the new segment in "working".
+    this.activeToolsForTurn = 0;
+    this.abort?.abort();
+    this.abort = null;
+    this.timers.clearAll();
+    const live = this.live;
+    this.live = null;
+    if (live) {
+      if (park) {
+        this.parked = {
+          key: live.key,
+          unsubscribe: live.unsubscribe,
+          soft: true,
+        };
+      } else {
+        live.unsubscribe();
+        this.endTransport(live.key);
+      }
+      this.previousSessionId = live.sessionId;
+      void this.deps.api
+        .end(live.sessionId, live.conversationId)
+        .catch(() => undefined);
+    }
+    this.closePending();
+    this.dropProvisional();
+    this.typedEcho = null;
+  }
+
+  private endTransport(key: string) {
+    this.transportEndingPending = true;
+    const ending = this.deps.transport
+      .end(key)
+      .catch(() => false)
+      .finally(() => {
+        // Only the latest end clears the flag; an older one may finish later.
+        if (this.transportEnding === ending)
+          this.transportEndingPending = false;
+      });
+    this.transportEnding = ending;
+  }
+
+  private releaseParked() {
+    const parked = this.parked;
+    this.parked = null;
+    if (!parked) return;
+    parked.unsubscribe();
+    this.endTransport(parked.key);
+  }
+
+  /** Maps a failed server answer to what the student is told. */
+  private apiFailure(
+    outcome: Extract<ApiOutcome<unknown>, {ok: false}>,
+  ): [ConversationFailureKind, string | undefined] {
     switch (outcome.status) {
       case 'auth_required':
-        return this.fail(
-          gen,
+        return [
           'signin_required',
           'Your sign-in has ended. Sign in again in Profile to Call Lafina.',
-        );
+        ];
       case 'account_disabled':
-        return this.fail(
-          gen,
-          'signin_required',
-          'This account cannot use online features.',
-        );
+        return ['signin_required', 'This account cannot use online features.'];
       case 'offline':
-        return this.fail(gen, 'offline');
+        return ['offline', undefined];
       case 'rate_limited':
-        return this.fail(gen, 'limit_reached', outcome.message);
+        return ['limit_reached', outcome.message];
       case 'validation_error':
         return outcome.httpStatus === 422
-          ? this.fail(gen, 'voice_unavailable', outcome.message)
-          : this.fail(gen, 'provider', outcome.message);
+          ? ['voice_unavailable', outcome.message]
+          : ['provider', outcome.message];
       default:
-        return this.fail(
-          gen,
+        return [
           outcome.httpStatus === 503 ? 'not_configured' : 'provider',
           outcome.message,
-        );
+        ];
     }
   }
 
@@ -973,6 +1658,16 @@ export class VoiceConversationController {
 
   setMuted = async (muted: boolean): Promise<void> => {
     const live = this.live;
+    if (!live && this.snapshot.phase === 'reconnecting') {
+      // Kept for the reconnected segment; a parked native session is told now.
+      if (this.desiredMuted === muted) return;
+      this.desiredMuted = muted;
+      this.update({muted, level: 0});
+      const parked = this.parked;
+      if (parked?.soft)
+        void this.deps.transport.setMuted(parked.key, muted).catch(() => false);
+      return;
+    }
     if (!live || this.desiredMuted === muted) return;
     this.desiredMuted = muted;
     if (this.speechPaused) {
@@ -1094,8 +1789,21 @@ export class VoiceConversationController {
 
   // ── Events ────────────────────────────────────────────────────────────
 
-  private onEvent(gen: number, event: TransportEvent) {
-    if (gen !== this.generation || !this.live || this.disposed) return;
+  private onEvent(gen: number, event: TransportEvent, key?: string) {
+    if (this.disposed) return;
+    const parked = this.parked;
+    if (parked && key === parked.key && this.live?.key !== key) {
+      // The parked session only reports that it went away.
+      if (gen !== this.generation) return;
+      if (event.kind === 'backgrounded')
+        return this.stopForSystem(BACKGROUND_REASON);
+      if (event.kind === 'audio_focus_lost')
+        return this.stopForSystem(FOCUS_REASON);
+      if (event.kind === 'ended' || event.kind === 'error') parked.soft = false;
+      return;
+    }
+    if (gen !== this.generation || !this.live) return;
+    if (key !== undefined && this.live.key !== key) return;
     switch (event.kind) {
       case 'mic':
         this.update({
@@ -1133,6 +1841,19 @@ export class VoiceConversationController {
         const sessionId = live?.sessionId;
         const detail = event.reason ? `: ${event.reason}` : '';
         this.log(`connection closed (code=${event.code}${detail})`);
+        if (this.snapshot.phase === 'reconnecting') {
+          // A reconnected socket closed before its start finished: retry.
+          this.dropSegment(
+            event.recoverable === true &&
+              typeof this.deps.transport.reconnect === 'function',
+          );
+          const state = this.reconnectState;
+          if (state) {
+            state.inFlight = false;
+            this.scheduleAttempt(gen, RECONNECT_BACKOFF_MS[0]);
+          }
+          return;
+        }
         const endsAt = this.snapshot.endsAt;
         if (
           this.limitReason &&
@@ -1143,6 +1864,14 @@ export class VoiceConversationController {
           this.stopForSystem(this.limitReason);
           return;
         }
+        if (
+          this.tryReconnect(gen, {
+            code: event.code,
+            reason: event.reason,
+            recoverable: event.recoverable === true,
+          })
+        )
+          return;
         this.stopForSystem(
           'The conversation connection closed. Start again when you are ready.',
         );
@@ -1156,13 +1885,9 @@ export class VoiceConversationController {
         return;
       }
       case 'backgrounded':
-        return this.stopForSystem(
-          'The conversation stopped when LAFINA left the screen. Nothing listens in the background.',
-        );
+        return this.stopForSystem(BACKGROUND_REASON);
       case 'audio_focus_lost':
-        return this.stopForSystem(
-          'A call, a reminder or another app took the audio, so the conversation stopped.',
-        );
+        return this.stopForSystem(FOCUS_REASON);
       case 'error': {
         const kind: ConversationFailureKind =
           event.code === 'MIC_FAILED' || event.code.startsWith('AUDIO')
@@ -1176,6 +1901,9 @@ export class VoiceConversationController {
       }
       case 'ended':
         if (this.snapshot.phase === 'failed') return;
+        // Native gave up holding the audio while a reconnect was running.
+        if (this.snapshot.phase === 'reconnecting')
+          return this.stopForSystem(RECONNECT_FAILED_REASON);
         return this.stopForSystem('The conversation ended.');
       default:
     }
@@ -1241,6 +1969,8 @@ export class VoiceConversationController {
         if (!toolId || toolId.length > 200 || this.seen.has(`tool:${toolId}`))
           return;
         this.seen.add(`tool:${toolId}`);
+        // A tool ran for this turn: after a drop it is never asked again.
+        if (this.lastUserTurn) this.lastUserTurn.toolRan = true;
         const params =
           payload.parameters &&
           typeof payload.parameters === 'object' &&
@@ -1453,7 +2183,14 @@ export class VoiceConversationController {
 
   private onFinalUser(words: string, eventId: string | null) {
     const trimmed = words.trim();
-    const key = eventId !== null ? `user:${eventId}` : null;
+    // Event ids restart with each segment's conversation; turn ids must not.
+    const segment = this.live?.segment ?? 0;
+    const key =
+      eventId !== null
+        ? segment > 1
+          ? `s${segment}:user:${eventId}`
+          : `user:${eventId}`
+        : null;
     if (key && this.seen.has(key)) return; // a duplicate final
     // Native playback resumes on any transcript; the text must match it.
     this.openingQuiet = false;
@@ -1479,6 +2216,8 @@ export class VoiceConversationController {
       this.waitingForStudent = true;
       this.stopResponse();
       this.acceptUserTurn(trimmed, key ?? `user-${++this.turnCounter}`);
+      // "Wait" needs no answer, so a drop never asks it again.
+      if (this.lastUserTurn) this.lastUserTurn.answered = true;
       this.timers.clear('thinking');
       this.update({
         phase: 'listening',
@@ -1515,6 +2254,13 @@ export class VoiceConversationController {
       this.commitAnswer();
     }
     this.studentSpokeSinceAnswer = true;
+    this.lastUserTurn = {
+      text: trimmed,
+      at: this.clock.now(),
+      toolRan: false,
+      answered: false,
+      replayed: false,
+    };
     const id = this.provisionalUserId ?? turnId;
     this.provisionalUserId = null;
     this.upsertTurn({id, role: 'user', text: trimmed, status: 'final'});
@@ -1684,6 +2430,16 @@ export class VoiceConversationController {
     }
     this.timers.clear('commit');
     if (!pending.text.trim()) return;
+    // LAFINA's "I'm back" after a reconnect is heard, not saved to Chat.
+    if (
+      this.skipPersistText !== null &&
+      pending.text.trim() === sanitizeSpeechText(this.skipPersistText).trim()
+    ) {
+      this.skipPersistText = null;
+      return;
+    }
+    if (!pending.interrupted && this.lastUserTurn)
+      this.lastUserTurn.answered = true;
     const heard = pending.interrupted ? 'interrupted' : 'complete';
     try {
       this.deps.persistence?.assistantTurn(pending.text, heard);
@@ -1781,25 +2537,25 @@ export class VoiceConversationController {
       this.clock.clearTimeout(handle);
     }
     this.activeToolTimers.clear();
+    this.reconnectState = null;
+    this.replayPlan = null;
+    this.releaseParked();
     const live = this.live;
     this.live = null;
     if (live) {
       live.unsubscribe();
-      this.transportEndingPending = true;
-      const ending = this.deps.transport
-        .end(live.key)
-        .catch(() => false)
-        .finally(() => {
-          if (this.transportEnding === ending) {
-            this.transportEndingPending = false;
-          }
-        });
-      this.transportEnding = ending;
+      this.endTransport(live.key);
       void this.deps.api
         .end(live.sessionId, live.conversationId)
         .catch(() => undefined);
     }
-    // Whatever was being said is saved once, marked as not fully heard.
+    this.closePending();
+    this.dropProvisional();
+    this.typedEcho = null;
+  }
+
+  /** Whatever was being said is saved once, marked as not fully heard. */
+  private closePending() {
     if (this.pending && !this.pending.committed) {
       if (
         !(
@@ -1812,6 +2568,10 @@ export class VoiceConversationController {
       }
       this.commitAnswer();
     }
+  }
+
+  /** Half-heard words are dropped from the screen (they were never final). */
+  private dropProvisional() {
     if (this.provisionalUserId) {
       this.snapshot = {
         ...this.snapshot,
@@ -1819,6 +2579,5 @@ export class VoiceConversationController {
       };
       this.provisionalUserId = null;
     }
-    this.typedEcho = null;
   }
 }

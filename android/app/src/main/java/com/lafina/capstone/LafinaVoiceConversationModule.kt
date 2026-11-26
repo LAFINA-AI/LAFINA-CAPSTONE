@@ -14,6 +14,8 @@ import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.NoiseSuppressor
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.view.WindowManager
@@ -57,6 +59,14 @@ import org.json.JSONObject
  *
  * Nothing here runs at app start: the HTTP client is created on first use, and
  * the offline speech, reminders and TTS modules do not depend on this module.
+ *
+ * Reconnect (ADR-046): when an established socket drops for a recoverable
+ * reason, the session is *parked* instead of torn down. The microphone lease,
+ * audio focus, route, recorder and player stay; captured audio is dropped
+ * (never buffered or sent) and playback is flushed. JS then calls [reconnect]
+ * with a new signed URL, which swaps in a new socket, or [end]. A parked
+ * session is torn down by itself after [VoiceConversationRules.RECONNECT_HOLD_MS].
+ * Each socket has an epoch, so callbacks from a replaced socket are ignored.
  */
 class LafinaVoiceConversationModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
@@ -72,10 +82,12 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
   private val http: OkHttpClient by lazy {
     httpInitialized = true
     OkHttpClient.Builder()
-      .connectTimeout(15, TimeUnit.SECONDS)
+      .connectTimeout(10, TimeUnit.SECONDS)
       .readTimeout(0, TimeUnit.MILLISECONDS)
       .writeTimeout(10, TimeUnit.SECONDS)
-      .pingInterval(10, TimeUnit.SECONDS)
+      // A dead connection (Wi-Fi gone, tunnel) is noticed within ~10 s, so
+      // the call can reconnect instead of talking into nothing.
+      .pingInterval(5, TimeUnit.SECONDS)
       .followRedirects(false)
       .build()
   }
@@ -83,6 +95,8 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
   /** Teardown and audio setup run here, never on the JS or socket threads. */
   private val worker = Executors.newSingleThreadExecutor { task -> Thread(task, WORKER_THREAD) }
   private val sessionLock = Any()
+  /** Runs the parked-session hold timeout. */
+  private val mainHandler = Handler(Looper.getMainLooper())
   @Volatile private var session: Session? = null
 
   private fun runOnWorker(block: () -> Unit): Boolean {
@@ -117,8 +131,17 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     var focusRequest: AudioFocusRequest? = null
     var previousMode = AudioManager.MODE_NORMAL
     var previousSpeakerphone = false
-    var audioPrepared = false
+    @Volatile var audioPrepared = false
     var openedAt = 0L
+    /** Bumped for every new or abandoned socket; older callbacks are ignored. */
+    @Volatile var socketEpoch = 0
+    /** The socket dropped (or is being replaced): audio is dropped, not sent. */
+    @Volatile var socketLost = false
+    /** The epoch whose close was already handled (onClosing and onClosed both fire). */
+    @Volatile var closedEpoch = -1
+    /** A [reconnect] waiting for its socket to open. */
+    @Volatile var reconnectPromise: Promise? = null
+    @Volatile var holdTask: Runnable? = null
   }
 
   private fun audioManager() = reactContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -199,6 +222,9 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     // again from the student's first words (spoken or typed).
     created.suppressAgentAudio =
       options.hasKey("suppressOpeningAudio") && options.getBoolean("suppressOpeningAudio")
+    // A call that reconnected on a new session keeps the student's mute:
+    // the microphone does not open at all.
+    created.muted = options.hasKey("startMuted") && options.getBoolean("startMuted")
     created.startPromise.set(promise)
     val installed = synchronized(sessionLock) {
       if (session != null) {
@@ -215,7 +241,10 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       return
     }
     try {
-      val ws = http.newWebSocket(Request.Builder().url(url).build(), Listener(created, initiation))
+      val ws = http.newWebSocket(
+        Request.Builder().url(url).build(),
+        Listener(created, initiation, created.socketEpoch),
+      )
       created.socket = ws
       if (created.ended.get()) {
         created.socket = null
@@ -227,14 +256,29 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
   }
 
-  private inner class Listener(val owner: Session, val initiation: String) : WebSocketListener() {
+  private inner class Listener(val owner: Session, val initiation: String, val epoch: Int) : WebSocketListener() {
+    private fun stale() = owner.ended.get() || owner.socketEpoch != epoch
+
     override fun onOpen(webSocket: WebSocket, response: Response) {
-      if (owner.ended.get()) {
+      if (stale()) {
         webSocket.cancel()
         return
       }
       owner.openedAt = SystemClock.elapsedRealtime()
       webSocket.send(initiation)
+      val reconnect = owner.reconnectPromise
+      if (reconnect != null) {
+        // A reconnect: the audio never stopped. Sending resumes only now, so
+        // the start message is always the first frame on the new socket.
+        owner.reconnectPromise = null
+        owner.socketLost = false
+        cancelHold(owner)
+        Log.i(TAG, "Conversation socket reconnected")
+        reconnect.resolve(true)
+        emit(owner.key, "open")
+        return
+      }
+      owner.socketLost = false
       val submitted = runOnWorker {
         if (owner.ended.get()) return@runOnWorker
         try {
@@ -268,7 +312,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
-      if (owner.ended.get() || text.length > VoiceConversationRules.MAX_INBOUND_FRAME_CHARS) return
+      if (stale() || text.length > VoiceConversationRules.MAX_INBOUND_FRAME_CHARS) return
       val message = try {
         JSONObject(text)
       } catch (_: Exception) {
@@ -321,41 +365,178 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+      if (stale()) return
       webSocket.close(1000, null)
-      remoteEnded(owner, code, reason)
+      remoteEnded(owner, code, reason, epoch)
     }
 
     override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-      remoteEnded(owner, code, reason)
+      if (stale()) return
+      remoteEnded(owner, code, reason, epoch)
     }
 
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-      if (owner.ended.get()) return
+      if (stale() || owner.closedEpoch == epoch) return
+      owner.closedEpoch = epoch
       val status = response?.code ?: 0
       Log.w(TAG, "Conversation socket failed (${t.javaClass.simpleName}, message=${t.message}, HTTP $status)")
       val start = owner.startPromise.getAndSet(null)
+      val reconnect = owner.reconnectPromise
       if (start != null) {
         start.reject(if (status == 401 || status == 403) "REJECTED" else "CONNECT_FAILED", "The conversation could not connect.")
+        teardown(owner, "network", 1001)
+      } else if (reconnect != null) {
+        // A reconnect that did not open: still parked, JS tries again.
+        owner.reconnectPromise = null
+        owner.socket = null
+        reconnect.reject(if (status == 401 || status == 403) "REJECTED" else "CONNECT_FAILED", "The conversation could not reconnect.")
+      } else if (owner.audioPrepared) {
+        park(owner)
+        emit(owner.key, "closed") {
+          putInt("code", 1006)
+          putString("reason", "network")
+          putBoolean("recoverable", true)
+        }
       } else {
         emit(owner.key, "closed") {
           putInt("code", 1006)
           putString("reason", "network")
         }
+        teardown(owner, "network", 1001)
       }
-      teardown(owner, "network", 1001)
     }
   }
 
-  private fun remoteEnded(owner: Session, code: Int, reason: String) {
-    if (owner.ended.get()) return
+  private fun remoteEnded(owner: Session, code: Int, reason: String, epoch: Int) {
+    if (owner.ended.get() || owner.socketEpoch != epoch || owner.closedEpoch == epoch) return
+    owner.closedEpoch = epoch
     Log.i(TAG, "Conversation closed by remote: code=$code, reason=$reason")
-    owner.startPromise.getAndSet(null)?.reject("CONNECT_FAILED", "The conversation closed before it started.")
+    val start = owner.startPromise.getAndSet(null)
+    val reconnect = owner.reconnectPromise
+    if (start != null) {
+      start.reject("CONNECT_FAILED", "The conversation closed before it started.")
+    } else if (reconnect != null) {
+      owner.reconnectPromise = null
+      owner.socket = null
+      reconnect.reject("CONNECT_FAILED", "The conversation closed before it reconnected.")
+      return
+    } else if (owner.audioPrepared && VoiceConversationRules.isRecoverableClose(code, reason)) {
+      park(owner)
+      emit(owner.key, "closed") {
+        putInt("code", code)
+        putString("reason", reason.take(200))
+        putBoolean("recoverable", true)
+      }
+      return
+    }
     emit(owner.key, "closed") {
       putInt("code", code)
       // ElevenLabs close reasons are short status text, never credentials.
       putString("reason", reason.take(200))
     }
     teardown(owner, "remote_closed", 1000)
+  }
+
+  /**
+   * Keeps the session's audio while it has no socket: the old socket is
+   * abandoned (its callbacks are ignored from now on), what was playing is
+   * flushed, and captured audio is dropped until a new socket opens.
+   */
+  private fun park(owner: Session) {
+    if (owner.ended.get()) return
+    owner.socketLost = true
+    owner.socketEpoch += 1
+    val old = owner.socket
+    owner.socket = null
+    try {
+      old?.cancel()
+    } catch (_: Exception) {
+    }
+    flushPlayback(owner)
+    // While parked nothing is heard, so a resumed answer starts clean.
+    if (owner.holdTask == null) {
+      val task = Runnable {
+        owner.holdTask = null
+        if (owner.socketLost && !owner.ended.get()) {
+          Log.i(TAG, "Conversation was not reconnected in time; ending")
+          teardown(owner, "reconnect_timeout", 1001)
+        }
+      }
+      owner.holdTask = task
+      mainHandler.postDelayed(task, VoiceConversationRules.RECONNECT_HOLD_MS)
+    }
+  }
+
+  private fun cancelHold(owner: Session) {
+    owner.holdTask?.let { mainHandler.removeCallbacks(it) }
+    owner.holdTask = null
+  }
+
+  /**
+   * Opens a new socket for a parked (or still connected) session, keeping its
+   * microphone, speaker and route. Resolves once the new socket is open and
+   * the start message was sent; rejects with NOT_ACTIVE when the session is
+   * gone, so JS starts a new one.
+   */
+  @ReactMethod
+  fun reconnect(options: ReadableMap, promise: Promise) {
+    val key = if (options.hasKey("sessionKey")) options.getString("sessionKey") else null
+    val url = if (options.hasKey("url")) options.getString("url") else null
+    val initiation = if (options.hasKey("initiation")) options.getString("initiation") else null
+    if (key.isNullOrBlank() || url.isNullOrBlank() || initiation.isNullOrBlank()) {
+      promise.reject("BAD_ARGUMENTS", "A session key, address and start message are required.")
+      return
+    }
+    val owner = current(key)
+    if (owner == null || !owner.audioPrepared || owner.startPromise.get() != null) {
+      promise.reject("NOT_ACTIVE", "There is no conversation to reconnect.")
+      return
+    }
+    val allowLocal = BuildConfig.API_BASE_URL_OVERRIDE.isNotEmpty() &&
+      options.hasKey("allowLocalTestServer") && options.getBoolean("allowLocalTestServer")
+    // Never log the URL: it carries a conversation signature.
+    if (!VoiceConversationRules.isAllowedSocketUrl(url, allowLocal)) {
+      promise.reject("BAD_URL", "The conversation address is not an ElevenLabs conversation.")
+      return
+    }
+    if (initiation.length > VoiceConversationRules.MAX_INITIATION_CHARS) {
+      promise.reject("BAD_ARGUMENTS", "The start message is too large.")
+      return
+    }
+    // An attempt that is still connecting is replaced by this one.
+    owner.reconnectPromise?.reject("REPLACED", "A newer reconnect replaced this one.")
+    owner.reconnectPromise = null
+    // Not parked yet (JS saw the network go first): park now.
+    if (!owner.socketLost) park(owner)
+    owner.socketEpoch += 1
+    owner.socket?.cancel()
+    owner.socket = null
+    // The reconnect's opening line (or its silence) applies from now on.
+    owner.suppressAgentAudio =
+      options.hasKey("suppressOpeningAudio") && options.getBoolean("suppressOpeningAudio")
+    owner.reconnectPromise = promise
+    try {
+      owner.socket = http.newWebSocket(
+        Request.Builder().url(url).build(),
+        Listener(owner, initiation, owner.socketEpoch),
+      )
+    } catch (e: Exception) {
+      Log.w(TAG, "Conversation socket could not be recreated (${e.javaClass.simpleName})")
+      owner.reconnectPromise = null
+      promise.reject("CONNECT_FAILED", "The conversation could not reconnect.")
+    }
+  }
+
+  /** Closes the socket but keeps the audio, for a reconnect JS starts itself. */
+  @ReactMethod
+  fun detach(key: String, promise: Promise) {
+    val owner = current(key)
+    if (owner == null || !owner.audioPrepared || owner.startPromise.get() != null) {
+      promise.resolve(false)
+      return
+    }
+    if (!owner.socketLost) park(owner)
+    promise.resolve(true)
   }
 
   private fun prepareAudio(owner: Session) {
@@ -479,7 +660,10 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
           break
         }
         if (read == 0 || owner.muted) continue
-        val socket = owner.socket ?: break
+        // Parked for a reconnect: audio is read (the recorder stays warm) but
+        // dropped. Nothing is buffered or sent until the new socket is open.
+        val socket = owner.socket
+        if (socket == null || owner.socketLost) continue
         // Bounded: when the network falls behind, audio is dropped, not hoarded.
         if (socket.queueSize() < VoiceConversationRules.MAX_SOCKET_BACKLOG_BYTES) {
           socket.send(VoiceConversationRules.audioChunkMessage(buffer, read))
@@ -668,7 +852,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
     owner.suppressAgentAudio = true
     flushPlayback(owner)
-    owner.socket?.send("{\"type\":\"user_activity\"}")
+    if (!owner.socketLost) owner.socket?.send("{\"type\":\"user_activity\"}")
     promise.resolve(true)
   }
 
@@ -686,6 +870,11 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
     if (type == null || type !in VoiceConversationRules.ALLOWED_CLIENT_TYPES) {
       promise.reject("BAD_MESSAGE", "That message type is not allowed.")
+      return
+    }
+    // Nothing may reach a reconnecting socket before its start message.
+    if (owner.socketLost) {
+      promise.resolve(false)
       return
     }
     // A typed turn is a student turn: LAFINA's answer to it must be heard,
@@ -765,6 +954,10 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       emit(owner.key, "playback") { putBoolean("speaking", false) }
     }
     owner.startPromise.getAndSet(null)?.reject("ENDED", "The conversation ended before it started.")
+    cancelHold(owner)
+    owner.reconnectPromise?.reject("ENDED", "The conversation ended before it reconnected.")
+    owner.reconnectPromise = null
+    owner.socketEpoch += 1
     // A graceful close, so ElevenLabs records a hang-up as a normal close
     // (1000) and real network drops (1006) stay recognisable in its history.
     // Cancelling right after close() aborted the handshake and every hang-up

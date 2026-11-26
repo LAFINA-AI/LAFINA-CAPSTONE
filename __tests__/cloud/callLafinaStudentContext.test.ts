@@ -203,9 +203,8 @@ describe('Call Lafina Student Context Generation', () => {
     await controller.start();
 
     const parsed = JSON.parse(capturedInitiation);
-    expect(parsed.dynamic_variables.student_context).toBe(
-      'Student Notes: Grocery List (Apples, milk)',
-    );
+    // Only LAFINA's server reads the summary (ADR-046).
+    expect(parsed.dynamic_variables.student_context).toBeUndefined();
     expect(parsed.custom_llm_extra_body.student_context).toBe(
       'Student Notes: Grocery List (Apples, milk)',
     );

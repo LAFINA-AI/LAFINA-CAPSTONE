@@ -330,7 +330,7 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
   });
 
   describe('F-013, F-071, F-074 & P03-06/P03-07/P03-09: Connection loss requires explicit Start again', () => {
-    test('connection closed enters restart_required with Start again button, never auto-reconnects', async () => {
+    test('without automatic reconnect (ADR-046 off), a closed connection offers Start again and never restarts by itself', async () => {
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));

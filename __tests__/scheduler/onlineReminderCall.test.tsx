@@ -280,7 +280,7 @@ describe('reminder call consent: no pop-up while it rings', () => {
   it('does not accept voice consent given to the older v1 wording', async () => {
     jest.spyOn(voiceConsent, 'read').mockRestore();
     jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
-      key === 'voiceConversation.consent.v2' ? null : 'true');
+      key === 'voiceConversation.consent.v3' ? null : 'true');
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     const screen = renderCall();
     await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });

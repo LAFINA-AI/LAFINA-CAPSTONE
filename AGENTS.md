@@ -98,3 +98,12 @@ For the in-app update task (ADR-043, AUTOUPDATE-01), the owner approved ("approv
 - the launcher name is just "LAFINA".
 
 `UPDATE_PACKAGES_WITHOUT_USER_ACTION` (silent APK updates) is **not** approved. Release keys are created by the owner with `npm run release:keygen` and never committed. See `docs/RELEASING.md`. Everything else in this file still applies.
+
+## Task-scoped notice: Call reconnect (2026-11-26)
+
+For the call reconnect task (ADR-046, RC-00..RC-06), `docs/plans/call-reconnect/OWNER-AUTHORIZATION.md` records the owner's approval ("proceed everything you recommend"):
+- an online call reconnects by itself after a network or server drop only, within fixed bounds; backgrounding, screen lock, a phone call and the student's own actions never reconnect by themselves (this amends ADR-030 §5);
+- the call shares the last few messages of its chat (consent v3);
+- a reconnect never extends the call's time.
+
+The backend part is a patch only (`backend_integration/call-reconnect/`, migration 016); nothing was pushed or deployed. Everything else in this file still applies, including no background mic and no wake word.

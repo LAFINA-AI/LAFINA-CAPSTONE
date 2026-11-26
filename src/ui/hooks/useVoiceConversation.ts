@@ -6,7 +6,9 @@ import NetInfo from '@react-native-community/netinfo';
 import {
   VoiceConversationController,
   defaultVoiceConversationDeps,
+  NETWORK_DROP_REASON,
   registerVoiceConversation,
+  resumeVoiceConversation,
   startVoiceConversation,
 } from '../../cloud/voiceConversation';
 import type {
@@ -21,8 +23,7 @@ import {setKeepScreenOn} from '../../utils/keepScreenOn';
 let screenOwnerSeq = 0;
 
 /** Why an online call stops when the connection drops; the call screen offers offline. */
-export const NETWORK_DROP_REASON =
-  'The internet connection dropped, so the online call stopped.';
+export {NETWORK_DROP_REASON};
 
 /** How often a running conversation re-checks Online Mode and the signed-in account. */
 const GATE_CHECK_MS = 3000;
@@ -53,6 +54,8 @@ export interface VoiceConversationHandle {
   /** Readies the next start where it can (see the controller's prepare). */
   prepare: () => void;
   start: () => void;
+  /** Continue call: a new segment that keeps the transcript and memory (ADR-046). */
+  resume: () => void;
   end: () => void;
   endAndWait: () => Promise<boolean>;
   setMuted: (muted: boolean) => void;
@@ -71,9 +74,10 @@ export interface VoiceConversationHandle {
 
 /**
  * One controller per account, alive while the panel is mounted. Unmounting,
- * switching account, leaving the app, losing the internet, or Online Mode or
- * the sign-in ending all stop the conversation and release the microphone;
- * none of them start it again.
+ * switching account, leaving the app, or Online Mode or the sign-in ending
+ * all stop the conversation and release the microphone; none of them start
+ * it again. A lost internet connection is the controller's to handle: the
+ * production call waits it out and reconnects (ADR-046).
  */
 export const useVoiceConversation = (
   userId: string,
@@ -100,6 +104,11 @@ export const useVoiceConversation = (
      * reminder call connects while its greeting is still being read).
      */
     beforeAudio?: () => Promise<void>;
+    /**
+     * What is on the call screen right now (a card waiting for Confirm),
+     * told to LAFINA when the call reconnects.
+     */
+    getCallState?: () => string | null;
     /** Tests inject fakes here. */
     deps?: (userId: string) => VoiceConversationDeps;
   } = {},
@@ -124,6 +133,8 @@ export const useVoiceConversation = (
   const beforeAudioRef = useRef(options.beforeAudio);
   beforeAudioRef.current = options.beforeAudio;
   const hasBeforeAudio = useRef(Boolean(options.beforeAudio));
+  const callStateRef = useRef(options.getCallState);
+  callStateRef.current = options.getCallState;
 
   useEffect(() => {
     const deps = depsFactory.current(userId);
@@ -143,6 +154,8 @@ export const useVoiceConversation = (
       suppressAgentResponse: () => suppressRef.current?.() ?? false,
       appOwnedAudio: appOwnedAudio.current,
       quietOpening: quietOpening.current,
+      getCallState: () =>
+        callStateRef.current?.() ?? deps.getCallState?.() ?? null,
       ...(hasBeforeAudio.current
         ? {
             beforeAudio: () => beforeAudioRef.current?.() ?? Promise.resolve(),
@@ -184,6 +197,11 @@ export const useVoiceConversation = (
       }
     });
     const net = NetInfo.addEventListener(state => {
+      // ADR-046: a call that reconnects by itself waits out a short loss.
+      if (controller.handlesNetworkLoss()) {
+        controller.networkChanged(state.isConnected !== false);
+        return;
+      }
       if (controller.isActive() && state.isConnected === false) {
         controller.stopForSystem(NETWORK_DROP_REASON);
       }
@@ -226,6 +244,10 @@ export const useVoiceConversation = (
     start: () => {
       const controller = controllerRef.current;
       if (controller) void startVoiceConversation(controller);
+    },
+    resume: () => {
+      const controller = controllerRef.current;
+      if (controller) void resumeVoiceConversation(controller);
     },
     end: () => controllerRef.current?.end(),
     endAndWait: async () =>

@@ -101,6 +101,11 @@ export const useOfflineCall = (
       const controller = controllerRef.current;
       if (controller) void startVoiceConversation(controller);
     },
+    // The offline call has no connection to lose; continuing is a new call.
+    resume: () => {
+      const controller = controllerRef.current;
+      if (controller) void startVoiceConversation(controller);
+    },
     end: () => controllerRef.current?.end(),
     endAndWait: async () =>
       (await controllerRef.current?.endAndWait()) ?? false,
