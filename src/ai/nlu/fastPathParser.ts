@@ -217,7 +217,7 @@ export function normalizeSpeech(transcript: string): string {
     .replace(/(?:(?<=\d)|\b)12\s*n\.?n\.?\b/gi, '12 noon')
     .replace(/(?:(?<=\d)|\b)12\s*m\.?n\.?\b/gi, '12 midnight')
     .replace(/\bo['’\s]?clock\b/gi, 'oclock')
-    .replace(/\b(uh|um|er|ah|like|please)\b/gi, '');
+    .replace(/\b(?:uh+|um+|ah+)\b/gi, '');
 
   // Fix Whisper homophones directly before am/pm/oclock ("to pm" -> "2 pm", "too pm" -> "2 pm", "for pm" -> "4 pm", "ate am" -> "8 am", "won pm" -> "1 pm")
   result = result
@@ -272,7 +272,19 @@ export function normalizeSpeech(transcript: string): string {
   // Convert compact 3- or 4-digit times in ranges ("from 730 to 930", "730 to 9am", "9am to 1030", "730-930")
   result = result.replace(
     /\b(\d{3,4}|\d{1,2}(?::\d{2})?\s*(?:am|pm|noon|midnight)?)\s*(to|until|till|'til|through|thru|[-–—])\s*(\d{3,4}|\d{1,2}(?::\d{2})?\s*(?:am|pm|noon|midnight)?)\b/gi,
-    (full, leftTok: string, conn: string, rightTok: string) => {
+    (full, leftTok: string, conn: string, rightTok: string, offset: number, str: string) => {
+      const before = str.slice(0, offset);
+      const after = str.slice(offset + full.length);
+      if (
+        /\b(?:budget|save|spend|pay|cost|price|pages?|pp\.?|chapters?|items?|questions?|points?|score|words?|numbers?|pesos?|php|usd)\s*$/i.test(
+          before,
+        ) ||
+        /^\s*(?:pesos?|php|dollars?|bucks|pages?|words?|items?|points?|chapters?|kcal|mg|ml|kg|cm|km|%|percent)\b/i.test(
+          after,
+        )
+      ) {
+        return full;
+      }
       const leftDigits = /^\d{3,4}$/.test(leftTok.trim())
         ? splitCompactDigitsToTime(leftTok.trim(), true)
         : null;
@@ -292,7 +304,7 @@ export function normalizeSpeech(transcript: string): string {
 
   // Convert compact 3- or 4-digit times after time prepositions ("at 730", "by 1030", "around 930", "from 0830")
   result = result.replace(
-    /\b(at|by|around|from|starting(?:\s+at)?)\s+(\d{3,4})\b(?!\s*(?:am|pm|noon|midnight|rooms?|chapters?|pages?|points?|items?|words?|days?|mins?|minutes?|hours?|hrs?))/gi,
+    /\b(at|by|around|from|starting(?:\s+at)?)\s+(\d{3,4})\b(?!\s*(?:am|pm|noon|midnight|rooms?|chapters?|pages?|points?|items?|words?|days?|mins?|minutes?|hours?|hrs?|pesos?|php|dollars?|bucks|kcal|mg|ml|kg|cm|km|%|percent))/gi,
     (full, prep: string, digits: string) => {
       const split = splitCompactDigitsToTime(digits, true);
       if (!split) return full;
@@ -372,12 +384,28 @@ export function normalizeSpeech(transcript: string): string {
   );
   result = result.replace(
     new RegExp(
-      `\\b(ten|fifteen|twenty|twenty[\\s-]five|5|10|15|20|25)\\s+(?:minutes?\\s+)?(?:to|till)\\s+(${HOUR_TOKEN_PATTERN})\\b`,
+      `\\b(ten|fifteen|twenty|twenty[\\s-]five|5|10|15|20|25)\\s+(minutes?\\s+)?(?:to|till)\\s+(${HOUR_TOKEN_PATTERN})\\b`,
       'gi',
     ),
-    (full, minTok: string, hTok: string) => {
+    (
+      full,
+      minTok: string,
+      explicitMin: string | undefined,
+      hTok: string,
+      offset: number,
+      str: string,
+    ) => {
+      const before = str.slice(0, offset);
+      const after = str.slice(offset + full.length);
+      // Never rewrite time ranges like "from 10 to 12", "between 5 to 7", or "10 to 11:30".
+      if (/\b(?:from|between)\s*$/i.test(before) || /^:\d{2}/.test(after)) {
+        return full;
+      }
       const m = parseNumberWordOrDigits(minTok);
       const h = parseNumberWordOrDigits(hTok);
+      if (!explicitMin && /^\d+$/.test(minTok) && m !== null && h !== null && m < h) {
+        return full;
+      }
       if (m !== null && h !== null && h >= 1 && h <= 12) {
         const prevHour = h === 1 ? 12 : h - 1;
         const remMin = 60 - m;
@@ -391,7 +419,7 @@ export function normalizeSpeech(transcript: string): string {
 }
 
 const TAGLISH_MARKER =
-  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|alarm\s+ko|i-?alarm|mag-?alarm|tuwing|araw-?araw|patayin|buksan|i-?off|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado)\b|\bmay\s+\S+(?:\s+\S+)?\s+(?:ako|kami|tayo)\b/i;
+  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|maglinis|tapusin|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|alarm\s+ko|i-?alarm|mag-?alarm|tuwing|araw-?araw|patayin|buksan|isara|i-?off|i-?on|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado|linggo)\b|\bmay\s+\S+(?:\s+\S+)?\s+(?:ako|kami|tayo)\b/i;
 
 /** "gawa ka ng note: …": the note's own words stay exactly as said. */
 const TAGLISH_NOTE_FRAME =
@@ -512,7 +540,8 @@ export function translateTaglishCommand(text: string): string | null {
   replace(/\sbukas\s+ng\s+umaga\b/g, ' tomorrow morning');
   replace(/\sbukas\s+ng\s+hapon\b/g, ' tomorrow afternoon');
   replace(/\sbukas\s+ng\s+gabi\b/g, ' tomorrow night');
-  replace(/\sbukas\b/g, ' tomorrow');
+  // "bukas ba ang registrar?" means "open?", not "tomorrow".
+  replace(/\sbukas\b(?!\s+ba\b)/g, ' tomorrow');
   replace(/\s(?:mamayang|ngayong)\s+gabi\b/g, ' tonight');
   replace(/\smamayang\s+hapon\b/g, ' this afternoon');
   // "mamaya 5pm" with a clock time is today at that time.
@@ -527,7 +556,11 @@ export function translateTaglishCommand(text: string): string | null {
     /\s(?:sa\s+)?(lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado|linggo)\b/g,
     (_m: string, day: string) => ` on ${TAGLISH_WEEKDAYS[day] || day}`,
   );
+  replace(/\salas\s+(\d{1,2}(?::\d{2})?)\s+ng\s+(?:gabi|hapon)\b/g, ' at $1 pm');
+  replace(/\salas\s+(\d{1,2}(?::\d{2})?)\s+ng\s+umaga\b/g, ' at $1 am');
   replace(/\salas\s+(\d{1,2}(?::\d{2})?)/g, ' at $1');
+  replace(/\s(\d{1,2}(?::\d{2})?)\s+ng\s+(?:gabi|hapon)\b/g, ' $1 pm');
+  replace(/\s(\d{1,2}(?::\d{2})?)\s+ng\s+umaga\b/g, ' $1 am');
   replace(
     /\sng\s+(?=\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?\b)/g,
     ' at ',
@@ -744,8 +777,15 @@ function parseTimeEndpoint(
       parsedHour === 0 ||
       (hasLeadingZero && colonMinToken !== undefined));
 
-  // If > 12 and user also said am/pm/noon/midnight, reject invalid combinations like "15 pm"
-  if (parsedHour > 12 && meridiem !== null) return null;
+  // If > 12 (or 0) with am/pm/noon/midnight, or 24:xx with minute > 0, or non-12 noon/midnight, reject.
+  if (parsedHour === 24 && minute > 0) return null;
+  if ((parsedHour > 12 || parsedHour === 0) && meridiem !== null) return null;
+  if (
+    (meridiem === 'noon' || meridiem === 'midnight') &&
+    parsedHour !== 12
+  ) {
+    return null;
+  }
 
   const hasExplicitMarker =
     meridiem !== null ||
@@ -1135,9 +1175,20 @@ export function parseDateAndTime(
               (startOfToday.getTime() - d.getTime()) / 86_400_000;
             if (!explicitYear && daysPast > 60) {
               yNum += 1;
-              d = new Date(yNum, mIdx, dNum);
+              if (dNum > new Date(yNum, mIdx + 1, 0).getDate()) {
+                date = `${yNum}-${String(mIdx + 1).padStart(2, '0')}-${String(
+                  dNum,
+                ).padStart(2, '0')}`;
+                matchedText.push(monthMatch[0]);
+                // Keep impossible next-year leap date so validation can explain it.
+                d = new Date(NaN);
+              } else {
+                d = new Date(yNum, mIdx, dNum);
+              }
             }
-            date = formatLocalDate(d);
+            if (!Number.isNaN(d.getTime())) {
+              date = formatLocalDate(d);
+            }
           }
           matchedText.push(monthMatch[0]);
         }
@@ -1221,11 +1272,13 @@ export function parseDateAndTime(
     if (relativeDayMatch) {
       const dayToken = relativeDayMatch[1] || relativeDayMatch[2];
       const days = parseNumberWordOrDigits(dayToken);
-      if (days !== null && days > 0) {
+      if (days !== null && days > 0 && days <= 3650) {
         const d = new Date(referenceDate);
         d.setDate(d.getDate() + days);
-        date = formatLocalDate(d);
-        matchedText.push(relativeDayMatch[0]);
+        if (!Number.isNaN(d.getTime())) {
+          date = formatLocalDate(d);
+          matchedText.push(relativeDayMatch[0]);
+        }
       }
     }
   }
@@ -1294,11 +1347,16 @@ export function parseDateAndTime(
       if (amount !== null && amount > 0) {
         const unit = unitToken.toLowerCase();
         const isHour = unit.startsWith('hour') || unit.startsWith('hr');
-        const offsetMs = amount * (isHour ? 3600000 : 60000);
-        const target = relativeTarget(referenceDate, offsetMs);
-        date = formatLocalDate(target);
-        time = formatLocalTime(target.getHours(), target.getMinutes());
-        matchedText.push(relMatch[0]);
+        const maxAmount = isHour ? 8760 : 525600;
+        if (amount <= maxAmount) {
+          const offsetMs = amount * (isHour ? 3600000 : 60000);
+          const target = relativeTarget(referenceDate, offsetMs);
+          if (!Number.isNaN(target.getTime())) {
+            date = formatLocalDate(target);
+            time = formatLocalTime(target.getHours(), target.getMinutes());
+            matchedText.push(relMatch[0]);
+          }
+        }
       }
     }
   }
@@ -1425,7 +1483,7 @@ export function parseDateAndTime(
   // 3. Bare hour with explicit "at" or "by" preposition (e.g. "at 12", "at twelve", "at 8 tomorrow morning", "at 12 tonight")
   if (!time) {
     const bareAtHourRegex = new RegExp(
-      `\\b(?:at|by|around)\\s+(${HOUR_TOKEN_PATTERN})\\b(?!\\s*(?:minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?|%|percent|items?|tasks?|points?|chapters?|pages?|rooms?))`,
+      `\\b(?:at|by|around)\\s+(${HOUR_TOKEN_PATTERN})\\b(?!\\s*(?:[:.]\\d|(?:a\\.?\\s*m\\.?|p\\.?\\s*m\\.?)\\b|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?|%|percent|items?|tasks?|points?|chapters?|pages?|rooms?))`,
       'i',
     );
     const bareAtMatch = bareAtHourRegex.exec(lower);
@@ -1833,6 +1891,9 @@ export function extractNotifyOnlyRequest(transcript: string): string | null {
 const ALARM_EVENING_WORDS =
   /\b(?:\d{1,2}(?::\d{2})?\s*(?:pm|p\.m\.?)|(?:1[3-9]|2[0-3]):\d{2}|tonight|evening|afternoon|night|noon)\b/i;
 
+const RELATIVE_TIME_OFFSET_RE =
+  /\b(?:(?:in|after)\s+(?:about\s+)?(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty|forty|fifty|sixty|half\s+an?|couple(?:\s+of)?|few)\s*(?:minutes?|mins?|hours?|hrs?)|(?:minutes?|mins?|hours?|hrs?)\s+(?:from\s+now|later))\b/i;
+
 const ALARM_DAY_CODES: Record<string, string> = {
   monday: 'MO',
   tuesday: 'TU',
@@ -1872,7 +1933,8 @@ function alarmClock(
   if (
     time &&
     Number(time.slice(0, 2)) >= 13 &&
-    !ALARM_EVENING_WORDS.test(text)
+    !ALARM_EVENING_WORDS.test(text) &&
+    !RELATIVE_TIME_OFFSET_RE.test(text)
   ) {
     time = `${String(Number(time.slice(0, 2)) - 12).padStart(
       2,
@@ -2242,15 +2304,26 @@ function parseEnglishIntent(
 
   // 2. Call Responses / Snooze
   const snoozeMatch =
-    /^\s*(?:please\s+)?(?:snooze(?:\s+for)?|give me|remind me in)\s*([a-z0-9-]+)?\s*(?:minute|minutes|min|mins)?[\s.!,]*$/i.exec(
+    /^\s*(?:please\s+)?(?:(snooze)(?:\s+for)?(?:\s+([a-z0-9-]+))?|(give me|remind me in)\s+([a-z0-9-]+))\s*(minute|minutes|min|mins)?[\s.!,]*$/i.exec(
       lower,
     );
-  if (snoozeMatch || /^\s*snooze\b/i.test(lower)) {
-    const parsedMins =
-      snoozeMatch && snoozeMatch[1]
-        ? parseNumberWordOrDigits(snoozeMatch[1])
-        : null;
-    const mins = parsedMins !== null && parsedMins > 0 ? parsedMins : 10;
+  const snoozeVerb = snoozeMatch?.[1]?.toLowerCase() ?? null;
+  const snoozeNumToken = snoozeMatch?.[2] || snoozeMatch?.[4] || null;
+  const parsedSnoozeMins = snoozeNumToken
+    ? parseNumberWordOrDigits(snoozeNumToken)
+    : null;
+  const isValidSnooze =
+    /^\s*snooze\b/i.test(lower) ||
+    Boolean(snoozeVerb === 'snooze') ||
+    Boolean(
+      snoozeMatch &&
+        parsedSnoozeMins !== null &&
+        parsedSnoozeMins > 0 &&
+        (Boolean(snoozeMatch[5]) || /^\d+$/.test(snoozeNumToken ?? '')),
+    );
+  if (isValidSnooze) {
+    const mins =
+      parsedSnoozeMins !== null && parsedSnoozeMins > 0 ? parsedSnoozeMins : 10;
     return {
       intent: 'snooze',
       title: null,
@@ -3187,8 +3260,21 @@ function parseEnglishIntent(
     }
   }
 
+  const isImperativeScheduleVerbEarly =
+    /^(?:add|set(?:\s+up)?|create|put|schedule|make|book|plan|remind|wake|take|save|write|jot|note)\b/i.test(
+      commandLower,
+    );
+  const isEarlyQuestionPhrase =
+    !isImperativeScheduleVerbEarly &&
+    (/^(?:what|which|who|where|when|why|how|should|can|could|would|do|does|did|is|are|will|am|ano|anong|kailan|kelan|saan|paano|sino|bakit)\b/i.test(
+      commandLower,
+    ) ||
+      /\bba\b/i.test(commandLower) ||
+      commandLower.endsWith('?'));
+
   const isExplicitNoteCreate =
     !targetsTodoList &&
+    !isEarlyQuestionPhrase &&
     (/\b(?:(?:create|add|make|take|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+|quick\s+)?notes?|(?:save|add)\s+to\s+(?:my\s+)?notes?|to\s+note\b|take\s+note\b|note\s+down|write\s+down|jot\s+down|(?:write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?)\b/i.test(
       commandLower,
     ) ||
@@ -3284,10 +3370,11 @@ function parseEnglishIntent(
     /^(?:wake\s+me\s+up|(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?)\b/i.test(
       normalized.trim(),
     ) &&
-    // Only a bare hour: "6pm", "18:00", "tonight" or "evening" stay as said.
+    // Only a bare hour: "6pm", "18:00", "tonight", "evening" or relative offsets stay as said.
     !/\b(?:\d{1,2}(?::\d{2})?\s*(?:pm|p\.m\.?)|(?:1[3-9]|2[0-3]):\d{2}|tonight|evening|afternoon|night|noon)\b/i.test(
       normalized,
-    )
+    ) &&
+    !RELATIVE_TIME_OFFSET_RE.test(normalized)
       ? {
           ...parsedDt,
           time: `${String(Number(parsedDt.time.slice(0, 2)) - 12).padStart(
@@ -3301,26 +3388,6 @@ function parseEnglishIntent(
   // Determine schedule creation intent (Time Block, Task, Reminder)
   let intentType: ParsedIntentType = 'create_task';
 
-  const isExplicitTimeBlock =
-    /\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|(?:create|add|set|schedule|make|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?blocks?|events?)\b/i.test(
-      commandLower,
-    ) || /^blocks?\b/i.test(commandLower);
-
-  const isExplicitTask =
-    /\b(?:(?:create|add|set|make|schedule|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?))\b/i.test(
-      commandLower,
-    ) ||
-    targetsTodoList ||
-    /^(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?)\b/i.test(commandLower);
-
-  const isAlarmRequest =
-    /^(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?\b/i.test(
-      commandLower,
-    ) || /^wake\s+me\s+up\b/i.test(commandLower);
-
-  const isExplicitReminder =
-    /\b(?:remind|reminders?)\b/i.test(commandLower) || isAlarmRequest;
-
   const isImperativeScheduleVerb =
     /^(?:add|set(?:\s+up)?|create|put|schedule|make|book|plan|remind|wake)\b/i.test(
       commandLower,
@@ -3328,10 +3395,35 @@ function parseEnglishIntent(
 
   const isQuestionPhrase =
     !isImperativeScheduleVerb &&
-    (/^(?:what|which|who|where|when|why|how|should|can|could|would|do|does|did|is|are|will|am)\b/i.test(
+    (/^(?:what|which|who|where|when|why|how|should|can|could|would|do|does|did|is|are|will|am|ano|anong|kailan|kelan|saan|paano|sino|bakit)\b/i.test(
       commandLower,
     ) ||
+      /\bba\b/i.test(commandLower) ||
       commandLower.endsWith('?'));
+
+  const isExplicitTimeBlock =
+    !isQuestionPhrase &&
+    (/\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|(?:create|add|set|schedule|make|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?(?:blocks?|events?)|i\s+have\s+(?:an?\s+)?event)\b/i.test(
+      commandLower,
+    ) ||
+      /^(?:new\s+)?(?:blocks?|events?)\b/i.test(commandLower));
+
+  const isExplicitTask =
+    !isQuestionPhrase &&
+    (/\b(?:(?:create|add|set|make|schedule|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?))\b/i.test(
+      commandLower,
+    ) ||
+      targetsTodoList ||
+      /^(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?)\b/i.test(commandLower));
+
+  const isAlarmRequest =
+    /^(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?\b/i.test(
+      commandLower,
+    ) || /^wake\s+me\s+up\b/i.test(commandLower);
+
+  const isExplicitReminder =
+    !isQuestionPhrase &&
+    (/\b(?:remind|reminders?)\b/i.test(commandLower) || isAlarmRequest);
 
   // Looking, asking and planning verbs never create an item on their own:
   // "find a free slot tomorrow" is a question even though it has a date.

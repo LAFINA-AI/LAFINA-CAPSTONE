@@ -1,6 +1,7 @@
 import {db} from './database';
 import type {DatabaseTransaction} from './database';
 import {generateId} from '../utils';
+import {safeSlice} from '../utils/safeText';
 import {
   MAX_CHATS_PER_ACCOUNT,
   NEW_CHAT_PREFIX,
@@ -523,7 +524,7 @@ const dropEmptyNewChats = (
 
 const oneLine = (text: string, max: number): string => {
   const line = text.replace(/\s+/g, ' ').trim();
-  return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
+  return line.length > max ? `${safeSlice(line, max - 1).trimEnd()}…` : line;
 };
 
 const escapeLike = (text: string): string =>
@@ -772,11 +773,7 @@ export const chatStore = {
 
   /** Renames one of the account's chats; an empty title goes back to the automatic one. */
   renameSession: (userId: string, sessionId: string, title: string): void => {
-    const clean = title
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, MAX_CHAT_TITLE)
-      .trim();
+    const clean = safeSlice(title.replace(/\s+/g, ' ').trim(), MAX_CHAT_TITLE).trim();
     db.transactionSync(tx => {
       const chosen = sessionFor(userId, tx, sessionId);
       tx.executeSync(

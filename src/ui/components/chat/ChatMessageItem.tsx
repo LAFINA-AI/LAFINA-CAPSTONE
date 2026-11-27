@@ -107,11 +107,14 @@ export const ChatMessageItem = React.memo(function MessageRow({
         .join(' · ')
     : '';
 
-  const formattedTime = new Date(item.createdAt).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  const createdDate = new Date(item.createdAt);
+  const formattedTime = Number.isNaN(createdDate.getTime())
+    ? ''
+    : createdDate.toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
 
   return (
     <View

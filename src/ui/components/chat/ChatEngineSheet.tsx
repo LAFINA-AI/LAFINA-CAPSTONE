@@ -85,8 +85,17 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
   // Downloads and "use this model" stay off until the engine is confirmed.
   const engineReady = engineAvailable === true;
   const [busyModelId, setBusyModelId] = useState<string | null>(null);
+  const [togglingOnline, setTogglingOnline] = useState(false);
+  const mountedRef = React.useRef(true);
   const [fallbackRecommendation, setFallbackRecommendation] =
     useState<DeviceAiRecommendation | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!visible || deviceRecommendation !== undefined) {
@@ -193,6 +202,22 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
     await cancelModelDownload();
   };
 
+  const handleToggleMode = async (targetOnline: boolean) => {
+    if (togglingOnline || isOnlineMode === targetOnline) {
+      return;
+    }
+    setTogglingOnline(true);
+    try {
+      await onToggleOnline();
+    } catch {
+      // Handled by caller
+    } finally {
+      if (mountedRef.current) {
+        setTogglingOnline(false);
+      }
+    }
+  };
+
   const handleDeleteModel = (model: ModelStatus) => {
     const modelId = model.modelId;
     if (!modelId || modelId === 'fast_path_only') {
@@ -212,8 +237,16 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
             try {
               await deleteOfflineModel(downloadableId, userId);
               await onModelsUpdated();
+            } catch (error) {
+              console.warn('[ChatEngineSheet] Failed to delete offline model:', error);
+              Alert.alert(
+                'Could Not Remove Model',
+                'Could not delete this offline model right now. Try again.',
+              );
             } finally {
-              setBusyModelId(null);
+              if (mountedRef.current) {
+                setBusyModelId(null);
+              }
             }
           },
         },
@@ -287,10 +320,9 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
                 styles.segmentBtn,
                 isOnlineMode && { backgroundColor: accent },
               ]}
+              disabled={togglingOnline}
               onPress={() => {
-                if (!isOnlineMode) {
-                  void onToggleOnline();
-                }
+                void handleToggleMode(true);
               }}
               accessibilityRole="button"
               accessibilityLabel="Switch to Online Mode"
@@ -315,10 +347,9 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
                 styles.segmentBtn,
                 !isOnlineMode && { backgroundColor: accent },
               ]}
+              disabled={togglingOnline}
               onPress={() => {
-                if (isOnlineMode) {
-                  void onToggleOnline();
-                }
+                void handleToggleMode(false);
               }}
               accessibilityRole="button"
               accessibilityLabel="Switch to Offline Mode"

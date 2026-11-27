@@ -133,6 +133,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
   const canEdit = Boolean(!expired && fields && onEdit);
 
   const [editing, setEditing] = useState(false);
+  const [hideEditError, setHideEditError] = useState(false);
   const [form, setForm] = useState<DraftFormSnapshot>(() =>
     fields
       ? snapshotFromFields(fields)
@@ -149,6 +150,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
 
   useEffect(() => {
     setEditing(false);
+    setHideEditError(false);
     if (fields) {
       const next = snapshotFromFields(fields);
       setForm(next);
@@ -161,6 +163,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
     const next = snapshotFromFields(fields);
     setForm(next);
     setBaseline(next);
+    setHideEditError(true);
     setEditing(true);
   };
 
@@ -188,10 +191,12 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
     }
 
     if (Object.keys(patch).length === 0) {
+      setHideEditError(true);
       setEditing(false);
       return;
     }
 
+    setHideEditError(false);
     const result = onEdit(patch);
     if (result?.status === 'proposal') {
       setEditing(false);
@@ -488,7 +493,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
             ) : null}
           </ScrollView>
 
-          {editError ? (
+          {editError && !hideEditError ? (
             <Text
               style={[styles.errorText, {color: colors.error}]}
               accessibilityLiveRegion="polite"
@@ -501,7 +506,10 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[styles.button, themed.secondaryButton]}
-              onPress={() => setEditing(false)}
+              onPress={() => {
+                setHideEditError(true);
+                setEditing(false);
+              }}
               disabled={busy}
               accessibilityRole="button"
               accessibilityLabel={`Cancel editing ${action}`}

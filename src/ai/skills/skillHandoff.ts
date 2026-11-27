@@ -68,17 +68,21 @@ export const prepareSkillLaunch = (
   raw: Partial<Record<keyof SkillLaunch, unknown>>,
   options: {online: boolean; materialHint?: string},
 ): PreparedLaunch | null => {
+  const explicitMaterialId =
+    typeof raw.materialId === 'string' && raw.materialId.trim().length > 0
+      ? raw.materialId.trim()
+      : undefined;
   const materialId =
-    typeof raw.materialId === 'string'
-      ? raw.materialId
-      : matchMaterial(owner, options.materialHint);
+    explicitMaterialId ?? matchMaterial(owner, options.materialHint);
   const launch = validateSkillLaunch({...raw, materialId});
   if (!launch) return null;
   if (
-    launch.materialId &&
-    !safely(() => materialStore.getMaterial(owner, launch.materialId!))
-  )
+    launch.materialId !== undefined &&
+    (!launch.materialId.trim() ||
+      !safely(() => materialStore.getMaterial(owner, launch.materialId!)))
+  ) {
     delete launch.materialId;
+  }
   let pomodoroRunning = false;
   if (launch.skill === 'pomodoro' && launch.action !== 'open')
     pomodoroRunning =

@@ -406,7 +406,7 @@ export async function getActiveOfflineModelReadyConfig(
     return null;
   }
   const ready = await isModelReadyById(selectedId);
-  if (!ready) {
+  if (!ready || getSelectedOfflineModelId(userId) !== selectedId) {
     return null;
   }
   const preset = getOfflineModelPreset(selectedId);

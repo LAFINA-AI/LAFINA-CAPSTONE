@@ -18,6 +18,7 @@ import {
   type ReviewSurface,
 } from './commandReview';
 import {
+  formatLocalDate,
   parseDateAndTime,
   parseIntentFastPath,
   translateTaglishCommand,
@@ -188,6 +189,12 @@ const combineRawTranscript = (original: string, followUp: string): string => {
   return `${base} at ${extra}`;
 };
 
+const CANCEL_CLARIFICATION_RE =
+  /^(?:no|nope|cancel(?:\s+(?:it|that|this))?|never\s*mind|nevermind|nvm|forget\s+(?:it|that|about\s+it)|stop|no\s+thanks?|skip(?:\s+(?:it|that|this))?|wag\s+na|huwag\s+na|hindi\s+na)[.!?]*$/i;
+
+const CONVERSATIONAL_TOPIC_CHANGE_RE =
+  /^(?:i['’]m|i\s+am|i\s+have\s+been|i\s+feel|can\s+you|could\s+you|please\s+help|help\s+me|tell\s+me|explain|sorry)\b/i;
+
 /**
  * Attempts to merge a short follow-up answer ("9pm", "tomorrow at 8am",
  * "in 15 minutes") into a pending incomplete intent. Returns null when the
@@ -200,6 +207,7 @@ export function resolveClarificationFollowUp(
 ): ValidatedIntent | null {
   const trimmed = (text || '').trim();
   if (!trimmed) return null;
+  if (CANCEL_CLARIFICATION_RE.test(trimmed)) return null;
 
   const translated = translateTaglishCommand(trimmed) ?? trimmed;
 
@@ -257,9 +265,16 @@ export function resolveClarificationFollowUp(
       return null;
     }
 
+    const today = formatLocalDate(referenceDate);
+    const resolvedDate =
+      parsed.date ??
+      (parsed.time && pending.intent.date && pending.intent.date < today
+        ? today
+        : pending.intent.date);
+
     return {
       ...pending.intent,
-      date: parsed.date ?? pending.intent.date,
+      date: resolvedDate,
       time: parsed.time ?? pending.intent.time,
       endTime: parsed.endTime ?? pending.intent.endTime,
       durationMinutes: parsed.durationMinutes ?? pending.intent.durationMinutes,
@@ -275,9 +290,11 @@ export function resolveClarificationFollowUp(
 
   // missing_title
   if (
+    trimmed.length > 100 ||
     classifySmallTalk(trimmed) ||
     trimmed.endsWith('?') ||
     NON_TIME_QUESTION_RE.test(translated) ||
+    CONVERSATIONAL_TOPIC_CHANGE_RE.test(translated) ||
     VAGUE_ITEM_TITLE.test(trimmed)
   ) {
     return null;

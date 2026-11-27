@@ -17,6 +17,7 @@ import {UndoSnackbar} from '../components/chat/UndoSnackbar';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {quickChatController} from '../../ai/quickChat/quickChatController';
+import {rebindReviewTurn} from '../../ai/chatOrchestrator';
 import {chatMemoryService} from '../../cloud/chatMemoryService';
 import type {UndoOffer} from '../../ai/nlu/commandReview';
 import type {ChatMessage} from '../../storage/chatStore';
@@ -100,6 +101,9 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
   const sendingRef = useRef(false);
   const flushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(true);
+  const ownerRef = useRef(userId);
+  ownerRef.current = userId;
+  const prevUserIdRef = useRef(userId);
   const prevClearSignalRef = useRef(clearSignal);
 
   useEffect(() => {
@@ -109,6 +113,24 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
       if (flushRef.current) clearTimeout(flushRef.current);
     };
   }, []);
+
+  // Account switch clears transient Quick Chat UI state so nothing leaks across owners.
+  useEffect(() => {
+    if (prevUserIdRef.current === userId) return;
+    prevUserIdRef.current = userId;
+    if (flushRef.current) {
+      clearTimeout(flushRef.current);
+      flushRef.current = null;
+    }
+    sendingRef.current = false;
+    setSuccess(null);
+    setUndoOffer(null);
+    setMultiStep(false);
+    setCardNotice('');
+    setNotice('');
+    setStreaming(null);
+    setDraft('');
+  }, [userId]);
 
   // Reset local UI state when the student taps Clear in the panel header.
   useEffect(() => {
@@ -273,23 +295,26 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
 
   const confirm = useCallback(async () => {
     if (!review.proposal) return;
+    const reqUser = userId;
     setCardNotice('');
     let decision;
     try {
       decision = await review.confirm({temporaryChat: true});
     } catch (error) {
       console.warn('[QuickChat] Confirm failed:', error);
-      if (mounted.current) setCardNotice(QUICK_CHAT_SAVE_FAILED_TEXT);
+      if (mounted.current && ownerRef.current === reqUser) {
+        setCardNotice(QUICK_CHAT_SAVE_FAILED_TEXT);
+      }
       return;
     }
-    if (!decision || !mounted.current) return;
+    if (!decision || !mounted.current || ownerRef.current !== reqUser) return;
     const outcome = decision.outcome;
     if (outcome?.status === 'applied') {
-      quickChatController.recordDecision(userId, decision);
-      quickChatController.setCardSource(userId, null);
+      quickChatController.recordDecision(reqUser, decision);
+      quickChatController.setCardSource(reqUser, null);
       setSuccess({
         message: outcome.reply || decision.reply,
-        target: quickChatTargetFor(userId, outcome.receipt),
+        target: quickChatTargetFor(reqUser, outcome.receipt),
       });
       Keyboard.dismiss();
       return;
@@ -300,8 +325,8 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
       return;
     }
     // Expired, changed elsewhere, session ended, not found: the card is gone.
-    quickChatController.setCardSource(userId, null);
-    quickChatController.recordDecision(userId, {
+    quickChatController.setCardSource(reqUser, null);
+    quickChatController.recordDecision(reqUser, {
       ...decision,
       reply: QUICK_CHAT_NOT_CURRENT_TEXT,
     });
@@ -328,14 +353,14 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
     (patch: Parameters<NonNullable<typeof reviewEdit>>[0]) => {
       const previous = review.proposal?.operationId;
       const edited = reviewEdit ? reviewEdit(patch) : null;
-      const source = previous
-        ? quickChatController.getCardSource(userId, previous)
-        : null;
-      if (edited?.status === 'proposal' && source) {
-        quickChatController.setCardSource(userId, {
-          operationId: edited.proposal.operationId,
-          text: source,
-        });
+      if (edited?.status === 'proposal' && previous) {
+        rebindReviewTurn(previous, edited.proposal.operationId);
+        quickChatController.updateCardSourceOnEdit(
+          userId,
+          previous,
+          edited.proposal.operationId,
+          edited.reply,
+        );
       }
       return edited;
     },
@@ -420,6 +445,7 @@ export const QuickChatConversation: React.FC<QuickChatConversationProps> = ({
               key={message.id}
               item={message}
               replyFormat={replyFormat}
+              handbookNote={message.handbookNote ?? undefined}
               onUndoMemory={handleUndoMemory}
             />
           ))}

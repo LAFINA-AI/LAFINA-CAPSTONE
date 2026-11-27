@@ -62,6 +62,8 @@ export interface ChatHistorySheetProps {
   onClose: () => void;
   /** The student opened another chat, started a new one, or deleted the open one. */
   onChanged: () => void;
+  /** The student renamed the currently open chat (refreshes title without reloading the chat). */
+  onRenamedCurrent?: () => void;
   onStartUstpChat?: () => void;
   /** Opens the USTP sources library (every passage Ask USTP answers from). */
   onOpenUstpSources?: () => void;
@@ -262,6 +264,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   busy,
   onClose,
   onChanged,
+  onRenamedCurrent,
   onStartUstpChat,
   onOpenUstpSources,
   ustpAvailable,
@@ -364,6 +367,12 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   }
 
   useEffect(() => {
+    if (!showUstp && kindFilter === 'ustp') {
+      setKindFilter('all');
+    }
+  }, [showUstp, kindFilter]);
+
+  useEffect(() => {
     if (visible) reload();
   }, [visible, reload]);
 
@@ -373,7 +382,17 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     const subscription = DeviceEventEmitter.addListener(
       CHAT_REMOTE_CHANGED_EVENT,
       (event: ChatRemoteChangedEvent) => {
-        if (event?.userId === userId) reload();
+        if (event?.userId !== userId) return;
+        reload();
+        try {
+          const liveIds = new Set(
+            chatStore.listSessions(userId, '', 'all').map(chat => chat.id),
+          );
+          setPendingDelete(prev => (prev && !liveIds.has(prev.id) ? null : prev));
+          setRenaming(prev => (prev && !liveIds.has(prev.id) ? null : prev));
+        } catch {
+          // Ignore transient read error; reload() already updated loadError
+        }
       },
     );
     return () => subscription.remove();
@@ -452,25 +471,35 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     onClose();
   };
 
-  const openChat = (id: string) => {
-    if (id === currentSessionId && !isTemporaryChat) {
+  const openChat = useCallback(
+    (id: string) => {
+      if (id === currentSessionId && !isTemporaryChat) {
+        onClose();
+        return;
+      }
+      if (blockedWhileBusy()) return;
+      try {
+        chatStore.openSession(userId, id);
+      } catch (error) {
+        console.error('[ChatHistory] Could not open chat:', error);
+        Alert.alert(
+          'Could Not Open',
+          'That chat could not be opened. Nothing was changed.',
+        );
+        return;
+      }
+      onChanged();
       onClose();
-      return;
-    }
-    if (blockedWhileBusy()) return;
-    try {
-      chatStore.openSession(userId, id);
-    } catch (error) {
-      console.error('[ChatHistory] Could not open chat:', error);
-      Alert.alert(
-        'Could Not Open',
-        'That chat could not be opened. Nothing was changed.',
-      );
-      return;
-    }
-    onChanged();
-    onClose();
-  };
+    },
+    [
+      blockedWhileBusy,
+      currentSessionId,
+      isTemporaryChat,
+      onChanged,
+      onClose,
+      userId,
+    ],
+  );
 
   const startNewChat = () => {
     if (blockedWhileBusy()) return;
@@ -516,10 +545,11 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     onClose();
   };
 
-  const saveRename = () => {
+  const saveRename = useCallback(() => {
     if (!renaming) return;
+    const targetId = renaming.id;
     try {
-      chatStore.renameSession(userId, renaming.id, renaming.title);
+      chatStore.renameSession(userId, targetId, renaming.title);
     } catch (error) {
       console.error('[ChatHistory] Could not rename chat:', error);
       Alert.alert('Not Renamed', 'The chat could not be renamed. Try again.');
@@ -527,10 +557,11 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     }
     setRenaming(null);
     reload();
-    if (renaming.id === currentSessionId) {
-      onChanged();
+    if (targetId === currentSessionId) {
+      if (onRenamedCurrent) onRenamedCurrent();
+      else onChanged();
     }
-  };
+  }, [currentSessionId, onChanged, onRenamedCurrent, reload, renaming, userId]);
 
   const requestDelete = useCallback(
     (chat: ChatSummary) => {
@@ -543,6 +574,10 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   const executePendingDelete = () => {
     const target = pendingDelete;
     if (!target) return;
+    if (target.id === currentSessionId && blockedWhileBusy()) {
+      setPendingDelete(null);
+      return;
+    }
     setPendingDelete(null);
     try {
       const {attachmentUris} = chatStore.deleteSession(userId, target.id);
@@ -556,7 +591,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
       return;
     }
     reload();
-    if (target.id === currentSessionId) onChanged();
+    if (target.id === currentSessionId && !isTemporaryChat) onChanged();
   };
 
   const handleStartRename = useCallback((chat: ChatSummary) => {
@@ -593,7 +628,6 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
         onRequestDelete={requestDelete}
       />
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       isTemporaryChat,
       currentSessionId,
@@ -604,6 +638,10 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
       textPrimary,
       textSecondary,
       borderColor,
+      openChat,
+      handleStartRename,
+      handleChangeRename,
+      saveRename,
       requestDelete,
     ],
   );

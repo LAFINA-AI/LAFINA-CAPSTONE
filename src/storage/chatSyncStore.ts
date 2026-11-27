@@ -1,4 +1,5 @@
 import {GUEST_USER_ID} from '../constants';
+import {safeSlice} from '../utils/safeText';
 import {
   attachmentCleanupTarget,
   recordAttachmentCleanup,
@@ -133,7 +134,7 @@ const parseObject = (raw: unknown): Record<string, unknown> | null => {
 };
 
 const text = (value: unknown, max: number): string =>
-  typeof value === 'string' ? value.slice(0, max) : '';
+  typeof value === 'string' ? safeSlice(value, max) : '';
 
 const hasMetadata = (
   tx: Executor,
@@ -238,7 +239,7 @@ const sessionPayload = (row: Record<string, unknown>): SyncPayload => {
   return {
     title: PLACEHOLDER_CHAT_TITLES.includes(stored)
       ? ''
-      : stored.slice(0, MAX_CLOUD_TITLE),
+      : safeSlice(stored, MAX_CLOUD_TITLE),
     kind: isUstpSessionId(id) ? 'ustp' : 'general',
     created_at: String(row.created_at),
   };
@@ -261,7 +262,7 @@ const messagePayload = (
     created_at: String(row.created_at),
     handbook_note:
       typeof metadata.handbookNote === 'string' && metadata.handbookNote
-        ? metadata.handbookNote.slice(0, 2000)
+        ? safeSlice(metadata.handbookNote, 2000)
         : null,
     local_reply: metadata.localReply === true,
     voice_interrupted: metadata.voiceInterrupted === true,
@@ -271,18 +272,18 @@ const messagePayload = (
             status: review.status,
             summary:
               typeof review.summary === 'string'
-                ? review.summary.slice(0, 2000)
+                ? safeSlice(review.summary, 2000)
                 : null,
             resolved_at:
               typeof review.resolvedAt === 'string'
-                ? review.resolvedAt.slice(0, 64)
+                ? safeSlice(review.resolvedAt, 64)
                 : null,
           }
         : null,
     attachment:
       attachment && typeof attachment.fileName === 'string'
         ? {
-            file_name: attachment.fileName.slice(0, 255),
+            file_name: safeSlice(attachment.fileName, 255),
             format: text(attachment.format, 32),
             mime_type: text(attachment.mimeType, 128),
             size_bytes:
@@ -443,9 +444,10 @@ export const chatSyncStore = {
       `DELETE FROM sync_outbox WHERE user_id = ? AND scope_type = ? AND scope_id = ?
          AND operation != 'delete'
          AND ((entity_type = 'chat_session' AND entity_id = ?)
+           OR (entity_type = ? AND entity_id = ?)
            OR (entity_type = 'chat_message'
                AND entity_id IN (SELECT id FROM messages WHERE session_id = ?)))`,
-      [...scope, cloudSessionId, localId],
+      [...scope, cloudSessionId, entityType, entityId, localId],
     );
   },
 
@@ -693,7 +695,7 @@ export const chatSyncStore = {
     const localContent =
       typeof existing?.content === 'string' ? existing.content : '';
     const content =
-      payload.content.length === MAX_SYNCED_MESSAGE_CHARS &&
+      payload.content.length >= MAX_SYNCED_MESSAGE_CHARS - 1 &&
       localContent.length > MAX_SYNCED_MESSAGE_CHARS &&
       localContent.startsWith(payload.content)
         ? localContent

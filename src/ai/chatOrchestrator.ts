@@ -83,6 +83,7 @@ import type {
   MultiActionItemData,
 } from './voiceActions/types';
 import {generateId} from '../utils';
+import {safeSlice, safeSliceEnd} from '../utils/safeText';
 import type {
   ConfirmResult,
   PrepareResult,
@@ -881,6 +882,33 @@ export class ChatOrchestrator {
     const trimmed = (text || '').trim();
     const refDate = options.referenceDate || new Date();
     const isTemp = options.temporaryChat === true;
+    if (!trimmed) {
+      const nowIso = new Date().toISOString();
+      const sessionId = isTemp ? 'temp_chat' : chatStore.currentSessionId(userId);
+      const reply = 'Type a message or question and I will help you with it.';
+      return {
+        userMessage: {
+          id: `empty_user_${Date.now()}`,
+          sessionId,
+          sender: 'user',
+          content: '',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        },
+        assistantMessage: {
+          id: `empty_asst_${Date.now()}`,
+          sessionId,
+          sender: 'assistant',
+          content: reply,
+          localReply: true,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        },
+        intent: plainChatIntent(''),
+        usedOnline: false,
+        reply,
+      };
+    }
     const ustpRagOnly = options.ustpRagOnly === true;
     // USTP school features (handbook RAG and academic context) follow one
     // eligibility decision, captured now and checked again before the reply
@@ -1493,6 +1521,7 @@ export class ChatOrchestrator {
       return note;
     };
     let usedOnline = false;
+    let usedSchoolSources = false;
     // On-device conversational replies; never replayed to DeepSeek as its own.
     let localReply = false;
     let route: ResolvedIntentRoute | undefined;
@@ -1598,6 +1627,13 @@ export class ChatOrchestrator {
           }
         }
         const assistantMessage = makeLocalAssistantMessage(outcome.reply);
+        if (options.speakReply) {
+          try {
+            await waitForCurrent(ttsService.speak(outcome.reply));
+          } catch (error) {
+            console.warn('[ChatOrchestrator] TTS playback error:', error);
+          }
+        }
         return {
           userMessage,
           assistantMessage,
@@ -1638,6 +1674,13 @@ export class ChatOrchestrator {
           );
         }
         const assistantMessage = makeLocalAssistantMessage(cancelMsg);
+        if (options.speakReply) {
+          try {
+            await waitForCurrent(ttsService.speak(cancelMsg));
+          } catch (error) {
+            console.warn('[ChatOrchestrator] TTS playback error:', error);
+          }
+        }
         return {
           userMessage,
           assistantMessage,
@@ -1671,12 +1714,20 @@ export class ChatOrchestrator {
           trimmed,
         );
         if (revised.status === 'proposal') {
+          reviewTurns.delete(pendingProposal.operationId);
           const assistantMessage = makeLocalAssistantMessage(revised.reply);
           rememberReviewTurn(
             revised.proposal.operationId,
             sessionId,
             assistantMessage.id,
           );
+          if (options.speakReply) {
+            try {
+              await waitForCurrent(ttsService.speak(revised.reply));
+            } catch (error) {
+              console.warn('[ChatOrchestrator] TTS playback error:', error);
+            }
+          }
           return {
             userMessage,
             assistantMessage,
@@ -1853,29 +1904,29 @@ export class ChatOrchestrator {
         .trim();
       const parsedSchedule = parseScannedSchedule(ocrBody, refDate);
 
-      if (parsedSchedule.classes.length > 0) {
-        finalReply = `${parsedSchedule.markdownTable}\n\nWould you like me to add these classes to your Calendar?`;
+      // Flatten all scanned classes across their specified days into calendar sessions
+      const calendarSessions: Array<{
+        title: string;
+        day: string;
+        startTime: string;
+        endTime: string;
+        room?: string;
+      }> = [];
 
-        // Flatten all scanned classes across their specified days into calendar sessions
-        const calendarSessions: Array<{
-          title: string;
-          day: string;
-          startTime: string;
-          endTime: string;
-          room?: string;
-        }> = [];
-
-        for (const c of parsedSchedule.classes) {
-          for (const day of c.days) {
-            calendarSessions.push({
-              title: c.subject,
-              day,
-              startTime: c.startTime,
-              endTime: c.endTime,
-              room: c.room,
-            });
-          }
+      for (const c of parsedSchedule.classes) {
+        for (const day of c.days) {
+          calendarSessions.push({
+            title: c.subject,
+            day,
+            startTime: c.startTime,
+            endTime: c.endTime,
+            room: c.room,
+          });
         }
+      }
+
+      if (calendarSessions.length > 0) {
+        finalReply = `${parsedSchedule.markdownTable}\n\nWould you like me to add these classes to your Calendar?`;
 
         const firstSession = calendarSessions[0];
         const targetDate = getNextDateForDay(firstSession.day, refDate);
@@ -1951,6 +2002,14 @@ export class ChatOrchestrator {
             {localReply: true},
             sessionId,
           );
+
+      if (review?.status === 'proposal') {
+        rememberReviewTurn(
+          review.proposal.operationId,
+          sessionId,
+          assistantMessage.id,
+        );
+      }
 
       return {
         userMessage,
@@ -2043,7 +2102,7 @@ export class ChatOrchestrator {
       } else if (onlineExtraction) {
         const extractionStartedAt = trace ? monotonicNow() : 0;
         const onlineValidated = await waitForCurrent(
-          extractIntentWithDeepSeek(trimmed, refDate),
+          extractIntentWithDeepSeek(trimmed, refDate, options.signal),
         );
         trace?.addDuration(
           'onlineIntentExtraction',
@@ -2071,6 +2130,7 @@ export class ChatOrchestrator {
           refDate,
           options.onlineMode === true,
           `chat-${sessionId}`,
+          options.signal,
         ),
       );
       if (batch) {
@@ -2237,8 +2297,14 @@ export class ChatOrchestrator {
       } else if (route !== 'reviewed_mutation') {
         // Conversation. Online Mode always asks DeepSeek first, greetings
         // included; on-device replies are only the offline or fallback voice.
+        const tempList = options.temporaryHistory ?? [];
         const recent = isTemp
-          ? (options.temporaryHistory ?? [userMessage]).slice(-10)
+          ? (tempList.length > 0 &&
+            tempList[tempList.length - 1].sender === 'user' &&
+            tempList[tempList.length - 1].content.trim() === trimmed
+              ? tempList
+              : [...tempList, userMessage]
+            ).slice(-10)
           : readRecentHistory(userId, 10, sessionId);
         const recentReplies = recent
           .filter(msg => msg.sender === 'assistant')
@@ -2372,6 +2438,9 @@ export class ChatOrchestrator {
                 )
               : null;
           if (agent) {
+            if (agent.toolsUsed.includes('search_ustp_sources')) {
+              usedSchoolSources = true;
+            }
             finalReply = agent.reply || agent.review?.reply || '';
             handbookNote =
               agent.sources.length && !replyDisclaimsHandbook(finalReply)
@@ -2403,6 +2472,7 @@ export class ChatOrchestrator {
           );
           const localPopulated = localHandbookStatus.populated;
           let localHandbookContext: OnlineHandbookContext | null = null;
+          let matchedHandbookFallback: OnlineHandbookContext | null = null;
           let academicYearRefusal: string | null = null;
           if (!agent && !followUpAgent && useHandbook && localPopulated) {
             const rawHandbookContext = await waitForCurrent(
@@ -2416,14 +2486,24 @@ export class ChatOrchestrator {
               localHandbookContext = null;
             } else {
               localHandbookContext = rawHandbookContext;
+              matchedHandbookFallback = rawHandbookContext;
             }
             if (
               localHandbookContext &&
               history.length > 0 &&
               history[history.length - 1].role === 'user'
             ) {
-              const existing = history[history.length - 1].content;
-              const allowedExtra = Math.max(0, 3900 - existing.length);
+              let existing = history[history.length - 1].content;
+              let allowedExtra = Math.max(0, 3900 - existing.length);
+              // A long student question should never drop verified USTP excerpts
+              // and falsely report "not found": keep both the beginning and the
+              // end (where the actual question often sits) within 3900 chars.
+              if (allowedExtra < 250) {
+                const head = safeSlice(existing, 1200).trimEnd();
+                const tail = safeSliceEnd(existing, 1350).trimStart();
+                existing = `${head}\n...\n${tail}`;
+                allowedExtra = Math.max(0, 3900 - existing.length);
+              }
               if (allowedExtra >= 250) {
                 let trimmedContext = localHandbookContext.contextBlock;
                 if (trimmedContext.length > allowedExtra) {
@@ -2461,9 +2541,28 @@ export class ChatOrchestrator {
               (ustpRagOnly &&
                 !smallTalk &&
                 localPopulated &&
-                !localHandbookContext));
+                !localHandbookContext &&
+                !matchedHandbookFallback));
           if (localUstpUnsupported) {
             finalReply = academicYearRefusal ?? LOCAL_NO_EVIDENCE_REPLY;
+            localReply = true;
+          } else if (
+            !agent &&
+            !followUpAgent &&
+            ustpRagOnly &&
+            !localHandbookContext &&
+            matchedHandbookFallback
+          ) {
+            finalReply = formatOfflineHandbookReply(
+              {
+                matches: matchedHandbookFallback.matches,
+                sources: matchedHandbookFallback.sources,
+                insufficientEvidence: false,
+                queryUsed: trimmed,
+              },
+              {referenceDate: refDate},
+            );
+            handbookNote = cite(matchedHandbookFallback.sources);
             localReply = true;
           }
           // Steer DeepSeek toward scannable Markdown on non-greeting queries when
@@ -2508,7 +2607,7 @@ export class ChatOrchestrator {
             });
           }
           const onlineResult =
-            agent || followUpAgent || localUstpUnsupported
+            agent || followUpAgent || localUstpUnsupported || Boolean(finalReply)
               ? null
               : simulatedFailure
               ? ({status: simulatedFailure, error: 'simulated'} as Awaited<
@@ -2552,11 +2651,19 @@ export class ChatOrchestrator {
               });
             }
           }
+          const onlineReplyText =
+            onlineResult?.status === 'success' && onlineResult.data
+              ? (onlineResult.data.reply ?? '').trim()
+              : '';
           if (!onlineResult) {
             // Answered by the Chat agent or local fail-closed refusal above.
-          } else if (onlineResult.status === 'success' && onlineResult.data) {
+          } else if (
+            onlineResult.status === 'success' &&
+            onlineResult.data &&
+            onlineReplyText
+          ) {
             finalReply = onlineResult.data.interrupted
-              ? `${onlineResult.data.reply}\n\n${INTERRUPTED_REPLY_NOTE}`
+              ? `${onlineReplyText}\n\n${INTERRUPTED_REPLY_NOTE}`
               : onlineResult.data.reply;
             // The note names passages the reply was given, which passed the
             // evidence gate; it is dropped when the model says they did not
@@ -2659,7 +2766,10 @@ export class ChatOrchestrator {
 
     // Recheck after the asynchronous work: an answer that used USTP school
     // content is never published once the owner's school features are off.
-    if ((handbookNote || ustpRagOnly) && !schoolAccess.stillAllowed()) {
+    if (
+      (handbookNote || ustpRagOnly || usedSchoolSources) &&
+      !schoolAccess.stillAllowed()
+    ) {
       const current = getUstpEligibility(userId);
       finalReply = current.eligible
         ? 'Your USTP setup changed while I was answering, so I did not show that reply. Please ask again.'
@@ -2864,6 +2974,9 @@ export class ChatOrchestrator {
     options: {speakReply?: boolean; temporaryChat?: boolean} = {},
   ): Promise<ReviewDecisionResult> {
     const outcome = confirmReviewedCommand(userId, operationId);
+    if (outcome.status === 'refused' && outcome.reason !== 'failed') {
+      reviewTurns.delete(operationId);
+    }
     let assistantMessage: ChatMessage | null = null;
     if (
       !(outcome.status === 'applied' && outcome.repeated) &&
@@ -3235,19 +3348,29 @@ const describeNow = (now: Date): string =>
   )}`;
 
 const CHAT_REVIEW_CANCEL_RE =
-  /^(?:no|nope|cancel(?:\s+(?:it|that))?|never\s*mind|nevermind|forget\s+it|stop|discard(?:\s+(?:it|that))?)[.!]*$/i;
+  /^(?:no|nope|cancel(?:\s+(?:it|that|this))?|never\s*mind|nevermind|nvm|forget\s+(?:it|that|about\s+it)|stop|skip(?:\s+(?:it|that|this))?|discard(?:\s+(?:it|that))?|wag\s+na|huwag\s+na|hindi\s+na)[.!]*$/i;
 
 const CHAT_REVIEW_REVISE_RE =
   /^(?:(?:please|can\s+you|could\s+you|no,?|wait,?|instead,?)\s+)*(?:change|rename|move|make|set|shift|update|reschedule|put|switch|actually|extend|shorten|push|delay|postpone)\b|\binstead[.!?]*$/i;
 
-const CLAUSE_ACTION_VERB_RE =
-  /\b(?:add|schedule|create|make|remind|set|mark|complete|reopen|pin|unpin|delete|remove|cancel|move|reschedule|update|edit|change|rename|jot|write|save|note:|task:|event:|reminder:)\b/i;
+const COMPOUND_QUESTION_PREFIX_RE =
+  /^(?:how|what|why|when|where|who|explain|summarize|compare|define|tell\s+me|can\s+you\s+(?:help|explain|tell|give|write|make|outline)|could\s+you\s+(?:help|explain|tell|give|write|make|outline)|help\s+me)\b/i;
+
+const CLAUSE_CREATE_ACTION_RE =
+  /^(?:please\s+)?(?:add|schedule|create|remind\s+me|set\s+(?:a|an)?\s*reminder|make\s+(?:a|an)\s+(?:task|event|meeting|reminder|note|time\s*block|study\s+session)|jot\s+down|write\s+down|take\s+(?:a\s+)?note|task:|event:|reminder:|note:)\b/i;
+
+const CLAUSE_NON_CREATE_ACTION_RE =
+  /^(?:please\s+)?(?:delete|remove|cancel|mark|complete|reopen|pin|unpin|rename|update|edit|move|reschedule)\b/i;
 
 function hasCompoundPlannerActions(
   text: string,
   localValidated: ValidatedIntent,
 ): boolean {
-  if (!text) return false;
+  const trimmed = (text || '').trim();
+  if (!trimmed) return false;
+  if (trimmed.endsWith('?') || COMPOUND_QUESTION_PREFIX_RE.test(trimmed)) {
+    return false;
+  }
   if (
     localValidated.checklistItems &&
     localValidated.checklistItems.length > 0
@@ -3257,12 +3380,15 @@ function hasCompoundPlannerActions(
   if (localValidated.details?.startsWith('[BATCH_CLASSES:')) {
     return false;
   }
-  if (classifySmallTalk(text) || isHandbookQuestion(text)) {
+  if (classifySmallTalk(trimmed) || isHandbookQuestion(trimmed)) {
     return false;
   }
-  const clauses = splitGroupedClauses(text);
+  const clauses = splitGroupedClauses(trimmed);
   if (clauses.length < 2) return false;
-  const actionClauses = clauses.filter(c => CLAUSE_ACTION_VERB_RE.test(c));
+  if (clauses.some(c => CLAUSE_NON_CREATE_ACTION_RE.test(c))) {
+    return false;
+  }
+  const actionClauses = clauses.filter(c => CLAUSE_CREATE_ACTION_RE.test(c));
   return actionClauses.length >= 2;
 }
 
@@ -3282,6 +3408,10 @@ function validatedIntentToMultiItem(
   } else {
     return null;
   }
+  const defaultEventEnd = (start: string, dur: number): string => {
+    const candidate = addMinutesToTime(start, dur);
+    return candidate > start ? candidate : '23:59';
+  };
   return {
     id: `item-${index + 1}-${generateId().slice(0, 6)}`,
     kind,
@@ -3291,7 +3421,7 @@ function validatedIntentToMultiItem(
     endTime:
       v.endTime ||
       (kind === 'event' && v.time
-        ? addMinutesToTime(v.time, v.durationMinutes ?? 60)
+        ? defaultEventEnd(v.time, v.durationMinutes ?? 60)
         : undefined),
     priority:
       v.priority?.toLowerCase() === 'high'
@@ -3312,11 +3442,13 @@ async function buildCompoundBatch(
   referenceDate: Date,
   onlineMode: boolean,
   sessionId: string,
+  signal?: AbortSignal,
 ): Promise<MultiActionBatchData | null> {
   if (onlineMode) {
     const extracted = await extractMultiIntentsWithDeepSeek(
       text,
       referenceDate,
+      signal,
     );
     if (extracted && extracted.length >= 2) {
       const mapped = extracted

@@ -33,7 +33,7 @@ const normalize = (text: string): string =>
 
 /** "please", "lafina", "can you" and the like around the request. */
 const LEAD =
-  /^(?:(?:ok(?:ay)?|hey|hi|so|um+|uh+|lafina|please|can you|could you|would you|will you|i want (?:you )?to|i'd like (?:you )?to|i would like (?:you )?to|i need (?:you )?to|let's|lets|let us|help me|pwede|paki|pa)\s+)+/;
+  /^(?:(?:ok(?:ay)?|hey|hi|so|um+|uh+|lafina|please|can you|could you|would you|will you|i want (?:you )?to|i'd like (?:you )?to|i would like (?:you )?to|i need you to|let's|lets|let us|help me|pwede|paki|pa)\s+)+/;
 
 const START_VERB =
   '(?:start|begin|run|launch|kick off|set(?: up)?|turn on|do|i start|i-start|simulan|umpisahan|pa start|pastart)';
@@ -90,7 +90,8 @@ const topicIn = (original: string): string | undefined => {
 
 /** "…from my Chem 101 notes", "…using my biology lesson". */
 const materialHintIn = (t: string): string | undefined => {
-  const m = t.match(
+  const cleaned = t.replace(/\s+(?:please|po|na|now|for me|thanks?)$/i, '').trim();
+  const m = cleaned.match(
     /\b(?:from|using|based on|out of|with)\s+(?:my|the)\s+(.{2,60}?)\s*(?:notes?|lessons?|materials?|reading|readings|pdf|module|handout|file)?$/,
   );
   const hint = m?.[1]?.trim();
@@ -103,13 +104,22 @@ const materialHintIn = (t: string): string | undefined => {
 };
 
 const PLANNER_OBJECT =
-  /\b(?:day|today|tomorrow|schedule|calendar|week|agenda|tasks?|to ?dos?|reminders?|alarms?|events?|plans?)\b/;
+  /\b(?:day|today|tomorrow|schedule|calendar|week|agenda|tasks?|to ?dos?|reminders?|alarms?|events?|plans?|notes?)\b/;
+
+/** Future date/time anchors indicate a planner scheduling request rather than an immediate skill launch. */
+const HAS_FUTURE_SCHEDULE_TIME =
+  /\b(?:tomorrow|tonight|next\s+(?:week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|on\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|by\s+(?:tomorrow|tonight|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/;
+
+/** Study-material nouns that clearly target the Summarizer tool rather than inline Q&A. */
+const SUMMARIZER_TARGET =
+  /\b(?:reading|readings|lesson|lessons|material|materials|module|modules|pdf|handout|handouts|document|documents|doc|file|files|chapter|chapters|lecture|lectures|article|articles|paper|papers|textbook|slides?|transcript|recording)\b/;
 
 /** Reads one turn. Returns null when it is not about a Skill. */
 export const detectSkillIntent = (text: string): SkillIntent | null => {
   const full = normalize(text);
   if (!full) return null;
   const t = full.replace(LEAD, '').trim();
+  const hasFutureSchedule = HAS_FUTURE_SCHEDULE_TIME.test(full);
 
   // ── Questions about a skill ────────────────────────────────────────────
   if (
@@ -125,13 +135,14 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
   )
     return {kind: 'status', topic: 'flashcards'};
   if (
-    /^(?:what(?:'s| is)|what was|tell me|check)\b.*\b(?:gwa|general weighted average)\b/.test(
+    /^(?:what(?:'s| is)|what was|tell me|check)\s+(?:my\s+(?:current\s+|latest\s+|saved\s+)?(?:gwa|general weighted average)|the\s+(?:gwa|general weighted average)\s+(?:i\s+saved|in\s+my\s+calculator))\b/.test(
       t,
     )
   )
     return {kind: 'status', topic: 'gwa'};
   if (
-    /\b(?:last|latest|recent) quiz\b.*\b(?:score|result|grade)\b|\bquiz score\b/.test(
+    !/^how\s+(?:do|to|can|should)\b/.test(t) &&
+    /\b(?:last|latest|recent) quiz\b.*\b(?:score|result|grade)\b|\bmy quiz score\b|\bquiz score\b/.test(
       t,
     ) &&
     /^(?:what|how|tell|check)/.test(t)
@@ -154,6 +165,7 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
 
   // ── Pomodoro ───────────────────────────────────────────────────────────
   if (
+    !hasFutureSchedule &&
     re(
       `^(?:take|start|have|begin)\\s+(?:${ART}\\s+)?(?:(short|long|5 minute|five minute|15 minute|fifteen minute)\\s+)?break\\b`,
     ).test(t)
@@ -169,13 +181,14 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
     };
   }
   if (
-    re(
+    !hasFutureSchedule &&
+    (re(
       `^${START_VERB}\\s+(?:${ART}\\s+)?(?:\\d+ minute |25 minute |twenty five minute )?${POMODORO}\\b`,
     ).test(t) ||
-    re(`^(?:let's|lets)?\\s*(?:focus|study) (?:mode|session|timer)\\b`).test(
-      t,
-    ) ||
-    re(`^${POMODORO}(?: please| na| now)?$`).test(t)
+      re(`^(?:let's|lets)?\\s*(?:focus|study) (?:mode|session|timer)\\b`).test(
+        t,
+      ) ||
+      re(`^${POMODORO}(?: please| na| now)?$`).test(t))
   )
     return {kind: 'launch', launch: {skill: 'pomodoro', action: 'start'}};
   if (re(`^${OPEN_VERB}\\s+(?:${ART}\\s+)?${POMODORO}\\b`).test(t))
@@ -239,7 +252,12 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
     /^(?:summari[sz]e|i summari[sz]e|make (?:a |me a )?summary|give me (?:a )?summary|summary of)\b/.test(
       t,
     ) &&
-    !PLANNER_OBJECT.test(t)
+    !PLANNER_OBJECT.test(t) &&
+    (/^(?:summari[sz]e|i summari[sz]e|make (?:a |me a )?summary|give me (?:a )?summary)(?:\s+(?:please|po|for me))?$/.test(
+      t,
+    ) ||
+      SUMMARIZER_TARGET.test(t) ||
+      Boolean(materialHintIn(t)))
   ) {
     const hint = materialHintIn(t);
     return {
@@ -267,6 +285,8 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
 
   // ── Create with LAFINA (documents) ─────────────────────────────────────
   if (
+    !hasFutureSchedule &&
+    !/\bprepare\s+for\b/.test(t) &&
     re(`^${MAKE_VERB}\\s+(?:${ART}\\s+)?(?:\\w+\\s+){0,2}?${DOC}\\b`).test(t)
   ) {
     const topic = topicIn(text);
@@ -284,13 +304,14 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
 
   // ── Meetings (opens the recorder; never records by itself) ─────────────
   if (
-    /^(?:record|i record|irecord)\s+(?:my |the |this |our |a )?(?:class|meeting|lecture|discussion|session|talk)\b/.test(
+    !hasFutureSchedule &&
+    (/^(?:record|i record|irecord)\s+(?:my |the |this |our |a )?(?:class|meeting|lecture|discussion|session|talk)\b/.test(
       t,
     ) ||
-    /^start recording\b/.test(t) ||
-    re(
-      `^${OPEN_VERB}\\s+(?:the\\s+)?(?:meetings?|meeting recorder|recorder)\\b`,
-    ).test(t)
+      /^start recording\b/.test(t) ||
+      re(
+        `^${OPEN_VERB}\\s+(?:the\\s+)?(?:meetings?|meeting recorder|recorder)\\b`,
+      ).test(t))
   )
     return {kind: 'launch', launch: {skill: 'meetings', action: 'open'}};
 
@@ -303,6 +324,7 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
     return {kind: 'launch', launch: {skill: 'gwa', action: 'open'}};
 
   // ── The Skills tab and its essentials ──────────────────────────────────
+  const TAB_OPEN_VERB = '(?:open|go to|take me to|bring up|pull up|buksan)';
   if (
     re(
       `^${OPEN_VERB}\\s+(?:the\\s+|my\\s+)?(?:skills?(?: tab| page)?|study tools)$`,
@@ -311,17 +333,19 @@ export const detectSkillIntent = (text: string): SkillIntent | null => {
     return {kind: 'launch', launch: {skill: 'hub', action: 'open'}};
   if (
     re(
-      `^${OPEN_VERB}\\s+(?:the\\s+|my\\s+)?alarms?(?: tab| page| list)?$`,
+      `^${TAB_OPEN_VERB}\\s+(?:the\\s+|my\\s+)?alarms?(?: tab| page| list)?$`,
     ).test(t)
   )
     return {kind: 'launch', launch: {skill: 'alarms', action: 'open'}};
   if (
     re(
-      `^${OPEN_VERB}\\s+(?:the\\s+|my\\s+)?to ?do(?: list)?s?(?: tab| page)?$`,
+      `^${TAB_OPEN_VERB}\\s+(?:the\\s+|my\\s+)?to ?do(?: list)?s?(?: tab| page)?$`,
     ).test(t)
   )
     return {kind: 'launch', launch: {skill: 'todo', action: 'open'}};
-  if (re(`^${OPEN_VERB}\\s+(?:the\\s+|my\\s+)?notes?(?: tab| page)?$`).test(t))
+  if (
+    re(`^${TAB_OPEN_VERB}\\s+(?:the\\s+|my\\s+)?notes?(?: tab| page)?$`).test(t)
+  )
     return {kind: 'launch', launch: {skill: 'notes', action: 'open'}};
 
   return null;

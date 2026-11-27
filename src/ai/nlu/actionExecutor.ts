@@ -13,7 +13,7 @@ import {
   acknowledgeReminderAction,
   snoozeReminderAction,
 } from '../../scheduler';
-import {generateId} from '../../utils';
+import {generateId, safeSlice} from '../../utils';
 import {formatLocalDate} from './fastPathParser';
 import {ttsService} from '../tts/ttsService';
 import {computeAdaptiveTriggerAt} from '../ml';
@@ -641,9 +641,13 @@ export function addMinutesToTime(
   startTime: string,
   durationMinutes: number,
 ): string {
-  const [h, m] = startTime.split(':').map(v => parseInt(v, 10));
-  const totalMin = h * 60 + m + durationMinutes;
-  const endH = Math.floor(totalMin / 60) % 24;
+  const [rawH, rawM] = startTime.split(':').map(v => parseInt(v, 10));
+  const h = Number.isFinite(rawH) ? rawH : 0;
+  const m = Number.isFinite(rawM) ? rawM : 0;
+  const delta = Number.isFinite(durationMinutes) ? Math.round(durationMinutes) : 0;
+  const dayMinutes = 24 * 60;
+  const totalMin = (((h * 60 + m + delta) % dayMinutes) + dayMinutes) % dayMinutes;
+  const endH = Math.floor(totalMin / 60);
   const endM = totalMin % 60;
   return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
@@ -1875,7 +1879,9 @@ export async function executeNluAction(
           }
 
           if (dayEntries.length > 0) {
-            dayEntries.sort((a, b) => a.timeKey.localeCompare(b.timeKey));
+            dayEntries.sort(
+              (a, b) => wallMinutes(a.timeKey) - wallMinutes(b.timeKey),
+            );
             const shown = dayEntries.slice(0, 4).map(item => item.line);
             if (dayEntries.length > 4) {
               const remaining = dayEntries.length - 4;
@@ -2152,7 +2158,9 @@ export async function executeNluAction(
         }
 
         // Chronological sort by start/due time
-        timedItems.sort((a, b) => a.timeStr.localeCompare(b.timeStr));
+        timedItems.sort(
+          (a, b) => wallMinutes(a.timeStr) - wallMinutes(b.timeStr),
+        );
 
         const countSentence = `${dayLabel} you have ${formatListWithAnd(
           countParts,
@@ -2366,8 +2374,13 @@ export async function executeNluAction(
         const n = scored[0].note;
         const bodyMd = noteBodyToMarkdown(n.body).trim();
         const categoryTag = n.category ? ` *[${n.category}]*` : '';
+        const MAX_SINGLE_NOTE_CHAT_CHARS = 4_000;
         const bodyContent =
-          bodyMd.length > 0 ? bodyMd : '*(This note is empty)*';
+          bodyMd.length > MAX_SINGLE_NOTE_CHAT_CHARS
+            ? `${safeSlice(bodyMd, MAX_SINGLE_NOTE_CHAT_CHARS).trimEnd()}…\n\n*(Open the Notes tab to read the full note.)*`
+            : bodyMd.length > 0
+            ? bodyMd
+            : '*(This note is empty)*';
         reply = `Here is what I found in your Notes tab:\n\n📝 **${n.title}**${categoryTag}\n\n${bodyContent}`;
       } else {
         const topMatches = scored.slice(0, 3);

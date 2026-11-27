@@ -47,65 +47,60 @@ export interface IntentExtractionOptions {
 }
 
 /**
- * The model's answer, or null once `ms` has passed. `onTimeout` tells the
- * native side to stop: otherwise the model keeps the single worker busy and
- * the student's next request queues behind an answer nobody will read.
+ * Races `work` against both an optional timeout (`slmTimeoutMs`) and an
+ * optional `AbortSignal`, cleaning up both timer and abort listener as soon as
+ * either settles so nothing leaks or fires duplicate cancellations.
  */
-const withinLimit = <T>(
+const withinLimitAndSignal = <T>(
   work: Promise<T>,
   ms: number | undefined,
-  onTimeout?: () => void,
-): Promise<T | null> => {
-  if (!ms || ms <= 0) return work;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  return Promise.race([
-    work,
-    new Promise<null>(resolve => {
-      timer = setTimeout(() => {
-        timer = null;
-        try {
-          onTimeout?.();
-        } catch {
-          // An older build without cancel: the late answer is just ignored.
-        }
-        resolve(null);
-      }, ms);
-    }),
-  ]).finally(() => {
-    if (timer) clearTimeout(timer);
-  });
-};
-
-/** Resolves null as soon as `signal` aborts; `onAbort` asks the work to stop. */
-const untilAborted = <T>(
-  work: Promise<T>,
   signal: AbortSignal | undefined,
-  onAbort?: () => void,
+  onTimeout: () => void,
+  onAbort: () => void,
 ): Promise<T | null> => {
-  if (!signal) return work;
-  const stop = () => {
+  const hasTimeout = Boolean(ms && ms > 0);
+  if (!hasTimeout && !signal) return work;
+  if (signal?.aborted) {
+    work.catch(() => undefined);
     try {
-      onAbort?.();
-    } catch {
-      // The late answer is just ignored.
-    }
-  };
-  if (signal.aborted) {
-    stop();
+      onAbort();
+    } catch {}
     return Promise.resolve(null);
   }
-  let listener: (() => void) | null = null;
-  return Promise.race([
-    work,
-    new Promise<null>(resolve => {
-      listener = () => {
-        stop();
-        resolve(null);
-      };
-      signal.addEventListener('abort', listener);
-    }),
-  ]).finally(() => {
-    if (listener) signal.removeEventListener('abort', listener);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let abortListener: (() => void) | null = null;
+  const racers: Array<Promise<T | null>> = [work];
+  if (hasTimeout) {
+    racers.push(
+      new Promise<null>(resolve => {
+        timer = setTimeout(() => {
+          timer = null;
+          try {
+            onTimeout();
+          } catch {}
+          resolve(null);
+        }, ms);
+      }),
+    );
+  }
+  if (signal) {
+    racers.push(
+      new Promise<null>(resolve => {
+        abortListener = () => {
+          try {
+            onAbort();
+          } catch {}
+          resolve(null);
+        };
+        signal.addEventListener('abort', abortListener);
+      }),
+    );
+  }
+  return Promise.race(racers).finally(() => {
+    if (timer) clearTimeout(timer);
+    if (signal && abortListener) {
+      signal.removeEventListener('abort', abortListener);
+    }
   });
 };
 
@@ -338,23 +333,21 @@ export class IntentService {
             ).catch(() => undefined);
           };
           let timedOut = false;
-          const rawNativeJson = await withinLimit<string | null>(
-            untilAborted<string>(
-              extractor.extractIntent({
-                transcript: trimmed,
-                modelPath: activeModel.modelPath,
-                promptFormat: activeModel.promptFormat,
-                minValidBytes: activeModel.minValidSizeBytes,
-                requestId,
-              }),
-              options.signal,
-              cancelNative,
-            ),
+          const rawNativeJson = await withinLimitAndSignal<string>(
+            extractor.extractIntent({
+              transcript: trimmed,
+              modelPath: activeModel.modelPath,
+              promptFormat: activeModel.promptFormat,
+              minValidBytes: activeModel.minValidSizeBytes,
+              requestId,
+            }),
             options.slmTimeoutMs,
+            options.signal,
             () => {
               timedOut = true;
               cancelNative();
             },
+            cancelNative,
           );
           trace?.addDuration('modelCall', monotonicNow() - callStartedAt);
           if (rawNativeJson === null && options.slmTimeoutMs && timedOut)
@@ -426,26 +419,60 @@ export class IntentService {
 
             // Best-of-Both Fusion:
             // - Title comes from the active offline SLM's semantic distillation (cleaned & Title-Cased)
-            // - Date, Time, EndTime, and Duration prioritize Fast Path's exact local clock math
+            // - Date, Time, EndTime, Duration, and deterministic modifiers (deliveryStyle,
+            //   recurrenceRule, priority, targetEntityType, leadMinutes, targetTitle)
+            //   prioritize Fast Path's exact local parsing.
+            const slmDate =
+              typeof parsed.date === 'string' && parsed.date.trim()
+                ? parsed.date.trim()
+                : null;
+            const slmTime =
+              typeof parsed.time === 'string' && parsed.time.trim()
+                ? parsed.time.trim()
+                : null;
+            const slmEndTime =
+              typeof parsed.endTime === 'string' && parsed.endTime.trim()
+                ? parsed.endTime.trim()
+                : null;
+            const slmDuration =
+              typeof parsed.duration_minutes === 'number' &&
+              Number.isFinite(parsed.duration_minutes) &&
+              parsed.duration_minutes > 0
+                ? parsed.duration_minutes
+                : null;
+            const slmCategory =
+              typeof parsed.category === 'string' && parsed.category.trim()
+                ? parsed.category.trim()
+                : null;
+            const slmDetails =
+              typeof parsed.details === 'string' && parsed.details.trim()
+                ? parsed.details.trim()
+                : null;
+            const slmSnooze =
+              typeof parsed.snooze_minutes === 'number' &&
+              Number.isFinite(parsed.snooze_minutes) &&
+              parsed.snooze_minutes > 0
+                ? parsed.snooze_minutes
+                : null;
+
             const slmIntent: ExtractedIntent = {
+              ...fastPathResult,
               intent: resolvedIntent,
               title: fusedTitle,
-              date: fastPathResult.date || parsed.date || null,
-              time: fastPathResult.time || parsed.time || null,
-              endTime: fastPathResult.endTime || parsed.endTime || null,
+              date: fastPathResult.date || slmDate || null,
+              time: fastPathResult.time || slmTime || null,
+              endTime: fastPathResult.endTime || slmEndTime || null,
               durationMinutes:
-                fastPathResult.durationMinutes ??
-                parsed.duration_minutes ??
-                null,
+                fastPathResult.durationMinutes ?? slmDuration ?? null,
               category:
                 fastPathResult.category === 'Academic'
                   ? 'Academic'
-                  : parsed.category ||
+                  : slmCategory ||
                     fastPathResult.category ||
                     detectCategory(`${fusedTitle || ''} ${trimmed}`),
-              details: parsed.details || fusedTitle || trimmed,
+              details: slmDetails || fusedTitle || trimmed,
               snoozeMinutes:
-                fastPathResult.snoozeMinutes ?? parsed.snooze_minutes ?? null,
+                fastPathResult.snoozeMinutes ?? slmSnooze ?? null,
               confidence: 0.95,
               source: 'on_device_slm',
               rawTranscript: transcript,

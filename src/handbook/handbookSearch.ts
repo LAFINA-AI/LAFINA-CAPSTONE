@@ -480,6 +480,7 @@ export function extractQueryTokens(rawQuery: string): string[] {
   const rawMatches = normalizeAlphaNumericWords(
     applyQuerySynonyms(rawQuery).replace(NUMERIC_GRADE_RE, ' grade '),
   );
+  const hasMayDate = /\bmay\.?\s+\d{1,2}\b/i.test(rawQuery);
   const seen = new Set<string>();
   const tokens: string[] = [];
 
@@ -495,7 +496,7 @@ export function extractQueryTokens(rawQuery: string): string[] {
     if (/^\d+$/.test(clean)) {
       continue;
     }
-    if (STOP_WORDS.has(clean)) {
+    if (STOP_WORDS.has(clean) && !(clean === 'may' && hasMayDate)) {
       continue;
     }
     if (!seen.has(clean)) {
@@ -720,9 +721,9 @@ const MONTH_NAMES = [
   'december',
 ];
 
-/** "Nov 30", "November 30" in a question -> /November 30\b/ for calendar rows. */
-function monthDayPatterns(query: string): RegExp[] {
-  const found: RegExp[] = [];
+/** "Nov 30", "November 30" in a question -> match exact date or spanning range (e.g. "August 6-8" for "August 7"). */
+function monthDayMatchers(query: string): Array<(line: string) => boolean> {
+  const found: Array<(line: string) => boolean> = [];
   const re =
     /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})\b/gi;
   for (const match of query.matchAll(re)) {
@@ -730,7 +731,20 @@ function monthDayPatterns(query: string): RegExp[] {
     const month = MONTH_NAMES.find(name => name.startsWith(prefix));
     const day = Number(match[2]);
     if (month && day >= 1 && day <= 31) {
-      found.push(new RegExp(`\\b${month}\\s+${day}\\b`, 'i'));
+      const exactRe = new RegExp(`\\b${month}\\s+${day}\\b`, 'i');
+      const rangeRe = new RegExp(
+        `\\b${month}\\s+(\\d{1,2})\\s*(?:-|–|—|to)\\s*(\\d{1,2})\\b`,
+        'gi',
+      );
+      found.push(line => {
+        if (exactRe.test(line)) return true;
+        for (const r of line.matchAll(rangeRe)) {
+          const start = Number(r[1]);
+          const end = Number(r[2]);
+          if (day >= start && day <= end) return true;
+        }
+        return false;
+      });
     }
   }
   return found;
@@ -755,11 +769,11 @@ function rankListLines(
   if (listLines.length < 2) {
     return unchanged;
   }
-  const dates = monthDayPatterns(query);
+  const dates = monthDayMatchers(query);
   const aliases = hit.meta?.aliases ?? {};
   let scoreOf: (line: string) => number;
   if (dates.length > 0) {
-    scoreOf = line => (dates.some(re => re.test(line)) ? 1 : 0);
+    scoreOf = line => (dates.some(matches => matches(line)) ? 1 : 0);
   } else {
     const titleWords = passageWords(hit, `${hit.chapter} ${hit.section}`);
     const tokens = extractQueryTokens(query).filter(
@@ -1219,12 +1233,17 @@ function presentExcerpt(content: string): string {
   return /^[a-z,;)]/.test(excerpt) ? `…${excerpt}` : excerpt;
 }
 
-/** A bare https address in a campus passage becomes a tappable link. */
+/** A bare https address in a campus passage becomes a tappable link (existing Markdown links stay untouched). */
 export function linkifyUrls(line: string): string {
-  return line.replace(/https:\/\/[^\s<>()\]]+/g, raw => {
-    const url = raw.replace(/[.,;:]+$/, '');
-    return `[${url}](${url})${raw.slice(url.length)}`;
-  });
+  return line.replace(
+    /\[[^\]]*\]\(https:\/\/[^\s<>()]+\)|https:\/\/[^\s<>()\]]+/g,
+    raw => {
+      if (raw.startsWith('[')) return raw;
+      const url = raw.replace(/[.,;:!?"']+$/, '');
+      if (!url || url === 'https://') return raw;
+      return `[${url}](${url})${raw.slice(url.length)}`;
+    },
+  );
 }
 
 function formatCampusBlock(match: LocalHandbookMatch, query: string): string {
@@ -1263,7 +1282,16 @@ export function wrongAcademicYearReply(
   const asked = analyzeKnowledgeQuery(result.queryUsed).academicYear;
   const have = (result.availableYears ?? []).map(y => `AY ${y}`).join(' and ');
   const links = (result.fallbackLinks ?? [])
-    .map(link => `[${link.title}](${link.url})`)
+    .filter(link => /^https:\/\/[^\s<>()]+$/i.test((link.url || '').trim()))
+    .slice(0, 4)
+    .map(link => {
+      const safeTitle = link.title
+        .replace(/[[\]()]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return safeTitle ? `[${safeTitle}](${link.url.trim()})` : null;
+    })
+    .filter((entry): entry is string => Boolean(entry))
     .join(' or ');
   return [
     `My USTP Cagayan de Oro calendar information covers ${
@@ -1431,7 +1459,14 @@ export function formatSpokenHandbookReply(
 
 export function shouldMergeFollowUpQuery(query: string): boolean {
   const meaningful = extractQueryTokens(query);
-  return meaningful.length > 0 && meaningful.length <= 2;
+  if (meaningful.length > 0 && meaningful.length <= 2) return true;
+  // Short scope-only follow-ups like "What about AY 2025-2026?" or "What about 1st sem?"
+  const words = query.trim().split(/\s+/).filter(Boolean);
+  if (words.length > 0 && words.length <= 6) {
+    const scope = analyzeKnowledgeQuery(query);
+    if (scope.academicYear || scope.term) return true;
+  }
+  return false;
 }
 
 /** The model said the handbook excerpts it was given don't cover the question. */

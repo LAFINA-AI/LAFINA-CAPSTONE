@@ -85,6 +85,7 @@ export const QuickChatHistoryView: React.FC<QuickChatHistoryViewProps> = ({
   }, [userId]);
 
   useEffect(() => {
+    setConfirmClearAll(false);
     reload();
     return quickChatController.subscribe(reload);
   }, [reload]);

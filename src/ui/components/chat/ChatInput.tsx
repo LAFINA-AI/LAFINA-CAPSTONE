@@ -92,6 +92,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const activeCaptureRef = useRef<OfflineSpeechCaptureHandle | null>(null);
   const isRecordingRef = useRef(false);
+  const isPressingRef = useRef(false);
+  const pressSessionRef = useRef(0);
+  const mountedRef = useRef(true);
   const isCancelledRef = useRef(false);
   const touchStartXRef = useRef(0);
   const touchStartYRef = useRef(0);
@@ -101,9 +104,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // Clean up native audio capture on unmount if in-flight
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
+      pressSessionRef.current += 1;
+      isPressingRef.current = false;
+      isRecordingRef.current = false;
+      isCancelledRef.current = false;
       if (activeCaptureRef.current) {
-        void sttService.cancelListening(activeCaptureRef.current.captureId);
+        void sttService
+          .cancelListening(activeCaptureRef.current.captureId)
+          .catch(() => undefined);
         activeCaptureRef.current = null;
       }
     };
@@ -118,8 +129,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleMicPressIn = async (event: GestureResponderEvent) => {
-    if (isSending || isTranscribing || isRecordingRef.current) return;
+    if (
+      isSending ||
+      isTranscribing ||
+      isRecordingRef.current ||
+      isPressingRef.current
+    ) {
+      return;
+    }
 
+    const sessionId = ++pressSessionRef.current;
+    isPressingRef.current = true;
     touchStartXRef.current = event.nativeEvent.pageX;
     touchStartYRef.current = event.nativeEvent.pageY;
     pressStartTimeRef.current = Date.now();
@@ -128,11 +148,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
     try {
       const hasPermission = await sttService.ensureMicrophonePermission();
+      if (
+        !mountedRef.current ||
+        pressSessionRef.current !== sessionId ||
+        !isPressingRef.current
+      ) {
+        return;
+      }
       if (!hasPermission) {
+        isPressingRef.current = false;
         Alert.alert(
           'Microphone Permission',
           'LAFINA needs microphone access to record and transcribe your voice.',
         );
+        return;
+      }
+      if (isCancelledRef.current) {
+        isPressingRef.current = false;
         return;
       }
 
@@ -145,23 +177,39 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         context: 'main_mic',
       });
 
+      if (
+        !mountedRef.current ||
+        pressSessionRef.current !== sessionId ||
+        !isPressingRef.current ||
+        isCancelledRef.current
+      ) {
+        isPressingRef.current = false;
+        void sttService.cancelListening(handle.captureId).catch(() => undefined);
+        return;
+      }
+
       activeCaptureRef.current = handle;
       isRecordingRef.current = true;
       setIsRecording(true);
     } catch (error: any) {
       console.warn('[ChatInput] Could not start speech capture:', error);
-      activeCaptureRef.current = null;
-      isRecordingRef.current = false;
-      setIsRecording(false);
-      Alert.alert(
-        'Microphone Unavailable',
-        error?.message || 'Unable to record voice right now. Try again.',
-      );
+      if (pressSessionRef.current === sessionId) {
+        isPressingRef.current = false;
+        activeCaptureRef.current = null;
+        isRecordingRef.current = false;
+        if (mountedRef.current) {
+          setIsRecording(false);
+          Alert.alert(
+            'Microphone Unavailable',
+            error?.message || 'Unable to record voice right now. Try again.',
+          );
+        }
+      }
     }
   };
 
   const handleTouchMove = (event: GestureResponderEvent) => {
-    if (!isRecordingRef.current) return;
+    if (!isRecordingRef.current && !isPressingRef.current) return;
     // Once latched as cancelled, it remains permanently cancelled for this touch
     if (isCancelledRef.current) return;
 
@@ -187,7 +235,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleTouchCancel = async () => {
-    if (!isRecordingRef.current) return;
+    pressSessionRef.current += 1;
+    isPressingRef.current = false;
+    if (!isRecordingRef.current) {
+      isCancelledRef.current = false;
+      if (mountedRef.current) setIsCancelled(false);
+      return;
+    }
     isCancelledRef.current = true;
     setIsCancelled(true);
     const handle = activeCaptureRef.current;
@@ -201,12 +255,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         console.warn('[ChatInput] Error cancelling on touchCancel:', err);
       }
     }
-    setIsCancelled(false);
     isCancelledRef.current = false;
+    if (mountedRef.current) setIsCancelled(false);
   };
 
   const handleManualCancel = async () => {
-    if (!isRecordingRef.current) return;
+    pressSessionRef.current += 1;
+    isPressingRef.current = false;
+    if (!isRecordingRef.current) {
+      isCancelledRef.current = false;
+      if (mountedRef.current) setIsCancelled(false);
+      return;
+    }
     isCancelledRef.current = true;
     setIsCancelled(true);
     try {
@@ -221,24 +281,31 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         await sttService.cancelListening(handle.captureId);
       } catch {}
     }
-    setIsCancelled(false);
     isCancelledRef.current = false;
+    if (mountedRef.current) setIsCancelled(false);
   };
 
   const handleMicPressOut = async () => {
-    if (!isRecordingRef.current) return;
+    pressSessionRef.current += 1;
+    isPressingRef.current = false;
+    if (!isRecordingRef.current) {
+      isCancelledRef.current = false;
+      if (mountedRef.current) setIsCancelled(false);
+      return;
+    }
 
     const handle = activeCaptureRef.current;
+    const wasCancelled = isCancelledRef.current;
     activeCaptureRef.current = null;
     isRecordingRef.current = false;
+    isCancelledRef.current = false;
     setIsRecording(false);
+    setIsCancelled(false);
 
     if (!handle) return;
 
     // If cancelled by sliding or tapping, discard audio immediately
-    if (isCancelledRef.current) {
-      setIsCancelled(false);
-      isCancelledRef.current = false;
+    if (wasCancelled) {
       try {
         await sttService.cancelListening(handle.captureId);
       } catch (err) {
@@ -261,6 +328,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     try {
       await sttService.stopListening(handle.captureId);
       const result = await handle.result;
+      if (!mountedRef.current) return;
       setIsTranscribing(false);
 
       if (result.cancelled) return;
@@ -282,7 +350,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       onSend(text);
     } catch (err) {
-      setIsTranscribing(false);
+      if (mountedRef.current) setIsTranscribing(false);
       console.warn('[ChatInput] Error transcribing voice:', err);
     }
   };
@@ -433,7 +501,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             value={inputText}
             onChangeText={setInputText}
             onFocus={onFocus}
-            onSubmitEditing={() => onSend()}
+            onSubmitEditing={() => {
+              if (!isSending && hasText) onSend();
+            }}
             returnKeyType="send"
             multiline={false}
             editable={!isSending}
@@ -466,6 +536,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             {!isRecording && !isTranscribing && onCallLafina && (
               <TouchableOpacity
                 onPress={onCallLafina}
+                disabled={isSending}
                 style={[
                   styles.callButton,
                   isModern
@@ -475,9 +546,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         borderWidth: 1,
                       }
                     : [styles.micButtonIdle, themed.micButtonIdle],
+                  isSending && styles.sendDisabled,
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel="Call Lafina"
+                accessibilityState={{disabled: isSending}}
                 testID="chat-call-lafina-button"
               >
                 <Phone

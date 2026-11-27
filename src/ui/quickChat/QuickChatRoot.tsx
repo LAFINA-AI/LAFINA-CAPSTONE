@@ -108,8 +108,11 @@ export const QuickChatRoot: React.FC = () => {
     quickChatPresence.setOpen(true);
     void resolve();
     // Reopened later: the student may have signed out or switched in between.
+    let wasOpen = quickChatPresence.isOpen();
     const unsubscribe = quickChatPresence.subscribe(() => {
-      if (quickChatPresence.isOpen()) void resolve();
+      const nowOpen = quickChatPresence.isOpen();
+      if (nowOpen && !wasOpen) void resolve();
+      wasOpen = nowOpen;
     });
     return () => {
       mountedRef.current = false;

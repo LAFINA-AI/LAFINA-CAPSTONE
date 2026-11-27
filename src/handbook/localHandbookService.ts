@@ -21,6 +21,7 @@ import {
   type LocalHandbookSearchResult,
   type LocalHandbookSource,
 } from './handbookSearch';
+import {analyzeKnowledgeQuery} from './knowledgeScope';
 
 export type HandbookPackOrigin = 'none' | 'bundled' | 'device_file' | 'test';
 
@@ -406,18 +407,36 @@ export const localHandbookService = {
     // A short follow-up borrows the previous question only when that
     // question was itself answerable from the handbook (audit H2 item 3):
     // "tell me a joke" after small talk must not pull in old keywords.
+    // Never merge when the current question was already explicitly refused
+    // for a different academic year — otherwise the prior turn's AY would
+    // override the student's asked year and leak wrong-year dates.
     const previous = options.previousUserQuery?.trim() ?? '';
     if (
       (result.insufficientEvidence || result.matches.length === 0) &&
+      result.insufficientReason !== 'academic_year' &&
       previous &&
       shouldMergeFollowUpQuery(query) &&
       !searchOnce(previous, 1, collections).insufficientEvidence
     ) {
-      const mergedQuery = `${previous} ${query.trim()}`;
+      const followScope = analyzeKnowledgeQuery(query);
+      let basePrevious = previous;
+      if (followScope.academicYear) {
+        basePrevious = basePrevious.replace(
+          /\b(?:a\.?y\.?|s\.?y\.?|school\s+year|academic\s+year)?\s*20\d{2}\s*(?:-|–|—|\/|to)\s*(?:20\d{2}|\d{2})\b/gi,
+          '',
+        );
+      }
+      if (followScope.term) {
+        basePrevious = basePrevious.replace(
+          /\b(?:first|1st|second|2nd)\s+(?:sem(?:ester)?|term)\b|\b(?:mid-?\s?year|summer)\b/gi,
+          '',
+        );
+      }
+      const mergedQuery = `${basePrevious.trim()} ${query.trim()}`.trim();
       const mergedResult = searchOnce(mergedQuery, limit, collections);
       if (
-        !mergedResult.insufficientEvidence &&
-        mergedResult.matches.length > 0
+        mergedResult.insufficientReason === 'academic_year' ||
+        (!mergedResult.insufficientEvidence && mergedResult.matches.length > 0)
       ) {
         result = mergedResult;
       }

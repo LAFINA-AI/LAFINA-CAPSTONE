@@ -45,8 +45,11 @@ export const MemoryNote: React.FC<MemoryNoteProps> = ({messageId, changes, onUnd
       </View>
       {changes.undone
         ? null
-        : lines.map(line => (
-            <Text key={line} style={[styles.line, {color: colors.textSecondary}]}>
+        : lines.map((line, index) => (
+            <Text
+              key={`${index}-${line}`}
+              style={[styles.line, {color: colors.textSecondary}]}
+            >
               {line}
             </Text>
           ))}

@@ -171,6 +171,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   // Push-to-talk (offline-first) or a live online conversation (explicit tap).
   const [mode, setMode] = useState<'push' | 'conversation'>('push');
   const appliedRef = useRef(false);
+  const mountedRef = useRef(true);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const modalScrollRef = useRef<ScrollView>(null);
 
@@ -238,7 +239,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       const result = stream
         ? await stream.finish(text)
         : await provider.speakText(text);
-      if (result.fallbackReason) {
+      if (result.fallbackReason && mountedRef.current) {
         setNotice(`Read with the device voice: ${result.fallbackReason}`);
       }
     },
@@ -256,16 +257,28 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     return id;
   }, []);
 
+  /** Stops any capture this sheet started; its late result is ignored. */
+  const retireCapture = useCallback(() => {
+    pressActiveRef.current = false;
+    activeCaptureRef.current += 1;
+    const capture = speechCaptureRef.current;
+    speechCaptureRef.current = null;
+    if (capture) void cancelOfflineSpeechCapture(capture.captureId);
+  }, []);
+
   useEffect(() => {
+    mountedRef.current = true;
     const timers = timersRef.current;
     return () => {
+      mountedRef.current = false;
+      retireCapture();
       timers.forEach(id => clearTimeout(id));
       timers.clear();
       shakeAnim.stopAnimation();
       pulseAnim.stopAnimation();
       stopSpeaking();
     };
-  }, [pulseAnim, shakeAnim, stopSpeaking]);
+  }, [pulseAnim, retireCapture, shakeAnim, stopSpeaking]);
 
   // AGY-PORT 04: a planner change waits on this card until the student confirms.
   const review = useCommandReview(userId, 'voice');
@@ -279,15 +292,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     }, 50);
     return () => clearTimeout(timer);
   }, [review?.proposal]);
-
-  /** Stops any capture this sheet started; its late result is ignored. */
-  const retireCapture = useCallback(() => {
-    pressActiveRef.current = false;
-    activeCaptureRef.current += 1;
-    const capture = speechCaptureRef.current;
-    speechCaptureRef.current = null;
-    if (capture) void cancelOfflineSpeechCapture(capture.captureId);
-  }, []);
 
   // AGY-PORT 05: an unsent draft or a waiting review is never lost silently.
   const draft = useDraftProtection(
@@ -398,6 +402,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   useEffect(() => {
     if (!visible) {
+      appliedRef.current = false;
+      timersRef.current.forEach(id => clearTimeout(id));
+      timersRef.current.clear();
+      stopSpeaking();
       reviewRef.current.cancel({silent: true});
       retireCapture();
       setMode('push');
@@ -409,12 +417,13 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       return;
     }
 
+    appliedRef.current = false;
     setTranscript('');
     setNotice('');
     setAiReply('');
     setInputText('');
     setVoiceState('idle');
-  }, [visible, stopWaveform, retireCapture]);
+  }, [visible, stopWaveform, retireCapture, stopSpeaking]);
 
   // Going to the background ends a live capture (its late result is ignored);
   // the typed or dictated draft stays.
@@ -436,6 +445,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   useEffect(() => {
     if (ownerRef.current === userId) return;
     ownerRef.current = userId;
+    appliedRef.current = false;
+    timersRef.current.forEach(id => clearTimeout(id));
+    timersRef.current.clear();
     retireCapture();
     stopSpeaking();
     setMode('push');
@@ -587,7 +599,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     }
     setVoiceState('success');
     safeSetTimeout(() => {
-      if (activeCaptureRef.current === uiCaptureId) {
+      if (mountedRef.current && activeCaptureRef.current === uiCaptureId) {
+        appliedRef.current = false;
         onClose(true);
         setVoiceState('idle');
         setInputText('');
@@ -606,12 +619,26 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   // Push-To-Talk: Press & Hold down mic button to speak
   const handlePressIn = useCallback(async () => {
+    if (
+      voiceState === 'processing' ||
+      voiceState === 'review' ||
+      voiceState === 'success'
+    ) {
+      return;
+    }
+    if (voiceState === 'speaking') {
+      stopSpeaking();
+    }
     pressActiveRef.current = true;
     const captureId = activeCaptureRef.current + 1;
     activeCaptureRef.current = captureId;
 
     const hasPermission = await ensureMicrophonePermission();
-    if (activeCaptureRef.current !== captureId || !pressActiveRef.current) {
+    if (
+      !mountedRef.current ||
+      activeCaptureRef.current !== captureId ||
+      !pressActiveRef.current
+    ) {
       return;
     }
     if (!hasPermission) {
@@ -658,7 +685,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       setNotice('Speech recognition could not start. Please try again.');
       triggerErrorShake('idle');
     }
-  }, [triggerErrorShake]);
+  }, [stopSpeaking, triggerErrorShake, voiceState]);
 
   // Release the mic button to stop recording and process Whisper transcription
   const handlePressOut = useCallback(async () => {
@@ -761,7 +788,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   const handleCommandProcess = async (command: string) => {
     if (!command.trim()) return;
-    activeCaptureRef.current += 1;
+    stopSpeaking();
+    retireCapture();
     const uiCaptureId = activeCaptureRef.current;
     Keyboard.dismiss();
     setTranscript(command);
@@ -769,6 +797,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setVoiceState('processing');
 
     safeSetTimeout(async () => {
+      if (!mountedRef.current || activeCaptureRef.current !== uiCaptureId) {
+        return;
+      }
       // The reply is shown and spoken while it is still being written.
       const stream = onCommand
         ? null
@@ -779,7 +810,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         }
 
         const outcome = await runCommand(command, replySoFar => {
-          if (activeCaptureRef.current !== uiCaptureId) {
+          if (!mountedRef.current || activeCaptureRef.current !== uiCaptureId) {
             stream?.cancel();
             return;
           }
@@ -787,16 +818,17 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           setVoiceState('speaking');
           stream?.update(replySoFar);
         });
-        if (activeCaptureRef.current !== uiCaptureId) {
+        if (!mountedRef.current || activeCaptureRef.current !== uiCaptureId) {
           stream?.cancel();
           return;
         }
         if (await presentOutcome(outcome, uiCaptureId, stream)) return;
 
-        if (activeCaptureRef.current === uiCaptureId) {
+        if (mountedRef.current && activeCaptureRef.current === uiCaptureId) {
           setVoiceState('success');
           safeSetTimeout(() => {
-            if (activeCaptureRef.current === uiCaptureId) {
+            if (mountedRef.current && activeCaptureRef.current === uiCaptureId) {
+              appliedRef.current = false;
               onClose(true);
               setVoiceState('idle');
               setInputText('');
@@ -806,7 +838,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       } catch (err) {
         stream?.cancel();
         console.error(err);
-        if (activeCaptureRef.current === uiCaptureId) {
+        if (mountedRef.current && activeCaptureRef.current === uiCaptureId) {
           triggerErrorShake('idle');
         }
       }
@@ -954,6 +986,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
                 <TouchableOpacity
                   activeOpacity={0.8}
+                  disabled={
+                    voiceState === 'processing' ||
+                    voiceState === 'review' ||
+                    voiceState === 'success'
+                  }
                   onPressIn={handlePressIn}
                   onPressOut={handlePressOut}
                   accessibilityRole="button"

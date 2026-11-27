@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   Animated,
   BackHandler,
+  DeviceEventEmitter,
   Keyboard,
   Pressable,
   StyleSheet,
@@ -18,6 +19,7 @@ import {useReducedMotion} from '../hooks/useReducedMotion';
 import {Fonts, FontSize, Spacing} from '../theme';
 import {resolveOnlineMode} from '../../cloud/onlineModeGate';
 import type {OnlineModeDecision} from '../../cloud/onlineModeGate';
+import {ONLINE_MODE_CHANGED_EVENT} from '../../cloud/voiceConversation';
 import {quickChatController} from '../../ai/quickChat/quickChatController';
 import {chatStore} from '../../storage/chatStore';
 import {floatingAssistantNative} from '../../utils/floatingAssistantNative';
@@ -160,12 +162,25 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
       cancelLatestRef.current = refreshOnline() ?? null;
     };
     recheck();
+    let wasOpen = quickChatPresence.isOpen();
     const unsubscribe = quickChatPresence.subscribe(() => {
-      if (!quickChatPresence.isOpen()) return;
-      setHistoryOpen(false);
-      playOpen();
-      recheck();
+      const nowOpen = quickChatPresence.isOpen();
+      if (nowOpen && !wasOpen) {
+        setHistoryOpen(false);
+        setChipNote(false);
+        playOpen();
+        recheck();
+      }
+      wasOpen = nowOpen;
     });
+    const unsubscribeOnline = DeviceEventEmitter.addListener(
+      ONLINE_MODE_CHANGED_EVENT,
+      (event: {userId?: string}) => {
+        if (!userId || !event?.userId || event.userId === userId) {
+          recheck();
+        }
+      },
+    );
     // The chip follows connectivity while the panel is open.
     let wasConnected: boolean | null = null;
     const unsubscribeNet = NetInfo.addEventListener(net => {
@@ -179,11 +194,12 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
       openAnimRef.current?.stop();
       openAnimRef.current = null;
       unsubscribe();
+      unsubscribeOnline.remove();
       unsubscribeNet();
       cancelLatestRef.current?.();
       cancelLatestRef.current = null;
     };
-  }, [playOpen, refreshOnline]);
+  }, [playOpen, refreshOnline, userId]);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', event => {
@@ -197,6 +213,8 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
     return () => {
       show.remove();
       hide.remove();
+      keyboardShown.current = false;
+      setKeyboardHeight(0);
     };
   }, []);
 
@@ -269,18 +287,23 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
     [userId],
   );
 
+  const safeWinHeight = window.height > 0 ? window.height : 640;
+  const safeWinWidth = window.width > 0 ? window.width : 360;
   const bottomGap =
     (keyboardHeight > 0 ? keyboardHeight : 0) + insets.bottom + Spacing.md;
-  const available = window.height - bottomGap - insets.top;
+  const available = Math.max(0, safeWinHeight - bottomGap - insets.top);
   const maxHeight = Math.max(
     Math.min(
-      window.height * 0.62,
+      safeWinHeight * 0.62,
       keyboardHeight > 0 ? available - Spacing.xxl : available,
-      window.height - insets.top - insets.bottom - Spacing.lg,
+      safeWinHeight - insets.top - insets.bottom - Spacing.lg,
     ),
     Math.min(SHEET_MIN_HEIGHT, available),
   );
-  const width = Math.min(window.width - Spacing.lg * 2, SHEET_MAX_WIDTH);
+  const width = Math.max(
+    200,
+    Math.min(safeWinWidth - Spacing.lg * 2, SHEET_MAX_WIDTH),
+  );
   const surface = isModern ? modernPalette.card : colors.surface;
   const onlineOn = online?.enabled === true;
   const activeButtonBg = isModern

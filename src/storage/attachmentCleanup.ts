@@ -55,11 +55,13 @@ const IN_TURN = `ORDER BY ${QUEUE} ASC, recorded_at ASC, path ASC`;
  * their top-level state files. Never a directory.
  */
 export const attachmentCleanupTarget = (uri: unknown): string | null => {
-  if (typeof uri !== 'string' || uri.length === 0 || uri.length > 1024) return null;
+  if (typeof uri !== 'string' || uri.length === 0) return null;
   // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f\\]/.test(uri)) return null;
   const path = uri.startsWith('file://') ? uri.slice('file://'.length) : uri;
-  if (!path.startsWith('/')) return null;
+  if (path.length === 0 || path.length > 1024 || !path.startsWith('/')) {
+    return null;
+  }
   const root = String(RNFS.DocumentDirectoryPath ?? '').replace(/\/+$/, '');
   if (!root.startsWith('/') || !path.startsWith(`${root}/`)) return null;
   const segments = path.slice(root.length + 1).split('/');
@@ -124,14 +126,34 @@ const countPending = (userId: string): number => {
   return value;
 };
 
+/** True when a filesystem error indicates the file was already removed. */
+const isNotFoundError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') {
+    return /enoent|no such file|does not exist|not found/i.test(String(error));
+  }
+  const code = (error as {code?: unknown}).code;
+  if (typeof code === 'string' && code.toUpperCase() === 'ENOENT') return true;
+  const msg = error instanceof Error ? error.message : String(error);
+  return /enoent|no such file|does not exist/i.test(msg);
+};
+
 /** True once the file is gone: removed now, or already absent. */
 const removeFile = async (path: string): Promise<boolean> => {
   if (!(await RNFS.exists(path))) return true;
-  // RNFS unlink deletes directories recursively; only a regular file is removed.
-  const info = await RNFS.stat(path);
-  if (!info.isFile()) return false;
-  await RNFS.unlink(path);
-  return true;
+  try {
+    // RNFS unlink deletes directories recursively; only a regular file is removed.
+    const info = await RNFS.stat(path);
+    if (!info.isFile()) return false;
+    await RNFS.unlink(path);
+    return true;
+  } catch (error) {
+    // If another pass removed the file between exists() and stat()/unlink(),
+    // confirm absence instead of treating ENOENT as a failed cleanup.
+    if (isNotFoundError(error) && !(await RNFS.exists(path).catch(() => true))) {
+      return true;
+    }
+    throw error;
+  }
 };
 
 export interface AttachmentCleanupResult {

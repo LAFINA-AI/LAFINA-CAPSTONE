@@ -352,6 +352,9 @@ export interface PrepareOptions {
   surface?: ReviewSurface;
   /** Identity of a ringing reminder call; makes `reschedule` target exactly that reminder. */
   ringingCall?: RingingCallContext | null;
+  /** Explicit inline-editor clearing of an existing task's due date or time. */
+  clearDueDate?: boolean;
+  clearDueTime?: boolean;
 }
 
 interface PendingReview {
@@ -2367,6 +2370,7 @@ const buildUpdate = (
   userId: string,
   c: CleanIntent,
   today: string,
+  clearFlags?: {clearDueDate?: boolean; clearDueTime?: boolean},
 ): BuildResult => {
   const queryTitle = c.targetTitle || c.title;
   const query: TargetQuery = {
@@ -2616,8 +2620,10 @@ const buildUpdate = (
   }
 
   const title = c.newTitle || task.title;
-  let dueDate = c.date || task.dueDate || null;
-  const dueTime = c.time ?? task.dueTime ?? null;
+  let dueDate = clearFlags?.clearDueDate ? null : c.date || task.dueDate || null;
+  const dueTime = clearFlags?.clearDueTime
+    ? null
+    : c.time ?? (clearFlags?.clearDueDate ? null : task.dueTime ?? null);
   if (!dueDate && c.time) {
     dueDate = today;
     assumptions.push(
@@ -3322,7 +3328,10 @@ export const prepareReviewedCommand = (
       case 'update_task':
       case 'update_time_block':
       case 'update_note':
-        built = buildUpdate(userId, clean, today);
+        built = buildUpdate(userId, clean, today, {
+          clearDueDate: options.clearDueDate,
+          clearDueTime: options.clearDueTime,
+        });
         break;
       case 'acknowledge':
       case 'snooze':
@@ -5004,7 +5013,7 @@ export const editReviewedCommand = (
   }
 
   if (
-    op.op === 'create_task' &&
+    (op.op === 'create_task' || op.op === 'update_task') &&
     patch.date !== undefined &&
     nextDate === null &&
     patch.time === undefined
@@ -5110,7 +5119,12 @@ export const editReviewedCommand = (
         nextTime && nextEndTime
           ? computeDurationMinutes(nextTime, nextEndTime)
           : fields.durationMinutes,
-      priority: op.op === 'create_task' ? op.priority : undefined,
+      priority:
+        op.op === 'create_task' || op.op === 'update_task'
+          ? op.priority ?? undefined
+          : undefined,
+      isPinned:
+        op.op === 'update_note' ? op.isPinned ?? undefined : undefined,
       category: nextCategory,
       details: nextDetails,
       snoozeMinutes: null,
@@ -5130,6 +5144,8 @@ export const editReviewedCommand = (
     {
       surface: current.proposal.surface,
       referenceDate,
+      clearDueDate: op.op === 'update_task' && nextDate === null,
+      clearDueTime: op.op === 'update_task' && nextTime === null,
     },
   );
   if (result.status === 'proposal') {
@@ -5278,7 +5294,10 @@ const planLowRisk = (
       case 'update_task':
       case 'update_time_block':
       case 'update_note':
-        built = buildUpdate(userId, clean, today);
+        built = buildUpdate(userId, clean, today, {
+          clearDueDate: options.clearDueDate,
+          clearDueTime: options.clearDueTime,
+        });
         break;
       case 'acknowledge':
       case 'snooze':

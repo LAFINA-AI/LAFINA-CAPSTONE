@@ -231,8 +231,8 @@ const reset = (ownerId: string | null): void => {
 const prepareFor = (ownerId: string): void => {
   const idle = now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS;
   if (state.ownerId !== ownerId || (idle && !state.busy)) {
-    if (state.ownerId && state.ownerId !== ownerId) {
-      clearPendingClarification(state.ownerId, 'quick');
+    if (state.ownerId) {
+      cancelPendingQuickState(state.ownerId);
     }
     reset(ownerId);
   }
@@ -485,10 +485,43 @@ export const quickChatController = {
     state.cardSource = source;
   },
 
+  /**
+   * Rebinds the stored card source after an inline edit on the review card,
+   * preserving `messageId` and updating the proposal bubble in place.
+   */
+  updateCardSourceOnEdit(
+    userId: string,
+    previousOperationId: string,
+    nextOperationId: string,
+    nextReply?: string,
+  ): void {
+    if (!userId || state.ownerId !== userId) return;
+    const source = state.cardSource;
+    if (source && source.operationId === previousOperationId) {
+      state.cardSource = {
+        ...source,
+        operationId: nextOperationId,
+      };
+      if (nextReply && source.messageId) {
+        let changed = false;
+        state.messages = state.messages.map(msg => {
+          if (msg.id !== source.messageId) return msg;
+          changed = true;
+          return {...msg, content: nextReply};
+        });
+        if (changed) {
+          persistActiveSession();
+          notify();
+        }
+      }
+    }
+  },
+
   /** The words behind the card `operationId` for this owner, or null. */
   getCardSource(userId: string, operationId: string): string | null {
     if (!userId || state.ownerId !== userId) return null;
     if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
+      cancelPendingQuickState(userId);
       reset(userId);
       return null;
     }
@@ -500,6 +533,7 @@ export const quickChatController = {
   getTranscript(userId: string): ChatMessage[] {
     if (!userId || state.ownerId !== userId) return [];
     if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
+      cancelPendingQuickState(userId);
       reset(userId);
       return [];
     }
@@ -510,6 +544,7 @@ export const quickChatController = {
   getActiveSessionId(userId: string): string | null {
     if (!userId || state.ownerId !== userId) return null;
     if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
+      cancelPendingQuickState(userId);
       reset(userId);
       return null;
     }
@@ -568,6 +603,7 @@ export const quickChatController = {
   getLastResult(userId: string): ChatOrchestratorResult | null {
     if (!userId || state.ownerId !== userId) return null;
     if (!state.busy && now() - state.lastUsedAt > QUICK_CHAT_IDLE_MS) {
+      cancelPendingQuickState(userId);
       reset(userId);
       return null;
     }
@@ -613,7 +649,7 @@ export const quickChatController = {
   /** Keeps only this owner's transcript (account switch or sign-out). */
   retainOnly(userId: string | null): void {
     if (state.ownerId !== userId) {
-      clearPendingClarification(state.ownerId ?? undefined, 'quick');
+      cancelPendingQuickState(state.ownerId);
       reset(userId);
       notify();
     }

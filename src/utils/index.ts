@@ -1,4 +1,5 @@
 export {generateId} from './id';
+export {safeSlice, safeSliceEnd} from './safeText';
 export {secureKeystore} from './keystore';
 export {
   CHECKLIST_LINE,

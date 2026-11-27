@@ -471,6 +471,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
       ? null
       : 'Your conversation could not be loaded right now. Nothing was deleted.',
   );
+  const [loadErrorKind, setLoadErrorKind] = useState<
+    'initial' | 'earlier' | null
+  >(initialPage ? null : 'initial');
   const [legacyHiddenCount, setLegacyHiddenCount] = useState(() => {
     try {
       return chatStore.getLegacyQuarantineSummary().messageCount;
@@ -532,6 +535,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const contentReadyRef = useRef(false);
   const isNearBottomRef = useRef(true);
   const isSendingRef = useRef(false);
+  const sendTicketRef = useRef(0);
+  const scanPickerBusyRef = useRef(false);
   const messagesLengthRef = useRef(messages.length);
   messagesLengthRef.current = messages.length;
   const listOpacity = useRef(new Animated.Value(1)).current;
@@ -915,6 +920,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
         clearTimeout(timingFallbackTimerRef.current);
         timingFallbackTimerRef.current = null;
       }
+      if (streamFlushRef.current !== null) {
+        clearTimeout(streamFlushRef.current);
+        streamFlushRef.current = null;
+      }
     };
   }, [clearInitialRevealHandles]);
 
@@ -1060,6 +1069,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
     return () => {
       showSub.remove();
       hideSub.remove();
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
     };
   }, []);
 
@@ -1070,6 +1081,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
         const rev = db.getDataRevision(CHAT_HISTORY_TABLES);
         const page = chatStore.getMessagesPage(userId);
         loadedMessagesRevRef.current = rev;
+        if (!shownChatIdRef.current) {
+          const recovered = readCurrentChat();
+          if (recovered) {
+            shownChatIdRef.current = recovered;
+            setCurrentChatId(recovered);
+          }
+        }
         if (options?.replace) {
           beginInitialScroll(page.items.length > 0);
           messagesRef.current = page.items;
@@ -1091,6 +1109,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
           }
         }
         setLoadError(null);
+        setLoadErrorKind(null);
         return page.items.length;
       } catch (error) {
         if (options?.replace) {
@@ -1102,10 +1121,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
         setLoadError(
           'Your conversation could not be loaded right now. Nothing was deleted.',
         );
+        setLoadErrorKind('initial');
         return null;
       }
     },
-    [beginInitialScroll, userId],
+    [beginInitialScroll, readCurrentChat, userId],
   );
 
   const handleLoadEarlier = useCallback(() => {
@@ -1124,21 +1144,36 @@ export const ChatScreen = React.memo(function ChatScreenView({
       setMessages(combined);
       setOlderCursor(page.nextCursor);
       setLoadError(null);
+      setLoadErrorKind(null);
     } catch (error) {
+      if (readCurrentChat() !== shownChatIdRef.current) {
+        showCurrentChatRef.current();
+        return;
+      }
       console.error('[ChatScreen] Could not load earlier messages:', error);
       setLoadError('Earlier messages could not be loaded. Try again.');
+      setLoadErrorKind('earlier');
     } finally {
       setIsLoadingEarlier(false);
     }
-  }, [isLoadingEarlier, olderCursor, userId]);
+  }, [isLoadingEarlier, olderCursor, readCurrentChat, userId]);
 
   const prevUserIdRef = useRef(userId);
   // A different account never sees the previous account's messages or cursor.
   useEffect(() => {
     if (prevUserIdRef.current === userId) return;
     prevUserIdRef.current = userId;
+    sendTicketRef.current += 1;
+    if (streamFlushRef.current) {
+      clearTimeout(streamFlushRef.current);
+      streamFlushRef.current = null;
+    }
+    isSendingRef.current = false;
+    setIsSending(false);
+    setStreamingReply(null);
     onlineAuthVerifiedUserRef.current = null;
     lastNetConnectivityRef.current = null;
+    setIsOnlineMode(readInitialOnlineMode(userId));
     messagesLengthRef.current = 0;
     isTemporaryChatRef.current = false;
     setIsTemporaryChat(false);
@@ -1147,10 +1182,18 @@ export const ChatScreen = React.memo(function ChatScreenView({
     setChatMultiBatch(null);
     setChatMultiBusy(false);
     setUndoOffer(null);
+    setSkillOffer(null);
+    setSourcesTarget(null);
+    setFormatPickerOpen(false);
+    setGuideVisible(false);
+    setEngineSheetVisible(false);
+    setIsKeyboardVisible(false);
+    setKeyboardHeight(0);
     setMessages([]);
     setOlderCursor(null);
     setHandbookNotes({});
     setLoadError(null);
+    setLoadErrorKind(null);
     const nextChatId = readCurrentChat();
     shownChatIdRef.current = nextChatId;
     setCurrentChatId(nextChatId);
@@ -1210,6 +1253,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
       // Online Mode is opt-in: connectivity alone never turns it on.
       if (!optedIn()) {
         onlineAuthVerifiedUserRef.current = null;
+        if (active && isOnlineModeRef.current) {
+          setIsOnlineMode(false);
+        }
         return;
       }
 
@@ -1320,6 +1366,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       reviewSourceRef.current = null;
       setChatMultiBatch(null);
       setUndoOffer(null);
+      setSkillOffer(null);
     }
     shownChatIdRef.current = nextChatId;
     isTemporaryChatRef.current = false;
@@ -1329,6 +1376,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     setHandbookNotes({});
     setOlderCursor(null);
     setLoadError(null);
+    setLoadErrorKind(null);
     loadMessages({replace: true});
     refreshChatTitle();
   }, [loadMessages, readCurrentChat, refreshChatTitle]);
@@ -1369,6 +1417,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
         reviewSourceRef.current = null;
       }
       setChatMultiBatch(null);
+      setSkillOffer(null);
     }
   }, [
     userId,
@@ -1475,15 +1524,13 @@ export const ChatScreen = React.memo(function ChatScreenView({
   };
 
   const handleStartUstpChat = () => {
-    if (isSending) return;
+    if (isSendingRef.current || isSending) return;
     if (!getUstpEligibility(userId).eligible) {
       setHistoryVisible(false);
       showUstpUnavailable();
       return;
     }
     setHistoryVisible(false);
-    setIsTemporaryChat(false);
-    setTempMessages([]);
     try {
       chatStore.startNewUstpChat(userId);
     } catch (error) {
@@ -1509,6 +1556,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
     reviewSourceRef.current = null;
     setChatMultiBatch(null);
     setUndoOffer(null);
+    setSkillOffer(null);
+    setHandbookNotes({});
+    setOlderCursor(null);
+    setLoadError(null);
+    setLoadErrorKind(null);
     isTemporaryChatRef.current = true;
     setIsTemporaryChat(true);
     setTempMessages([]);
@@ -1527,6 +1579,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     }
     setChatMultiBatch(null);
     setUndoOffer(null);
+    setSkillOffer(null);
     isTemporaryChatRef.current = false;
     setIsTemporaryChat(false);
     setTempMessages([]);
@@ -1542,6 +1595,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
       onlineAuthVerifiedUserRef.current = null;
       setIsOnlineMode(false);
       localSettingsStore.set(reqUser, 'chat.onlineMode', 'false');
+      DeviceEventEmitter.emit(ONLINE_MODE_CHANGED_EVENT, {
+        userId: reqUser,
+        enabled: false,
+      });
       return false;
     }
 
@@ -1591,6 +1648,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
     }
     onlineAuthVerifiedUserRef.current = reqUser;
     setIsOnlineMode(true);
+    DeviceEventEmitter.emit(ONLINE_MODE_CHANGED_EVENT, {
+      userId: reqUser,
+      enabled: true,
+    });
     return true;
   };
 
@@ -1600,23 +1661,34 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
   const handleScanCamera = async () => {
     setFormatPickerOpen(false);
-    if (isSendingRef.current) return;
-    if (!ensureGeneralSessionForTool()) return;
+    if (isSendingRef.current || scanPickerBusyRef.current) return;
+    scanPickerBusyRef.current = true;
     const reqUser = userId;
     let scanning = false;
+    let scanTicket = 0;
     try {
       const photo = await visionService.takePhoto();
       if (!mountedRef.current || activeUserRef.current !== reqUser) return;
       if (!photo?.uri || isSendingRef.current) return;
+      if (!ensureGeneralSessionForTool()) return;
 
       scanning = true;
+      scanTicket = ++sendTicketRef.current;
       isSendingRef.current = true;
       setIsSending(true);
       const ocrResult = await visionService.scanScheduleFromUri(photo.uri);
       scanning = false;
-      isSendingRef.current = false;
-      if (mountedRef.current) setIsSending(false);
-      if (!mountedRef.current || activeUserRef.current !== reqUser) return;
+      if (sendTicketRef.current === scanTicket) {
+        isSendingRef.current = false;
+        if (mountedRef.current) setIsSending(false);
+      }
+      if (
+        !mountedRef.current ||
+        activeUserRef.current !== reqUser ||
+        sendTicketRef.current !== scanTicket
+      ) {
+        return;
+      }
 
       if (!ocrResult.rawText.trim()) {
         Alert.alert(
@@ -1630,40 +1702,51 @@ export const ChatScreen = React.memo(function ChatScreenView({
         preserveDraft: true,
       });
     } catch (err: any) {
-      if (scanning) {
+      if (scanning && sendTicketRef.current === scanTicket) {
         isSendingRef.current = false;
+        if (mountedRef.current) setIsSending(false);
       }
-      if (mountedRef.current) {
-        setIsSending(false);
-        if (activeUserRef.current === reqUser) {
-          Alert.alert(
-            'Camera Scan Failed',
-            err?.message || 'Could not scan photo.',
-          );
-        }
+      if (mountedRef.current && activeUserRef.current === reqUser) {
+        Alert.alert(
+          'Camera Scan Failed',
+          err?.message || 'Could not scan photo.',
+        );
       }
+    } finally {
+      scanPickerBusyRef.current = false;
     }
   };
 
   const handleScanGallery = async () => {
     setFormatPickerOpen(false);
-    if (isSendingRef.current) return;
-    if (!ensureGeneralSessionForTool()) return;
+    if (isSendingRef.current || scanPickerBusyRef.current) return;
+    scanPickerBusyRef.current = true;
     const reqUser = userId;
     let scanning = false;
+    let scanTicket = 0;
     try {
       const photo = await visionService.pickImageFromGallery();
       if (!mountedRef.current || activeUserRef.current !== reqUser) return;
       if (!photo?.uri || isSendingRef.current) return;
+      if (!ensureGeneralSessionForTool()) return;
 
       scanning = true;
+      scanTicket = ++sendTicketRef.current;
       isSendingRef.current = true;
       setIsSending(true);
       const ocrResult = await visionService.scanScheduleFromUri(photo.uri);
       scanning = false;
-      isSendingRef.current = false;
-      if (mountedRef.current) setIsSending(false);
-      if (!mountedRef.current || activeUserRef.current !== reqUser) return;
+      if (sendTicketRef.current === scanTicket) {
+        isSendingRef.current = false;
+        if (mountedRef.current) setIsSending(false);
+      }
+      if (
+        !mountedRef.current ||
+        activeUserRef.current !== reqUser ||
+        sendTicketRef.current !== scanTicket
+      ) {
+        return;
+      }
 
       if (!ocrResult.rawText.trim()) {
         Alert.alert(
@@ -1677,18 +1760,18 @@ export const ChatScreen = React.memo(function ChatScreenView({
         preserveDraft: true,
       });
     } catch (err: any) {
-      if (scanning) {
+      if (scanning && sendTicketRef.current === scanTicket) {
         isSendingRef.current = false;
+        if (mountedRef.current) setIsSending(false);
       }
-      if (mountedRef.current) {
-        setIsSending(false);
-        if (activeUserRef.current === reqUser) {
-          Alert.alert(
-            'Image Scan Failed',
-            err?.message || 'Could not process image.',
-          );
-        }
+      if (mountedRef.current && activeUserRef.current === reqUser) {
+        Alert.alert(
+          'Image Scan Failed',
+          err?.message || 'Could not process image.',
+        );
       }
+    } finally {
+      scanPickerBusyRef.current = false;
     }
   };
 
@@ -1741,7 +1824,8 @@ export const ChatScreen = React.memo(function ChatScreenView({
   ) => {
     const sentAt = monotonicNow();
     const query = (overrideText || chatDraftStore.get(userId)).trim();
-    if (!query || isSendingRef.current) return;
+    if (!query || isSendingRef.current || ustpChatBlocked) return;
+    const sendTicket = ++sendTicketRef.current;
     // One trace per request, handed to this request only. A late callback
     // from an older request can never reach it.
     let timedAssistantId: string | null = null;
@@ -1770,6 +1854,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       chatDraftStore.set(userId, '');
     }
     isSendingRef.current = true;
+    setSkillOffer(null);
     needsInitialScrollRef.current = false;
     initialSettleUntilRef.current = 0;
     isNearBottomRef.current = true;
@@ -1874,14 +1959,18 @@ export const ChatScreen = React.memo(function ChatScreenView({
           trace.finalize();
         }
       }
-      // If the account changed while the reply was pending, the reply was saved
-      // for the account that sent it and must not appear in this one.
+      // If the account or chat changed while the reply was pending, the reply
+      // was saved for the chat that sent it and must not appear in this one.
       if (!stillShown()) {
-        if (result.review?.status === 'proposal')
+        if (result.review?.status === 'proposal') {
           cancelReviewedCommand(
             requestUser,
             result.review.proposal.operationId,
           );
+        }
+        if (result.multiBatch) {
+          actionService.cancelMultiActionBatch(requestUser, result.multiBatch);
+        }
         return;
       }
       setUndoOffer(result.undo ?? null);
@@ -1913,11 +2002,6 @@ export const ChatScreen = React.memo(function ChatScreenView({
         }
         reviewSourceRef.current = null;
         review.dismiss();
-      } else if (result.review?.status === 'proposal' && !stillShown()) {
-        // The student opened another chat while this was being read: the
-        // card would land under the wrong conversation. Discard it quietly;
-        // nothing was written. Saying it again in that chat brings it back.
-        cancelReviewedCommand(requestUser, result.review.proposal.operationId);
       } else {
         setChatMultiBatch(null);
         if (result.review?.status === 'proposal') {
@@ -1973,14 +2057,19 @@ export const ChatScreen = React.memo(function ChatScreenView({
         chatDraftStore.set(requestUser, query);
       }
     } finally {
-      // The saved reply (loaded above) replaces the live bubble in one render.
-      if (streamFlushRef.current) {
-        clearTimeout(streamFlushRef.current);
-        streamFlushRef.current = null;
+      // Only the active request clears sending/streaming state so an account
+      // switch cannot let an older request clobber the new account's UI.
+      if (sendTicketRef.current === sendTicket) {
+        if (streamFlushRef.current) {
+          clearTimeout(streamFlushRef.current);
+          streamFlushRef.current = null;
+        }
+        isSendingRef.current = false;
+        if (mountedRef.current) {
+          setStreamingReply(null);
+          setIsSending(false);
+        }
       }
-      setStreamingReply(null);
-      isSendingRef.current = false;
-      setIsSending(false);
     }
   };
 
@@ -2055,6 +2144,27 @@ export const ChatScreen = React.memo(function ChatScreenView({
           );
         }
         reviewSourceRef.current = null;
+      } else if (decision.outcome?.status === 'refused') {
+        if (decision.outcome.reason !== 'failed') {
+          reviewSourceRef.current = null;
+        }
+        if (confirmedInTemp && decision.reply) {
+          const now = new Date().toISOString();
+          setTempMessages(prev => [
+            ...prev,
+            {
+              id: `temp_asst_${Date.now()}_${Math.random()
+                .toString(36)
+                .slice(2, 7)}`,
+              sessionId: 'temp_chat',
+              sender: 'assistant',
+              content: decision.reply,
+              localReply: true,
+              createdAt: now,
+              updatedAt: now,
+            },
+          ]);
+        }
       }
       if (!confirmedInTemp) loadMessages();
       onRefresh?.();
@@ -2113,6 +2223,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const handleConfirmChatMultiAll = async () => {
     if (!chatMultiBatch || chatMultiBusyRef.current || chatMultiBusy) return;
     const requestUser = userId;
+    const requestChatId = shownChatIdRef.current;
     const confirmedInTemp = isTemporaryChatRef.current;
     chatMultiBusyRef.current = true;
     setChatMultiBusy(true);
@@ -2126,33 +2237,47 @@ export const ChatScreen = React.memo(function ChatScreenView({
           {onDevice: true},
         );
       if (!mountedRef.current || activeUserRef.current !== requestUser) return;
-      setChatMultiBatch(batch);
+      const sameView =
+        isTemporaryChatRef.current === confirmedInTemp &&
+        (confirmedInTemp || shownChatIdRef.current === requestChatId);
+      if (sameView) {
+        setChatMultiBatch(batch);
+      }
       if (confirmedInTemp) {
-        const now = new Date().toISOString();
-        setTempMessages(prev => [
-          ...prev,
-          {
-            id: `temp_asst_${Date.now()}_${Math.random()
-              .toString(36)
-              .slice(2, 7)}`,
-            sessionId: 'temp_chat',
-            sender: 'assistant',
-            content: spokenSummary,
-            localReply: true,
-            createdAt: now,
-            updatedAt: now,
-          },
-        ]);
+        if (sameView) {
+          const now = new Date().toISOString();
+          setTempMessages(prev => [
+            ...prev,
+            {
+              id: `temp_asst_${Date.now()}_${Math.random()
+                .toString(36)
+                .slice(2, 7)}`,
+              sessionId: 'temp_chat',
+              sender: 'assistant',
+              content: spokenSummary,
+              localReply: true,
+              createdAt: now,
+              updatedAt: now,
+            },
+          ]);
+        }
       } else {
-        chatStore.addMessage(
-          requestUser,
-          'assistant',
-          spokenSummary,
-          null,
-          {localReply: true},
-          readCurrentChat(),
-        );
-        loadMessages();
+        try {
+          chatStore.addMessage(
+            requestUser,
+            'assistant',
+            spokenSummary,
+            null,
+            {localReply: true},
+            requestChatId || readCurrentChat(),
+          );
+          if (sameView) loadMessages();
+        } catch (chatErr) {
+          console.warn(
+            '[ChatScreen] Multi-action items saved, but transcript write failed:',
+            chatErr,
+          );
+        }
       }
       onRefresh?.();
     } catch (err) {
@@ -2181,11 +2306,23 @@ export const ChatScreen = React.memo(function ChatScreenView({
     if (!chatMultiBatch || chatMultiBusy) return;
     const remaining = chatMultiBatch.items.filter(i => i.id !== itemId);
     if (remaining.length === 0) {
+      actionService.cancelMultiActionBatch(userId, chatMultiBatch);
       setChatMultiBatch(null);
       return;
     }
+    const savedCount = remaining.filter(i => i.status === 'saved').length;
+    const failedCount = remaining.filter(i => i.status === 'failed').length;
+    const nextStatus =
+      savedCount === remaining.length
+        ? 'saved'
+        : savedCount > 0
+        ? 'partial'
+        : failedCount === remaining.length
+        ? 'failed'
+        : 'draft';
     setChatMultiBatch({
       ...chatMultiBatch,
+      status: nextStatus,
       revision: chatMultiBatch.revision + 1,
       items: remaining,
     });
@@ -2194,6 +2331,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const handleRetryChatMultiItem = async (itemId: string) => {
     if (!chatMultiBatch || chatMultiBusyRef.current || chatMultiBusy) return;
     const requestUser = userId;
+    const requestChatId = shownChatIdRef.current;
     const confirmedInTemp = isTemporaryChatRef.current;
     chatMultiBusyRef.current = true;
     setChatMultiBusy(true);
@@ -2206,9 +2344,14 @@ export const ChatScreen = React.memo(function ChatScreenView({
         {onDevice: true},
       );
       if (!mountedRef.current || activeUserRef.current !== requestUser) return;
-      setChatMultiBatch(batch);
-      if (!confirmedInTemp) {
-        loadMessages();
+      const sameView =
+        isTemporaryChatRef.current === confirmedInTemp &&
+        (confirmedInTemp || shownChatIdRef.current === requestChatId);
+      if (sameView) {
+        setChatMultiBatch(batch);
+        if (!confirmedInTemp) {
+          loadMessages();
+        }
       }
       onRefresh?.();
     } catch (err) {
@@ -2284,9 +2427,14 @@ export const ChatScreen = React.memo(function ChatScreenView({
   const openRequestHandledRef = useRef(onOpenRequestHandled);
   openRequestHandledRef.current = onOpenRequestHandled;
   const lastHandledChatRequestIdRef = useRef<string | null>(null);
+  const showCurrentChatRef = useRef(showCurrentChat);
+  showCurrentChatRef.current = showCurrentChat;
+  const readCurrentChatRef = useRef(readCurrentChat);
+  readCurrentChatRef.current = readCurrentChat;
   useEffect(() => {
     if (!openRequest || openRequest.ownerId !== userId) return;
     if (lastHandledChatRequestIdRef.current === openRequest.requestId) return;
+    if (isSending) return;
     lastHandledChatRequestIdRef.current = openRequest.requestId;
     if (openRequest.chatMode === 'ustp') {
       const alreadyInUstp =
@@ -2294,9 +2442,14 @@ export const ChatScreen = React.memo(function ChatScreenView({
       if (!alreadyInUstp) {
         handleStartUstpChatRef.current();
       }
+    } else if (
+      !isTemporaryChatRef.current &&
+      readCurrentChatRef.current() !== shownChatIdRef.current
+    ) {
+      showCurrentChatRef.current();
     }
     openRequestHandledRef.current?.(openRequest.requestId);
-  }, [openRequest, userId]);
+  }, [openRequest, userId, isSending]);
   const handleLeaveBlockedUstpChatRef = useRef(handleLeaveBlockedUstpChat);
   handleLeaveBlockedUstpChatRef.current = handleLeaveBlockedUstpChat;
   const handleToggleOnlineRef = useRef(handleToggleOnline);
@@ -2392,7 +2545,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
             </TouchableOpacity>
           </View>
         ) : null}
-        {loadError ? (
+        {loadError && !isTemporaryChat ? (
           <View
             style={[
               styles.noticeCard,
@@ -2406,9 +2559,9 @@ export const ChatScreen = React.memo(function ChatScreenView({
             </Text>
             <TouchableOpacity
               onPress={() =>
-                olderCursor
+                loadErrorKind === 'earlier' && olderCursor
                   ? handleLoadEarlierRef.current()
-                  : loadMessagesRef.current()
+                  : loadMessagesRef.current({replace: true})
               }
               accessibilityRole="button"
               accessibilityLabel="Retry loading the conversation"
@@ -2420,7 +2573,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
             </TouchableOpacity>
           </View>
         ) : null}
-        {olderCursor ? (
+        {olderCursor && !isTemporaryChat && !ustpChatBlocked ? (
           <TouchableOpacity
             style={[
               styles.loadEarlierButton,
@@ -2449,9 +2602,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
       legacyHiddenCount,
       legacyNoticeDismissed,
       loadError,
+      loadErrorKind,
       modernPalette.surface,
       olderCursor,
       themed,
+      ustpChatBlocked,
     ],
   );
 
@@ -2510,7 +2665,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
   };
 
   const listEmptyElement = useMemo(() => {
-    if (loadError) return null;
+    if (loadError && !isTemporaryChat) return null;
     const greetingColor = isModern ? modernPalette.text : colors.textPrimary;
     const subtitleColor = isModern ? modernPalette.muted : colors.textSecondary;
     const accentColor = isModern ? modernPalette.accent : colors.primary;
@@ -2833,8 +2988,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
     needsInitialScrollRef.current = false;
     initialSettleUntilRef.current = 0;
   }, []);
-  const hasNoMessages =
-    (isTemporaryChat ? tempMessages.length : messages.length) === 0;
+  const hasNoMessages = displayedMessages.length === 0;
   const listContentContainerStyle = useMemo(
     () => [styles.listContent, hasNoMessages && styles.listContentEmpty],
     [hasNoMessages],
@@ -3113,8 +3267,10 @@ export const ChatScreen = React.memo(function ChatScreenView({
           maxToRenderPerBatch={6}
           windowSize={7}
           // Switching the reply format or chat mode redraws replies/empty state.
-          extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${studentName}:${modernTheme}:${isDarkMode}:${
-            perfOn ? Object.keys(timingLabels)[0] ?? '' : ''
+          extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${schoolEnabled}:${studentName}:${modernTheme}:${isDarkMode}:${
+            perfOn
+              ? `${Object.keys(timingLabels).length}:${Object.keys(timingLabels).slice(-1)[0] ?? ''}`
+              : ''
           }`}
           keyExtractor={flatListKeyExtractor}
           style={styles.messagesList}
@@ -3216,7 +3372,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
       {/* Bottom Input */}
       <ChatComposer
         userId={userId}
-        isSending={isSending}
+        isSending={isSending || ustpChatBlocked}
         isOnlineMode={isOnlineMode}
         isUstpChat={isUstpChat}
         schoolEnabled={schoolEnabled}
@@ -3303,6 +3459,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
             busy={isSending}
             onClose={() => setHistoryVisible(false)}
             onChanged={showCurrentChat}
+            onRenamedCurrent={refreshChatTitle}
             onStartUstpChat={handleStartUstpChat}
             onOpenUstpSources={() => {
               setHistoryVisible(false);
@@ -3312,11 +3469,11 @@ export const ChatScreen = React.memo(function ChatScreenView({
             onStartTemporaryChat={handleStartTemporaryFromSidebar}
             onScanCamera={() => {
               setHistoryVisible(false);
-              if (ensureGeneralSessionForTool()) void handleScanCamera();
+              void handleScanCamera();
             }}
             onScanGallery={() => {
               setHistoryVisible(false);
-              if (ensureGeneralSessionForTool()) void handleScanGallery();
+              void handleScanGallery();
             }}
             onOpenGuide={() => {
               setHistoryVisible(false);

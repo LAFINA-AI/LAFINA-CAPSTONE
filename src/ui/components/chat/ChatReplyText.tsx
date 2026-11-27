@@ -32,7 +32,10 @@ interface ChatReplyTextProps {
   testID?: string;
 }
 
+const SAFE_WEB_HREF = /^https?:\/\//i;
+
 const openLink = (href: string): void => {
+  if (!SAFE_WEB_HREF.test(href)) return;
   Linking.openURL(href).catch(() => {
     /* No app can open it: the words are still on screen. */
   });
@@ -49,7 +52,6 @@ const spanStyle = (
     style.fontWeight = '700';
   }
   if (span.italic) style.fontStyle = 'italic';
-  if (span.strike) style.textDecorationLine = 'line-through';
   if (span.code) {
     style.fontFamily = 'monospace';
     style.fontSize = 13;
@@ -58,7 +60,13 @@ const spanStyle = (
   }
   if (span.href) {
     style.color = accent;
+  }
+  if (span.href && span.strike) {
+    style.textDecorationLine = 'underline line-through';
+  } else if (span.href) {
     style.textDecorationLine = 'underline';
+  } else if (span.strike) {
+    style.textDecorationLine = 'line-through';
   }
   return Object.keys(style).length > 0 ? style : undefined;
 };
@@ -113,20 +121,28 @@ export const tableColumnSizes = (
   rows: ChatInline[][][],
   fontScale = 1,
 ): ColumnSize[] => {
-  const columns = Math.max(0, ...rows.map(row => row.length));
+  const safeScale =
+    Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
+  let columns = 0;
+  for (const row of rows) {
+    if (row.length > columns) columns = row.length;
+  }
   const width = (chars: number, perChar: number) =>
-    Math.round(chars * perChar * fontScale + CELL_PADDING);
+    Math.round(chars * perChar * safeScale + CELL_PADDING);
   return Array.from({length: columns}, (_, column) => {
-    const texts = rows.map(row => cellText(row[column]));
-    const longestCell = Math.max(0, ...texts.map(text => text.length));
-    const longestWord = Math.max(
-      0,
-      ...texts.flatMap(text => text.split(/\s+/).map(word => word.length)),
-    );
+    let longestCell = 0;
+    let longestWord = 0;
+    for (const row of rows) {
+      const text = cellText(row[column]);
+      if (text.length > longestCell) longestCell = text.length;
+      for (const word of text.split(/\s+/)) {
+        if (word.length > longestWord) longestWord = word.length;
+      }
+    }
     const minimum = Math.max(MIN_COLUMN, width(longestWord, WORD_CHAR_WIDTH));
     const preferred = Math.max(
       minimum,
-      Math.min(MAX_COLUMN * fontScale, width(longestCell, CHAR_WIDTH)),
+      Math.min(MAX_COLUMN * safeScale, width(longestCell, CHAR_WIDTH)),
     );
     return {preferred: Math.round(preferred), minimum: Math.round(minimum)};
   });

@@ -1,5 +1,6 @@
 import {DeviceEventEmitter} from 'react-native';
 import {cloudClient} from './cloudClient';
+import {safeSlice} from '../utils/safeText';
 import {isGuestAccount} from './entitlements';
 import {
   memoriesForPrompt,
@@ -141,11 +142,11 @@ export const chatMemoryService = {
             messages: [
               {
                 role: 'user',
-                content: exchange.userText.slice(0, MAX_USER_CHARS),
+                content: safeSlice(exchange.userText, MAX_USER_CHARS),
               },
               {
                 role: 'assistant',
-                content: exchange.replyText.slice(0, MAX_REPLY_CHARS),
+                content: safeSlice(exchange.replyText, MAX_REPLY_CHARS),
               },
             ],
             memories: memoriesForPrompt(userId),
@@ -186,6 +187,13 @@ export const chatMemoryService = {
           !chatStore.setMemoryChanges(userId, assistantMessageId, applied, tx)
         ) {
           throw new Error('The memory notice could not be saved.');
+        }
+        if (applied.removed.length > 0) {
+          tx.afterCommit?.(() => {
+            for (const removed of applied.removed) {
+              reconcileDeletedMemory(userId, removed.id);
+            }
+          });
         }
         return applied;
       });

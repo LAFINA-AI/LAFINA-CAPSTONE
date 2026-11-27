@@ -40,7 +40,7 @@ export function SourceNoteText({
           {lineIndex > 0 ? '\n' : null}
           {spans.map((span, index) => {
             const href = span.href;
-            if (!href) return span.text;
+            if (!href || !/^https:\/\//i.test(href)) return span.text;
             return (
               <Text
                 key={index}

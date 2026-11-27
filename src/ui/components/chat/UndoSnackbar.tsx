@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {Undo2} from 'lucide-react-native';
 import {Fonts, FontSize, Layout, Spacing} from '../../theme';
@@ -27,6 +27,7 @@ export const UndoSnackbar: React.FC<UndoSnackbarProps> = ({
   testID = 'undo-snackbar',
 }) => {
   const {colors} = useTheme();
+  const pressedTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     const remaining = Math.min(
@@ -36,6 +37,12 @@ export const UndoSnackbar: React.FC<UndoSnackbarProps> = ({
     const timer = setTimeout(onHide, remaining);
     return () => clearTimeout(timer);
   }, [offer, onHide]);
+
+  const handlePressUndo = () => {
+    if (pressedTokenRef.current === offer.token) return;
+    pressedTokenRef.current = offer.token;
+    onUndo(offer.token);
+  };
 
   return (
     <View
@@ -54,7 +61,7 @@ export const UndoSnackbar: React.FC<UndoSnackbarProps> = ({
       </Text>
       <TouchableOpacity
         style={styles.action}
-        onPress={() => onUndo(offer.token)}
+        onPress={handlePressUndo}
         accessibilityRole="button"
         accessibilityLabel={`Undo: ${offer.label}`}
         testID={`${testID}-undo`}

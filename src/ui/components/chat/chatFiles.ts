@@ -2,10 +2,27 @@ import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import type {ChatAttachment} from '../../../storage';
 import type {GeneratedDocument} from '../../../skills/documentSkill';
-import {CHAT_FILES_SUBDIR} from '../../../storage/attachmentCleanup';
+import {
+  attachmentCleanupTarget,
+  CHAT_FILES_SUBDIR,
+} from '../../../storage/attachmentCleanup';
 
 const getChatFilesDir = (): string =>
   `${RNFS.DocumentDirectoryPath}/${CHAT_FILES_SUBDIR}`;
+
+const sanitizeFileName = (rawName: string, fallbackExt = 'bin'): string => {
+  const base = (rawName || '').split(/[\\/]/).pop() ?? '';
+  const cleaned = base
+    .replace(/\0/g, '')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^\.+/, '')
+    .replace(/[^a-zA-Z0-9._ -]/g, '_')
+    .trim();
+  if (!cleaned) return `document.${fallbackExt}`;
+  return /\.[A-Za-z0-9]{1,10}$/.test(cleaned)
+    ? cleaned
+    : `${cleaned}.${fallbackExt}`;
+};
 
 export const saveGeneratedFile = async (
   doc: GeneratedDocument,
@@ -14,12 +31,13 @@ export const saveGeneratedFile = async (
   if (!(await RNFS.exists(dir))) {
     await RNFS.mkdir(dir);
   }
-  const uniqueName = `${Date.now()}_${doc.fileName}`;
+  const safeName = sanitizeFileName(doc.fileName, doc.format || 'bin');
+  const uniqueName = `${Date.now()}_${safeName}`;
   const path = `${dir}/${uniqueName}`;
   await RNFS.writeFile(path, doc.contentBase64, 'base64');
   return {
     uri: `file://${path}`,
-    fileName: doc.fileName,
+    fileName: safeName,
     format: doc.format,
     mimeType: doc.mimeType,
     sizeBytes: doc.sizeBytes,
@@ -68,7 +86,8 @@ export const shareAttachment = async (
         } else {
           await pruneStaleShareCache(shareDir);
         }
-        const targetPath = `${shareDir}/${attachment.fileName}`;
+        const safeFileName = sanitizeFileName(attachment.fileName);
+        const targetPath = `${shareDir}/${safeFileName}`;
         if (await RNFS.exists(targetPath)) {
           await RNFS.unlink(targetPath);
         }
@@ -106,12 +125,18 @@ export const removeAttachmentFiles = async (uris: string[]): Promise<void> => {
   await Promise.all(
     uris.map(async uri => {
       try {
-        const path = toLocalPath(uri);
-        if (await RNFS.exists(path)) {
-          await RNFS.unlink(path);
+        const path = attachmentCleanupTarget(uri);
+        if (!path) return;
+        if (!(await RNFS.exists(path))) return;
+        if (typeof RNFS.stat === 'function') {
+          const info = await RNFS.stat(path);
+          if (info && typeof info.isFile === 'function' && !info.isFile()) {
+            return;
+          }
         }
+        await RNFS.unlink(path);
       } catch {
-        // Best-effort cleanup of local files when chat history is cleared.
+        // Best-effort cleanup of local files when chat history is deleted.
       }
     }),
   );

@@ -1,4 +1,5 @@
 import {cloudClient, CloudResult} from '../cloud';
+import {safeSlice} from '../utils';
 import type {OnlineChatMessage} from './onlineChatSkill';
 
 export type DocumentFormat = 'pdf' | 'docx' | 'xlsx' | 'pptx';
@@ -128,7 +129,7 @@ export const trimDocumentHistory = (
   const recent = messages
     .map(message => ({
       role: message.role,
-      content: message.content.trim().slice(0, MAX_HISTORY_MESSAGE_CHARS),
+      content: safeSlice(message.content.trim(), MAX_HISTORY_MESSAGE_CHARS),
     }))
     .filter(message => message.content.length > 0)
     .slice(-MAX_DOCUMENT_MESSAGES);
@@ -142,7 +143,7 @@ export const trimDocumentHistory = (
   if (recent.length === 1 && recent[0]!.content.length > MAX_DOCUMENT_CHARS) {
     recent[0] = {
       ...recent[0]!,
-      content: recent[0]!.content.slice(0, MAX_DOCUMENT_CHARS),
+      content: safeSlice(recent[0]!.content, MAX_DOCUMENT_CHARS),
     };
   }
   return recent;
@@ -184,7 +185,7 @@ export const documentSkill = {
         error: 'Document generation was cancelled.',
       };
     }
-    const prompt = params.prompt.trim().slice(0, MAX_PROMPT_CHARS);
+    const prompt = safeSlice(params.prompt.trim(), MAX_PROMPT_CHARS);
     if (!prompt) {
       return {
         status: 'validation_error',
@@ -204,7 +205,7 @@ export const documentSkill = {
     const combinedMessages: OnlineChatMessage[] =
       lastHistoryMsg &&
       lastHistoryMsg.role === 'user' &&
-      lastHistoryMsg.content.trim() === prompt
+      safeSlice(lastHistoryMsg.content.trim(), MAX_PROMPT_CHARS) === prompt
         ? [...priorHistory]
         : [...priorHistory, {role: 'user', content: prompt}];
     const messages = trimDocumentHistory(combinedMessages);

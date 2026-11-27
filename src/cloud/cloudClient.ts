@@ -281,7 +281,14 @@ const postStreaming = (
       detachHandlers();
       resolve(outcome);
     };
-    const onAbort = () => xhr.abort();
+    const safeAbort = () => {
+      try {
+        xhr.abort();
+      } catch {
+        // Ignore secondary abort failures.
+      }
+    };
+    const onAbort = () => safeAbort();
     const deliver = () => {
       if (settled) return;
       if (xhr.status < 200 || xhr.status >= 300) return;
@@ -293,18 +300,14 @@ const postStreaming = (
           options.onText(chunk);
           if (options.isComplete?.()) {
             finish({kind: 'response', status: xhr.status, text});
-            xhr.abort();
+            safeAbort();
           }
         } catch (error) {
           finish({
             kind: 'failed',
             error: error instanceof Error ? error : new Error(String(error)),
           });
-          try {
-            xhr.abort();
-          } catch {
-            // Ignore secondary abort failures.
-          }
+          safeAbort();
         }
       }
     };

@@ -32,6 +32,8 @@ const labelText = (title: string): string =>
  * passages (the builder never adds one the source documents do not name),
  * so nothing here is invented. Returns null when there is nothing to cite.
  */
+const SAFE_HTTPS_URL = /^https:\/\/[^\s<>()]+$/i;
+
 export function campusSourceNote(
   sources: readonly CampusCitationSource[],
 ): string | null {
@@ -39,13 +41,16 @@ export function campusSourceNote(
   const byUrl = new Map<string, {title: string; pages: Set<number>}>();
   for (const source of campus) {
     for (const link of source.links ?? []) {
-      if (!/^https:\/\//i.test(link.url)) continue;
-      const entry = byUrl.get(link.url) ?? {
-        title: labelText(link.title),
+      const cleanUrl = (link.url || '').trim();
+      if (!SAFE_HTTPS_URL.test(cleanUrl)) continue;
+      const cleanTitle = labelText(link.title);
+      if (!cleanTitle) continue;
+      const entry = byUrl.get(cleanUrl) ?? {
+        title: cleanTitle,
         pages: new Set<number>(),
       };
       for (const page of link.pages ?? []) entry.pages.add(page);
-      byUrl.set(link.url, entry);
+      byUrl.set(cleanUrl, entry);
     }
   }
   if (byUrl.size === 0) {

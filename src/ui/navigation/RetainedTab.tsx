@@ -28,6 +28,7 @@ export function ScreenOverlays({children}: React.PropsWithChildren) {
           return React.cloneElement(child, {state: {...state, visible: false}});
         }
         if (props.request) return React.cloneElement(child, {request: null});
+        if (props.target) return React.cloneElement(child, {target: null});
         return child;
       })}
     </>

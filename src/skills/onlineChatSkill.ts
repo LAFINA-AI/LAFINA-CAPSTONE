@@ -1,4 +1,5 @@
 import { cloudClient, CloudResult } from '../cloud';
+import { safeSlice, safeSliceEnd } from '../utils';
 
 /** A whole (non-streamed) reply gets as long as a streamed one. */
 const CHAT_REQUEST_TIMEOUT_MS = 65_000;
@@ -229,16 +230,26 @@ const boundMessages = (messages: OnlineChatMessage[]): OnlineChatMessage[] | nul
       .slice(-MAX_CHAT_MESSAGES)
       .map((msg) => ({
         role: msg.role,
-        content: msg.content.trim().slice(0, MAX_CHAT_MESSAGE_LENGTH),
+        content: safeSlice(msg.content.trim(), MAX_CHAT_MESSAGE_LENGTH),
       }))
       .filter((msg) => msg.content.length > 0);
     // Keep the latest turn and fit the server's combined 8,000-character budget.
+    // Avoid sending garbled tiny tail fragments of older messages or splitting UTF-16 surrogates.
     let budget = 8_000;
-    const bounded = trimmed.reverse().map(msg => {
-      const content = msg.content.slice(-budget);
-      const accepted = budget > 0 ? {...msg, content} : null;
+    const bounded = trimmed.reverse().map((msg, reverseIndex) => {
+      if (budget <= 0) return null;
+      if (reverseIndex > 0 && msg.content.length > budget && budget < 32) {
+        return null;
+      }
+      const content =
+        msg.content.length <= budget
+          ? msg.content
+          : reverseIndex === 0
+          ? safeSliceEnd(msg.content, budget)
+          : safeSliceEnd(msg.content, budget).trimStart();
+      if (!content) return null;
       budget = Math.max(0, budget - content.length);
-      return accepted;
+      return {...msg, content};
     }).filter((msg): msg is OnlineChatMessage => msg !== null).reverse();
     return bounded.length > 0 ? bounded : null;
 };
@@ -253,6 +264,7 @@ interface StreamEvent {
   text?: unknown;
   sources?: BackendChatSource[];
   usedHandbook?: unknown;
+  used_handbook?: unknown;
   model?: unknown;
 }
 
@@ -334,6 +346,7 @@ interface BackendAgentResponse {
   toolCalls?: AgentToolCall[];
   sources?: BackendChatSource[];
   usedHandbook?: boolean;
+  used_handbook?: boolean;
 }
 
 
@@ -450,6 +463,7 @@ export const onlineChatSkill = {
         ...memoryField,
         signal: options.signal,
         trace,
+        ...(options.keepNameCase ? { keepNameCase: true } : {}),
       });
     };
     if (options.signal?.aborted) {
@@ -459,6 +473,8 @@ export const onlineChatSkill = {
     trace?.note({onlineAttempted: true, streamed: true});
     trace?.mark('onlineDispatched');
 
+    const formatReply = (value: string): string =>
+      options.keepNameCase ? value : normalizeName(value);
     let buffer = '';
     let reply = '';
     let done: StreamEvent | null = null;
@@ -489,7 +505,7 @@ export const onlineChatSkill = {
           consume(parsed.events);
           if (reply !== before && reply.trim()) {
             trace?.mark('firstContentReceived');
-            options.onReplyText(normalizeName(reply.trimStart()));
+            options.onReplyText(formatReply(reply.trimStart()));
           }
         },
         // The reply is final at "done" (or "error"); the server may still be
@@ -498,13 +514,13 @@ export const onlineChatSkill = {
       },
       true,
     );
+    if (options.signal?.aborted) {
+      return { status: 'server_unavailable', error: 'cancelled' };
+    }
     if (buffer.trim()) consume(takeEvents(`${buffer}\n\n`).events);
 
-    const text = normalizeName(reply.trim());
+    const text = formatReply(reply.trim());
     if (!text) {
-      if (options.signal?.aborted) {
-        return { status: 'server_unavailable', error: 'cancelled' };
-      }
       if (result.httpStatus === 404 || result.httpStatus === 405) {
         streamRouteMissing = true;
         return fallback('stream route missing on this server');
@@ -531,7 +547,11 @@ export const onlineChatSkill = {
       data: {
         reply: text,
         sources: normalizeSources(finished?.sources),
-        usedHandbook: Boolean(finished?.usedHandbook ?? finished?.sources?.length),
+        usedHandbook: Boolean(
+          finished?.usedHandbook ??
+            finished?.used_handbook ??
+            finished?.sources?.length,
+        ),
         ...(finished && !failed ? {} : { interrupted: true }),
       },
     };
@@ -604,7 +624,9 @@ export const onlineChatSkill = {
         toolCalls,
         sources: normalizeSources(result.data.sources),
         usedHandbook: Boolean(
-          result.data.usedHandbook ?? result.data.sources?.length,
+          result.data.usedHandbook ??
+            result.data.used_handbook ??
+            result.data.sources?.length,
         ),
       },
     };

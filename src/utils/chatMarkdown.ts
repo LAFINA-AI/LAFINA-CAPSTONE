@@ -102,11 +102,20 @@ const pushText = (spans: ChatInline[], text: string, marks: Partial<ChatInline>)
   else spans.push({...marks, text});
 };
 
+const MAX_INLINE_DEPTH = 8;
+
 /** Splits one line into styled runs. Emphasis nests; code is taken literally. */
 export const parseChatInline = (
   line: string,
   marks: Partial<ChatInline> = {},
+  depth = 0,
 ): ChatInline[] => {
+  if (!line) return [];
+  if (depth >= MAX_INLINE_DEPTH) {
+    const leaf: ChatInline[] = [];
+    pushText(leaf, line, marks);
+    return leaf;
+  }
   const spans: ChatInline[] = [];
   let rest = line;
 
@@ -121,12 +130,12 @@ export const parseChatInline = (
         length: whole.length,
         apply: () => {
           if (/^https?:\/\//i.test(target)) {
-            for (const span of parseChatInline(label, {...marks, href: target})) {
+            for (const span of parseChatInline(label, {...marks, href: target}, depth + 1)) {
               pushText(spans, span.text, span);
             }
           } else {
             // Not a web link: keep the words, drop the target.
-            for (const span of parseChatInline(label, marks)) pushText(spans, span.text, span);
+            for (const span of parseChatInline(label, marks, depth + 1)) pushText(spans, span.text, span);
           }
         },
       };
@@ -146,7 +155,7 @@ export const parseChatInline = (
         apply: rule.literal
           ? () => pushText(spans, inner, nested)
           : () => {
-              for (const span of parseChatInline(inner, nested)) pushText(spans, span.text, span);
+              for (const span of parseChatInline(inner, nested, depth + 1)) pushText(spans, span.text, span);
             },
       };
     }
@@ -178,22 +187,39 @@ export const hideDanglingMarkers = (line: string): string => {
   if (count(out, '`') % 2 === 1) out = dropLast(out, '`');
   if (count(out, '~~') % 2 === 1) out = dropLast(out, '~~');
   if (count(out, '**') % 2 === 1) out = dropLast(out, '**');
+  if (count(out, '__') % 2 === 1) out = dropLast(out, '__');
   // A lone "*" left after the pairs is an unfinished italic, unless it is a
   // list marker at the start of the line.
   const body = out.replace(/^([ \t]*)[-*+][ \t]+/, '$1');
   const prefix = out.slice(0, out.length - body.length);
   const singles = body.replace(/\*\*/g, '');
   if (count(singles, '*') % 2 === 1 && /\*\S[^*]*$/.test(body)) out = prefix + dropLast(body, '*');
-  // An unfinished link: "[label](htt" shows as just "label" until it closes.
-  out = out.replace(/\[([^\]\n]*)\]?(?:\([^)\n]*)?$/, (whole, label: string) =>
-    whole.endsWith(')') ? whole : label,
-  );
+  // An unfinished link: "[label" or "[label](htt" shows as just "label" until it closes,
+  // while leaving complete bracketed text like "[Handbook]" untouched.
+  out = out.replace(/\[([^\]\n]*)(?:\]\([^)\n]*)?$/, '$1');
   return out;
 };
 
 const splitRow = (line: string): string[] => {
-  const trimmed = line.trim().replace(/^\|/, '').replace(/\|$/, '');
-  return trimmed.split('|').map((cell) => cell.trim());
+  const trimmed = line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/(^|[^\\])\|$/, '$1');
+  const cells: string[] = [];
+  let current = '';
+  for (let i = 0; i < trimmed.length; i += 1) {
+    if (trimmed[i] === '\\' && trimmed[i + 1] === '|') {
+      current += '|';
+      i += 1;
+    } else if (trimmed[i] === '|') {
+      cells.push(current.trim());
+      current = '';
+    } else {
+      current += trimmed[i];
+    }
+  }
+  cells.push(current.trim());
+  return cells;
 };
 
 /** Reads a reply into blocks. Safe to call on every streamed piece. */
@@ -219,7 +245,14 @@ export const parseChatMarkdown = (
       index += 1;
       while (index < lines.length) {
         const close = FENCE_LINE.exec(lines[index]);
-        if (close && close[1][0] === closer && !close[2]) break;
+        if (
+          close &&
+          close[1][0] === closer &&
+          close[1].length >= fence[1].length &&
+          !close[2]
+        ) {
+          break;
+        }
         body.push(lines[index]);
         index += 1;
       }
@@ -300,7 +333,10 @@ export const parseChatMarkdown = (
  * of the chat to be readable on a phone.
  */
 export const hasWideMarkdownBlock = (text: string): boolean =>
-  text.split('\n').some((line) => FENCE_LINE.test(line) || TABLE_SEPARATOR.test(line));
+  text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .some((line) => FENCE_LINE.test(line) || TABLE_SEPARATOR.test(line));
 
 const spansText = (spans: ChatInline[]): string => spans.map((span) => span.text).join('');
 

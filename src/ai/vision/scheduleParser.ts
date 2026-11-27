@@ -184,14 +184,31 @@ function isInvalidSubject(str: string): boolean {
 // Subject code regex: e.g. "CS 101", "MATH 201", "ENG 102", "IT 211", "PHYS 101"
 const REAL_SUBJECT_CODE_REGEX = /\b(?!(?:AM|PM|RM|TBA|MON|TUE|WED|THU|FRI|SAT|SUN|TF|MW|MWF|TTH|FS|TR)\b)([A-Z]{2,5})\s*[-]?\s*(\d{1,4}[A-Za-z]?)\b/i;
 
+const MAX_OCR_CHARS = 50_000;
+const MAX_OCR_LINES = 500;
+const MAX_SCANNED_CLASSES = 60;
+
+const escapeTableCell = (text: string): string =>
+  text
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const time24ToMinutes = (hhmm: string): number => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+
 /**
  * Extracts class schedule entries from OCR text.
  */
-export function parseScannedSchedule(ocrText: string, referenceDate: Date = new Date()): ParsedScheduleResult {
+export function parseScannedSchedule(rawOcrInput: string, referenceDate: Date = new Date()): ParsedScheduleResult {
+  const ocrText = (rawOcrInput || '').slice(0, MAX_OCR_CHARS);
   if (/STUDENT\s+GENERAL\s+INFORMATION|SCHEDULE\s*\/\s*ROOM/i.test(ocrText)) {
     const cor = parseUstpCor(ocrText, referenceDate);
     if (cor.sessions.length > 0) {
-      const corClasses: ScannedClassItem[] = cor.sessions.map((s) => ({
+      const corClasses: ScannedClassItem[] = cor.sessions.slice(0, MAX_SCANNED_CLASSES).map((s) => ({
         id: s.id,
         subject: s.code ? `${s.code} · ${s.subjectTitle}` : s.subjectTitle,
         code: s.code,
@@ -222,7 +239,7 @@ export function parseScannedSchedule(ocrText: string, referenceDate: Date = new 
           '| :--- | :--- | :--- | :--- | :--- |',
           ...corClasses.map(
             (c) =>
-              `| **${c.subject}** | ${c.days.map((d) => d.slice(0, 3)).join(', ')} | ${c.startTime12} – ${c.endTime12} | ${c.room || 'TBA'} | ${c.faculty || 'TBA'} |`,
+              `| **${escapeTableCell(c.subject)}** | ${c.days.map((d) => d.slice(0, 3)).join(', ')} | ${c.startTime12} – ${c.endTime12} | ${escapeTableCell(c.room || 'TBA')} | ${escapeTableCell(c.faculty || 'TBA')} |`,
           ),
           '',
           `*Detected ${corClasses.length} recurring class${corClasses.length > 1 ? 'es' : ''} from your USTP COR.*`,
@@ -234,12 +251,16 @@ export function parseScannedSchedule(ocrText: string, referenceDate: Date = new 
     }
   }
 
-  const rawLines = ocrText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const rawLines = ocrText
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean)
+    .slice(0, MAX_OCR_LINES);
   const classes: ScannedClassItem[] = [];
 
-  // Time span regex supporting colons, dots, spaces, dashes: e.g. "9:00 AM - 10:30 AM", "11.30 AM - 1.00 PM"
-  const timeSpanRegex = /(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)\s*(?:-|–|—|to)\s*(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)/i;
-  const dayPrefixRegex = /\b(MWF|TTH|MW|TF|FS|TR|MTWTH|MTWTHF|M|T|W|R|TH|F|S|SU|MON|TUE|WED|THU|FRI|SAT|SUN|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i;
+  // Bounded time span regex supporting colons, dots, spaces, dashes: e.g. "9:00 AM - 10:30 AM", "11.30 AM - 1.00 PM"
+  const timeSpanRegex = /(?<!\d)(\d{1,2}(?:[:.][0-5]\d)?\s*(?:am|pm)?)\s*(?:-|–|—|to)\s*(\d{1,2}(?:[:.][0-5]\d)?\s*(?:am|pm)?)(?!\d)/i;
+  const dayPrefixGlobalRegex = /\b(MWF|TTH|MW|TF|FS|TR|MTWTH|MTWTHF|M|T|W|R|TH|F|S|SU|MON|TUE|WED|THU|FRI|SAT|SUN|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/gi;
 
   const semesterEndDate = computeSemesterEndDate(referenceDate, 18);
   const recurrenceRule = `FREQ=WEEKLY;UNTIL=${semesterEndDate}`;
@@ -296,132 +317,174 @@ export function parseScannedSchedule(ocrText: string, referenceDate: Date = new 
 
       const startHasPeriod = /am|pm/i.test(startStr);
       const endHasPeriod = /am|pm/i.test(endStr);
-      const startH = parseInt(startStr.replace(/[^\d]/g, '').slice(0, 2), 10);
-      const endH = parseInt(endStr.replace(/[^\d]/g, '').slice(0, 2), 10);
+      const hasMinutes = /[:.]\d{2}/.test(startStr) || /[:.]\d{2}/.test(endStr);
+      // Require at least one explicit time signal (minutes or AM/PM) so bare numeric
+      // pairs like room numbers ("51-201") or IDs are never parsed as class schedules.
+      const prefixCheck = line.slice(0, timeMatch.index);
+      const looksLikeGradeRange =
+        !startHasPeriod &&
+        !endHasPeriod &&
+        /\./.test(startStr) &&
+        /\./.test(endStr) &&
+        /\b(?:grades?|gwa|gpa|rating|score)\b/i.test(prefixCheck);
 
-      // Handle cross-noon and period inheritance
-      if (!startHasPeriod && endHasPeriod) {
-        const period = endStr.match(/am|pm/i)![0].toLowerCase();
-        if (period === 'pm') {
-          // If start is morning hours (8-11) and end is afternoon (1-5), start was AM
-          if (startH >= 8 && startH <= 11 && endH < 12) {
+      if ((startHasPeriod || endHasPeriod || hasMinutes) && !looksLikeGradeRange) {
+        const startH = parseInt(startStr.match(/^(\d{1,2})/)?.[1] ?? '0', 10);
+        const endH = parseInt(endStr.match(/^(\d{1,2})/)?.[1] ?? '0', 10);
+
+        // Handle cross-noon and period inheritance
+        if (!startHasPeriod && endHasPeriod) {
+          const period = endStr.match(/am|pm/i)![0].toLowerCase();
+          if (period === 'pm') {
+            // If start is morning hours (7-11) and end is noon or afternoon (12, 1-6), start was AM
+            if (startH >= 7 && startH <= 11 && (endH === 12 || (endH >= 1 && endH <= 6))) {
+              startStr = `${startStr} AM`;
+            } else {
+              startStr = `${startStr} PM`;
+            }
+          } else {
             startStr = `${startStr} AM`;
+          }
+        } else if (startHasPeriod && !endHasPeriod) {
+          const period = startStr.match(/am|pm/i)![0].toLowerCase();
+          if (period === 'am') {
+            if (startH >= 7 && startH <= 11 && (endH === 12 || (endH >= 1 && endH <= 6))) {
+              endStr = `${endStr} PM`;
+            } else {
+              endStr = `${endStr} AM`;
+            }
           } else {
+            endStr = `${endStr} PM`;
+          }
+        } else if (!startHasPeriod && !endHasPeriod && startH <= 12 && endH <= 12) {
+          if (startH >= 7 && startH <= 11 && (endH === 12 || (endH >= 1 && endH <= 6))) {
+            startStr = `${startStr} AM`;
+            endStr = `${endStr} PM`;
+          } else if (startH === 12 || startH <= 6) {
             startStr = `${startStr} PM`;
-          }
-        } else {
-          startStr = `${startStr} AM`;
-        }
-      } else if (!startHasPeriod && !endHasPeriod) {
-        if (startH >= 7 && startH <= 11 && endH >= 1 && endH <= 9) {
-          startStr = `${startStr} AM`;
-          endStr = `${endStr} PM`;
-        } else if (startH >= 12 || startH <= 6) {
-          startStr = `${startStr} PM`;
-          endStr = `${endStr} PM`;
-        } else {
-          startStr = `${startStr} AM`;
-          endStr = `${endStr} AM`;
-        }
-      }
-
-      const startNorm = normalizeTime24(startStr);
-      const endNorm = normalizeTime24(endStr);
-
-      if (startNorm && endNorm) {
-        const prefix = line.slice(0, timeMatch.index).trim();
-        const suffix = line.slice(timeMatch.index + timeMatch[0].length).trim();
-
-        // --- Room Extraction ---
-        let room: string | undefined;
-        let cleanSuffix = suffix.replace(/^[/\-–—|,:;\s]+/, '').trim();
-        if (cleanSuffix.includes('|')) {
-          cleanSuffix = cleanSuffix.split('|')[0].trim();
-        }
-        if (cleanSuffix.length >= 2 && !/^(?:am|pm|mon|tue|wed|thu|fri|sat|sun)$/i.test(cleanSuffix)) {
-          room = cleanSuffix;
-        }
-
-        // --- Day Resolution ---
-        let assignedDays: string[] = [];
-
-        // Check if prefix has day tokens like "TF", "T", "W", "F", "S", "MWF", "TR"
-        const prefixDayMatch = prefix.match(dayPrefixRegex);
-        if (prefixDayMatch) {
-          const daysFromPrefix = expandDays(prefixDayMatch[0]);
-          if (currentSectionDay && daysFromPrefix.includes(currentSectionDay)) {
-            // Under section "fri" with "TF", this specific session belongs to Friday
-            assignedDays = [currentSectionDay];
+            endStr = `${endStr} PM`;
           } else {
-            assignedDays = daysFromPrefix;
+            startStr = `${startStr} AM`;
+            endStr = `${endStr} AM`;
           }
-        } else if (currentSectionDay) {
-          assignedDays = [currentSectionDay];
-        } else if (isClusteredDaysHeader && clusteredDayIndex < clusteredDaysQueue.length) {
-          assignedDays = [clusteredDaysQueue[clusteredDayIndex]];
-          clusteredDayIndex++;
-        } else {
-          assignedDays = ['Monday'];
         }
 
-        // --- Subject Extraction ---
-        let subject = '';
+        const startNorm = normalizeTime24(startStr);
+        const endNorm = normalizeTime24(endStr);
 
-        // Check if prefix contains subject before the day token
-        let prefixWithoutDays = prefix;
-        if (prefixDayMatch && prefixDayMatch.index !== undefined) {
-          prefixWithoutDays = prefix.slice(0, prefixDayMatch.index).trim();
-        }
-        prefixWithoutDays = prefixWithoutDays.replace(/[|/\-–—,:;]+$/, '').trim();
+        if (
+          startNorm &&
+          endNorm &&
+          time24ToMinutes(endNorm.time24) > time24ToMinutes(startNorm.time24)
+        ) {
+          const prefix = line.slice(0, timeMatch.index).trim();
+          const suffix = line.slice(timeMatch.index + timeMatch[0].length).trim();
 
-        if (prefixWithoutDays.length >= 3 && !isInvalidSubject(prefixWithoutDays)) {
-          // If prefix has a course code like "CS 101 Intro to Computing", extract code if present
-          const codeMatch = prefixWithoutDays.match(REAL_SUBJECT_CODE_REGEX);
-          if (codeMatch && prefixWithoutDays.startsWith(codeMatch[0])) {
-            subject = codeMatch[0].replace(/\s+/g, ' ').toUpperCase();
-          } else {
-            subject = prefixWithoutDays;
+          // --- Room Extraction ---
+          let room: string | undefined;
+          let cleanSuffix = suffix.replace(/^[/\-–—|,:;\s]+/, '').trim();
+          if (cleanSuffix.includes('|')) {
+            cleanSuffix = cleanSuffix.split('|')[0].trim();
           }
-        } else if (lastSubjectCandidate && !isInvalidSubject(lastSubjectCandidate)) {
-          subject = lastSubjectCandidate;
-        } else {
-          // Check preceding lines if available
-          let foundSubject = '';
-          for (let back = i - 1; back >= Math.max(0, i - 3); back--) {
-            const prev = rawLines[back].trim();
-            if (
-              !checkDayHeader(prev) &&
-              !isDocumentHeader(prev) &&
-              !timeSpanRegex.test(prev) &&
-              !isInvalidSubject(prev) &&
-              prev.length >= 3
-            ) {
-              foundSubject = prev;
-              break;
+          if (cleanSuffix.length >= 2 && !/^(?:am|pm|mon|tue|wed|thu|fri|sat|sun)$/i.test(cleanSuffix)) {
+            room = cleanSuffix;
+          }
+
+          // --- Day Resolution ---
+          let assignedDays: string[] = [];
+
+          // Match the rightmost day token adjacent to the time span so initials inside
+          // course titles ("U.S. History", "Dr. M. Santos", "R Programming") aren't misread.
+          const dayMatches = Array.from(prefix.matchAll(dayPrefixGlobalRegex));
+          let prefixDayMatch: RegExpMatchArray | null = null;
+          if (dayMatches.length > 0) {
+            const candidate = dayMatches[dayMatches.length - 1];
+            const afterToken = prefix
+              .slice((candidate.index ?? 0) + candidate[0].length)
+              .trim();
+            if (/^[|/\-–—,:;\s]*$/.test(afterToken)) {
+              prefixDayMatch = candidate;
             }
           }
-          subject = foundSubject || `Class ${counter + 1}`;
+          if (prefixDayMatch) {
+            const daysFromPrefix = expandDays(prefixDayMatch[0]);
+            if (currentSectionDay && daysFromPrefix.includes(currentSectionDay)) {
+              // Under section "fri" with "TF", this specific session belongs to Friday
+              assignedDays = [currentSectionDay];
+            } else {
+              assignedDays = daysFromPrefix;
+            }
+          } else if (currentSectionDay) {
+            assignedDays = [currentSectionDay];
+          } else if (isClusteredDaysHeader && clusteredDayIndex < clusteredDaysQueue.length) {
+            assignedDays = [clusteredDaysQueue[clusteredDayIndex]];
+            clusteredDayIndex++;
+          } else {
+            assignedDays = ['Monday'];
+          }
+
+          // --- Subject Extraction ---
+          let subject = '';
+
+          // Check if prefix contains subject before the day token
+          let prefixWithoutDays = prefix;
+          if (prefixDayMatch && prefixDayMatch.index !== undefined) {
+            prefixWithoutDays = prefix.slice(0, prefixDayMatch.index).trim();
+          }
+          prefixWithoutDays = prefixWithoutDays.replace(/[|/\-–—,:;]+$/, '').trim();
+
+          if (prefixWithoutDays.length >= 3 && !isInvalidSubject(prefixWithoutDays)) {
+            // If prefix has a course code like "CS 101 Intro to Computing", extract code if present
+            const codeMatch = prefixWithoutDays.match(REAL_SUBJECT_CODE_REGEX);
+            if (codeMatch && prefixWithoutDays.startsWith(codeMatch[0])) {
+              subject = codeMatch[0].replace(/\s+/g, ' ').toUpperCase();
+            } else {
+              subject = prefixWithoutDays;
+            }
+          } else if (lastSubjectCandidate && !isInvalidSubject(lastSubjectCandidate)) {
+            subject = lastSubjectCandidate;
+          } else {
+            // Check preceding lines if available
+            let foundSubject = '';
+            for (let back = i - 1; back >= Math.max(0, i - 3); back--) {
+              const prev = rawLines[back].trim();
+              if (
+                !checkDayHeader(prev) &&
+                !isDocumentHeader(prev) &&
+                !timeSpanRegex.test(prev) &&
+                !isInvalidSubject(prev) &&
+                prev.length >= 3
+              ) {
+                foundSubject = prev;
+                break;
+              }
+            }
+            subject = foundSubject;
+          }
+
+          // Clean subject of pipe chars or leading/trailing punctuation BEFORE fallback
+          subject = subject.replace(/^[|/\-–—,:;\s]+|[|/\-–—,:;\s]+$/g, '').trim();
+          if (!subject) {
+            subject = `Class ${counter + 1}`;
+          }
+
+          counter += 1;
+          classes.push({
+            id: `scanned-class-${counter}-${Date.now().toString(36)}`,
+            subject,
+            days: assignedDays,
+            startTime: startNorm.time24,
+            endTime: endNorm.time24,
+            startTime12: startNorm.time12,
+            endTime12: endNorm.time12,
+            room: room || 'TBA',
+            recurrenceRule,
+            rawText: line,
+          });
+
+          lastSubjectCandidate = '';
+          continue;
         }
-
-        // Clean subject of pipe chars or leading numbers/dashes
-        subject = subject.replace(/^[|/\-–—,:;\s]+|[|/\-–—,:;\s]+$/g, '').trim();
-
-        counter += 1;
-        classes.push({
-          id: `scanned-class-${counter}-${Date.now().toString(36)}`,
-          subject,
-          days: assignedDays,
-          startTime: startNorm.time24,
-          endTime: endNorm.time24,
-          startTime12: startNorm.time12,
-          endTime12: endNorm.time12,
-          room: room || 'TBA',
-          recurrenceRule,
-          rawText: line,
-        });
-
-        lastSubjectCandidate = '';
-        continue;
       }
     }
 
@@ -441,6 +504,7 @@ export function parseScannedSchedule(ocrText: string, referenceDate: Date = new 
   const seenKeys = new Set<string>();
 
   for (const c of classes) {
+    if (uniqueClasses.length >= MAX_SCANNED_CLASSES) break;
     const dayKey = [...c.days].sort().join(',');
     const key = `${c.subject.toLowerCase()}|${dayKey}|${c.startTime}|${c.endTime}`;
     if (!seenKeys.has(key)) {
@@ -459,7 +523,7 @@ export function parseScannedSchedule(ocrText: string, referenceDate: Date = new 
       '| :--- | :--- | :--- | :--- |',
       ...uniqueClasses.map(
         c =>
-          `| **${c.subject}** | ${c.days.map(d => d.slice(0, 3)).join(', ')} | ${c.startTime12} – ${c.endTime12} | ${c.room || 'TBA'} |`,
+          `| **${escapeTableCell(c.subject)}** | ${c.days.map(d => d.slice(0, 3)).join(', ')} | ${c.startTime12} – ${c.endTime12} | ${escapeTableCell(c.room || 'TBA')} |`,
       ),
       '',
       `*Detected ${uniqueClasses.length} recurring class${uniqueClasses.length > 1 ? 'es' : ''} from your schedule.*`,

@@ -90,9 +90,13 @@ export function UstpSourcesSheet({target, onClose}: UstpSourcesSheetProps) {
     setQuery('');
     let cancelled = false;
     setReady(null);
-    void prepareKnowledgeLibrary().then(ok => {
-      if (!cancelled) setReady(ok);
-    });
+    void prepareKnowledgeLibrary()
+      .then(ok => {
+        if (!cancelled) setReady(ok);
+      })
+      .catch(() => {
+        if (!cancelled) setReady(false);
+      });
     return () => {
       cancelled = true;
     };

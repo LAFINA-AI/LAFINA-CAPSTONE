@@ -93,8 +93,13 @@ const intentFromRequestText = async (
   request: string,
   userId: string,
   referenceDate: Date,
+  signal?: AbortSignal,
 ): Promise<ValidatedIntent | null> => {
-  const intent = await intentService.extractIntent(request, {referenceDate, userId});
+  const intent = await intentService.extractIntent(request, {
+    referenceDate,
+    userId,
+    ...(signal ? {signal} : {}),
+  });
   if (!intent.isValid || routeIntent(intent.intent) !== 'reviewed_mutation')
     return null;
   if (
@@ -240,6 +245,7 @@ export async function runChatAgent(
                 fields.request,
                 userId,
                 options.referenceDate,
+                options.signal,
               )
             : null);
         if (!isCurrent() || options.signal?.aborted) {
@@ -264,68 +270,74 @@ export async function runChatAgent(
     }
   };
 
-  for (let step = 0; step < CHAT_AGENT_MAX_STEPS; step++) {
-    if (!isCurrent() || options.signal?.aborted) return abandon();
-    const result = await onlineChatSkill.agentStep(history, {
-      tools,
-      exchange: [...exchange],
-      useHandbook: options.useHandbook,
-      ...(options.memories?.length ? {memories: options.memories} : {}),
-      ...(options.signal ? {signal: options.signal} : {}),
-      localNow: options.localNow,
-    });
-    if (!isCurrent() || options.signal?.aborted) return abandon();
-    if (result.status !== 'success' || !result.data) return abandon();
-    const {reply, toolCalls, sources} = result.data;
-    if (toolCalls.length === 0) {
-      return {
-        reply,
-        ...(review ? {review} : {}),
-        sources: mergeSources(sources),
-        toolsUsed,
-      };
-    }
-    if (step === CHAT_AGENT_MAX_STEPS - 1) {
-      // Out of steps: answer with what is known instead of looping.
-      return {
-        reply:
-          reply ||
-          (review
-            ? review.reply
-            : 'I looked at your planner but could not finish that in one go. Could you ask in smaller steps?'),
-        ...(review ? {review} : {}),
-        sources: mergeSources(sources),
-        toolsUsed,
-      };
-    }
-    const calls = toolCalls.slice(0, MAX_CALLS_PER_STEP);
-    const results: AgentExchangeMessage[] = [];
-    for (const call of calls) {
-      let content: string;
-      try {
-        content = bound(await runTool(call));
-      } catch (error) {
-        console.warn('[ChatAgent] Tool failed:', call.name, error);
-        content = 'The app could not complete that. Nothing was changed.';
+  try {
+    for (let step = 0; step < CHAT_AGENT_MAX_STEPS; step++) {
+      if (!isCurrent() || options.signal?.aborted) return abandon();
+      const result = await onlineChatSkill.agentStep(history, {
+        tools,
+        exchange: [...exchange],
+        useHandbook: options.useHandbook,
+        ...(options.memories?.length ? {memories: options.memories} : {}),
+        ...(options.signal ? {signal: options.signal} : {}),
+        localNow: options.localNow,
+      });
+      if (!isCurrent() || options.signal?.aborted) return abandon();
+      if (result.status !== 'success' || !result.data) return abandon();
+      const {reply, toolCalls, sources} = result.data;
+      if (toolCalls.length === 0) {
+        return {
+          reply,
+          ...(review ? {review} : {}),
+          sources: mergeSources(sources),
+          toolsUsed,
+        };
       }
-      if (!isCurrent()) return abandon();
-      results.push({role: 'tool', tool_call_id: call.id, content});
+      if (step === CHAT_AGENT_MAX_STEPS - 1) {
+        // Out of steps: answer with what is known instead of looping.
+        return {
+          reply:
+            reply ||
+            (review
+              ? review.reply
+              : 'I looked at your planner but could not finish that in one go. Could you ask in smaller steps?'),
+          ...(review ? {review} : {}),
+          sources: mergeSources(sources),
+          toolsUsed,
+        };
+      }
+      const calls = toolCalls.slice(0, MAX_CALLS_PER_STEP);
+      const results: AgentExchangeMessage[] = [];
+      for (const call of calls) {
+        if (!isCurrent() || options.signal?.aborted) return abandon();
+        let content: string;
+        try {
+          content = bound(await runTool(call));
+        } catch (error) {
+          console.warn('[ChatAgent] Tool failed:', call.name, error);
+          content = 'The app could not complete that. Nothing was changed.';
+        }
+        if (!isCurrent() || options.signal?.aborted) return abandon();
+        results.push({role: 'tool', tool_call_id: call.id, content});
+      }
+      exchange.push(
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: calls.map(call => ({
+            id: call.id,
+            type: 'function' as const,
+            function: {
+              name: call.name,
+              arguments: JSON.stringify(call.arguments),
+            },
+          })),
+        },
+        ...results,
+      );
     }
-    exchange.push(
-      {
-        role: 'assistant',
-        content: null,
-        tool_calls: calls.map(call => ({
-          id: call.id,
-          type: 'function' as const,
-          function: {
-            name: call.name,
-            arguments: JSON.stringify(call.arguments),
-          },
-        })),
-      },
-      ...results,
-    );
+    return abandon();
+  } catch (error) {
+    abandon();
+    throw error;
   }
-  return abandon();
 }

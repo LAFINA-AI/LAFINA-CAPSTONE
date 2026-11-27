@@ -1,6 +1,7 @@
 import {db} from './database';
 import type {DatabaseTransaction} from './database';
 import {generateId} from '../utils';
+import {safeSlice} from '../utils/safeText';
 import {isValidChatOwner} from './chatOwnership';
 import {containsSensitiveSecret} from '../ai/voiceActions/promptSanitizer';
 
@@ -122,7 +123,7 @@ const requireOwner = (userId: string): void => {
 };
 
 const cleanText = (text: string): string =>
-  text.replace(/\s+/g, ' ').trim().slice(0, MAX_MEMORY_TEXT).trim();
+  safeSlice(text.replace(/\s+/g, ' ').trim(), MAX_MEMORY_TEXT).trim();
 
 /** Case-insensitive duplicate comparison ignoring trailing sentence punctuation. */
 export const normalizeMemoryTextKey = (text: string): string =>
@@ -535,9 +536,10 @@ export const chatMemoryStore = {
       }
       if (patch.text !== undefined) {
         const key = normalizeMemoryTextKey(nextText);
+        const nowIso = new Date().toISOString();
         const others = tx.executeSync(
-          'SELECT id, text FROM chat_memories WHERE user_id = ? AND id != ?',
-          [userId, memoryId],
+          'SELECT id, text FROM chat_memories WHERE user_id = ? AND id != ? AND (expires_at IS NULL OR expires_at > ?)',
+          [userId, memoryId, nowIso],
         ).rows;
         if (
           others.some(r => normalizeMemoryTextKey(String(r.text ?? '')) === key)
@@ -663,6 +665,12 @@ export const chatMemoryStore = {
   ): ChatMemoryChanges => {
     requireOwner(userId);
     const apply = (tx: Executor): ChatMemoryChanges => {
+      // Purge already-expired memories before snapshotting so they are never
+      // misreported as newly forgotten ("Forgot: ...") on an unrelated save.
+      tx.executeSync(
+        'DELETE FROM chat_memories WHERE user_id = ? AND expires_at IS NOT NULL AND expires_at <= ?',
+        [userId, new Date().toISOString()],
+      );
       const before = snapshots(userId, tx);
       if (change.clearAll) {
         tx.executeSync('DELETE FROM chat_memories WHERE user_id = ?', [userId]);

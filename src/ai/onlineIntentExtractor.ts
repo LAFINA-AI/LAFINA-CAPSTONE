@@ -1,4 +1,5 @@
 import {onlineChatSkill} from '../skills/onlineChatSkill';
+import {safeSlice} from '../utils';
 import {isRealDate} from '../storage/eventTime';
 import {classifySmallTalk} from './localConversation';
 import {extractExplicitMemory} from './explicitMemory';
@@ -249,23 +250,15 @@ function buildIntentExtractionPrompt(
     '2. Fix obvious spelling typos like "tommorow"/"tomorow"/"tmr" and resolve relative dates against the reference date. Leave "date" null for undated To-Dos.',
     '3. Use 24-hour "HH:MM" for time/endTime. Use "Academic" for class, study, exam, homework, lab, thesis, or faculty/advisor items; otherwise "Personal" (or "APPEND" on update_note when appending text).',
     '4. For reopening/unchecking a task, use "intent":"update_task","isCompleted":false. For pinning/unpinning a note, use "intent":"update_note","isPinned":true|false. For checklist notes, set "checklistItems".',
-    `User message: ${JSON.stringify(transcript)}`,
+    `User message: ${JSON.stringify(safeSlice(transcript, 1800))}`,
   ].join('\n');
 }
 
-function extractJsonObject(raw: string): Record<string, unknown> | null {
-  const cleaned = (raw || '')
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/```$/i, '')
-    .trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end <= start) {
-    return null;
-  }
+function parseJsonObjectCandidate(
+  candidate: string,
+): Record<string, unknown> | null {
   try {
-    const parsed: unknown = JSON.parse(cleaned.slice(start, end + 1));
+    const parsed: unknown = JSON.parse(candidate);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return null;
     }
@@ -273,6 +266,56 @@ function extractJsonObject(raw: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+export function extractJsonObject(raw: string): Record<string, unknown> | null {
+  const cleaned = (raw || '')
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+  const direct = parseJsonObjectCandidate(cleaned);
+  if (direct) return direct;
+
+  // Scan balanced `{ ... }` slices respecting JSON string quotes and escapes so
+  // surrounding prose containing stray braces (e.g. "{optional}") does not break JSON.parse.
+  let idx = cleaned.indexOf('{');
+  while (idx !== -1) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = idx; i < cleaned.length; i += 1) {
+      const ch = cleaned[i];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (ch === '\\') {
+          escaped = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+      } else if (ch === '"') {
+        inString = true;
+      } else if (ch === '{') {
+        depth += 1;
+      } else if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          const parsed = parseJsonObjectCandidate(cleaned.slice(idx, i + 1));
+          if (parsed) return parsed;
+          break;
+        }
+      }
+    }
+    idx = cleaned.indexOf('{', idx + 1);
+  }
+
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start === -1 || end <= start) {
+    return null;
+  }
+  return parseJsonObjectCandidate(cleaned.slice(start, end + 1));
 }
 
 function cleanString(value: unknown, maxLen: number = 240): string | null {
@@ -420,9 +463,10 @@ function parseCategory(
 export async function extractIntentWithDeepSeek(
   transcript: string,
   referenceDate: Date = new Date(),
+  signal?: AbortSignal,
 ): Promise<ValidatedIntent | null> {
   const trimmed = (transcript || '').trim();
-  if (!trimmed) {
+  if (!trimmed || signal?.aborted) {
     return null;
   }
 
@@ -435,7 +479,7 @@ export async function extractIntentWithDeepSeek(
           content: buildIntentExtractionPrompt(trimmed, referenceDate),
         },
       ],
-      {useHandbook: false, keepNameCase: true},
+      {useHandbook: false, keepNameCase: true, ...(signal ? {signal} : {})},
     );
   } catch (error) {
     console.warn('[OnlineIntentExtractor] Failed calling DeepSeek:', error);
@@ -612,33 +656,41 @@ export function parseExtractedIntentObject(
 export async function extractMultiIntentsWithDeepSeek(
   transcript: string,
   referenceDate: Date = new Date(),
+  signal?: AbortSignal,
 ): Promise<ValidatedIntent[] | null> {
   const trimmed = (transcript || '').trim();
-  if (!trimmed) return null;
+  if (!trimmed || signal?.aborted) return null;
   const {dateStr, weekday, timeStr} = formatReferenceClock(referenceDate);
   const prompt = [
     'Extract ALL distinct student planner commands from the compound user message and return ONLY a JSON object: {"intents":[...]}.',
     `Current local reference: ${dateStr} (${weekday}), time ${timeStr}.`,
     'Each item uses the same schema: {"intent":string,"title":string|null,"date":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"endTime":"HH:MM"|null,"durationMinutes":number|null,"category":"Academic"|"Personal","priority":"High"|"Medium"|"Low"|null,"details":string|null,"location":string|null,"checklistItems":string[]|null,"targetTitle":string|null,"newTitle":string|null,"targetEntityType":"task"|"time_block"|"event"|"reminder"|"note"|"any"|null}.',
     'Allowed intents per item: create_task, create_event, create_time_block, create_reminder, create_note, update_task, update_time_block, update_note, delete_task, delete_time_block, delete_note, complete_task. Max 5 items.',
-    `User message: ${JSON.stringify(trimmed)}`,
+    `User message: ${JSON.stringify(safeSlice(trimmed, 1800))}`,
   ].join('\n');
 
   try {
     const result = await onlineChatSkill.sendChatMessage(
       [{role: 'user', content: prompt}],
-      {useHandbook: false, keepNameCase: true},
+      {useHandbook: false, keepNameCase: true, ...(signal ? {signal} : {})},
     );
     if (result.status !== 'success' || !result.data?.reply) return null;
     const obj = extractJsonObject(result.data.reply);
     if (!obj || !Array.isArray(obj.intents)) return null;
     const valid = obj.intents
       .slice(0, 5)
-      .map(item =>
-        item && typeof item === 'object' && !Array.isArray(item)
-          ? parseExtractedIntentObject(item as Record<string, unknown>, trimmed)
-          : null,
-      )
+      .map(item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          return null;
+        }
+        const parsed = parseExtractedIntentObject(
+          item as Record<string, unknown>,
+          trimmed,
+        );
+        return parsed
+          ? withLocalRelativeTime(parsed, trimmed, referenceDate)
+          : null;
+      })
       .filter((v): v is ValidatedIntent => v !== null && v.intent !== 'chat');
     return valid.length >= 2 ? valid : null;
   } catch {

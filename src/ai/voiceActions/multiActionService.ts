@@ -41,9 +41,10 @@ export function splitGroupedClauses(text: string): string[] {
   const normalized = text.trim();
   if (!normalized) return [];
 
-  // Split on semicolons or conjunctions preceded/followed by action markers
+  // Split on semicolons, or conjunctions when followed by a planner action marker
+  // (so Oxford-comma lists like "buy pens, notebooks, and folders" stay one clause).
   const rawSplits = normalized.split(
-    /(?:;\s*|,\s*(?:and|also|plus|then)\s+|\s+(?:and|also|plus|then)\s+(?=(?:remind|schedule|add|create|task|event|note|meeting)\b)|\s+and\s+remind\b)/i,
+    /(?:;\s*|(?:,\s*|\s+)(?:and|also|plus|then)\s+(?=(?:please\s+)?(?:remind|schedule|add|create|make\s+a|set\s+(?:a|an)?\s*reminder|jot|write\s+down|task:|event:|reminder:|note:|meeting\b)\b)|\s+and\s+remind\b)/i,
   );
 
   const results: string[] = [];
@@ -106,9 +107,13 @@ export function parseGroupedRequest(
     const parsedDt = parseDateAndTime(clause, referenceDate);
     const date = parsedDt.date || undefined;
     const time = parsedDt.time || undefined;
+    const defaultEventEnd = (start: string): string => {
+      const candidate = addMinutesToTime(start, 60);
+      return candidate > start ? candidate : '23:59';
+    };
     const endTime =
       parsedDt.endTime ||
-      (kind === 'event' && time ? addMinutesToTime(time, 60) : undefined);
+      (kind === 'event' && time ? defaultEventEnd(time) : undefined);
 
     // 4. Extract title if not explicitly quoted
     if (!title) {
@@ -339,7 +344,7 @@ export async function executeMultiActionBatch(
         throw new Error('Please specify the date and time before saving.');
       if (item.kind === 'event' && (!item.endTime || !isWallTime(item.endTime)))
         throw new Error('Please specify a valid end time.');
-      if (item.kind === 'event' && item.endTime === item.time)
+      if (item.kind === 'event' && item.endTime! <= item.time!)
         throw new Error('Please specify an end time after the start time.');
       let reminderTriggerIso: string | null = null;
       if (item.kind === 'reminder') {
@@ -523,7 +528,7 @@ export async function executeMultiActionBatch(
   batch.spokenSummary = formatMultiActionSpokenSummary(batch);
 
   return {
-    batch: {...batch},
+    batch: {...batch, items: batch.items.map(i => ({...i}))},
     spokenSummary: batch.spokenSummary,
   };
 }
@@ -547,7 +552,7 @@ export function reviseMultiItem(
   refreshMultiItemConflict(batch.ownerId, target);
   target.reviewedScheduleWarning = target.scheduleWarning;
   batch.revision += 1;
-  return {...batch};
+  return {...batch, items: batch.items.map(i => ({...i}))};
 }
 
 /**
@@ -567,7 +572,19 @@ export function cancelMultiItem(
   const nonCancelled = batch.items.filter(i => i.status !== 'cancelled');
   if (nonCancelled.length === 0) {
     batch.status = 'cancelled';
+  } else {
+    const savedCount = nonCancelled.filter(i => i.status === 'saved').length;
+    const failedCount = nonCancelled.filter(i => i.status === 'failed').length;
+    if (savedCount === nonCancelled.length) {
+      batch.status = 'saved';
+    } else if (savedCount > 0) {
+      batch.status = 'partial';
+    } else if (failedCount === nonCancelled.length) {
+      batch.status = 'failed';
+    } else {
+      batch.status = 'draft';
+    }
   }
 
-  return {...batch};
+  return {...batch, items: batch.items.map(i => ({...i}))};
 }
