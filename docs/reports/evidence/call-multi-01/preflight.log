@@ -1,0 +1,17 @@
+
+> lafina-capstone@1.0.9 preflight
+> npm run typecheck && npm run lint && npm test && npm run check:architecture
+
+
+> lafina-capstone@1.0.9 typecheck
+> tsc --noEmit
+
+App.tsx(976,9): error TS2345: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/ai/voiceActions/actionValidator.ts(690,59): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/scheduler/deliveryReconciler.ts(159,7): error TS2552: Cannot find name 'resolveReminderDeliveryStyle'. Did you mean 'reconcileReminderDelivery'?
+src/ui/components/call/CallAnsweredView.tsx(133,3): error TS2339: Property 'answeredAtMs' does not exist on type 'CallAnsweredViewProps'.
+src/ui/components/call/OnlineReminderCallView.tsx(101,3): error TS2339: Property 'answeredAtMs' does not exist on type 'OnlineReminderCallViewProps'.
+src/ui/components/callLafina/ActionCardHost.tsx(299,11): error TS2322: Type '((patch: ReviewEditPatch) => unknown) | undefined' is not assignable to type '((patch: ReviewEditPatch) => PrepareResult | null) | undefined'.
+  Type '(patch: ReviewEditPatch) => unknown' is not assignable to type '(patch: ReviewEditPatch) => PrepareResult | null'.
+    Type 'unknown' is not assignable to type 'PrepareResult | null'.

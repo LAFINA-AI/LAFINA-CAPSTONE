@@ -1,5 +1,6 @@
 package com.lafina.capstone
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
@@ -18,6 +20,7 @@ import com.facebook.react.bridge.Promise
 class LafinaReminderService : Service() {
 
   private var wakeLock: PowerManager.WakeLock? = null
+  private var lastStartId: Int = -1
 
   override fun onCreate() {
     super.onCreate()
@@ -25,8 +28,9 @@ class LafinaReminderService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    lastStartId = startId
     if (intent?.action != ACTION_START_ACTIVE_CALL) {
-      stopSelf()
+      stopSelf(startId)
       return START_NOT_STICKY
     }
 
@@ -48,7 +52,7 @@ class LafinaReminderService : Service() {
           startPromise = null
         }
       }
-      stopSelf()
+      stopSelf(startId)
       return START_NOT_STICKY
     }
     synchronized(START_LOCK) {
@@ -60,7 +64,7 @@ class LafinaReminderService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
           } catch (_: Exception) {
           }
-          stopSelf()
+          stopSelf(startId)
         }
         return START_NOT_STICKY
       }
@@ -68,7 +72,7 @@ class LafinaReminderService : Service() {
       startPromise?.resolve(!stopRequested)
       startPromise = null
       if (stopRequested) {
-        stopSelf()
+        stopSelf(startId)
         return START_NOT_STICKY
       }
     }
@@ -116,14 +120,13 @@ class LafinaReminderService : Service() {
   }
 
   private fun acquireWakeLock() {
-    if (wakeLock?.isHeld == true) return
-    val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-    wakeLock = powerManager.newWakeLock(
-      PowerManager.PARTIAL_WAKE_LOCK,
-      "lafina:active-reminder-call"
-    ).apply {
-      setReferenceCounted(false)
-      acquire(MAX_WAKE_LOCK_MS)
+    val lock = wakeLock ?: (getSystemService(Context.POWER_SERVICE) as PowerManager)
+      .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "lafina:active-reminder-call")
+      .apply { setReferenceCounted(false) }
+      .also { wakeLock = it }
+    try {
+      lock.acquire(MAX_WAKE_LOCK_MS)
+    } catch (_: Exception) {
     }
   }
 
@@ -159,6 +162,11 @@ class LafinaReminderService : Service() {
     private var pendingStarts = 0
 
     fun begin(context: Context, intent: Intent, promise: Promise) = synchronized(START_LOCK) {
+      if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) !=
+          PackageManager.PERMISSION_GRANTED) {
+        promise.reject("PERMISSION_DENIED", "Microphone permission is required for an active reminder call.")
+        return@synchronized
+      }
       startPromise?.reject("SUPERSEDED", "Another call replaced this startup.")
       val token = ++startSequence
       intent.putExtra(EXTRA_START_TOKEN, token)
@@ -177,7 +185,11 @@ class LafinaReminderService : Service() {
       stopRequested = true
       // A pending start must first reach startForeground; stopping before then
       // can trigger ForegroundServiceDidNotStartInTimeException.
-      running?.stopSelf()
+      val active = running
+      if (active != null) {
+        if (active.lastStartId > 0) active.stopSelf(active.lastStartId)
+        else active.stopSelf()
+      }
     }
     const val ACTION_START_ACTIVE_CALL = "com.lafina.capstone.ACTION_START_ACTIVE_CALL"
     const val EXTRA_TASK = "extra_task"

@@ -9,6 +9,8 @@
  * words revise the card or ask something, and saving would be wrong.
  */
 
+import {splitGroupedClauses} from '../../ai/nlu/groupedClauses';
+
 /** Lowercase words only; curly quotes folded, punctuation and hyphens spaced. */
 const normalizeSpoken = (text: string): string =>
   text
@@ -59,7 +61,7 @@ const TRAIL_RE =
 
 const NOUN =
   '(?:card|draft|meeting|event|task|reminder|note|block|time block|schedule|entry|change|changes|item|items|alarm|to do|todo|class|one|new one|updated one)';
-const OBJECT = `(?:it|that|this|them|those|these|everything|all|it all|all of it|all of them|this one|that one|(?:the|my) ${NOUN})`;
+const OBJECT = `(?:it|that|this|them|those|these|everything|all|both|both of them|both (?:tasks|reminders|items)|it all|all of it|all of them|this one|that one|(?:the|my) ${NOUN})`;
 
 /** The whole remaining utterance is a save command. */
 const SAVE_COMMAND_RE = new RegExp(
@@ -280,6 +282,4 @@ export const endsWithGoodbye = (text: string): boolean => {
 
 /** Multiple requested artifacts must not be flattened into a single action. */
 export const isCompoundVoiceRequest = (text: string): boolean =>
-  /\b(?:and|also|then|plus|tapos|at\s+saka)\s+(?:(?:please|also|then)\s+)*(?:(?:add|create|schedule|set|make|remind|save|jot)\b(?!\s+(?:it|that|this|them)\b)|(?:a|an|another)\s+(?:task|event|meeting|reminder|note|time\s*block)\b)/i.test(
-    text,
-  );
+  splitGroupedClauses(text).length > 1;

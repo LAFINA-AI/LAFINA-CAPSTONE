@@ -10,6 +10,7 @@ import type {CallMeter} from '../../hooks/callMeter';
 import {reminderCallContext} from '../../../cloud/voiceConversation';
 import type {ConversationSnapshot} from '../../../cloud/voiceConversation';
 import {actionService} from '../../../ai/voiceActions/actionService';
+import {clearCallUstpSources} from '../../../ai/voiceActions/callUstpCitations';
 import {generateId} from '../../../utils';
 
 export interface OnlineReminderHandle {
@@ -45,6 +46,8 @@ interface Props {
   ) => Promise<string>;
   /** Resolves when the app has finished reading the reminder aloud. */
   beforeAudio?: () => Promise<void>;
+  /** What is on screen right now (e.g. an open review card), for reconnect. */
+  getCallState?: () => string | null;
 }
 
 /** Tools the agent may run during a reminder call: reads and the snooze. */
@@ -92,6 +95,7 @@ export const OnlineReminderConversation = forwardRef<
       snoozeMinutes,
       onPlannerTool,
       beforeAudio,
+      getCallState,
     },
     ref,
   ) => {
@@ -101,11 +105,16 @@ export const OnlineReminderConversation = forwardRef<
     plannerTool.current = onPlannerTool;
     const audioGate = useRef(beforeAudio);
     audioGate.current = beforeAudio;
+    const callStateGetter = useRef(getCallState);
+    callStateGetter.current = getCallState;
     const toolSession = useRef(generateId('reminder-call'));
     useEffect(() => {
       const session = toolSession.current;
-      return () => actionService.clearSessionActions(session);
-    }, []);
+      return () => {
+        actionService.clearSessionActions(session);
+        clearCallUstpSources(userId);
+      };
+    }, [userId]);
     const onClientTool = useCallback(
       async (
         name: string,
@@ -150,6 +159,7 @@ export const OnlineReminderConversation = forwardRef<
       quietOpening: true,
       // Connects while the reminder is read aloud; audio opens when it ends.
       beforeAudio: () => audioGate.current?.() ?? Promise.resolve(),
+      getCallState: () => callStateGetter.current?.() ?? null,
       onClientTool,
     });
     const current = useRef(conversation);

@@ -11,7 +11,9 @@ class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    handleLockScreenIntent(intent)
+    if (savedInstanceState == null) {
+      handleLockScreenIntent(intent)
+    }
   }
 
   override fun onNewIntent(intent: Intent?) {
@@ -20,13 +22,30 @@ class MainActivity : ReactActivity() {
     // When the React bridge is active, LafinaReminderModule.onNewIntent already persisted and emitted the call.
     if (!LafinaReminderModule.hasActiveBridge()) {
       handleLockScreenIntent(intent)
+    } else {
+      stripReminderExtras(intent)
     }
   }
 
   private fun handleLockScreenIntent(intent: Intent?) {
-    if (intent != null && intent.hasExtra("reminderId")) {
-      LafinaReminderModule.captureActivityIntent(this, intent)
+    if (intent == null) return
+    if ((intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) {
+      stripReminderExtras(intent)
+      return
     }
+    if (intent.hasExtra("reminderId")) {
+      LafinaReminderModule.captureActivityIntent(this, intent)
+      stripReminderExtras(intent)
+    }
+  }
+
+  private fun stripReminderExtras(intent: Intent?) {
+    if (intent == null) return
+    intent.removeExtra("reminderId")
+    intent.removeExtra("task")
+    intent.removeExtra("action")
+    intent.removeExtra(LafinaReminderModule.EXTRA_OWNER_ID)
+    intent.removeExtra(LafinaReminderModule.EXTRA_GENERATION)
   }
 
   // The React Native root contains private planner data. Notification intents

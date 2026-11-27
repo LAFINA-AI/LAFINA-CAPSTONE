@@ -109,7 +109,6 @@ import {ReminderHealth} from '../components/profile/ReminderHealth';
 import {AlertAndNotificationSettings} from '../components/profile/AlertAndNotificationSettings';
 import {ReminderCallSettings} from '../components/profile/ReminderCallSettings';
 import {alertPreferencesStore} from '../../storage/alertPreferencesStore';
-import {PersonalMemory} from '../components/profile/PersonalMemory';
 import {ChatMemorySettings} from '../components/profile/ChatMemorySettings';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {CHAT_MEMORY_CHANGED_EVENT} from '../../cloud/chatMemoryService';
@@ -126,7 +125,6 @@ import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {speechSettingsStore} from '../../storage/speechSettingsStore';
 import {profileStatisticsStore} from '../../storage/profileStatisticsStore';
 import type {DetailedProfileStatistics} from '../../storage/profileStatisticsStore';
-import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {
   authorizeDataReset,
   finishAttachmentCleanup,
@@ -269,17 +267,6 @@ const readCallSettingsSummary = (userId: string): string => {
     return `${mode} · rings ${prefs.callRingTimeoutSec} sec`;
   } catch {
     return 'LAFINA talks with you · rings 45 sec';
-  }
-};
-
-const readEventDefaultsSummary = (userId: string): string => {
-  try {
-    const saved = personalMemoryStore.read(userId);
-    return saved.enabled && saved.value
-      ? 'On: start time and length filled in'
-      : 'Off';
-  } catch {
-    return 'Unavailable';
   }
 };
 
@@ -462,7 +449,6 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   const [callSettingsSummary, setCallSettingsSummary] = useState(() =>
     readCallSettingsSummary(userId),
   );
-  const [memoryVisible, setMemoryVisible] = useState(false);
   const [chatMemoryVisible, setChatMemoryVisible] = useState(false);
   const readChatMemorySummary = () => {
     try {
@@ -476,9 +462,6 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   };
   const [chatMemorySummary, setChatMemorySummary] = useState(
     readChatMemorySummary,
-  );
-  const [eventDefaultsSummary, setEventDefaultsSummary] = useState(() =>
-    readEventDefaultsSummary(userId),
   );
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [voiceSummary, setVoiceSummary] = useState(() =>
@@ -767,7 +750,6 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
         preferences.reminderLeadMinutes,
       )}, ${getSnoozePreferenceLabel(preferences)}`,
     );
-    loadEventDefaultsSummary();
     loadVoiceSummary();
     loadOnlineVoiceSummary();
     setAlertSummary(readAlertSettingsSummary(userId));
@@ -776,10 +758,6 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
 
   const loadVoiceSummary = () => {
     setVoiceSummary(readVoiceSummary(userId));
-  };
-
-  const loadEventDefaultsSummary = () => {
-    setEventDefaultsSummary(readEventDefaultsSummary(userId));
   };
 
   const handleToggleWeekStart = (value: boolean) => {
@@ -1027,129 +1005,130 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     if (clearingDataRef.current) return;
     clearingDataRef.current = true;
     try {
-    const preparation = preparePersonalDataReset(authority);
-    const prepared =
-      typeof preparation === 'boolean' ? preparation : await preparation;
-    const outcome = resetPersonalData(
-      prepared ? authority : null,
-      () => alive.current && currentUserId.current === authority?.userId,
-    );
-    if (!outcome.admitted || !authority) {
-      if (alive.current) {
-        setClearDataResult({
-          status: 'not_cleared',
-          title: 'Not Cleared',
-          message:
-            "Nothing was deleted. Your sign-in changed or recording could not be stopped safely. Stop any recording, then reopen Clear All Data for the account you're using now.",
-        });
-      }
-      return;
-    }
-    // Clear-data audit C1 (ADR-026): every saved attachment cleanup for this
-    // owner, from this attempt or an earlier one, gets one bounded pass. Only
-    // obligations still saved afterwards count as files not removed. Audit C2:
-    // progress the pass could not save is never reported as done.
-    const cleanup = hasAttachmentCleanup(authority)
-      ? await finishAttachmentCleanup(authority)
-      : {removed: 0, pending: 0, interrupted: false, unsaved: 0};
-    const personalFiles = hasPersonalFileCleanup(authority.userId)
-      ? await finishPersonalFileCleanup(authority)
-      : {pending: 0};
-    const plannerCleared = outcome.planner === 'cleared';
-    if (plannerCleared) {
-      void reconcileReminderDelivery(authority.userId).catch(() => undefined);
-    }
-    const chatCleared = outcome.chat === 'cleared';
-    const defaultsCleared = outcome.defaults === 'cleared';
-    const filesPending = cleanup.pending;
-    const refused = outcome.refusedAttachments;
-    const unsaved = cleanup.unsaved;
-    const filesConfirmed =
-      filesPending === 0 &&
-      refused === 0 &&
-      unsaved === 0 &&
-      personalFiles.pending === 0;
-
-    if (plannerCleared && chatCleared && defaultsCleared && filesConfirmed) {
-      if (alive.current) {
-        setClearDataResult({
-          status: 'cleared',
-          title: 'Data Cleared',
-          message:
-            'All personal scheduling data and saved event defaults have been deleted.',
-        });
-      }
-    } else {
-      const done: string[] = [];
-      const notDone: string[] = [];
-      (plannerCleared ? done : notDone).push(
-        'notes, tasks, events, reminders and calendar blocks',
+      const preparation = preparePersonalDataReset(authority);
+      const prepared =
+        typeof preparation === 'boolean' ? preparation : await preparation;
+      const outcome = resetPersonalData(
+        prepared ? authority : null,
+        () => alive.current && currentUserId.current === authority?.userId,
       );
-      (chatCleared ? done : notDone).push('chat history');
-      (defaultsCleared ? done : notDone).push('saved event defaults');
-      const lines = [
-        personalFiles.pending === 0
-          ? ''
-          : 'Some recording or document files could not be confirmed deleted. They remain queued; try Clear All Data again.',
-        done.length > 0 ? `Your ${done.join(' and your ')} were cleared.` : '',
-        notDone.length > 0
-          ? `Your ${notDone.join(' and your ')} were not deleted${
-              plannerCleared
-                ? ''
-                : '; none of those planner records were changed'
-            }.`
-          : '',
-        filesPending === null
-          ? 'This phone could not confirm that every chat attachment file was removed.'
-          : filesPending > 0
-          ? `${filesPending} chat attachment file${
-              filesPending === 1 ? '' : 's'
-            } could not be removed from this phone's storage yet; Clear All Data keeps ${
-              filesPending === 1 ? 'it' : 'them'
-            } listed and tries again.`
-          : '',
-        unsaved > 0
-          ? `This phone could not save its cleanup progress for ${unsaved} chat attachment file${
-              unsaved === 1 ? '' : 's'
-            }; ${
-              unsaved === 1 ? 'it stays' : 'they stay'
-            } listed for the next Clear All Data.`
-          : '',
-        cleanup.interrupted
-          ? 'The sign-in changed before every file was removed; the rest stay listed for this account.'
-          : '',
-        refused > 0
-          ? `${refused} chat attachment reference${
-              refused === 1 ? ' did' : 's did'
-            } not point to this app's attachment storage, so ${
-              refused === 1 ? 'that file was' : 'those files were'
-            } left untouched.`
-          : '',
-        defaultsCleared
-          ? ''
-          : 'To remove the saved event defaults, open Event Defaults and choose Forget all event defaults.',
-        plannerCleared && chatCleared && filesPending === 0 && unsaved === 0
-          ? ''
-          : 'Try Clear All Data again.',
-        'Device settings such as the offline voice, theme and time format were kept.',
-      ];
-      if (alive.current) {
-        setClearDataResult({
-          status: 'partly_cleared',
-          title: 'Data Partly Cleared',
-          message: lines.filter(Boolean).join(' '),
-        });
+      if (!outcome.admitted || !authority) {
+        if (alive.current) {
+          setClearDataResult({
+            status: 'not_cleared',
+            title: 'Not Cleared',
+            message:
+              "Nothing was deleted. Your sign-in changed or recording could not be stopped safely. Stop any recording, then reopen Clear All Data for the account you're using now.",
+          });
+        }
+        return;
       }
-    }
-    if (alive.current && currentUserId.current === authority.userId) {
-      setCurrentUser(userStore.getUserById(userId));
-      setAcademicProfile(getConfirmedAcademicProfile(userId));
-      setStudentSetup(studentSetupStore.get(userId));
-      setChatMemorySummary(readChatMemorySummary());
-      loadStats();
-      loadEventDefaultsSummary();
-      onRefresh();
-    }
+      // Clear-data audit C1 (ADR-026): every saved attachment cleanup for this
+      // owner, from this attempt or an earlier one, gets one bounded pass. Only
+      // obligations still saved afterwards count as files not removed. Audit C2:
+      // progress the pass could not save is never reported as done.
+      const cleanup = hasAttachmentCleanup(authority)
+        ? await finishAttachmentCleanup(authority)
+        : {removed: 0, pending: 0, interrupted: false, unsaved: 0};
+      const personalFiles = hasPersonalFileCleanup(authority.userId)
+        ? await finishPersonalFileCleanup(authority)
+        : {pending: 0};
+      const plannerCleared = outcome.planner === 'cleared';
+      if (plannerCleared) {
+        void reconcileReminderDelivery(authority.userId).catch(() => undefined);
+      }
+      const chatCleared = outcome.chat === 'cleared';
+      const defaultsCleared = outcome.defaults === 'cleared';
+      const filesPending = cleanup.pending;
+      const refused = outcome.refusedAttachments;
+      const unsaved = cleanup.unsaved;
+      const filesConfirmed =
+        filesPending === 0 &&
+        refused === 0 &&
+        unsaved === 0 &&
+        personalFiles.pending === 0;
+
+      if (plannerCleared && chatCleared && defaultsCleared && filesConfirmed) {
+        if (alive.current) {
+          setClearDataResult({
+            status: 'cleared',
+            title: 'Data Cleared',
+            message:
+              'All personal scheduling data and saved event defaults have been deleted.',
+          });
+        }
+      } else {
+        const done: string[] = [];
+        const notDone: string[] = [];
+        (plannerCleared ? done : notDone).push(
+          'notes, tasks, events, reminders and calendar blocks',
+        );
+        (chatCleared ? done : notDone).push('chat history');
+        (defaultsCleared ? done : notDone).push('saved event defaults');
+        const lines = [
+          personalFiles.pending === 0
+            ? ''
+            : 'Some recording or document files could not be confirmed deleted. They remain queued; try Clear All Data again.',
+          done.length > 0
+            ? `Your ${done.join(' and your ')} were cleared.`
+            : '',
+          notDone.length > 0
+            ? `Your ${notDone.join(' and your ')} were not deleted${
+                plannerCleared
+                  ? ''
+                  : '; none of those planner records were changed'
+              }.`
+            : '',
+          filesPending === null
+            ? 'This phone could not confirm that every chat attachment file was removed.'
+            : filesPending > 0
+            ? `${filesPending} chat attachment file${
+                filesPending === 1 ? '' : 's'
+              } could not be removed from this phone's storage yet; Clear All Data keeps ${
+                filesPending === 1 ? 'it' : 'them'
+              } listed and tries again.`
+            : '',
+          unsaved > 0
+            ? `This phone could not save its cleanup progress for ${unsaved} chat attachment file${
+                unsaved === 1 ? '' : 's'
+              }; ${
+                unsaved === 1 ? 'it stays' : 'they stay'
+              } listed for the next Clear All Data.`
+            : '',
+          cleanup.interrupted
+            ? 'The sign-in changed before every file was removed; the rest stay listed for this account.'
+            : '',
+          refused > 0
+            ? `${refused} chat attachment reference${
+                refused === 1 ? ' did' : 's did'
+              } not point to this app's attachment storage, so ${
+                refused === 1 ? 'that file was' : 'those files were'
+              } left untouched.`
+            : '',
+          defaultsCleared
+            ? ''
+            : 'To reset the event duration, open Schedule settings and save 60 minutes.',
+          plannerCleared && chatCleared && filesPending === 0 && unsaved === 0
+            ? ''
+            : 'Try Clear All Data again.',
+          'Device settings such as the offline voice, theme and time format were kept.',
+        ];
+        if (alive.current) {
+          setClearDataResult({
+            status: 'partly_cleared',
+            title: 'Data Partly Cleared',
+            message: lines.filter(Boolean).join(' '),
+          });
+        }
+      }
+      if (alive.current && currentUserId.current === authority.userId) {
+        setCurrentUser(userStore.getUserById(userId));
+        setAcademicProfile(getConfirmedAcademicProfile(userId));
+        setStudentSetup(studentSetupStore.get(userId));
+        setChatMemorySummary(readChatMemorySummary());
+        loadStats();
+        onRefresh();
+      }
     } finally {
       clearingDataRef.current = false;
     }
@@ -2186,7 +2165,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                 ]}
               >
                 <SettingItem
-                  text="Reminder timing"
+                  text="Schedule settings"
                   subtitle={preferenceSummary}
                   icon={CalendarClock}
                   tone="violet"
@@ -2215,14 +2194,6 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                   icon={ShieldCheck}
                   tone="blue"
                   onPress={() => setHealthVisible(true)}
-                />
-                {rowDivider}
-                <SettingItem
-                  text="New event defaults"
-                  subtitle={eventDefaultsSummary}
-                  icon={Clock}
-                  tone="lilac"
-                  onPress={() => setMemoryVisible(true)}
                 />
                 {rowDivider}
                 <SettingItem
@@ -3357,14 +3328,6 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                 setChatMemoryVisible(false);
                 handleUploadCor();
               }}
-            />
-          )}
-          {memoryVisible && (
-            <PersonalMemory
-              userId={userId}
-              visible={memoryVisible}
-              onClose={() => setMemoryVisible(false)}
-              onChanged={loadEventDefaultsSummary}
             />
           )}
           {onlineVoiceVisible && (

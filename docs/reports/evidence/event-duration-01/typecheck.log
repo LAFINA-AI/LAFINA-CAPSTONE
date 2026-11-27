@@ -1,0 +1,7 @@
+
+> lafina-capstone@1.0.9 typecheck
+> tsc --noEmit
+
+__tests__/ui/eventDurationPreference.test.tsx(157,28): error TS2339: Property 'draft' does not exist on type 'CommandProposal'.
+__tests__/ui/eventDurationPreference.test.tsx(168,28): error TS2339: Property 'draft' does not exist on type 'CommandProposal'.
+src/ui/screens/calendar/hooks/useScheduleItemModal.ts(183,5): error TS2304: Cannot find name 'setMemoryOffer'.

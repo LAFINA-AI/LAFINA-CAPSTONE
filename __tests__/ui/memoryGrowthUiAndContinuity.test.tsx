@@ -176,12 +176,12 @@ describe('Explicit memory safety, Temporary/Quick Chat, and server switch reset'
 });
 
 describe('Memory-driven smart scheduling defaults and ML channel recommendation', () => {
-  test('events inherit opt-in Event Defaults and study blocks pick free slots in configured peak study window', () => {
+  test('events ask for missing times and use duration while study blocks suggest a free peak window', () => {
     const userId = makeStudent('smart-defaults');
     userStore.setCurrentUser(userId);
     const ref = new Date(2026, 10, 22, 8, 0, 0);
 
-    // 1. Saved opt-in Event Defaults apply transparently when time/length omitted.
+    // 1. Migrate only the duration; the old fixed start time is not used.
     const preparedOffer = personalMemoryStore.prepare(userId, {
       startTime: '17:30',
       durationMinutes: 90,
@@ -189,32 +189,38 @@ describe('Memory-driven smart scheduling defaults and ML channel recommendation'
     });
     personalMemoryStore.confirm(preparedOffer.token, userId);
 
+    const eventIntent = validateIntent({
+      intent: 'create_time_block',
+      targetEntityType: 'event',
+      title: 'Capstone Sync',
+      date: '2026-11-23',
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: 'Academic',
+      details: null,
+      snoozeMinutes: null,
+      confidence: 1,
+      source: 'fast_path',
+      rawTranscript: 'add event Capstone Sync tomorrow',
+    });
+    const question = prepareReviewedCommand(userId, eventIntent, {
+      referenceDate: ref,
+    });
+    expect(question.status).toBe('clarify');
+    expect(question.reply).toMatch(/What time should.*start/);
     const evtProposal = prepareReviewedCommand(
       userId,
-      validateIntent({
-        intent: 'create_time_block',
-        targetEntityType: 'event',
-        title: 'Capstone Sync',
-        date: '2026-11-23',
-        time: null,
-        endTime: null,
-        durationMinutes: null,
-        category: 'Academic',
-        details: null,
-        snoozeMinutes: null,
-        confidence: 1,
-        source: 'fast_path',
-        rawTranscript: 'add event Capstone Sync tomorrow',
-      }),
+      {...eventIntent, time: '15:00'},
       {referenceDate: ref},
     );
     expect(evtProposal.status).toBe('proposal');
     if (evtProposal.status !== 'proposal') throw new Error('expected proposal');
     expect(evtProposal.proposal.details.join(' ')).toContain(
-      '5:30 PM to 7:00 PM',
+      '3:00 PM to 4:30 PM',
     );
     expect(evtProposal.proposal.assumptions.join(' ')).toContain(
-      'Event Default',
+      'default event duration',
     );
 
     // 2. Study time block searches student's saved evening peak window skipping busy 18:00-19:00 block.
@@ -575,6 +581,7 @@ describe('UI components: ChatMemorySettings growth card + inline edit/pin + Pref
 
   test('PreferencesSettingsScreen saves identity, tone, detail, goal, and study peaks to both stores', async () => {
     const userId = makeStudent('prefs-sync');
+    userStore.setCurrentUser(userId);
     chatMemoryStore.setEnabled(userId, true);
     const onSaved = jest.fn();
     const ui = render(

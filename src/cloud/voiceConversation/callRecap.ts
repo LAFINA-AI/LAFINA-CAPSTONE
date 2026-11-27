@@ -81,10 +81,18 @@ const messageLine = (message: ChatMessage): string | null => {
  */
 export const buildChatRecap = (
   userId: string,
-  options: {now?: Date; maxMessages?: number; maxChars?: number} = {},
+  options: {
+    now?: Date;
+    maxMessages?: number;
+    maxChars?: number;
+    sessionId?: string | null;
+  } = {},
 ): string => {
   if (!userId) return '';
-  const sessionId = callChatSessionId(userId);
+  const sessionId =
+    options.sessionId && !isUstpSessionId(options.sessionId)
+      ? options.sessionId
+      : callChatSessionId(userId);
   if (!sessionId) return '';
   const now = options.now ?? new Date();
   const maxMessages = options.maxMessages ?? CHAT_RECAP_MAX_MESSAGES;

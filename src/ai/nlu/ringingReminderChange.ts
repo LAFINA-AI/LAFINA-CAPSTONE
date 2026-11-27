@@ -25,9 +25,9 @@ export const MAX_CALLBACK_SNOOZE_MINUTES = 120;
 const LEAD_IN =
   /^(?:(?:hey|hi|okay|ok|um+|uh+|so|well|actually|yes|yeah|no|please|lafina)[,.!\s]+)*/i;
 
-/** "call me back at 8", "remind me again at 9", "ring me later tonight". */
+/** "call me back at 8", "remind me again at 9", "ring me later tonight", "remind me in 15 minutes". */
 const CALLBACK_RE =
-  /\b(?:call|ring|remind)\s+me\s+(?:back|again|later)\b|\b(?:call|ring)\s+(?:back|again)\b/i;
+  /\b(?:call|ring|remind)\s+me\s+(?:back|again|later)\b|\b(?:call|ring)\s+(?:back|again)\b|\bremind\s+me\s+(?:in\s+\d+|at\s+\d)/i;
 
 const MOVE_VERB =
   /\b(?:move|moving|reschedule|postpone|push|shift|delay|bump|change|set|put|make)\b/i;
@@ -48,7 +48,28 @@ const CREATE_RE =
 const STRONG_MOVE =
   /\b(?:move|reschedule|postpone|push|shift|delay|bump)\b(?!\s+on\b)/i;
 
-const RELATIVE_LATER = /\b(?:later|from\s+now|after)\b/i;
+const RELATIVE_LATER = /\b(?:later|from\s+now|after|back|for)\b/i;
+
+/** Exact relative minute/hour offset, avoiding ceiling inflation from parseDateAndTime. */
+const EXPLICIT_RELATIVE_RE =
+  /\b(?:in|for|back|by)\s+(\d{1,3}|a|an|half\s+an?)\s+(minutes?|mins?|hours?|hrs?)\b|\b(\d{1,3}|a|an)\s+(minutes?|mins?|hours?|hrs?)\s+(?:later|from\s+now)\b/i;
+
+const parseExplicitRelativeMinutes = (text: string): number | null => {
+  const m = EXPLICIT_RELATIVE_RE.exec(text);
+  if (!m) return null;
+  const rawQty = (m[1] || m[3] || '').toLowerCase().trim();
+  const unit = (m[2] || m[4] || '').toLowerCase();
+  let qty: number;
+  if (/^half/.test(rawQty)) qty = 0.5;
+  else if (rawQty === 'a' || rawQty === 'an') qty = 1;
+  else qty = Number(rawQty);
+  if (!Number.isFinite(qty) || qty <= 0) return null;
+  const mins = Math.round(qty * (unit.startsWith('h') ? 60 : 1));
+  return mins >= 1 && mins <= 24 * 60 ? mins : null;
+};
+
+/** Supports bare hour after "to" ("Move it to 7", "Push it to 8"). */
+const BARE_TO_HOUR_RE = /\bto\s+(\d{1,2})(?:\s*(?:o'?clock))?(?=\s|$|[.,!])/i;
 
 const minutesUntil = (target: Date, now: Date): number =>
   Math.round((target.getTime() - now.getTime()) / 60000);
@@ -97,10 +118,29 @@ export const parseRingingReminderChange = (
   const callback = CALLBACK_RE.test(t);
   const mentionsReminder = /\breminder\b/i.test(t);
   const move =
-    MOVE_VERB.test(t) && THIS_REMINDER.test(t) && !/\bmove\s+on\b/i.test(t);
+    ((MOVE_VERB.test(t) && THIS_REMINDER.test(t)) ||
+      (STRONG_MOVE.test(t) && !OTHER_ITEM.test(t) && !CREATE_RE.test(t))) &&
+    !/\bmove\s+on\b/i.test(t);
   if (!callback && !move) return null;
   if (!mentionsReminder && (OTHER_ITEM.test(t) || CREATE_RE.test(t)))
     return null;
+
+  // Handle exact relative offsets first ("call me back in 10 minutes",
+  // "push it back 2 hours") so ceiling rounding never adds +1 minute.
+  const exactRelativeMinutes = parseExplicitRelativeMinutes(t);
+  if (exactRelativeMinutes !== null) {
+    if (callback && exactRelativeMinutes <= MAX_CALLBACK_SNOOZE_MINUTES) {
+      return {kind: 'snooze', minutes: exactRelativeMinutes};
+    }
+    const relTarget = new Date(now.getTime() + exactRelativeMinutes * 60000);
+    return {
+      kind: 'reschedule',
+      date: formatLocalDate(relTarget),
+      time: `${String(relTarget.getHours()).padStart(2, '0')}:${String(
+        relTarget.getMinutes(),
+      ).padStart(2, '0')}`,
+    };
+  }
 
   const parsed = parseDateAndTime(t, now);
   const today = formatLocalDate(now);
@@ -108,6 +148,34 @@ export const parseRingingReminderChange = (
   let target: Date | null = null;
   let date: string | null = parsed.date;
   let time: string | null = parsed.time;
+  if (!time) {
+    const bareTo = BARE_TO_HOUR_RE.exec(t);
+    if (bareTo) {
+      const rawHour = Number(bareTo[1]);
+      if (rawHour >= 1 && rawHour <= 12) {
+        // Choose next plausible upcoming occurrence of that hour (or PM for 1..7 if afternoon).
+        const candidateAm = atLocal(
+          date ?? today,
+          `${String(rawHour === 12 ? 0 : rawHour).padStart(2, '0')}:00`,
+        );
+        const candidatePm = atLocal(
+          date ?? today,
+          `${String(rawHour === 12 ? 12 : rawHour + 12).padStart(2, '0')}:00`,
+        );
+        const chosen =
+          !date && candidateAm && candidateAm.getTime() > now.getTime()
+            ? candidateAm
+            : !date && candidatePm && candidatePm.getTime() > now.getTime()
+            ? candidatePm
+            : rawHour <= 7 && candidatePm
+            ? candidatePm
+            : candidateAm;
+        if (chosen) {
+          time = `${String(chosen.getHours()).padStart(2, '0')}:00`;
+        }
+      }
+    }
+  }
   if (date && !isValidLocalDate(date)) {
     return {kind: 'ask_time'};
   }

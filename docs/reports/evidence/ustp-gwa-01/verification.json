@@ -1,0 +1,81 @@
+{
+  "phase": "USTP-GWA-01",
+  "checkedAtUtc": "2026-11-26T19:26:51Z",
+  "localDate": "2026-11-27",
+  "timezone": "Asia/Manila",
+  "baseCommit": "e2afa500",
+  "status": "BLOCKED",
+  "benchmarks": null,
+  "deviceIds": [],
+  "checks": [
+    {
+      "command": "npm run preflight",
+      "status": "FAIL",
+      "log": "preflight.log",
+      "reason": "Stopped at typecheck"
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "FAIL",
+      "log": "typecheck.log",
+      "diagnostics": 5,
+      "reason": "Existing unrelated App/reminder/call changes"
+    },
+    {
+      "command": "npm run lint",
+      "status": "PASS",
+      "log": "lint.log"
+    },
+    {
+      "command": "npx eslint src/ai/voiceActions/actionService.ts src/ui/components/voice/VoiceConversationPanel.tsx src/ui/components/callLafina/CallReadResults.tsx src/ui/components/callLafina/UstpCallSourceCard.tsx src/ui/screens/skills/GwaSkill.tsx src/skills/gwaSubjects.ts src/skills/studyLogic.ts __tests__/skills/gwaSubjects.test.ts __tests__/skills/skillsUi.test.tsx __tests__/ui/ustpCallSourceCard.test.tsx __tests__/ai/callUstpSourcesRag.test.tsx --max-warnings 0",
+      "status": "PASS",
+      "log": "scoped-lint.log",
+      "exitCode": 0
+    },
+    {
+      "command": "npx prettier --check src/ai/voiceActions/actionService.ts src/ui/components/voice/VoiceConversationPanel.tsx src/ui/components/callLafina/CallReadResults.tsx src/ui/components/callLafina/UstpCallSourceCard.tsx src/ui/screens/skills/GwaSkill.tsx src/skills/gwaSubjects.ts src/skills/studyLogic.ts __tests__/skills/gwaSubjects.test.ts __tests__/skills/skillsUi.test.tsx __tests__/ui/ustpCallSourceCard.test.tsx __tests__/ai/callUstpSourcesRag.test.tsx",
+      "status": "PASS",
+      "log": "format.log",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run check:architecture",
+      "status": "PASS",
+      "log": "architecture.log",
+      "modules": 548,
+      "cycles": 0
+    },
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ui/ustpCallSourceCard.test.tsx __tests__/skills/gwaSubjects.test.ts __tests__/ai/callUstpSourcesRag.test.tsx __tests__/skills/skillsUi.test.tsx __tests__/ui/ustpSourcesLibrary.test.tsx",
+      "status": "PASS",
+      "log": "targeted-final.log",
+      "suitesPassed": 5,
+      "testsPassed": 61,
+      "seconds": 31.686
+    },
+    {
+      "command": "npm test",
+      "status": "FAIL_AND_INTERRUPTED",
+      "log": "jest-full.log",
+      "exhaustive": false,
+      "reason": "Quick Chat poller test expected 2 starts, received 3 at appQuickChatIntegration.test.tsx:97; stopped after confirmed failure"
+    },
+    {
+      "cwd": "android",
+      "command": ".\\gradlew.bat :app:testDebugUnitTest :app:assembleDebug --console=plain",
+      "status": "BLOCKED",
+      "log": "gradle.log",
+      "reason": "Gradle distribution lock access denied; tasks did not start"
+    },
+    {
+      "command": "adb devices -l",
+      "status": "BLOCKED",
+      "reason": "ADB daemon failed to start; cannot connect"
+    },
+    {
+      "procedure": "Phone layout, live call, source-sheet navigation, large fonts, TalkBack, light/dark modes and GWA reopening",
+      "status": "NOT_RUN"
+    }
+  ]
+}
+

@@ -53,6 +53,8 @@ interface CallAnsweredViewProps {
   pendingAction?: CallPendingAction | null;
   /** A planner change waiting for Confirm, asked for during the call. */
   reviewCard?: React.ReactNode;
+  /** Epoch ms when the call was answered (keeps timer continuous across fallback). */
+  answeredAtMs?: number | null;
 }
 
 /** Other snooze lengths offered next to the student's default. */
@@ -130,10 +132,17 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   busy = false,
   pendingAction = null,
   reviewCard,
+  answeredAtMs,
 }) => {
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const callStartedAtRef = useRef(Date.now());
+  const initialStart = answeredAtMs ?? Date.now();
+  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
+    Math.max(0, Math.floor((Date.now() - initialStart) / 1000)),
+  );
+  const callStartedAtRef = useRef(initialStart);
+  if (answeredAtMs != null && answeredAtMs > 0) {
+    callStartedAtRef.current = answeredAtMs;
+  }
   const pulse = useRef(new Animated.Value(1)).current;
   const wavePhaseRef = useRef(0);
   const waveBars = useRef(
@@ -233,7 +242,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   // One tap settles the call: after it, or while the call is still being set
   // up, the buttons wait instead of looking tappable and doing nothing.
   const controlsEnabled = resolution === null && !busy && !pendingAction;
-  const endEnabled = resolution === null && pendingAction !== 'end';
+  const endEnabled = resolution === null && !pendingAction;
 
   const renderWaveform = (): React.ReactNode => (
     <View

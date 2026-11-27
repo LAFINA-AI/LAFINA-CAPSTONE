@@ -72,7 +72,12 @@ export const rescheduleUserReminders = async (
           });
           summary.missed += 1;
         } else {
-          // Within grace period -> trigger immediately
+          // Within grace period -> trigger immediately. If an unprotected
+          // reminder was left stranded in 'triggered' after a crash/kill,
+          // re-arm it to 'pending' so checkAndTriggerReminders can pick it up.
+          if (reminder.status === 'triggered') {
+            remindersStore.updateReminderStatus(reminder.id, 'pending');
+          }
           summary.triggered += 1;
         }
       }

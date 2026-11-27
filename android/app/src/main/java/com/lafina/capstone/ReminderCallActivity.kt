@@ -78,6 +78,10 @@ class ReminderCallActivity : Activity() {
 
   override fun onResume() {
     super.onResume()
+    if (waitingForUnlock && isLocked()) {
+      // Recover if an OEM keyguard dismissed without invoking the callback.
+      waitingForUnlock = false
+    }
     if (!waitingForUnlock && identity != null) {
       handler.removeCallbacks(watcher)
       handler.post(watcher)
@@ -168,6 +172,20 @@ class ReminderCallActivity : Activity() {
   private fun decline() {
     if (waitingForUnlock || isFinishing || isDestroyed) return
     identity?.let { LafinaReminderModule.declineFromLockScreen(this, it) }
+    val next = LafinaReminderModule.nextRingingCall(this)
+    if (next != null) {
+      val (nextIdentity, nextTask) = next
+      identity = nextIdentity
+      task = nextTask
+      if (!isLocked()) {
+        openInApp(LafinaReminderModule.ACTION_CALL)
+        return
+      }
+      render()
+      handler.removeCallbacks(watcher)
+      handler.postDelayed(watcher, WATCH_INTERVAL_MS)
+      return
+    }
     finish()
   }
 
@@ -175,6 +193,11 @@ class ReminderCallActivity : Activity() {
     handler.removeCallbacks(watcher)
     val current = identity
     if (current != null) {
+      if (action == LafinaReminderModule.ACTION_ANSWER) {
+        // Silence the insistent ringtone and extend the deadline immediately so
+        // cold-starting React Native never times out or keeps ringing behind the splash.
+        LafinaReminderModule.answerFromLockScreen(this, current, task)
+      }
       try {
         startActivity(LafinaReminderModule.mainCallIntent(this, current, task, action))
       } catch (_: Exception) {

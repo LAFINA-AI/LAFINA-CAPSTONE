@@ -87,14 +87,20 @@ const runReminderPoll = async (userId: string, seq: number): Promise<void> => {
         );
 
         // 1. Re-verify inside the write transaction (user may have acknowledged,
-        // snoozed, or deleted while claimForegroundRing awaited native).
+        // snoozed, edited, or deleted while claimForegroundRing awaited native).
         let committedTrigger = false;
+        let committedTask = reminder.task;
         db.transactionSync(tx => {
           const row = tx.executeSync(
-            `SELECT user_id, status, trigger_at FROM reminders WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
+            `SELECT user_id, task, status, trigger_at FROM reminders WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
             [reminder.id],
           ).rows?.[0] as
-            | {user_id?: string; status?: string; trigger_at?: string}
+            | {
+                user_id?: string;
+                task?: string;
+                status?: string;
+                trigger_at?: string;
+              }
             | undefined;
           if (
             !row ||
@@ -105,6 +111,14 @@ const runReminderPoll = async (userId: string, seq: number): Promise<void> => {
           ) {
             return;
           }
+          if (
+            job?.generation != null &&
+            !deliveryStore.checkFence(reminder.id, userId, job.generation, tx)
+              .ok
+          ) {
+            return;
+          }
+          committedTask = String(row.task ?? reminder.task);
           remindersStore.updateReminderStatus(
             reminder.id,
             'triggered',
@@ -137,7 +151,7 @@ const runReminderPoll = async (userId: string, seq: number): Promise<void> => {
         // 2. Emit call event for UI and Call Dispatcher, with the captured identity
         DeviceEventEmitter.emit(EVENT_CALL_TRIGGER, {
           reminderId: reminder.id,
-          task: reminder.task,
+          task: committedTask,
           audioPath: reminder.preCastAudioPath,
           ownerId: reminder.userId,
           generation: job?.generation,

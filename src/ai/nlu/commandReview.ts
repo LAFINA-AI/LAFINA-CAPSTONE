@@ -956,7 +956,11 @@ const findFreeSlotInWindow = (
     const yesterday = addDaysToDate(date, -1);
     const day = plannerQueries.window(userId, yesterday, date);
     const occupied: Array<[number, number]> = [];
-    const pushItem = (itemDate: string, startTime?: string, endTime?: string) => {
+    const pushItem = (
+      itemDate: string,
+      startTime?: string,
+      endTime?: string,
+    ) => {
       if (!startTime || !endTime) return;
       const s = toMins(startTime);
       const e = toMins(endTime);
@@ -1306,29 +1310,35 @@ const buildCreateTimeBlock = (
   const isEventDraft =
     c.targetEntityType === 'event' &&
     !(c.details && c.details.startsWith('[BATCH_CLASSES:'));
-  let eventMemoryDefaults: {
-    startTime: string | null;
-    durationMinutes: number | null;
-  } | null = null;
-  if (isEventDraft && userId) {
-    try {
-      const offered = personalMemoryStore.offer(userId);
-      if (offered) eventMemoryDefaults = offered.value;
-    } catch {
-      eventMemoryDefaults = null;
-    }
-  }
+  const eventDuration =
+    isEventDraft && userId
+      ? personalMemoryStore.getDefaultDuration(userId)
+      : 60;
 
   let requestedDuration = c.durationMinutes ?? null;
   let durationAssumption: string | null = null;
   if (!c.endTime && !requestedDuration) {
-    if (eventMemoryDefaults?.durationMinutes) {
-      requestedDuration = eventMemoryDefaults.durationMinutes;
-      durationAssumption = `No length was given, so it uses your saved Event Default (${requestedDuration} minutes).`;
+    if (isEventDraft) {
+      requestedDuration = eventDuration;
+      durationAssumption = `No length was given, so it uses your default event duration (${requestedDuration} minutes).`;
     } else {
       requestedDuration = 60;
       durationAssumption = 'No length was given, so it lasts 1 hour.';
     }
+  }
+
+  if (isEventDraft && !c.time) {
+    return {
+      result: {
+        status: 'clarify',
+        reply: `What time should ${quote(title)} start?${
+          !c.endTime && !c.durationMinutes
+            ? ` I can use your default length of ${eventDuration} minutes.`
+            : ''
+        } Nothing was saved.`,
+        candidates: [],
+      },
+    };
   }
 
   if (!c.date) {
@@ -1349,93 +1359,84 @@ const buildCreateTimeBlock = (
 
   let startTime = c.time ?? null;
   if (!startTime) {
-    if (eventMemoryDefaults?.startTime) {
-      startTime = eventMemoryDefaults.startTime;
+    const smartStudy = preferredStudyStart(
+      userId,
+      date,
+      requestedDuration ?? 60,
+      nowMs,
+      title,
+      c.category,
+      today,
+    );
+    if (smartStudy) {
+      startTime = smartStudy.startTime;
       assumptions.push(
-        `No start time was given, so it uses your saved Event Default (${format12HourTime(
-          startTime,
-        )}).`,
+        `No start time was given, so it uses your free ${
+          smartStudy.label
+        } (${format12HourTime(startTime)}).`,
       );
     } else {
-      const smartStudy = preferredStudyStart(
-        userId,
-        date,
-        requestedDuration ?? 60,
-        nowMs,
-        title,
-        c.category,
-        today,
-      );
-      if (smartStudy) {
-        startTime = smartStudy.startTime;
-        assumptions.push(
-          `No start time was given, so it uses your free ${
-            smartStudy.label
-          } (${format12HourTime(startTime)}).`,
+      const nowDate = new Date(nowMs);
+      const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+      if (!c.date && date === today && nowMins >= 9 * 60) {
+        const tomorrow = addDaysToDate(today, 1);
+        date = tomorrow;
+        // Replace the earlier "today" default assumption with tomorrow.
+        const todayIdx = assumptions.findIndex(a =>
+          a.startsWith('No date was given, so it is scheduled today'),
         );
-      } else {
-        const nowDate = new Date(nowMs);
-        const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
-        if (!c.date && date === today && nowMins >= 9 * 60) {
-          const tomorrow = addDaysToDate(today, 1);
-          date = tomorrow;
-          // Replace the earlier "today" default assumption with tomorrow.
-          const todayIdx = assumptions.findIndex(a =>
-            a.startsWith('No date was given, so it is scheduled today'),
+        const tomorrowAssumption = `No date was given and today's open study window has passed, so it is scheduled tomorrow (${friendlyDate(
+          tomorrow,
+        )}).`;
+        if (todayIdx >= 0) assumptions[todayIdx] = tomorrowAssumption;
+        else assumptions.push(tomorrowAssumption);
+        const nextDayStudy = preferredStudyStart(
+          userId,
+          tomorrow,
+          requestedDuration ?? 60,
+          nowMs,
+          title,
+          c.category,
+          today,
+        );
+        if (nextDayStudy) {
+          startTime = nextDayStudy.startTime;
+          assumptions.push(
+            `No start time was given, so it uses your free ${
+              nextDayStudy.label
+            } (${format12HourTime(startTime)}).`,
           );
-          const tomorrowAssumption = `No date was given and today's open study window has passed, so it is scheduled tomorrow (${friendlyDate(
-            tomorrow,
-          )}).`;
-          if (todayIdx >= 0) assumptions[todayIdx] = tomorrowAssumption;
-          else assumptions.push(tomorrowAssumption);
-          const nextDayStudy = preferredStudyStart(
-            userId,
-            tomorrow,
-            requestedDuration ?? 60,
-            nowMs,
-            title,
-            c.category,
-            today,
-          );
-          if (nextDayStudy) {
-            startTime = nextDayStudy.startTime;
-            assumptions.push(
-              `No start time was given, so it uses your free ${
-                nextDayStudy.label
-              } (${format12HourTime(startTime)}).`,
-            );
-          } else {
-            startTime = '09:00';
-            assumptions.push('No start time was given, so it starts at 9:00 AM.');
-          }
-        } else if (date === today && nowMins >= 9 * 60) {
-          const nextMin = Math.ceil((nowMins + 15) / 30) * 30;
-          const nextFreeToday =
-            userId && nextMin + (requestedDuration ?? 60) <= 24 * 60
-              ? findFreeSlotInWindow(
-                  userId,
-                  today,
-                  0,
-                  24,
-                  requestedDuration ?? 60,
-                  nextMin,
-                )
-              : null;
-          if (nextFreeToday) {
-            startTime = nextFreeToday;
-            assumptions.push(
-              `No start time was given, so it uses your next free slot today (${format12HourTime(
-                startTime,
-              )}).`,
-            );
-          } else {
-            startTime = '09:00';
-            assumptions.push('No start time was given, so it starts at 9:00 AM.');
-          }
         } else {
           startTime = '09:00';
           assumptions.push('No start time was given, so it starts at 9:00 AM.');
         }
+      } else if (date === today && nowMins >= 9 * 60) {
+        const nextMin = Math.ceil((nowMins + 15) / 30) * 30;
+        const nextFreeToday =
+          userId && nextMin + (requestedDuration ?? 60) <= 24 * 60
+            ? findFreeSlotInWindow(
+                userId,
+                today,
+                0,
+                24,
+                requestedDuration ?? 60,
+                nextMin,
+              )
+            : null;
+        if (nextFreeToday) {
+          startTime = nextFreeToday;
+          assumptions.push(
+            `No start time was given, so it uses your next free slot today (${format12HourTime(
+              startTime,
+            )}).`,
+          );
+        } else {
+          startTime = '09:00';
+          assumptions.push('No start time was given, so it starts at 9:00 AM.');
+        }
+      } else {
+        startTime = '09:00';
+        assumptions.push('No start time was given, so it starts at 9:00 AM.');
       }
     }
   }
@@ -4544,7 +4545,9 @@ const repeatDaysToRrule = (repeatDays: number): string | null => {
   const mask = repeatDays & 127;
   if (!mask) return null;
   if (mask === 127) return 'FREQ=DAILY';
-  const days = ALARM_REPEAT_CODES.filter((_, idx) => Boolean(mask & (1 << idx)));
+  const days = ALARM_REPEAT_CODES.filter((_, idx) =>
+    Boolean(mask & (1 << idx)),
+  );
   return days.length ? `FREQ=WEEKLY;BYDAY=${days.join(',')}` : null;
 };
 
@@ -5520,7 +5523,12 @@ const inverseOf = (
       'SELECT title, body, is_pinned, category FROM notes WHERE id = ? AND deleted_at IS NULL LIMIT 1',
       [op.target.id],
     ).rows?.[0] as
-      | {title?: unknown; body?: unknown; is_pinned?: unknown; category?: unknown}
+      | {
+          title?: unknown;
+          body?: unknown;
+          is_pinned?: unknown;
+          category?: unknown;
+        }
       | undefined;
     if (!row) return null;
     const noteTitle = String(row.title ?? '');

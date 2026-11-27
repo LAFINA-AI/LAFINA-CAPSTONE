@@ -1,0 +1,15 @@
+
+> lafina-capstone@1.0.9 test
+> jest --runInBand --runTestsByPath __tests__/ui/ustpCallSourceCard.test.tsx __tests__/skills/gwaSubjects.test.ts __tests__/ai/callUstpSourcesRag.test.tsx __tests__/skills/skillsUi.test.tsx __tests__/ui/ustpSourcesLibrary.test.tsx
+
+PASS __tests__/ui/ustpCallSourceCard.test.tsx (11.765 s)
+PASS __tests__/skills/gwaSubjects.test.ts
+PASS __tests__/skills/skillsUi.test.tsx (16.884 s)
+PASS __tests__/ui/ustpSourcesLibrary.test.tsx
+PASS __tests__/ai/callUstpSourcesRag.test.tsx
+
+Test Suites: 5 passed, 5 total
+Tests:       57 passed, 57 total
+Snapshots:   0 total
+Time:        35.468 s
+Ran all test suites within paths "__tests__/ui/ustpCallSourceCard.test.tsx", "__tests__/skills/gwaSubjects.test.ts", "__tests__/ai/callUstpSourcesRag.test.tsx", "__tests__/skills/skillsUi.test.tsx", "__tests__/ui/ustpSourcesLibrary.test.tsx".

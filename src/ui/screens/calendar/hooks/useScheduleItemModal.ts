@@ -31,7 +31,6 @@ import {
   applyEventMemoryToDraft,
   personalMemoryStore,
 } from '../../../../storage/personalMemoryStore';
-import type {EventMemoryOffer} from '../../../../storage/personalMemoryStore';
 
 interface UseScheduleItemModalOptions {
   userId: string;
@@ -98,23 +97,19 @@ export const useScheduleItemModal = (
   const [form, setForm] = useState<ScheduleItemForm>(defaultForm());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-  // AGY-PORT 09: saved defaults are offered on a new event draft only, and
-  // change the draft only when the student taps Apply.
-  const [memoryOffer, setMemoryOffer] = useState<EventMemoryOffer | null>(null);
-
   const updateField = useCallback(
     <K extends keyof ScheduleItemForm>(key: K, value: ScheduleItemForm[K]) => {
       setForm(prev => {
         const next = {...prev, [key]: value};
         if (key === 'time') {
-          const startStr = value as string;
-          const [h, m] = startStr.split(':').map(Number);
-          const date = new Date();
-          date.setHours(isNaN(h) ? 0 : h, isNaN(m) ? 0 : m, 0, 0);
-          date.setHours(date.getHours() + 1);
-          const nextH = date.getHours().toString().padStart(2, '0');
-          const nextM = date.getMinutes().toString().padStart(2, '0');
-          next.endTime = `${nextH}:${nextM}`;
+          next.endTime = applyEventMemoryToDraft(
+            {
+              startTime: value as string,
+              durationMinutes: null,
+              expiresAt: null,
+            },
+            prev,
+          ).endTime;
         }
         return next;
       });
@@ -126,42 +121,33 @@ export const useScheduleItemModal = (
     (type: 'task' | 'event') => {
       setModalType(type);
       setEditingItem(null);
-      setForm(defaultForm());
-      let offer: EventMemoryOffer | null = null;
-      if (type === 'event') {
-        try {
-          offer = personalMemoryStore.offer(userId);
-        } catch (err) {
-          console.warn('[Calendar] Saved event defaults unavailable:', err);
-        }
-      }
-      setMemoryOffer(offer);
+      const draft = defaultForm();
+      setForm(
+        type === 'event'
+          ? {
+              ...draft,
+              ...applyEventMemoryToDraft(
+                {
+                  startTime: null,
+                  durationMinutes:
+                    personalMemoryStore.getDefaultDuration(userId),
+                  expiresAt: null,
+                },
+                draft,
+              ),
+            }
+          : draft,
+      );
       setVisible(true);
     },
     [userId],
   );
-
-  const applyMemoryOffer = useCallback(() => {
-    if (!memoryOffer) return;
-    try {
-      const value = personalMemoryStore.apply(memoryOffer, userId);
-      setForm(prev => ({...prev, ...applyEventMemoryToDraft(value, prev)}));
-    } catch (err) {
-      console.warn('[Calendar] Saved event defaults changed:', err);
-      Alert.alert(
-        'Saved defaults changed',
-        'Your saved event defaults changed or expired. The draft was not changed.',
-      );
-    }
-    setMemoryOffer(null);
-  }, [memoryOffer, userId]);
 
   const openEdit = useCallback(
     (item: Task | Event, type: 'task' | 'event') => {
       const baseId = baseScheduleEntityId(item.id);
       setModalType(type);
       setEditingItem({...item, id: baseId});
-      setMemoryOffer(null);
       const existingEventNote =
         type === 'event'
           ? scheduleEntriesStore
@@ -194,7 +180,6 @@ export const useScheduleItemModal = (
   );
 
   const close = useCallback(() => {
-    setMemoryOffer(null);
     setVisible(false);
   }, []);
 
@@ -486,7 +471,5 @@ export const useScheduleItemModal = (
     delete: handleDelete,
     setShowTimePicker,
     setShowEndTimePicker,
-    memoryOffer,
-    applyMemoryOffer,
   };
 };

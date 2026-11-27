@@ -18,6 +18,10 @@ import {addDeck, buildQuizSourceFromDeck} from '../../src/skills/studyDecks';
 import {resetStudyJobsForTests} from '../../src/skills/studyJobs';
 import type {Deck, GradeSubject} from '../../src/skills/studyLogic';
 import {
+  academicProfileStore,
+  type AcademicProfileRecord,
+} from '../../src/storage/academicProfileStore';
+import {
   db,
   initDatabase,
   materialStore,
@@ -137,6 +141,52 @@ test('GWA subjects are restored per semester and quarter-step changes persist', 
   const reopened = render(wrap(<GwaSkill userId={owner} />));
   expect(reopened.getByText('My subject')).toBeTruthy();
   expect(reopened.getAllByText('1.75').length).toBeGreaterThan(0);
+});
+
+test('GWA restores current COR subject names, preserves grades, and repeat import does not duplicate them', () => {
+  jest.spyOn(academicProfileStore, 'get').mockReturnValue({
+    academicYearTerm: 'Current term',
+    courses: [{code: 'IT414', subjectTitle: 'IT Elective 3', creditUnits: 3}],
+  } as AcademicProfileRecord);
+  writeSkillState(owner, 'gwa.lastSemester', 'Current term');
+  writeSkillState<GradeSubject[]>(owner, 'gwa.Current%20term', [
+    {id: 'elective', name: 'IT414', units: 3, grade: 1.75},
+  ]);
+  const view = render(wrap(<GwaSkill userId={owner} />));
+  expect(view.getByText('IT Elective 3')).toBeTruthy();
+  expect(view.queryByText('IT414')).toBeNull();
+  fireEvent.press(view.getByText('Import subjects from COR'));
+  expect(view.getAllByText('IT Elective 3')).toHaveLength(1);
+  fireEvent.press(view.getByLabelText('Better grade for IT Elective 3'));
+  expect(
+    readSkillState<GradeSubject[]>(owner, 'gwa.Current%20term', []),
+  ).toEqual([
+    {
+      id: 'elective',
+      name: 'IT Elective 3',
+      corCourseCode: 'IT414',
+      units: 3,
+      grade: 1.5,
+    },
+  ]);
+});
+
+test('GWA initial COR list uses titles, while another semester is left unchanged', () => {
+  jest.spyOn(academicProfileStore, 'get').mockReturnValue({
+    academicYearTerm: 'Current term',
+    courses: [{code: 'IT414', subjectTitle: 'IT Elective 3', creditUnits: 3}],
+  } as AcademicProfileRecord);
+  const current = render(wrap(<GwaSkill userId={owner} />));
+  expect(current.getByText('IT Elective 3')).toBeTruthy();
+  expect(current.queryByText('IT414')).toBeNull();
+  current.unmount();
+  writeSkillState(owner, 'gwa.lastSemester', 'Previous term');
+  writeSkillState<GradeSubject[]>(owner, 'gwa.Previous%20term', [
+    {id: 'historical', name: 'Different subject', units: 4, grade: 2},
+  ]);
+  const previous = render(wrap(<GwaSkill userId={owner} />));
+  expect(previous.getByText('Different subject')).toBeTruthy();
+  expect(previous.queryByText('IT Elective 3')).toBeNull();
 });
 
 test('deleting a GWA semester removes its grades permanently without touching another semester', async () => {
@@ -984,9 +1034,7 @@ test('All skills screen renders categorized skill cards with descriptions and op
     ),
   );
   fireEvent.press(view.getByLabelText('All skills'));
-  await waitFor(() =>
-    expect(view.getByTestId('all-skills-view')).toBeTruthy(),
-  );
+  await waitFor(() => expect(view.getByTestId('all-skills-view')).toBeTruthy());
   expect(view.getByText('STUDY & REVIEW')).toBeTruthy();
   expect(view.getByText('FOCUS & TOOLS')).toBeTruthy();
   expect(view.getByText('AI CREATION')).toBeTruthy();
@@ -1001,8 +1049,6 @@ test('All skills screen renders categorized skill cards with descriptions and op
   expect(view.getByText('Slides, docs, PDF & sheets')).toBeTruthy();
 
   fireEvent.press(view.getByTestId('all-skills-item-gwa'));
-  await waitFor(() =>
-    expect(view.queryByTestId('all-skills-view')).toBeNull(),
-  );
+  await waitFor(() => expect(view.queryByTestId('all-skills-view')).toBeNull());
   expect(view.getByText('GWA calculator')).toBeTruthy();
 });

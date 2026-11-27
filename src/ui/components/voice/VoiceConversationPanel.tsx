@@ -168,7 +168,10 @@ import {
   shouldMergeFollowUpQuery,
 } from '../../../handbook';
 import {isHandbookQuestion} from '../../../ai/onlineIntentExtractor';
-import {recordCallUstpSources} from '../../../ai/voiceActions/callUstpCitations';
+import {
+  clearCallUstpSources,
+  recordCallUstpSources,
+} from '../../../ai/voiceActions/callUstpCitations';
 import {
   UstpSourcesSheet,
   type UstpSourcesTarget,
@@ -404,7 +407,10 @@ const matchesPendingDraft = (
   pending: CommandProposal,
   args: StructuredActionArgs,
 ): boolean => {
-  if (!args.action?.startsWith('create_') || !pending.intent.startsWith('create_'))
+  if (
+    !args.action?.startsWith('create_') ||
+    !pending.intent.startsWith('create_')
+  )
     return false;
   const intent = intentFromToolArguments(args);
   if (!intent) return false;
@@ -513,9 +519,9 @@ const formatMemoryCardContext = (
   `Active memory card on screen: "${proposal.text}". Card ID: ${actionId}; revision: 1. Nothing has been saved yet. Use this Card ID with confirm_draft or cancel_draft.`;
 
 const formatBatchCardContext = (batch: MultiActionBatchData): string =>
-  `Active grouped review card on screen (${batch.items.length} items: ${batch.items
-    .map(i => i.title)
-    .join(', ')}). Card ID: ${
+  `Active grouped review card on screen (${
+    batch.items.length
+  } items: ${batch.items.map(i => i.title).join(', ')}). Card ID: ${
     batch.id
   }; revision: 1. Nothing has been saved yet. Use this Card ID with confirm_draft or cancel_draft.`;
 
@@ -791,6 +797,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   );
   /** The phone says the handoff line as the skill opens (online calls). */
   const speakOnArrival = useRef(false);
+  /** True while unmounting specifically to speak a skill handoff line. */
+  const handoffSpeakingRef = useRef(false);
+  /** Latest typed edits inside MemoryReviewCard so voice "save it" keeps them. */
+  const memoryEditedTextRef = useRef<string | undefined>(undefined);
+  const [batchBusy, setBatchBusy] = useState(false);
   /**
    * Online skill handoff: the phone, not the agent, says the line. The
    * agent's own reply to the request (it may ask "how long?" or offer a
@@ -812,11 +823,37 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     call.stopResponse();
     call.end();
   }, []);
-  /** The student tapped the skill chip: open it now. */
+  /** The student tapped the skill chip: open it now (asking first if a draft is unsaved). */
   const openSkillChip = useCallback(() => {
     const chip = skillChip;
     setSkillChip(null);
-    if (chip) handOffNow(chip);
+    if (!chip) return;
+    const owner = ownerRef.current;
+    const pending = latestPendingReview(owner, 'voice');
+    const cards = currentCards.current;
+    const memoryOpen = cards.memory?.status === 'draft';
+    const batchOpen =
+      cards.batch &&
+      (cards.batch.status === 'draft' ||
+        cards.batch.status === 'partial' ||
+        cards.batch.status === 'failed');
+    if (pending || memoryOpen || batchOpen) {
+      pendingSkill.current = chip;
+      askedBeforeLeaving.current = true;
+      const name = skillTitle(chip.launch.skill);
+      const title = pending?.title ?? cards.memory?.text;
+      const ask = `Before I open ${name}, ${
+        title ? `the card for ${title}` : 'your card'
+      } isn't saved yet. Should I save it?`;
+      setLocalNote(ask);
+      void conversationRef.current?.sendContext(
+        `The student tapped Open ${name}, but the card on screen${cardLabel(
+          title,
+        )} is not saved. Ask once whether to save it first.`,
+      );
+      return;
+    }
+    handOffNow(chip);
   }, [handOffNow, skillChip]);
   const keepTalking = useCallback(() => {
     const call = conversationRef.current;
@@ -892,7 +929,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (kind === 'batch')
         return confirmHandlersRef.current.confirmMultiAll(via);
       return runSave(async () =>
-        confirmHandlersRef.current.saveMemory(undefined, via),
+        confirmHandlersRef.current.saveMemory(
+          memoryEditedTextRef.current?.trim() || undefined,
+          via,
+        ),
       );
     },
     [runSave],
@@ -1023,6 +1063,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     (proposal: MemoryProposalData, actionId: string): void => {
       lastLocalCancel.current = null;
       activeMemoryActionId.current = actionId;
+      memoryEditedTextRef.current = proposal.text;
       setActiveMemoryProposal(proposal);
       setCardFocus('memory');
       cardShownTurn.current = studentTurnCount.current;
@@ -1086,6 +1127,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         LIVE.has(conversationRef.current.snapshot.phase);
 
       if (smallTalk && !completesClarify && !newRequest) {
+        lastOfflineUstpQuery.current = null;
         const reply = buildLocalConversationReply(owner, trimmed, {
           recentReplies: recentOfflineReplies.current,
         });
@@ -1114,6 +1156,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         return 'Sorry, I could not read that request. Nothing was changed.';
       switch (result.kind) {
         case 'proposal': {
+          lastOfflineUstpQuery.current = null;
           if (result.review.status !== 'proposal') {
             setLocalNote(result.review.reply);
             return speakable(result.review.reply);
@@ -1127,6 +1170,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           return spokenCardLine(result.review.proposal);
         }
         case 'multi': {
+          lastOfflineUstpQuery.current = null;
           reviewRef.current.dismiss();
           showBatchCard(result.batch);
           setLocalNote(result.reply);
@@ -1136,12 +1180,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           } on one card. Should I save them all?`;
         }
         case 'executed': {
+          lastOfflineUstpQuery.current = null;
           executedTurn.current = {text: request, reply: result.reply};
           setLocalNote(result.reply);
           setUndoOffer(result.undo ?? null);
           return speakable(result.reply);
         }
         case 'note': {
+          lastOfflineUstpQuery.current = null;
           // Usually a missing day or time; the next answer fills it in.
           if (newRequest || completesClarify)
             pendingClarify.current = {text: request, at: Date.now()};
@@ -1150,6 +1196,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         }
         case 'local_answer':
         case 'memory':
+          lastOfflineUstpQuery.current = null;
           setLocalNote(result.reply);
           return speakable(result.reply);
         default: {
@@ -1176,6 +1223,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               setLocalNote(ustpResult.spokenReply);
               return ustpResult.spokenReply;
             }
+            clearCallUstpSources(owner);
+            setReadResult(null);
             if (
               ustpResult.status === 'ineligible' ||
               ustpResult.status === 'disabled' ||
@@ -1183,10 +1232,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               ustpResult.status === 'unavailable' ||
               explicitUstp
             ) {
+              setReadResult(ustpResult);
               setLocalNote(ustpResult.spokenReply);
               return ustpResult.spokenReply;
             }
           }
+          lastOfflineUstpQuery.current = null;
           return OFFLINE_HELP_REPLY;
         }
       }
@@ -1220,6 +1271,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       // A skill waits only for the answer to "save it before I open it?".
       if (!askedBeforeLeaving.current) pendingSkill.current = null;
       setSkillChip(null);
+      setReadResult(null);
       voiceTurns.current = [...voiceTurns.current, text].slice(-8);
       lastUserRequest.current = text;
       // What an earlier turn prepared is not this turn's answer: a stale "card
@@ -1321,6 +1373,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       }
 
       if (isDraftCancel(trimmed)) {
+        askedBeforeLeaving.current = false;
+        pendingSkill.current = null;
+        pendingClarify.current = null;
+        lastOfflineUstpQuery.current = null;
         voiceTurns.current = [];
         awaitingDetails.current = false;
         if (openCount > 1) {
@@ -1492,6 +1548,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             return null;
           }
           const outcome = await saving;
+          if (!offlineTurnOpen.current() || ticket !== turnTicket.current) {
+            pendingSkill.current = null;
+            return null;
+          }
           if (leaving && outcome.saved) {
             const goodbyeLine =
               pendingSkill.current?.line ??
@@ -1509,6 +1569,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       // the call and opens the skill. An unsaved card is asked about first.
       const skillIntent = detectSkillIntent(trimmed);
       if (skillIntent) {
+        askedBeforeLeaving.current = false;
+        pendingSkill.current = null;
+        pendingClarify.current = null;
+        lastOfflineUstpQuery.current = null;
         voiceTurns.current = [];
         awaitingDetails.current = false;
         if (skillIntent.kind !== 'launch') {
@@ -1565,6 +1629,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         closing === 'goodbye' ||
         (closing === 'thanks' && openCount === 0 && !saveInFlight.current)
       ) {
+        pendingClarify.current = null;
+        lastOfflineUstpQuery.current = null;
         voiceTurns.current = [];
         awaitingDetails.current = false;
         if (openCount > 0 && !askedBeforeLeaving.current) {
@@ -1588,6 +1654,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         return closing === 'thanks' ? `You're welcome! ${farewell}` : farewell;
       }
 
+      // Any non-leaving turn (draft revision or new request) retires a prior
+      // "save before leaving?" prompt so a later "save it" does not hang up.
+      askedBeforeLeaving.current = false;
+      pendingSkill.current = null;
       // "Change it to 10:30 and save it": the change, then the save.
       const changeThenSave = pending ? splitTrailingSave(trimmed) : null;
       const changeText = changeThenSave ?? text;
@@ -1621,6 +1691,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       }
       if (
         pending &&
+        (shownCardRef.current === 'review' || openCount === 1) &&
         (isVoiceDraftRevision(changeTrimmed) ||
           (hasRevisionDelta &&
             (!isVoiceScheduleStart(changeTrimmed) ||
@@ -1760,9 +1831,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               ) {
                 return;
               }
+              setReadResult(ustpResult);
               if (ustpResult.status === 'ok') {
                 lastOfflineUstpQuery.current = trimmed;
-                setReadResult(ustpResult);
                 recordCallUstpSources(owner, ustpResult.sources);
                 const summary = ustpResult.passages
                   .slice(0, 2)
@@ -1780,12 +1851,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 sendContextPreservingCard(
                   `Verified on-device USTP sources for "${trimmed}" (answer strictly from these passages, naming section, page, and as-of date):\n${summary}`,
                 );
-              } else if (
-                ustpResult.status === 'ineligible' ||
-                ustpResult.status === 'disabled' ||
-                ustpResult.status === 'wrong_academic_year' ||
-                ustpResult.status === 'unavailable'
-              ) {
+              } else {
+                clearCallUstpSources(owner);
                 sendContextPreservingCard(
                   `On-device USTP sources status for "${trimmed}": ${ustpResult.spokenReply}`,
                 );
@@ -1947,7 +2014,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (
         cards.batch &&
         cards.batch.id === cardId &&
-        (cards.batch.status === 'saved' || cards.batch.status === 'partial')
+        cards.batch.status === 'saved'
       )
         return {
           saved: true,
@@ -2087,8 +2154,22 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           return 'That is not a skill LAFINA can open. Nothing was opened.';
         const label = skillTitle(prepared.launch.skill);
         const already = pendingSkill.current;
-        if (already?.launch.skill === prepared.launch.skill)
+        const pendingDraft = latestPendingReview(owner, 'voice');
+        const currentCardSet = currentCards.current;
+        const hasUnsavedCard = Boolean(
+          pendingDraft ||
+            currentCardSet.memory?.status === 'draft' ||
+            (currentCardSet.batch &&
+              (currentCardSet.batch.status === 'draft' ||
+                currentCardSet.batch.status === 'partial' ||
+                currentCardSet.batch.status === 'failed')),
+        );
+        if (already?.launch.skill === prepared.launch.skill) {
+          if (askedBeforeLeaving.current && hasUnsavedCard) {
+            return `Do not open ${label} yet: an unsaved card is on screen. Ask the student once in one short sentence whether to save it before opening ${label}.`;
+          }
           return `The app is opening ${label} and has ended the call. Say nothing more.`;
+        }
         const asked = detectSkillIntent(lastUserRequest.current);
         if (
           asked?.kind === 'launch' &&
@@ -2096,6 +2177,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           onNavigateRef.current &&
           !endingRef.current
         ) {
+          if (hasUnsavedCard) {
+            pendingSkill.current = prepared;
+            askedBeforeLeaving.current = true;
+            return `Do not open ${label} yet: an unsaved card is on screen. Ask the student once in one short sentence whether to save it before opening ${label}.`;
+          }
           handOffNow(prepared);
           return `The app is opening ${label} and has ended the call. Say nothing more.`;
         }
@@ -2115,9 +2201,17 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       }
       // Legacy model tool arguments cannot invent or replace a student's request.
       // New structured tools keep their validated on-screen review contracts.
+      if (
+        name === 'prepare_lafina_action' &&
+        isCompoundVoiceRequest(lastUserRequest.current)
+      ) {
+        // Older agents still call the single-item tool for a grouped request.
+        // Build the review from the student's words instead of rejecting the
+        // call or letting one reminder absorb the other's date and title.
+        name = 'prepare_multi_action';
+        parameters = {text: lastUserRequest.current};
+      }
       if (name === 'prepare_lafina_action') {
-        if (isCompoundVoiceRequest(lastUserRequest.current))
-          return 'This request contains multiple actions. Use prepare_multi_action with separate structured items. No single-item card was prepared.';
         const fields = parameters as StructuredActionArgs;
         // A save may be landing right now; decide after it, not before.
         if (saveInFlight.current) {
@@ -2522,7 +2616,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               syncCardContext(
                 'review',
                 pending.operationId,
-                formatReviewCardContext(pending, 'Draft card updated on screen'),
+                formatReviewCardContext(
+                  pending,
+                  'Draft card updated on screen',
+                ),
               );
               return (
                 'A review card is shown: ' +
@@ -2747,6 +2844,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           message: 'No memory card was active. Nothing has been saved.',
         };
       }
+      if (via === 'tap') {
+        askedBeforeLeaving.current = false;
+        pendingSkill.current = null;
+      }
       const owner = ownerRef.current;
       const result = actionService.confirmMemoryProposal(
         owner,
@@ -2836,6 +2937,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           message: 'No grouped actions card is active. Nothing has been saved.',
         };
       }
+      if (via === 'tap') {
+        askedBeforeLeaving.current = false;
+        pendingSkill.current = null;
+      }
+      setBatchBusy(true);
       try {
         const {batch, spokenSummary} =
           await actionService.confirmMultiActionBatch(
@@ -2877,6 +2983,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         setLocalNote(msg);
         void conversationRef.current?.sendContext('Not saved: ' + msg);
         return {saved: false, message: msg};
+      } finally {
+        setBatchBusy(false);
       }
     },
     [activeMultiBatch, announce],
@@ -2884,6 +2992,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
   const handleCancelMultiAll = useCallback(() => {
     if (!activeMultiBatch) return;
+    askedBeforeLeaving.current = false;
+    pendingSkill.current = null;
     lastLocalCancel.current = {
       cardId: activeMultiBatch.id,
       title: 'grouped actions',
@@ -2916,28 +3026,40 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const handleRetryMultiItem = useCallback(
     async (itemId: string) => {
       if (!activeMultiBatch) return;
-      try {
-        const {batch, spokenSummary} = await actionService.retryMultiActionItem(
-          ownerRef.current,
-          activeMultiBatch,
-          itemId,
-          {onDevice: modeRef.current === 'offline'},
-        );
-        if (
-          ownerRef.current !== batch.ownerId ||
-          actionSession.current !== batch.sessionId
-        )
-          return;
-        setActiveMultiBatch(batch);
-        if (batch.status === 'saved') lastSentCardContextId.current = null;
-        setLocalNote(spokenSummary);
-      } catch {
-        setLocalNote(
-          'That grouped action could not be retried. Please review the card.',
-        );
-      }
+      await runSave(async (): Promise<SaveOutcome> => {
+        setBatchBusy(true);
+        try {
+          const {batch, spokenSummary} =
+            await actionService.retryMultiActionItem(
+              ownerRef.current,
+              activeMultiBatch,
+              itemId,
+              {onDevice: modeRef.current === 'offline'},
+            );
+          if (
+            ownerRef.current !== batch.ownerId ||
+            actionSession.current !== batch.sessionId
+          ) {
+            return {saved: false, message: 'Session ended.'};
+          }
+          setActiveMultiBatch(batch);
+          if (batch.status === 'saved') lastSentCardContextId.current = null;
+          setLocalNote(spokenSummary);
+          return {
+            saved: batch.status === 'saved' || batch.status === 'partial',
+            message: spokenSummary,
+          };
+        } catch {
+          const msg =
+            'That grouped action could not be retried. Please review the card.';
+          setLocalNote(msg);
+          return {saved: false, message: msg};
+        } finally {
+          setBatchBusy(false);
+        }
+      });
     },
-    [activeMultiBatch],
+    [activeMultiBatch, runSave],
   );
 
   /** What is on screen, told to LAFINA when the call reconnects (ADR-046). */
@@ -2951,7 +3073,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           pending.operationId
         }; revision: 1) is waiting for the student to save or cancel; nothing is saved yet.`,
       );
-    if (activeMemoryProposal?.status === 'draft' && activeMemoryActionId.current)
+    if (
+      activeMemoryProposal?.status === 'draft' &&
+      activeMemoryActionId.current
+    )
       parts.push(
         `a memory card (Card ID: ${activeMemoryActionId.current}; revision: 1) is waiting for the student to save or cancel.`,
       );
@@ -3101,17 +3226,21 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     pendingSkill.current = null;
     speakOnArrival.current = false;
     // ADR-041: the skill opens in place of the call screen.
-    if (skill && openSkill(skill.launch)) {
-      if (speak) {
-        void ttsService
-          .stop()
-          .catch(() => undefined)
-          .then(() => ttsService.speak(skill.line))
-          .catch(() => undefined);
-      } else {
-        void ttsService.stop().catch(() => undefined);
+    if (skill) {
+      if (speak) handoffSpeakingRef.current = true;
+      if (openSkill(skill.launch)) {
+        if (speak) {
+          void ttsService
+            .stop()
+            .catch(() => undefined)
+            .then(() => ttsService.speak(skill.line))
+            .catch(() => undefined);
+        } else {
+          void ttsService.stop().catch(() => undefined);
+        }
+        return;
       }
-      return;
+      handoffSpeakingRef.current = false;
     }
     void ttsService.stop().catch(() => undefined);
     onBackRef.current();
@@ -3123,7 +3252,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const reducedMotion = useReducedMotion();
   const connectingPulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (!pulsing || reducedMotion || process.env.NODE_ENV === 'test') {
+    if (
+      !pulsing ||
+      paused ||
+      reducedMotion ||
+      process.env.NODE_ENV === 'test'
+    ) {
       connectingPulse.setValue(0);
       return undefined;
     }
@@ -3143,7 +3277,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     );
     loop.start();
     return () => loop.stop();
-  }, [pulsing, connectingPulse, reducedMotion]);
+  }, [pulsing, paused, connectingPulse, reducedMotion]);
   // ADR-046: one soft buzz when the line drops, and a spoken status for
   // screen readers when it drops and when it comes back.
   const wasReconnecting = useRef(false);
@@ -3172,12 +3306,21 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       return;
     turnTicket.current += 1;
     actionService.clearSessionActions(actionSession.current);
+    clearCallUstpSources(userId);
     const pending = latestPendingReview(userId, 'voice');
     if (pending) cancelReviewedCommand(userId, pending.operationId);
     reviewRef.current.dismiss();
     setActiveMemoryProposal(null);
     activeMemoryActionId.current = null;
+    memoryEditedTextRef.current = undefined;
     setActiveMultiBatch(null);
+    setReadResult(null);
+    setShowTyping(false);
+    setDraftCorrection('');
+    setSkillChip(null);
+    lastOfflineUstpQuery.current = null;
+    askedBeforeLeaving.current = false;
+    pendingSkill.current = null;
     lastLocalRevision.current = null;
     replacedCardIds.current.clear();
     lastLocalCancel.current = null;
@@ -3230,17 +3373,24 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     setDismissedTurnId(null);
     setReadResult(null);
     setTyped('');
+    setDraftCorrection('');
     setShowTyping(false);
+    setUndoOffer(null);
+    setSkillChip(null);
+    lastOfflineUstpQuery.current = null;
     setActiveMemoryProposal(null);
     activeMemoryActionId.current = null;
+    memoryEditedTextRef.current = undefined;
     setActiveMultiBatch(null);
     lastLocalRevision.current = null;
     replacedCardIds.current.clear();
     lastLocalCancel.current = null;
     lastSentCardContextId.current = null;
+    clearCallUstpSources(userId);
     setCallSettings(getCallLafinaSettings(userId));
     return () => {
       actionService.clearSessionActions(actionSession.current);
+      clearCallUstpSources(userId);
       const pending = latestPendingReview(userId, 'voice');
       if (pending) cancelReviewedCommand(userId, pending.operationId);
     };
@@ -3311,12 +3461,25 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       ? activeMultiBatch?.id ?? null
       : null;
   useEffect(() => {
-    if (attentionKey) attentionRef.current?.();
+    if (attentionKey) {
+      setSettingsModalVisible(false);
+      setUstpSourcesTarget(null);
+      attentionRef.current?.();
+    }
   }, [attentionKey]);
 
   useEffect(() => {
+    if (paused) {
+      setSettingsModalVisible(false);
+      setUstpSourcesTarget(null);
+    }
+  }, [paused]);
+
+  useEffect(() => {
     return () => {
-      void ttsService.stop();
+      if (!handoffSpeakingRef.current) {
+        void ttsService.stop();
+      }
     };
   }, []);
 
@@ -3405,10 +3568,19 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
   function resetCallState(): void {
     actionService.clearSessionActions(actionSession.current);
+    clearCallUstpSources(ownerRef.current);
     actionSession.current = generateId('call-actions');
     lastUserRequest.current = '';
     lastOfflineUstpQuery.current = null;
+    setReadResult(null);
     setUstpSourcesTarget(null);
+    setShowTyping(false);
+    setDraftCorrection('');
+    setSkillChip(null);
+    setUndoOffer(null);
+    askedBeforeLeaving.current = false;
+    pendingSkill.current = null;
+    memoryEditedTextRef.current = undefined;
     executedTurn.current = null;
     voiceTurns.current = [];
     awaitingDetails.current = false;
@@ -3462,6 +3634,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       via: SaveVia = 'tap',
       operationId?: string,
     ): Promise<SaveOutcome> => {
+      if (via === 'tap') {
+        askedBeforeLeaving.current = false;
+        pendingSkill.current = null;
+      }
+      setDraftCorrection('');
       const owner = userId;
       const session = actionSession.current;
       // A tap applies the card the student is looking at. A spoken save applies
@@ -3575,6 +3752,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   };
 
   const handleCancelReview = useCallback(() => {
+    askedBeforeLeaving.current = false;
+    pendingSkill.current = null;
+    setDraftCorrection('');
     const cancelledCard = reviewRef.current.proposal;
     const decision = reviewRef.current.cancel();
     if (decision) {
@@ -3702,7 +3882,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     !offline && (!consented || !dataConsented) && !live && !connecting;
   const hasDetailsCard = Boolean(
     !hasActiveCard &&
-      readResult === null &&
+      (readResult === null ||
+        (typeof readResult !== 'string' &&
+          'ustpSearch' in readResult &&
+          Boolean(visibleAgentReply))) &&
       !needsConsent &&
       !failure &&
       snapshot.phase !== 'restart_required' &&
@@ -4033,7 +4216,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           style={styles.overlayScroll}
           contentContainerStyle={styles.overlayScrollContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator
           nestedScrollEnabled
           testID="call-overlay-scroll"
         >
@@ -4293,8 +4476,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 multiActionBatch={
                   shownCard === 'batch' ? activeMultiBatch : null
                 }
-                expired={review?.expired}
-                busy={review?.busy}
+                expired={shownCard === 'review' ? review?.expired : false}
+                busy={shownCard === 'batch' ? batchBusy : review?.busy}
+                editError={shownCard === 'review' ? review?.editError : null}
+                onEditMemoryText={text => {
+                  memoryEditedTextRef.current = text;
+                }}
                 onEdit={patch => {
                   const prevId = reviewRef.current.proposal?.operationId;
                   const result = reviewRef.current.edit?.(patch);
@@ -4808,7 +4995,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           />
         ) : null}
 
-        {showTyping ? (
+        {live && showTyping ? (
           <View
             style={[
               styles.inputRow,

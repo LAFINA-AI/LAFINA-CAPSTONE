@@ -6,6 +6,8 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -21,6 +23,7 @@ import java.io.File
 class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
+  private val mainHandler = Handler(Looper.getMainLooper())
   private var activeMediaPlayer: MediaPlayer? = null
   private var activePlaybackPromise: Promise? = null
   private var audioFocusRequest: AudioFocusRequest? = null
@@ -134,7 +137,7 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
   }
 
   override fun invalidate() {
-    reactContext.runOnUiQueueThread {
+    mainHandler.post {
       interruptActivePlayback()
     }
     super.invalidate()
@@ -147,7 +150,10 @@ class LafinaAudioPlayerModule(private val reactContext: ReactApplicationContext)
     activePlaybackPromise = null
     val audioManager = reactContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     abandonPlaybackFocus(audioManager)
-    interruptedPromise?.resolve(false)
+    try {
+      interruptedPromise?.resolve(false)
+    } catch (_: Exception) {
+    }
   }
 
   private fun releasePlayer(player: MediaPlayer?) {

@@ -1,0 +1,106 @@
+{
+  "phase": "EVENT-DURATION-01",
+  "baseCommit": "e2afa500",
+  "recordedAtUtc": "2026-11-27T01:12:31Z",
+  "timezone": "Asia/Manila",
+  "localDate": "2026-11-27",
+  "status": "AWAITING_DEVICE_VALIDATION",
+  "phasePassed": false,
+  "devices": [],
+  "benchmarks": null,
+  "checks": [
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ui/eventDurationPreference.test.tsx __tests__/ui/agyPort09ProfileHealth.test.tsx __tests__/storage/agyPort09HealthPreferencesStats.test.ts __tests__/ai/agyPort04ReviewedCommands.test.ts __tests__/ai/onlineIntentAndEditableReview.test.tsx __tests__/ui/callDraftCardSync.test.tsx __tests__/ui/chatHistorySyncUi.test.tsx __tests__/ui/clearAllDataModal.test.tsx __tests__/ui/auditA3ClearAllData.test.tsx",
+      "status": "PASS",
+      "log": "final-targeted.log",
+      "suites": 9,
+      "tests": 158,
+      "seconds": 51.433
+    },
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ui/eventDurationPreference.test.tsx __tests__/ui/callLafinaPhase11.test.tsx __tests__/ai/groupedReminderRegression.test.ts",
+      "status": "PASS",
+      "log": "final-regression.log",
+      "suites": 3,
+      "tests": 43,
+      "seconds": 18.512
+    },
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ui/callFlowAudit20261116.test.tsx __tests__/ui/memoryGrowthUiAndContinuity.test.tsx __tests__/ui/eventDurationPreference.test.tsx",
+      "status": "TWO_PASSED_ONE_FIXTURE_FAILED_THEN_FIXED",
+      "log": "updated-contract-tests.log",
+      "reason": "Continuity test lacked the active owner required for settings writes; corrected and separately rerun."
+    },
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ui/memoryGrowthUiAndContinuity.test.tsx",
+      "status": "PASS",
+      "log": "continuity-final.log",
+      "suites": 1,
+      "tests": 10,
+      "seconds": 11.766
+    },
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ui/eventDurationPreference.test.tsx",
+      "status": "PASS",
+      "log": "duration-final.log",
+      "suites": 1,
+      "tests": 14,
+      "seconds": 10.988,
+      "note": "Includes final corrupt-record recovery."
+    },
+    {
+      "command": "npm run preflight",
+      "status": "INTERRUPTED_DURING_JEST_AFTER_CONFIRMED_FAILURE",
+      "log": "preflight-final.log",
+      "typecheck": "PASS",
+      "repositoryLint": "PASS",
+      "reason": "Stale compound-call rejection assertion was found; updated and passed separately. Full aggregate run not complete."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "PASS",
+      "log": "typecheck-final.log"
+    },
+    {
+      "command": "npx eslint src/storage/personalMemoryStore.ts src/ui/screens/PreferencesSettingsScreen.tsx src/ui/screens/ProfileScreen.tsx src/ui/screens/calendar/hooks/useScheduleItemModal.ts src/ui/screens/calendar/types.ts src/ui/screens/calendar/components/AddTaskEventModal.tsx src/ai/nlu/commandReview.ts src/ai/voiceActions/multiActionService.ts src/ai/voiceActions/actionService.ts src/ai/chatOrchestrator.ts src/cloud/voiceConversation/localVoiceData.ts __tests__/ui/agyPort09ProfileHealth.test.tsx __tests__/ui/eventDurationPreference.test.tsx __tests__/ui/memoryGrowthUiAndContinuity.test.tsx __tests__/ui/callFlowAudit20261116.test.tsx --max-warnings 0",
+      "status": "PASS",
+      "log": "lint-final.log"
+    },
+    {
+      "command": "npx eslint src/storage/personalMemoryStore.ts __tests__/ui/eventDurationPreference.test.tsx --max-warnings 0",
+      "status": "PASS",
+      "log": "duration-lint.log"
+    },
+    {
+      "command": "npx prettier --check src/storage/personalMemoryStore.ts src/ui/screens/PreferencesSettingsScreen.tsx src/ui/screens/ProfileScreen.tsx src/ui/screens/calendar/hooks/useScheduleItemModal.ts src/ui/screens/calendar/types.ts src/ui/screens/calendar/components/AddTaskEventModal.tsx src/ai/nlu/commandReview.ts src/ai/voiceActions/multiActionService.ts src/ai/voiceActions/actionService.ts src/ai/chatOrchestrator.ts src/cloud/voiceConversation/localVoiceData.ts __tests__/ui/agyPort09ProfileHealth.test.tsx __tests__/ui/eventDurationPreference.test.tsx __tests__/ui/memoryGrowthUiAndContinuity.test.tsx __tests__/ui/callFlowAudit20261116.test.tsx",
+      "status": "PASS",
+      "log": "format.log"
+    },
+    {
+      "command": "npx prettier --check src/storage/personalMemoryStore.ts __tests__/ui/eventDurationPreference.test.tsx",
+      "status": "PASS",
+      "log": "format-followup.log"
+    },
+    {
+      "command": "npm run check:architecture",
+      "status": "PASS",
+      "log": "architecture.log",
+      "modules": 548,
+      "cycles": 0,
+      "offlineLeaves": 128
+    },
+    {
+      "cwd": "android",
+      "command": ".\\gradlew.bat :app:testDebugUnitTest --console=plain",
+      "status": "BLOCKED",
+      "log": "gradle.log",
+      "reason": "Gradle distribution zip lock access denied before tasks started."
+    },
+    {
+      "procedure": "Installed Android build, native visual layout, large text/TalkBack, actual speech and alarm delivery",
+      "status": "NOT_RUN"
+    }
+  ],
+  "countsOverlap": true
+}
+

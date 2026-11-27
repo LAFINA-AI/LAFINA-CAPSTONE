@@ -1,0 +1,14 @@
+
+> lafina-capstone@1.0.9 test
+> jest --runInBand --runTestsByPath __tests__/ai/groupedReminderRegression.test.ts __tests__/ui/callLafinaPhase11.test.tsx __tests__/ui/callDraftCardSync.test.tsx __tests__/ui/callSaveApproval.test.tsx
+
+PASS __tests__/ai/groupedReminderRegression.test.ts (5.978 s)
+PASS __tests__/ui/callSaveApproval.test.tsx (25.355 s)
+PASS __tests__/ui/callDraftCardSync.test.tsx
+PASS __tests__/ui/callLafinaPhase11.test.tsx
+
+Test Suites: 4 passed, 4 total
+Tests:       123 passed, 123 total
+Snapshots:   0 total
+Time:        37.35 s
+Ran all test suites within paths "__tests__/ai/groupedReminderRegression.test.ts", "__tests__/ui/callLafinaPhase11.test.tsx", "__tests__/ui/callDraftCardSync.test.tsx", "__tests__/ui/callSaveApproval.test.tsx".

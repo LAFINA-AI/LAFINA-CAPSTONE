@@ -1,4 +1,5 @@
 import {
+  AppState,
   DeviceEventEmitter,
   NativeModules,
   PermissionsAndroid,
@@ -67,7 +68,31 @@ export const ensureMicrophonePermission = async (): Promise<boolean> => {
         buttonNegative: 'Cancel',
       },
     );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
+    if (granted !== PermissionsAndroid.RESULTS.GRANTED) return false;
+    // On Android, onRequestPermissionsResult can resolve just before
+    // onHostResume flips AppState back to 'active'. Wait briefly so
+    // immediate foreground checks do not false-fail right after tapping Allow.
+    if (
+      Platform.OS === 'android' &&
+      process.env.NODE_ENV !== 'test' &&
+      AppState.currentState !== 'active'
+    ) {
+      await new Promise<void>(resolve => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          sub?.remove();
+          resolve();
+        };
+        const sub = AppState.addEventListener('change', next => {
+          if (next === 'active') finish();
+        });
+        const timer = setTimeout(finish, 300);
+      });
+    }
+    return true;
   } catch (error) {
     console.warn('[sttService] Error requesting microphone permission:', error);
     return false;

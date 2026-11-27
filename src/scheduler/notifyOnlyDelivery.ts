@@ -55,7 +55,9 @@ export const applyNotificationAction = async (
         )
       : await acknowledgeReminderAction(reminderId, userId, generation);
   // The notification goes either way: a refused action is stale.
-  await finishNativeIncomingCall(reminderId).catch(() => undefined);
+  await finishNativeIncomingCall(reminderId, userId, generation).catch(
+    () => undefined,
+  );
   return result;
 };
 

@@ -108,7 +108,7 @@ describe('final audit F3: Clear All Data when forgetting event defaults fails', 
     expect(resultMessage).not.toMatch(/saved event defaults have been/);
     expect(resultMessage).toMatch(/notes, tasks, events, reminders.*cleared/i);
     expect(resultMessage).toMatch(/event defaults (were not|could not be) (deleted|forgotten)/i);
-    expect(resultMessage).toMatch(/Event Defaults/);
+    expect(resultMessage).toMatch(/Schedule settings/);
     expect(resultMessage).toMatch(/offline voice.*kept/i);
 
     // Other owner and device settings untouched.

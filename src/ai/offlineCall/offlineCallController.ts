@@ -127,7 +127,10 @@ export interface OfflineCallDeps {
   capture?: {endSilenceMs?: number; leadInIgnoreMs?: number};
   voice: {
     ready: () => Promise<boolean>;
-    speak: (text: string) => {
+    speak: (
+      text: string,
+      admit?: () => boolean,
+    ) => {
       token: Promise<number | null>;
       result: Promise<OwnedSpeechOutcome>;
     };
@@ -179,6 +182,7 @@ export class OfflineCallController implements ConversationController {
   private capture: OfflineSpeechCaptureHandle | null = null;
   private speechToken: number | null = null;
   private pendingSpeech: object | null = null;
+  private releasePromise: Promise<boolean> = Promise.resolve(true);
   private stopRequested = false;
   /** endAfterReply: the call ends after LAFINA's next line has been said. */
   private endAfterLine = false;
@@ -294,6 +298,7 @@ export class OfflineCallController implements ConversationController {
     this.skipNextSpeech = false;
     this.lastSpokenLine = null;
     this.justSpoke = false;
+    this.deps.persistence?.onReset?.();
     const startedAt = this.now();
     this.update({
       ...OFFLINE_IDLE_SNAPSHOT,
@@ -498,7 +503,12 @@ export class OfflineCallController implements ConversationController {
               resolve();
             }, 400);
           });
-          if (!this.current(gen) || this.snapshot.muted)
+          if (
+            !this.current(gen) ||
+            this.snapshot.muted ||
+            this.typed.length > 0 ||
+            this.announcements.length > 0
+          )
             return {kind: 'interrupted'};
           continue;
         }
@@ -669,7 +679,10 @@ export class OfflineCallController implements ConversationController {
     } else if (this.voiceReady) {
       this.stopRequested = false;
       this.update({phase: 'speaking', outputLevel: 0.6, micCapturing: false});
-      const speech = this.deps.voice.speak(text);
+      const speech = this.deps.voice.speak(
+        text,
+        () => this.current(gen) && !this.stopRequested,
+      );
       this.pendingSpeech = speech;
       const completed = speech.result.catch(
         () => 'failed' as OwnedSpeechOutcome,
@@ -754,9 +767,14 @@ export class OfflineCallController implements ConversationController {
   /** Stops LAFINA's line now; the call goes back to listening. */
   stopResponse = (): void => {
     this.stopRequested = true;
-    // Pressed while she is still working out the answer: that answer is
-    // shown when it comes, not spoken.
-    if (this.snapshot.phase === 'thinking') this.skipNextSpeech = true;
+    this.endAfterLine = false;
+    if (this.capture) {
+      this.interruptCapture();
+    } else if (this.snapshot.phase === 'thinking') {
+      // Pressed while she is still working out the answer: that answer is
+      // shown when it comes, not spoken.
+      this.skipNextSpeech = true;
+    }
     const token = this.speechToken;
     if (token !== null) void this.deps.voice.stop(token).catch(() => false);
   };
@@ -806,13 +824,21 @@ export class OfflineCallController implements ConversationController {
     this.endAfterLine = false;
     this.log(`call ${phase}${failure ? ` (${failure.kind})` : ''}`);
     this.clearRetryWait();
-    this.interruptCapture();
+    const capture = this.capture;
     const token = this.speechToken;
-    if (token !== null) void this.deps.voice.stop(token).catch(() => false);
     this.speechToken = null;
     this.typed = [];
     this.announcements = [];
     this.nudge();
+    this.releasePromise = Promise.all([
+      capture
+        ? this.deps.speech.cancel(capture.captureId).catch(() => false)
+        : Promise.resolve(true),
+      token !== null
+        ? this.deps.voice.stop(token).catch(() => false)
+        : Promise.resolve(true),
+    ]).then(results => results.every(result => result !== false));
+    this.deps.persistence?.onReset?.();
     this.update({
       phase,
       micCapturing: false,
@@ -841,17 +867,10 @@ export class OfflineCallController implements ConversationController {
   };
 
   endAndWait = async (): Promise<boolean> => {
-    const capture = this.capture;
-    const token = this.speechToken;
     const pendingSpeech = this.pendingSpeech !== null;
     this.end();
-    const released = await Promise.all([
-      capture
-        ? this.deps.speech.cancel(capture.captureId).catch(() => false)
-        : true,
-      token !== null ? this.deps.voice.stop(token).catch(() => false) : true,
-    ]);
-    return !pendingSpeech && released.every(result => result !== false);
+    const released = await this.releasePromise.catch(() => false);
+    return !pendingSpeech && released;
   };
 
   stopForSystem = (reason: string): void => {

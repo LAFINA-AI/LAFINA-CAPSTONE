@@ -186,11 +186,17 @@ export interface DraftCancelPayload {
 }
 
 export interface MultiPrepareItem {
-  kind: LafinaActionKind;
-  payload: Record<string, unknown>;
+  kind: 'task' | 'event' | 'reminder' | 'note';
+  title: string;
+  date?: string;
+  time?: string;
+  endTime?: string;
+  priority?: 'low' | 'medium' | 'high';
+  body?: string;
 }
 
 export interface MultiPreparePayload {
+  text?: string;
   items: MultiPrepareItem[];
 }
 

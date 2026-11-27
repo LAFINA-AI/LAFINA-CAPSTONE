@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
@@ -186,6 +188,7 @@ class LafinaAlarmService : Service() {
   private var vibrator: Vibrator? = null
   private var wakeLock: PowerManager.WakeLock? = null
   private var rampStartedAt = 0L
+  private var alarmFocusRequest: AudioFocusRequest? = null
 
   override fun onBind(intent: Intent?): IBinder? = null
 
@@ -298,6 +301,7 @@ class LafinaAlarmService : Service() {
         .setUsage(AudioAttributes.USAGE_ALARM)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
+    requestAlarmFocus(attributes)
     val candidates = listOfNotNull(
         AlertPreferencesContract.sanitizeToneUri(request.soundUri)
             ?.takeIf { it != AlertPreferencesContract.TONE_SILENT }
@@ -409,6 +413,38 @@ class LafinaAlarmService : Service() {
     }
   }
 
+  private fun requestAlarmFocus(attributes: AudioAttributes) {
+    try {
+      val manager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        alarmFocusRequest?.let { manager.abandonAudioFocusRequest(it) }
+        val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            .setAudioAttributes(attributes)
+            .build()
+        alarmFocusRequest = req
+        manager.requestAudioFocus(req)
+      } else {
+        @Suppress("DEPRECATION")
+        manager.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+      }
+    } catch (_: Exception) {
+    }
+  }
+
+  private fun abandonAlarmFocus() {
+    try {
+      val manager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        alarmFocusRequest?.let { manager.abandonAudioFocusRequest(it) }
+        alarmFocusRequest = null
+      } else {
+        @Suppress("DEPRECATION")
+        manager.abandonAudioFocus(null)
+      }
+    } catch (_: Exception) {
+    }
+  }
+
   private fun stopSound() {
     handler.removeCallbacksAndMessages(null)
     try {
@@ -419,6 +455,7 @@ class LafinaAlarmService : Service() {
     player = null
     vibrator?.cancel()
     vibrator = null
+    abandonAlarmFocus()
   }
 
   private fun acquireWakeLock() {

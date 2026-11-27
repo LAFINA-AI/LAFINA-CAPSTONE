@@ -19,6 +19,7 @@ import {useThemedStyles} from '../../theme/createThemedStyles';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import type {
   CommandProposal,
+  PrepareResult,
   ReviewEditPatch,
 } from '../../../ai/nlu/commandReview';
 import {CommandReviewCard} from '../chat/CommandReviewCard';
@@ -56,8 +57,10 @@ export interface ActionCardHostProps {
   onDismiss?: () => void;
   /** Moves an event or time-block draft to a suggested free slot. */
   onEdit?: (patch: ReviewEditPatch) => unknown;
+  editError?: string | null;
   onOpenNote?: (noteId: string) => void;
   onSaveMemory?: (editedText?: string) => void;
+  onEditMemoryText?: (text: string) => void;
   onUndoMemory?: () => void;
   onConfirmMultiAll?: () => void;
   onCancelMultiAll?: () => void;
@@ -90,8 +93,10 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   onCancel = () => {},
   onDismiss = () => {},
   onEdit,
+  editError,
   onOpenNote,
   onSaveMemory,
+  onEditMemoryText,
   onUndoMemory,
   onConfirmMultiAll,
   onCancelMultiAll,
@@ -185,6 +190,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           expired={expired || status === 'expired'}
           busy={busy || status === 'confirm'}
           onSave={onSaveMemory ?? onConfirm}
+          onEditText={onEditMemoryText}
           onCancel={onCancel}
           onDismiss={onDismiss}
           onUndo={onUndoMemory}
@@ -287,10 +293,19 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
         <CommandReviewCard
           proposal={proposal}
           expired={expired || status === 'expired'}
-          busy={busy || status === 'confirm'}
+          busy={busy || status === 'confirm' || saved}
           onConfirm={onConfirm}
           onCancel={onCancel}
           onDismiss={onDismiss}
+          onEdit={
+            onEdit
+              ? patch => {
+                  const res = onEdit(patch);
+                  return (res as PrepareResult | null | undefined) ?? null;
+                }
+              : undefined
+          }
+          editError={editError}
           testIDPrefix={testIDPrefix}
         />
       )}

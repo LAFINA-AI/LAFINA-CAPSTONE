@@ -76,6 +76,7 @@ const MANAGED_SETTING_EXACT_KEYS: ReadonlySet<string> = new Set([
   'chat.useHandbook',
   'ustp_handbook_enabled',
   'product_tour',
+  'reminder.callQueue.v1',
 ]);
 
 export const isPresentationManagedSettingKey = (key: string): boolean => {

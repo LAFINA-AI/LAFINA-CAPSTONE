@@ -84,7 +84,7 @@ export const detectCallKeyword = (
     )
       return {intent: 'acknowledge', minutes: null};
     if (
-      /^(?:not now|later|maybe later|in a bit|in a while|a bit later|wait|hold on|i'?m busy|busy|mamaya(?: na)?|saglit(?: lang)?|teka(?: lang)?)(?: (?:lafina|please|po))?$/.test(
+      /^(?:no )?(?:not now|later|maybe later|in a bit|in a while|a bit later|wait|hold on|i'?m busy|busy|mamaya(?: na)?|saglit(?: lang)?|teka(?: lang)?)(?: (?:lafina|please|po))?$/.test(
         text,
       )
     )
@@ -103,13 +103,19 @@ export const detectCallKeyword = (
   )
     return {intent: 'acknowledge', minutes: null};
   if (/^(?:remind|call) (?:me|you)$/.test(text)) return null;
+  const snoozeText = text.replace(/^no /, '');
   const snooze =
     /^(?:snooz(?:e|ed)(?: (?:this reminder|the reminder|this|it))?|remind (?:me|you)(?: again)?|call (?:me|you)(?: back)?|postpone)(?: (.*))?$/.exec(
-      text,
+      snoozeText,
     );
   if (snooze) {
     if (!snooze[1] || snooze[1] === 'later')
       return {intent: 'snooze', minutes: null};
+    const bare = /^\d+$/.exec(snooze[1]);
+    if (bare) {
+      const n = Number(bare[0]);
+      return n >= 1 && n <= 120 ? {intent: 'snooze', minutes: n} : null;
+    }
     const minutes = duration(snooze[1]);
     return minutes === null ? null : {intent: 'snooze', minutes};
   }

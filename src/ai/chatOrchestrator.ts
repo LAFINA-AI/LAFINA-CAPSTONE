@@ -39,6 +39,7 @@ import {
   extractExplicitMemory,
 } from './explicitMemory';
 import {db} from '../storage/database';
+import {personalMemoryStore} from '../storage/personalMemoryStore';
 import {plannerQueries} from '../storage/plannerQueries';
 import type {PlannerWindow} from '../storage/plannerQueries';
 import {addDaysToDate, isRealDate, MINUTES_PER_DAY} from '../storage/eventTime';
@@ -3395,6 +3396,7 @@ function hasCompoundPlannerActions(
 function validatedIntentToMultiItem(
   v: ValidatedIntent,
   index: number,
+  defaultEventDurationMinutes = 60,
 ): MultiActionItemData | null {
   let kind: MultiActionItemData['kind'];
   if (v.intent === 'create_task') {
@@ -3421,7 +3423,10 @@ function validatedIntentToMultiItem(
     endTime:
       v.endTime ||
       (kind === 'event' && v.time
-        ? defaultEventEnd(v.time, v.durationMinutes ?? 60)
+        ? defaultEventEnd(
+            v.time,
+            v.durationMinutes ?? defaultEventDurationMinutes,
+          )
         : undefined),
     priority:
       v.priority?.toLowerCase() === 'high'
@@ -3444,6 +3449,7 @@ async function buildCompoundBatch(
   sessionId: string,
   signal?: AbortSignal,
 ): Promise<MultiActionBatchData | null> {
+  const defaultDuration = personalMemoryStore.getDefaultDuration(userId);
   if (onlineMode) {
     const extracted = await extractMultiIntentsWithDeepSeek(
       text,
@@ -3452,7 +3458,7 @@ async function buildCompoundBatch(
     );
     if (extracted && extracted.length >= 2) {
       const mapped = extracted
-        .map((v, idx) => validatedIntentToMultiItem(v, idx))
+        .map((v, idx) => validatedIntentToMultiItem(v, idx, defaultDuration))
         .filter((item): item is MultiActionItemData => item !== null);
       if (mapped.length >= 2) {
         return createMultiActionBatch(
@@ -3464,7 +3470,7 @@ async function buildCompoundBatch(
       }
     }
   }
-  const parsed = parseGroupedRequest(text, referenceDate);
+  const parsed = parseGroupedRequest(text, referenceDate, defaultDuration);
   if (parsed.items.length >= 2) {
     return createMultiActionBatch(
       sessionId,

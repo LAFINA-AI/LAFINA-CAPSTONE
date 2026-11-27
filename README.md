@@ -560,6 +560,8 @@ USTP-specific features follow the app's student setup and eligibility checks. An
 
 Light, dark, and system themes, speech settings, and reply preferences let students adjust how LAFINA looks and responds. Personal memory can retain useful preferences and can be managed or turned off. Relevant saved context may accompany online assistant requests when those features are enabled.
 
+Profile → Schedule settings includes a default event duration (15–480 minutes, initially 60). It applies to new calendar events when no length is specified; explicit lengths and existing events keep their own values. LAFINA asks for a missing start time or can suggest an available slot for review. The duration is a device-local, account-specific preference with no expiry.
+
 **Floating LAFINA** is an optional, off-by-default shortcut: an edge handle or bubble opens Quick Chat over another app. Students can adjust its appearance and position. It uses the same confirmation rules as the main assistant and does not read the contents of other apps.
 
 ## Offline use and cloud synchronization

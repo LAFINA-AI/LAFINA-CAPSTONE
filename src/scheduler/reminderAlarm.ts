@@ -37,6 +37,8 @@ export interface NativeDeliveryRegistration {
   triggerAtMs: number;
   /** False when the registry entry exists but Android no longer holds the alarm. */
   armed: boolean;
+  /** Native delivery style ('call' | 'notify') when reported by updated builds. */
+  style?: ReminderDeliveryStyle;
 }
 
 /** Redacted native evidence: identifiers and an event code, never task text. */

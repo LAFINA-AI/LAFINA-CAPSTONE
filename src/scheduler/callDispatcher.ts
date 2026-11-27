@@ -604,6 +604,9 @@ export const answerCall = async (
   activeSession = null;
   await audioRelease;
   await stopActiveAudioAndCapture(previousSession);
+  if (previousSession) {
+    void stopActiveCallSession().catch(() => undefined);
+  }
   if (answerSequence !== sessionSequence) return false;
   const buttonsOnly = options?.buttonsOnly === true;
   if (buttonsOnly) {
@@ -736,6 +739,22 @@ export const resumeOfflineCall = (
   return true;
 };
 
+export const downgradeExternalVoiceToButtons = (
+  reminderId: string,
+  userId: string,
+): void => {
+  const session = activeSession;
+  if (
+    !session ||
+    session.reminderId !== reminderId ||
+    session.userId !== userId
+  )
+    return;
+  session.externalVoice = false;
+  session.voiceEnabled = false;
+  void stopActiveCallSession().catch(() => undefined);
+};
+
 /**
  * Automatically snoozes the active reminder or marks it missed at its limit.
  */
@@ -750,7 +769,8 @@ export const autoSnoozeCall = async (expected?: {
     (!session ||
       session.reminderId !== expected.reminderId ||
       session.userId !== expected.userId ||
-      session.generation !== expected.generation)
+      (expected.generation != null &&
+        session.generation !== expected.generation))
   )
     return;
   if (!session || !claimCallResolution(session)) return;
@@ -954,13 +974,17 @@ export const commitAgentSnooze = async (
   userId: string,
   minutes: number,
   generation: number | null,
-): Promise<{result: ReminderActionResult; close: () => void} | null> => {
+): Promise<{
+  result: ReminderActionResult;
+  close: () => void;
+  speakAndClose: () => Promise<void>;
+} | null> => {
   const session = activeSession;
   if (
     !session ||
     session.reminderId !== reminderId ||
     session.userId !== userId ||
-    session.generation !== generation ||
+    (generation != null && session.generation !== generation) ||
     !claimCallResolution(session)
   )
     return null;
@@ -968,7 +992,7 @@ export const commitAgentSnooze = async (
     reminderId,
     userId,
     minutes,
-    generation,
+    session.generation,
   );
   if (!isCurrentSession(session)) return null;
   if (!result.ok) session.isResolving = false;
@@ -976,6 +1000,11 @@ export const commitAgentSnooze = async (
   return {
     result,
     close: () => disconnectCall(resolutionFromAction(result), session),
+    speakAndClose: async () => {
+      if (!isCurrentSession(session)) return;
+      await speakOutcome(result, session);
+      disconnectCall(resolutionFromAction(result), session);
+    },
   };
 };
 

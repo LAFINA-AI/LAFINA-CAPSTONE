@@ -25,15 +25,16 @@ const outcome = <T>(
     };
   }
   const status =
-    result.status === 'subscription_required' || result.status === 'conflict'
-      ? 'validation_error'
-      : result.httpStatus === 404
-      ? 'not_found'
-      : result.status;
+    result.httpStatus === 404 ? 'not_found' : result.status;
   return {
     ok: false,
     status,
     httpStatus: result.httpStatus,
+    ...(status === 'auth_required'
+      ? {sessionEnded: result.sessionEnded === true}
+      : result.sessionEnded !== undefined
+      ? {sessionEnded: result.sessionEnded}
+      : {}),
     message: result.error || 'Voice conversation is unavailable right now.',
   };
 };

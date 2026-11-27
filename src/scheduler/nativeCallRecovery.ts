@@ -2,7 +2,7 @@ import {db} from '../storage/database';
 import {deliveryStore} from '../storage/deliveryStore';
 import {remindersStore} from '../storage/remindersStore';
 import {alertSuppression} from '../storage/sourceReminders';
-import {callLifecycle} from './callLifecycle';
+import {callLifecycle, QUEUED_CALL_LIMIT_MS} from './callLifecycle';
 import type {CallRequest} from './callAdmission';
 import {finishNativeIncomingCall, scheduleReminderAlarm} from './reminderAlarm';
 import {createNextRecurringReminder} from './reminderActions';
@@ -71,14 +71,15 @@ export const recoverNativeCall = (
     if (ringing) {
       adopted = {
         ...request,
+        task: undefined,
         timeoutCount: 0,
         generation: deliveryStore.get(reminder.id)?.generation,
-        action: 'call',
+        action: request.action === 'answer' ? 'answer' : 'call',
       };
       entries.push({
-        request: adopted,
+        request: {...adopted, action: 'call'},
         receivedAt: Date.now(),
-        deadline: Date.now() + 45_000,
+        deadline: Date.now() + QUEUED_CALL_LIMIT_MS,
         state: 'queued',
       });
     }

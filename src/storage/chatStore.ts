@@ -958,8 +958,15 @@ export const chatStore = {
     sender: 'user' | 'assistant',
     content: string,
     metadata?: ChatMessageMetadata | null,
+    preferredSessionId?: string | null,
   ): ChatMessage | null => {
-    const openId = chatStore.currentSessionId(userId);
+    const pinnedValid =
+      preferredSessionId &&
+      !isUstpSessionId(preferredSessionId) &&
+      findSessionFor(userId, preferredSessionId) !== null
+        ? preferredSessionId
+        : null;
+    const openId = pinnedValid ?? chatStore.currentSessionId(userId);
     let targetSessionId: string | null = openId;
     if (isUstpSessionId(openId)) {
       try {

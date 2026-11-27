@@ -21,6 +21,7 @@ import type {
   DraftConfirmPayload,
   DraftCancelPayload,
   MultiPreparePayload,
+  MultiPrepareItem,
 } from './types';
 import {isRealDate} from '../../storage/eventTime';
 import {containsPromptInjection} from './actionSecurity';
@@ -217,7 +218,7 @@ export function validatePayload(
     };
   }
 
-  const p = rawPayload as Record<string, unknown>;
+  let p = rawPayload as Record<string, unknown>;
   const extraFields: Partial<Record<LafinaActionKind, string[]>> = {
     'calendar.prepare': ['title', 'date', 'startTime', 'endTime', 'location'],
     'task.prepare': ['title', 'dueDate', 'dueTime', 'priority'],
@@ -236,10 +237,15 @@ export function validatePayload(
   const definition = REGISTERED_TOOLS.find(tool => tool.kind === kind);
   const allowed =
     extraFields[kind] || Object.keys(definition?.parameters.properties || {});
+  // Strip explicit null optional values emitted by LLM tool-calling schemas
+  // before validating field types, while still rejecting unknown keys.
+  const cleanedEntries = Object.entries(p).filter(([, v]) => v !== null);
+  const cleaned = Object.fromEntries(cleanedEntries);
   if (Object.keys(p).some(key => !allowed.includes(key)))
     return {valid: false, error: 'Unknown tool parameter.'};
-  if (Object.keys(p).length > 12)
+  if (Object.keys(p).length > 16)
     return {valid: false, error: 'Too many tool parameters.'};
+  p = cleaned;
 
   for (const field of [
     'query',
@@ -627,16 +633,6 @@ export function validatePayload(
     }
 
     case 'multi.prepare': {
-      if (
-        typeof p.text === 'string' &&
-        p.text.trim() &&
-        Array.isArray(p.items) &&
-        p.items.length
-      )
-        return {
-          valid: false,
-          error: 'Provide grouped text or structured items, not both.',
-        };
       if (typeof p.text === 'string' && p.text.trim()) {
         if (p.text.length > 500) {
           return {
@@ -650,13 +646,19 @@ export function validatePayload(
             error: 'multi.prepare text contains rejected adversarial tokens.',
           };
         }
-        return {
-          valid: true,
-          data: {
-            text: p.text.trim(),
-            items: [],
-          } as unknown as MultiPreparePayload,
-        };
+        // Providers may include both the spoken summary and its structured
+        // items. Prefer validated items, as the tool schema permits both.
+        if (
+          p.items === undefined ||
+          (Array.isArray(p.items) && !p.items.length)
+        )
+          return {
+            valid: true,
+            data: {
+              text: p.text.trim(),
+              items: [],
+            } satisfies MultiPreparePayload,
+          };
       }
       if (
         !Array.isArray(p.items) ||
@@ -668,22 +670,29 @@ export function validatePayload(
           error: 'multi.prepare requires 1..10 items or text.',
         };
       }
-      const items = [];
+      const items: MultiPrepareItem[] = [];
       for (let i = 0; i < p.items.length; i++) {
-        const item = p.items[i] as Record<string, unknown>;
+        const rawItem = p.items[i] as Record<string, unknown>;
         if (
-          !item ||
-          typeof item !== 'object' ||
-          typeof item.kind !== 'string'
+          !rawItem ||
+          typeof rawItem !== 'object' ||
+          Array.isArray(rawItem) ||
+          typeof rawItem.kind !== 'string'
         ) {
           return {valid: false, error: `multi.prepare item ${i} is invalid.`};
         }
+        // Match top-level optional-null normalization, while retaining all
+        // keys for the unknown-field check (even if their values are null).
+        const item = Object.fromEntries(
+          Object.entries(rawItem).filter(([, value]) => value !== null),
+        );
         if (
+          typeof item.kind !== 'string' ||
           !['task', 'event', 'reminder', 'note'].includes(item.kind) ||
           typeof item.title !== 'string' ||
           !item.title.trim() ||
           item.title.length > 200 ||
-          Object.keys(item).some(
+          Object.keys(rawItem).some(
             key =>
               ![
                 'kind',
@@ -719,9 +728,13 @@ export function validatePayload(
           !['low', 'medium', 'high'].includes(item.priority as string)
         )
           return {valid: false, error: 'Invalid grouped priority.'};
-        items.push({...item, title: item.title.trim()});
+        items.push({
+          ...item,
+          kind: item.kind as MultiPrepareItem['kind'],
+          title: item.title.trim(),
+        });
       }
-      const res = {items} as unknown as MultiPreparePayload;
+      const res: MultiPreparePayload = {items};
       return {valid: true, data: res};
     }
 

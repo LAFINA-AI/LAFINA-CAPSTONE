@@ -39,7 +39,12 @@ import {
   useOfflineModelEngine,
   useSharedModelDownload,
 } from '../hooks/useOfflineModels';
-import {preferencesStore} from '../../storage';
+import {db, preferencesStore} from '../../storage';
+import {
+  personalMemoryStore,
+  MIN_DURATION_MINUTES,
+  MAX_DURATION_MINUTES,
+} from '../../storage/personalMemoryStore';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {SETTING_KEY_ADAPTIVE_TIMING} from '../../ai/ml';
 import type {
@@ -220,6 +225,9 @@ export const PreferencesSettingsScreen: React.FC<
   PreferencesSettingsScreenProps
 > = ({userId, onBack, onSaved}) => {
   const initial = useMemo(() => preferencesStore.get(userId), [userId]);
+  const [eventDuration, setEventDuration] = useState(() =>
+    String(personalMemoryStore.getDefaultDuration(userId)),
+  );
   const initialSetup = useMemo(() => studentSetupStore.get(userId), [userId]);
   const ustpEnabled = useMemo(() => isUstpSchoolEnabled(userId), [userId]);
   const [preferredName, setPreferredName] = useState(
@@ -537,6 +545,18 @@ export const PreferencesSettingsScreen: React.FC<
 
   const handleSave = async (): Promise<void> => {
     if (isSavingRef.current || isSaving) return;
+    const minutes = Number(eventDuration.trim());
+    if (
+      !/^\d+$/.test(eventDuration.trim()) ||
+      !Number.isInteger(minutes) ||
+      minutes < MIN_DURATION_MINUTES ||
+      minutes > MAX_DURATION_MINUTES
+    ) {
+      setError(
+        `Enter a default event duration from ${MIN_DURATION_MINUTES} to ${MAX_DURATION_MINUTES} whole minutes.`,
+      );
+      return;
+    }
     const reqUserId = userId;
     isSavingRef.current = true;
     setIsSaving(true);
@@ -554,7 +574,10 @@ export const PreferencesSettingsScreen: React.FC<
     };
 
     try {
-      preferencesStore.save(userId, updatedPreferences);
+      db.transactionSync(tx => {
+        personalMemoryStore.saveDefaultDuration(userId, minutes, tx);
+        preferencesStore.save(userId, updatedPreferences, tx);
+      });
       localSettingsStore.set(
         userId,
         SETTING_KEY_ADAPTIVE_TIMING,
@@ -740,9 +763,7 @@ export const PreferencesSettingsScreen: React.FC<
             options={[
               {label: 'Deadlines', value: 'deadlines'},
               {label: 'Daily schedule', value: 'schedule'},
-              ...(ustpEnabled
-                ? [{label: 'Ask USTP', value: 'handbook'}]
-                : []),
+              ...(ustpEnabled ? [{label: 'Ask USTP', value: 'handbook'}] : []),
               {label: 'No focus set', value: 'none'},
             ]}
             selectedValues={[mainGoal ?? 'none']}
@@ -811,8 +832,34 @@ export const PreferencesSettingsScreen: React.FC<
           ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
-            Reminders
+            Schedule
           </Text>
+          <View style={styles.optionGroup}>
+            <Text style={[styles.optionTitle, {color: colors.textPrimary}]}>
+              Default event duration (minutes)
+            </Text>
+            <TextInput
+              accessibilityLabel="Default event duration in minutes"
+              testID="schedule-event-duration"
+              keyboardType="number-pad"
+              maxLength={3}
+              value={eventDuration}
+              onChangeText={setEventDuration}
+              style={[
+                styles.durationInput,
+                {
+                  color: colors.textPrimary,
+                  backgroundColor: colors.inputBg,
+                  borderColor: colors.border,
+                },
+              ]}
+            />
+            <Text style={[styles.durationHint, {color: colors.textSecondary}]}>
+              15–480 minutes. Used for new events when you do not specify a
+              length. LAFINA asks for a missing start time. Your chosen times
+              and existing events stay as they are.
+            </Text>
+          </View>
           <PreferenceOptionGroup
             title="Reminder lead time"
             options={REMINDER_LEAD_OPTIONS}
@@ -1554,6 +1601,20 @@ export const PreferencesSettingsScreen: React.FC<
 };
 
 const styles = StyleSheet.create({
+  durationInput: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: Layout.borderRadiusButton,
+    paddingHorizontal: 12,
+    fontFamily: Fonts.body,
+    fontSize: 16,
+  },
+  durationHint: {
+    marginTop: 8,
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+  },
   container: {
     flex: 1,
   },

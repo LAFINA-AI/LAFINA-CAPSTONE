@@ -1,12 +1,6 @@
 import React from 'react';
 import {Text, TouchableOpacity, View, StyleSheet} from 'react-native';
-import {
-  BookOpen,
-  ChevronRight,
-  Circle,
-  ListChecks,
-  NotebookPen,
-} from 'lucide-react-native';
+import {Circle, ListChecks, NotebookPen} from 'lucide-react-native';
 import type {LocalVoiceResult} from '../../../cloud/voiceConversation/localVoiceData';
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
 import {AgendaCard} from './cards/AgendaCard';
@@ -15,6 +9,7 @@ import {useTheme} from '../../contexts/ThemeContext';
 import {Fonts, FontSize, Layout, Spacing} from '../../theme';
 import {mixColors} from '../../theme/colorMix';
 import {shortDate, time12} from './cards/cardFormat';
+import {UstpCallSourceCard} from './UstpCallSourceCard';
 
 export function CallReadResults({
   result,
@@ -33,106 +28,12 @@ export function CallReadResults({
   if (typeof result === 'string')
     return <Text style={{color: colors.textPrimary}}>{result}</Text>;
   if ('ustpSearch' in result && result.ustpSearch) {
-    const shown = result.passages.slice(0, 3);
-    const passageIds = result.passages
-      .map(p => p.passageId)
-      .filter((id): id is string => Boolean(id));
     return (
-      <View
-        testID="call-ustp-results"
-        style={[
-          styles.todoCard,
-          {backgroundColor: colors.surface, borderColor: colors.primary},
-        ]}
-      >
-        <View style={styles.todoHeader}>
-          <BookOpen size={16} color={colors.primary} />
-          <Text
-            style={[styles.todoKicker, {color: colors.primary}]}
-            accessibilityRole="header"
-          >
-            USTP Sources
-          </Text>
-          {shown.length > 0 ? (
-            <View
-              style={[
-                styles.countPill,
-                {
-                  backgroundColor: mixColors(
-                    colors.primary,
-                    colors.surface,
-                    0.14,
-                  ),
-                },
-              ]}
-            >
-              <Text style={[styles.countPillText, {color: colors.primary}]}>
-                {result.passages.length}
-              </Text>
-            </View>
-          ) : null}
-          <TouchableOpacity
-            onPress={onDismiss}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss USTP sources"
-            style={styles.dismissLink}
-          >
-            <Text
-              style={{color: colors.textSecondary, fontSize: FontSize.small}}
-            >
-              Dismiss
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.todoList}>
-          {shown.map(passage => {
-            const meta = [
-              passage.collection === 'ustp_cdo'
-                ? 'USTP CDO'
-                : '2023 Student Handbook',
-              passage.pageLabel,
-              passage.asOf ? `as of ${passage.asOf}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ');
-            return (
-              <View key={passage.passageId} style={styles.todoTextCol}>
-                <Text
-                  style={[styles.todoTitle, {color: colors.textPrimary}]}
-                  numberOfLines={2}
-                >
-                  {passage.section || passage.chapter}
-                </Text>
-                <Text style={[styles.todoMeta, {color: colors.textSecondary}]}>
-                  {meta}
-                </Text>
-                {passage.caveats.length > 0 ? (
-                  <Text
-                    style={[styles.todoMeta, {color: colors.warning}]}
-                    numberOfLines={2}
-                  >
-                    Note: {passage.caveats[0]}
-                  </Text>
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
-        {onSeePassages && passageIds.length > 0 ? (
-          <TouchableOpacity
-            onPress={() => onSeePassages(passageIds)}
-            accessibilityRole="button"
-            accessibilityLabel="See USTP source passages"
-            testID="call-ustp-see-passages"
-            style={[styles.link, styles.ustpSeeRow]}
-          >
-            <Text style={[styles.linkText, {color: colors.primary}]}>
-              See passages
-            </Text>
-            <ChevronRight size={15} color={colors.primary} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
+      <UstpCallSourceCard
+        result={result}
+        onDismiss={onDismiss}
+        onSeePassages={onSeePassages}
+      />
     );
   }
   if ('todos' in result && result.todos) {
@@ -489,11 +390,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 11,
     fontWeight: '700',
-  },
-  ustpSeeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: Spacing.xs,
   },
 });

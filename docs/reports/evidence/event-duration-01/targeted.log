@@ -1,0 +1,1887 @@
+
+> lafina-capstone@1.0.9 test
+> jest --runInBand --runTestsByPath __tests__/ui/eventDurationPreference.test.tsx __tests__/ui/agyPort09ProfileHealth.test.tsx __tests__/storage/agyPort09HealthPreferencesStats.test.ts __tests__/ui/callDraftCardSync.test.tsx __tests__/ui/chatHistorySyncUi.test.tsx
+
+FAIL __tests__/ui/eventDurationPreference.test.tsx (10.484 s)
+  ● Schedule has one duration field and saves it without a separate review or expiry
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● invalid duration "" is explained without saving
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● invalid duration "0" is explained without saving
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● invalid duration "14" is explained without saving
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● invalid duration "481" is explained without saving
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● invalid duration "30.5" is explained without saving
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● invalid duration "-30" is explained without saving
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● enabled unexpired legacy duration is kept permanently and its fixed time is discarded
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● disabled and expired legacy defaults reset to 60 instead of being reactivated
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● an event uses the duration only when no explicit end or length is given
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● an event with a missing time asks instead of using a legacy start or 9 AM
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● grouped events use the preference and keep explicit end times
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+  ● duration writes remain owner checked and data reset returns to 60
+
+    TypeError: Cannot redefine property: refreshPendingReminderLeadTimes
+        at Object.defineProperty (<anonymous>)
+
+      32 |   memory.clearForDataReset(owner);
+      33 |   jest
+    > 34 |     .spyOn(scheduler, 'refreshPendingReminderLeadTimes')
+         |      ^
+      35 |     .mockResolvedValue({updatedCount: 0, failedCount: 0} as never);
+      36 | });
+      37 | afterEach(() => {
+
+      at ModuleMocker.spyOn (node_modules/jest-mock/build/index.js:776:16)
+      at Object.spyOn (__tests__/ui/eventDurationPreference.test.tsx:34:6)
+
+PASS __tests__/ui/callDraftCardSync.test.tsx (11.171 s)
+FAIL __tests__/ui/agyPort09ProfileHealth.test.tsx (5.133 s)
+  ● Console
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:93:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\profile\ReminderHealth.tsx:60:43
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at refresh (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\profile\ReminderHealth.tsx:73:10)
+          at Object.react_stack_bottom_frame (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:15755:20)
+          at runWithFiberInDEV (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2315:13)
+          at commitHookEffectListMount (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:9530:29)
+          at commitHookPassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:9617:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11205:13)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11439:11)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11197:11)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11240:11)
+          at flushPendingEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:14086:11)
+          at performSyncWorkOnRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2920:11)
+          at flushSyncWorkAcrossRoots_impl (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2764:21)
+          at flushSpawnedWork (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:13966:9)
+          at commitRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:13698:9)
+          at performWorkOnRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:12336:15)
+          at performWorkOnRootViaSchedulerTask (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2908:7)
+          at flushActQueue (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:590:34)
+          at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:884:10)
+          at actImplementation (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:30:25)
+          at renderWithAct (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render-act.ts:13:11)
+          at renderInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render.tsx:69:33)
+          at renderInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render.tsx:44:10)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:264:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      63 |     local = reminderHealthStore.read(userId);
+      64 |   } catch (error) {
+    > 65 |     console.warn('[ReminderHealth] Local delivery evidence unavailable:', error);
+         |             ^
+      66 |   }
+      67 |   try {
+      68 |     const value = await bounded(getReminderPermissionStatus(), PERMISSION_READ_TIMEOUT_MS);
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at src/ui/components/profile/ReminderHealth.tsx:60:43
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at refresh (src/ui/components/profile/ReminderHealth.tsx:73:10)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15755:20)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at commitHookEffectListMount (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9530:29)
+      at commitHookPassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9617:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11205:13)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11439:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11197:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11240:11)
+      at flushPendingEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14086:11)
+      at performSyncWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2920:11)
+      at flushSyncWorkAcrossRoots_impl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2764:21)
+      at flushSpawnedWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13966:9)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13698:9)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12336:15)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/agyPort09ProfileHealth.test.tsx:264:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: Error: no binder
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:263:56)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      69 |     if (isPermissionStatus(value)) permissions = value;
+      70 |   } catch (error) {
+    > 71 |     console.warn('[ReminderHealth] Android access unavailable:', error);
+         |             ^
+      72 |   }
+      73 |   return {userId, permissions, local, checkedAt: new Date().toISOString()};
+      74 | };
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:93:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at real (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:294:21)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+      63 |     local = reminderHealthStore.read(userId);
+      64 |   } catch (error) {
+    > 65 |     console.warn('[ReminderHealth] Local delivery evidence unavailable:', error);
+         |             ^
+      66 |   }
+      67 |   try {
+      68 |     const value = await bounded(getReminderPermissionStatus(), PERMISSION_READ_TIMEOUT_MS);
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at real (__tests__/ui/agyPort09ProfileHealth.test.tsx:294:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● AGY-PORT 09 Profile statistics card & modal › keeps every existing Profile control, opens View Stats modal, hides Student Pro & Modern/Classic outside Dev Mode
+
+    Unable to find an element with text: Reminder timing
+
+    <View>
+      <RCTScrollView>
+        <View>
+          <View>
+            <Text>
+              Profile
+            </Text>
+            <View>
+              <View
+                accessibilityLabel="Switch to dark mode"
+                accessibilityRole="button"
+                accessible={true}
+                testID="profile-quick-theme-btn"
+              >
+                <View
+                  accessibilityLabel="Moon"
+                />
+              </View>
+              <View
+                accessibilityLabel="Open preferences"
+                accessibilityRole="button"
+                accessible={true}
+                testID="profile-quick-prefs-btn"
+              >
+                <View
+                  accessibilityLabel="SlidersHorizontal"
+                />
+              </View>
+            </View>
+          </View>
+          <View>
+            <View />
+            <View>
+              <View
+                accessibilityLabel="Change profile avatar"
+                accessibilityRole="button"
+                accessible={true}
+                testID="profile-avatar-btn"
+              >
+                <View
+                  accessibilityLabel="Default profile avatar"
+                  accessibilityRole="image"
+                  accessible={true}
+                  testID="profile-default-avatar"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGRect />
+                      <RNSVGCircle />
+                      <RNSVGPath />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                </View>
+              </View>
+              <View
+                accessibilityLabel="Add a profile photo"
+                accessibilityRole="button"
+                accessible={true}
+                testID="profile-photo-badge-btn"
+              >
+                <View
+                  accessibilityLabel="Camera"
+                />
+              </View>
+            </View>
+            <View
+              testID="profile-identity-block"
+            >
+              <Text
+                testID="profile-display-name"
+              >
+                p09ui-profile-1
+              </Text>
+            </View>
+            <Text
+              testID="profile-display-email"
+            >
+              p09ui-profile-1@example.invalid
+            </Text>
+          </View>
+          <View>
+            <View
+              testID="profile-stats-card"
+            >
+              <View>
+                <View>
+                  <View>
+                    <View
+                      accessibilityLabel="BarChart3"
+                    />
+                  </View>
+                  <View>
+                    <Text>
+                      Study Overview
+                    </Text>
+                    <Text>
+                      Tasks, schedule & alerts
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  accessibilityLabel="View detailed statistics"
+                  accessibilityRole="button"
+                  accessible={true}
+                  testID="profile-view-stats-btn"
+                >
+                  <Text>
+                    View Stats
+                  </Text>
+                  <View
+                    accessibilityLabel="ChevronRight"
+                  />
+                </View>
+              </View>
+              <View>
+                <View
+                  accessibilityLabel="Task completion: no tasks yet"
+                  accessible={true}
+                  testID="stat-tasks-rate"
+                >
+                  <Text>
+                    0%
+                  </Text>
+                  <Text>
+                    Task Rate
+                  </Text>
+                  <Text>
+                    No tasks yet
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="This week: 0h scheduled (Free schedule)"
+                  accessible={true}
+                  testID="stat-weekly-load"
+                >
+                  <Text>
+                    0h
+                  </Text>
+                  <Text>
+                    This Week
+                  </Text>
+                  <Text>
+                    Free schedule
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Active alarms: 0, pending reminders: 0"
+                  accessible={true}
+                  testID="stat-alerts-status"
+                >
+                  <Text>
+                    0
+                  </Text>
+                  <Text>
+                    Alarms On
+                  </Text>
+                  <Text>
+                    No pending alerts
+                  </Text>
+                </View>
+              </View>
+              <View>
+                <Text>
+                  0 due today · 0 notes · 0 lectures
+                </Text>
+              </View>
+            </View>
+            <View>
+              <RCTScrollView
+                testID="profile-section-jump"
+              >
+                <View>
+                  <View
+                    accessibilityLabel="Go to Reminders & schedule"
+                    accessibilityRole="button"
+                    accessible={true}
+                    testID="profile-jump-reminders"
+                  >
+                    <View
+                      accessibilityLabel="BellRing"
+                    />
+                    <Text>
+                      Reminders
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Go to LAFINA assistant"
+                    accessibilityRole="button"
+                    accessible={true}
+                    testID="profile-jump-assistant"
+                  >
+                    <View
+                      accessibilityLabel="Sparkles"
+                    />
+                    <Text>
+                      Assistant
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Go to Voice"
+                    accessibilityRole="button"
+                    accessible={true}
+                    testID="profile-jump-voice"
+                  >
+                    <View
+                      accessibilityLabel="Volume2"
+                    />
+                    <Text>
+                      Voice
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Go to School"
+                    accessibilityRole="button"
+                    accessible={true}
+                    testID="profile-jump-school"
+                  >
+                    <View
+                      accessibilityLabel="School"
+                    />
+                    <Text>
+                      School
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Go to Appearance"
+                    accessibilityRole="button"
+                    accessible={true}
+                    testID="profile-jump-look"
+                  >
+                    <View
+                      accessibilityLabel="Palette"
+                    />
+                    <Text>
+                      Look
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Go to About & help"
+                    accessibilityRole="button"
+                    accessible={true}
+                    testID="profile-jump-about"
+                  >
+                    <View
+                      accessibilityLabel="Info"
+                    />
+                    <Text>
+                      About
+                    </Text>
+                  </View>
+                </View>
+              </RCTScrollView>
+              <View>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    Reminders & schedule
+                  </Text>
+                  <Text>
+                    How and when LAFINA reminds you
+                  </Text>
+                </View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="CalendarClock"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Schedule settings
+                      </Text>
+                      <Text>
+                        15 min before · Snooze once
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                  <View />
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="BellRing"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Alerts & sounds
+                      </Text>
+                      <Text>
+                        Calls you
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                  <View />
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="PhoneCall"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Reminder calls
+                      </Text>
+                      <Text>
+                        LAFINA talks with you · rings 45 sec
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                  <View />
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="ShieldCheck"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Check my reminders work
+                      </Text>
+                      <Text>
+                        Phone permissions and battery
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                  <View />
+                  <View>
+                    <View>
+                      <View
+                        accessibilityLabel="CalendarDays"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Week starts on Monday
+                      </Text>
+                    </View>
+                    <View>
+                      <RCTSwitch
+                        accessibilityLabel="Week starts on Monday"
+                        accessibilityRole="switch"
+                        value={false}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <View>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    LAFINA assistant
+                  </Text>
+                  <Text>
+                    How LAFINA talks with you
+                  </Text>
+                </View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                    testID="profile-memory-row"
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="Brain"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        What LAFINA remembers
+                      </Text>
+                      <Text>
+                        Nothing saved yet
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                  <View />
+                  <View>
+                    <View
+                      accessibilityRole="button"
+                      accessible={true}
+                    >
+                      <View>
+                        <View
+                          accessibilityLabel="MessageCircle"
+                        />
+                      </View>
+                      <View>
+                        <Text>
+                          Floating LAFINA
+                        </Text>
+                        <Text>
+                          Off
+                        </Text>
+                      </View>
+                      <View
+                        accessibilityLabel="ChevronRight"
+                      />
+                    </View>
+                  </View>
+                  <View />
+                  <View>
+                    <View>
+                      <View
+                        accessibilityLabel="AlignLeft"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Detailed answers
+                      </Text>
+                      <Text>
+                        Longer summaries with more detail
+                      </Text>
+                    </View>
+                    <View>
+                      <RCTSwitch
+                        accessibilityLabel="Detailed answers"
+                        accessibilityRole="switch"
+                        value={false}
+                      />
+                    </View>
+                  </View>
+                  <View />
+                  <View>
+                    <View>
+                      <View
+                        accessibilityLabel="Type"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Neat answer formatting
+                      </Text>
+                      <Text>
+                        Bold words, lists and headings
+                      </Text>
+                    </View>
+                    <View>
+                      <RCTSwitch
+                        accessibilityLabel="Neat answer formatting"
+                        accessibilityRole="switch"
+                        value={true}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <View>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    Voice
+                  </Text>
+                  <Text>
+                    How LAFINA sounds
+                  </Text>
+                </View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="Volume2"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Voice without internet
+                      </Text>
+                      <Text>
+                        Default
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                  <View />
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="AudioLines"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Online voice
+                      </Text>
+                      <Text>
+                        Camille
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                  <View />
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="Play"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Play a voice sample
+                      </Text>
+                      <Text>
+                        Hear how LAFINA sounds now
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <View>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    School
+                  </Text>
+                  <Text>
+                    Your school and class schedule
+                  </Text>
+                </View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="GraduationCap"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        School setup
+                      </Text>
+                      <Text>
+                        Not chosen yet
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                </View>
+              </View>
+              <View>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    Appearance
+                  </Text>
+                  <Text>
+                    Colors and style
+                  </Text>
+                </View>
+                <View>
+                  <View>
+                    <View>
+                      <View
+                        accessibilityLabel="Sun"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Dark Mode
+                      </Text>
+                    </View>
+                    <View>
+                      <RCTSwitch
+                        accessibilityLabel="Dark Mode"
+                        accessibilityRole="switch"
+                        value={false}
+                      />
+                    </View>
+                  </View>
+                  <View />
+                  <View
+                    testID="modern-theme-selector"
+                  >
+                    <View>
+                      <View>
+                        <Text>
+                          Color Theme
+                        </Text>
+                        <Text>
+                          Pick the colors for the whole app
+                        </Text>
+                      </View>
+                      <View
+                        testID="modern-theme-active-badge"
+                      >
+                        <Text>
+                          Violet
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      accessibilityLabel="Color theme"
+                      accessibilityRole="radiogroup"
+                    >
+                      <View
+                        accessibilityLabel="Violet theme — Iris & soft lavender"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": true,
+                            "selected": true,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-theme-violet"
+                      >
+                        <View>
+                          <View />
+                          <View />
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              Violet
+                            </Text>
+                          </View>
+                          <Text>
+                            Iris & soft lavender
+                          </Text>
+                        </View>
+                        <View>
+                          <View
+                            accessibilityLabel="Check"
+                          />
+                        </View>
+                      </View>
+                      <View
+                        accessibilityLabel="OLED theme — True pitch black & cobalt"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": false,
+                            "selected": false,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-theme-oled"
+                      >
+                        <View>
+                          <View />
+                          <View />
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              OLED
+                            </Text>
+                            <View>
+                              <Text>
+                                OLED
+                              </Text>
+                            </View>
+                          </View>
+                          <Text>
+                            True pitch black & cobalt
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        accessibilityLabel="Forest theme — Botanical sage & emerald"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": false,
+                            "selected": false,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-theme-forest"
+                      >
+                        <View>
+                          <View />
+                          <View />
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              Forest
+                            </Text>
+                          </View>
+                          <Text>
+                            Botanical sage & emerald
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        accessibilityLabel="Ocean theme — Coastal cerulean & mist"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": false,
+                            "selected": false,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-theme-ocean"
+                      >
+                        <View>
+                          <View />
+                          <View />
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              Ocean
+                            </Text>
+                          </View>
+                          <Text>
+                            Coastal cerulean & mist
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View
+                      accessibilityLabel="More color themes, 12 available"
+                      accessibilityRole="button"
+                      accessible={true}
+                      testID="modern-theme-more-button"
+                    >
+                      <View>
+                        <View
+                          accessibilityLabel="Palette"
+                        />
+                        <Text>
+                          More themes
+                        </Text>
+                        <Text>
+                          12
+                           styles
+                        </Text>
+                      </View>
+                      <View
+                        accessibilityLabel="ChevronRight"
+                      />
+                    </View>
+                  </View>
+                  <View />
+                  <View
+                    testID="modern-ai-button-selector"
+                  >
+                    <View>
+                      <View>
+                        <Text>
+                          AI Button Design
+                        </Text>
+                        <Text>
+                          The look of the AI button in the tab bar
+                        </Text>
+                      </View>
+                      <View
+                        testID="modern-ai-button-active-badge"
+                      >
+                        <Text>
+                          Synth Orb
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      accessibilityLabel="AI button design"
+                      accessibilityRole="radiogroup"
+                    >
+                      <View
+                        accessibilityLabel="Synth Orb AI button — Harmonic wave & glass sphere"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": true,
+                            "selected": true,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-ai-button-synth_orb"
+                      >
+                        <View
+                          pointerEvents="none"
+                          testID="modern-ai-button-preview-synth_orb"
+                        >
+                          <RNSVGSvgView
+                            pointerEvents="none"
+                          >
+                            <RNSVGGroup>
+                              <RNSVGDefs>
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGClipPath>
+                                  <RNSVGCircle />
+                                </RNSVGClipPath>
+                              </RNSVGDefs>
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGGroup>
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGPath />
+                                <RNSVGPath />
+                                <RNSVGPath />
+                                <RNSVGPath />
+                                <RNSVGPath />
+                                <RNSVGPath />
+                                <RNSVGPath />
+                                <RNSVGPath />
+                              </RNSVGGroup>
+                              <RNSVGCircle />
+                            </RNSVGGroup>
+                          </RNSVGSvgView>
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              Synth Orb
+                            </Text>
+                          </View>
+                          <Text>
+                            Harmonic wave & glass sphere
+                          </Text>
+                        </View>
+                        <View>
+                          <View
+                            accessibilityLabel="Check"
+                          />
+                        </View>
+                      </View>
+                      <View
+                        accessibilityLabel="Pulse Wave (Animated) AI button — Flowing live harmonic waves"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": false,
+                            "selected": false,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-ai-button-pulse_wave"
+                      >
+                        <View
+                          pointerEvents="none"
+                          testID="modern-ai-button-preview-pulse_wave"
+                        >
+                          <RNSVGSvgView
+                            pointerEvents="none"
+                          >
+                            <RNSVGGroup>
+                              <RNSVGDefs>
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGClipPath>
+                                  <RNSVGCircle />
+                                </RNSVGClipPath>
+                              </RNSVGDefs>
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGGroup>
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                              </RNSVGGroup>
+                              <RNSVGCircle />
+                            </RNSVGGroup>
+                          </RNSVGSvgView>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <View>
+                              <RNSVGSvgView>
+                                <RNSVGGroup>
+                                  <RNSVGPath />
+                                  <RNSVGPath />
+                                </RNSVGGroup>
+                              </RNSVGSvgView>
+                            </View>
+                            <View>
+                              <RNSVGSvgView>
+                                <RNSVGGroup>
+                                  <RNSVGDefs>
+                                    <RNSVGLinearGradient />
+                                  </RNSVGDefs>
+                                  <RNSVGPath />
+                                  <RNSVGPath />
+                                  <RNSVGPath />
+                                  <RNSVGPath />
+                                </RNSVGGroup>
+                              </RNSVGSvgView>
+                            </View>
+                          </View>
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              Pulse Wave
+                            </Text>
+                            <View
+                              accessibilityLabel="Sparkles"
+                            />
+                          </View>
+                          <Text>
+                            Flowing live harmonic waves
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        accessibilityLabel="Orbital Rings (Animated) AI button — Rotating halo & twin satellites"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": false,
+                            "selected": false,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-ai-button-orbital_rings"
+                      >
+                        <View
+                          pointerEvents="none"
+                          testID="modern-ai-button-preview-orbital_rings"
+                        >
+                          <RNSVGSvgView
+                            pointerEvents="none"
+                          >
+                            <RNSVGGroup>
+                              <RNSVGDefs>
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGClipPath>
+                                  <RNSVGCircle />
+                                </RNSVGClipPath>
+                              </RNSVGDefs>
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGGroup>
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                              </RNSVGGroup>
+                              <RNSVGCircle />
+                            </RNSVGGroup>
+                          </RNSVGSvgView>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <View>
+                              <RNSVGSvgView>
+                                <RNSVGGroup>
+                                  <RNSVGPath />
+                                  <RNSVGPath />
+                                  <RNSVGCircle />
+                                  <RNSVGCircle />
+                                </RNSVGGroup>
+                              </RNSVGSvgView>
+                            </View>
+                            <View>
+                              <RNSVGSvgView>
+                                <RNSVGGroup>
+                                  <RNSVGPath />
+                                  <RNSVGCircle />
+                                </RNSVGGroup>
+                              </RNSVGSvgView>
+                            </View>
+                          </View>
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              Orbital Rings
+                            </Text>
+                            <View
+                              accessibilityLabel="Sparkles"
+                            />
+                          </View>
+                          <Text>
+                            Rotating halo & twin satellites
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        accessibilityLabel="Liquid Pearl AI button — Pure 3D iridescent orb"
+                        accessibilityRole="radio"
+                        accessibilityState={
+                          {
+                            "checked": false,
+                            "selected": false,
+                          }
+                        }
+                        accessible={true}
+                        testID="modern-ai-button-liquid_pearl"
+                      >
+                        <View
+                          pointerEvents="none"
+                          testID="modern-ai-button-preview-liquid_pearl"
+                        >
+                          <RNSVGSvgView
+                            pointerEvents="none"
+                          >
+                            <RNSVGGroup>
+                              <RNSVGDefs>
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGRadialGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGLinearGradient />
+                                <RNSVGClipPath>
+                                  <RNSVGCircle />
+                                </RNSVGClipPath>
+                              </RNSVGDefs>
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGGroup>
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGCircle />
+                                <RNSVGPath />
+                              </RNSVGGroup>
+                              <RNSVGCircle />
+                            </RNSVGGroup>
+                          </RNSVGSvgView>
+                        </View>
+                        <View>
+                          <View>
+                            <Text>
+                              Liquid Pearl
+                            </Text>
+                          </View>
+                          <Text>
+                            Pure 3D iridescent orb
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View
+                      accessibilityLabel="More AI button designs, 12 available"
+                      accessibilityRole="button"
+                      accessible={true}
+                      testID="modern-ai-button-more-button"
+                    >
+                      <View>
+                        <View
+                          accessibilityLabel="Sparkles"
+                        />
+                        <Text>
+                          More designs
+                        </Text>
+                        <Text>
+                          12
+                           · incl. animated
+                        </Text>
+                      </View>
+                      <View
+                        accessibilityLabel="ChevronRight"
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <View>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    About & help
+                  </Text>
+                </View>
+                <View>
+                  <View
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="Info"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        App version
+                      </Text>
+                    </View>
+                    <Text>
+                      1.0.9
+                    </Text>
+                  </View>
+                  <View />
+                  <View
+                    accessibilityLabel="Check for updates"
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "busy": false,
+                      }
+                    }
+                    accessible={true}
+                    testID="app-update-item"
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="RefreshCw"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Check for updates
+                      </Text>
+                    </View>
+                  </View>
+                  <View />
+                  <View
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="Lock"
+                      />
+                    </View>
+                    <View>
+                      <Text>
+                        Privacy Policy
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="ChevronRight"
+                    />
+                  </View>
+                </View>
+              </View>
+              <View>
+                <Text
+                  accessibilityRole="header"
+                >
+                  Your data
+                </Text>
+              </View>
+              <View>
+                <View
+                  accessibilityLabel="Clear All Data"
+                  accessibilityRole="button"
+                  accessible={true}
+                  testID="profile-clear-all-data-btn"
+                >
+                  <View>
+                    <View
+                      accessibilityLabel="Trash2"
+                    />
+                  </View>
+                  <View>
+                    <Text>
+                      Clear All Data
+                    </Text>
+                    <Text>
+                      Delete notes, tasks, schedule, chats & event defaults
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="ChevronRight"
+                  />
+                </View>
+              </View>
+            </View>
+            <View
+              accessible={true}
+            >
+              <View
+                accessibilityLabel="LogOut"
+              />
+              <Text>
+                Sign Out
+              </Text>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      208 |       'View Stats',
+      209 |     ]) {
+    > 210 |       expect(screen.getByText(text)).toBeTruthy();
+          |                     ^
+      211 |     }
+      212 |     expect(screen.queryByTestId('student-pro-tag')).toBeNull();
+      213 |     expect(screen.queryByText('Student Pro')).toBeNull();
+
+      at Object.getByText (__tests__/ui/agyPort09ProfileHealth.test.tsx:210:21)
+
+PASS __tests__/ui/chatHistorySyncUi.test.tsx
+PASS __tests__/storage/agyPort09HealthPreferencesStats.test.ts
+  ● Console
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:93:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:178:46)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      63 |     local = reminderHealthStore.read(userId);
+      64 |   } catch (error) {
+    > 65 |     console.warn('[ReminderHealth] Local delivery evidence unavailable:', error);
+         |             ^
+      66 |   }
+      67 |   try {
+      68 |     const value = await bounded(getReminderPermissionStatus(), PERMISSION_READ_TIMEOUT_MS);
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at Object.<anonymous> (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:178:46)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: Error: binder died
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:206:56)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+      69 |     if (isPermissionStatus(value)) permissions = value;
+      70 |   } catch (error) {
+    > 71 |     console.warn('[ReminderHealth] Android access unavailable:', error);
+         |             ^
+      72 |   }
+      73 |   return {userId, permissions, local, checkedAt: new Date().toISOString()};
+      74 | };
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: HealthTimeoutError: Reminder health request timed out.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:36:43
+          at callTimer (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:744:24)
+          at doTickInner (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1312:29)
+          at doTick (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1393:20)
+          at Immediate.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1413:29)
+          at processImmediate (node:internal/timers:534:21)
+
+      69 |     if (isPermissionStatus(value)) permissions = value;
+      70 |   } catch (error) {
+    > 71 |     console.warn('[ReminderHealth] Android access unavailable:', error);
+         |             ^
+      72 |   }
+      73 |   return {userId, permissions, local, checkedAt: new Date().toISOString()};
+      74 | };
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: database locked
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:494:13)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at DatabaseService.mockConstructor [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at Object.executeSync [as read] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:179:12)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:496:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      206 |       };
+      207 |     } catch (error) {
+    > 208 |       console.warn('[ProfileStatistics] Statistics unavailable:', error);
+          |               ^
+      209 |       return {...UNAVAILABLE_STATISTICS};
+      210 |     }
+      211 |   },
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:208:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:496:35)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: Statistics owner required.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:177:26)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:504:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      206 |       };
+      207 |     } catch (error) {
+    > 208 |       console.warn('[ProfileStatistics] Statistics unavailable:', error);
+          |               ^
+      209 |       return {...UNAVAILABLE_STATISTICS};
+      210 |     }
+      211 |   },
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:208:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:504:35)
+
+    console.warn
+      [ProfileStatistics] Detailed statistics unavailable: Error: database locked
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:647:13)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at DatabaseService.mockConstructor [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at Object.executeSync [as readDetailed] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:225:12)
+          at Object.readDetailed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:649:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      392 |       return value;
+      393 |     } catch (error) {
+    > 394 |       console.warn(
+          |               ^
+      395 |         '[ProfileStatistics] Detailed statistics unavailable:',
+      396 |         error,
+      397 |       );
+
+      at Object.warn [as readDetailed] (src/storage/profileStatisticsStore.ts:394:15)
+      at Object.readDetailed (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:649:35)
+
+    console.warn
+      [ProfileStatistics] Detailed statistics unavailable: Error: Statistics owner required.
+          at Object.readDetailed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:218:26)
+          at Object.readDetailed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:655:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      392 |       return value;
+      393 |     } catch (error) {
+    > 394 |       console.warn(
+          |               ^
+      395 |         '[ProfileStatistics] Detailed statistics unavailable:',
+      396 |         error,
+      397 |       );
+
+      at Object.warn [as readDetailed] (src/storage/profileStatisticsStore.ts:394:15)
+      at Object.readDetailed (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:655:35)
+
+
+Test Suites: 2 failed, 3 passed, 5 total
+Tests:       14 failed, 53 passed, 67 total
+Snapshots:   0 total
+Time:        32.084 s
+Ran all test suites within paths "__tests__/ui/eventDurationPreference.test.tsx", "__tests__/ui/agyPort09ProfileHealth.test.tsx", "__tests__/storage/agyPort09HealthPreferencesStats.test.ts", "__tests__/ui/callDraftCardSync.test.tsx", "__tests__/ui/chatHistorySyncUi.test.tsx".

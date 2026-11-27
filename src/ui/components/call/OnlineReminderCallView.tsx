@@ -58,6 +58,8 @@ interface OnlineReminderCallViewProps {
   /** Sends a typed turn; resolves true when LAFINA received it. */
   onSendText: (text: string) => Promise<boolean>;
   onEnd: () => void;
+  /** Epoch ms when the call was answered (keeps timer continuous across fallback). */
+  answeredAtMs?: number | null;
 }
 
 const LIVE_PHASES: ReadonlySet<ConversationPhase> = new Set([
@@ -98,10 +100,17 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
   onStopResponse,
   onSendText,
   onEnd,
+  answeredAtMs,
 }) => {
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const startedAtRef = useRef(Date.now());
+  const initialStart = answeredAtMs ?? Date.now();
+  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
+    Math.max(0, Math.floor((Date.now() - initialStart) / 1000)),
+  );
+  const startedAtRef = useRef(initialStart);
+  if (answeredAtMs != null && answeredAtMs > 0) {
+    startedAtRef.current = answeredAtMs;
+  }
   const [showTyping, setShowTyping] = useState(false);
   const [typed, setTyped] = useState('');
   const [sending, setSending] = useState(false);
@@ -159,7 +168,7 @@ export const OnlineReminderCallView: React.FC<OnlineReminderCallViewProps> = ({
   })();
 
   const controlsEnabled = live && !pendingAction;
-  const endEnabled = !resolution && pendingAction !== 'end';
+  const endEnabled = !resolution && !pendingAction;
   const pillLabel =
     muted && live
       ? 'Muted'

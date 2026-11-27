@@ -4,19 +4,20 @@ import {generateId} from '../utils';
 import {GUEST_USER_ID} from '../constants';
 
 /**
- * AGY-PORT 09: explicit, opt-in defaults for new event drafts, kept in
- * `local_settings` on this device only (never synced, never uploaded).
+ * Device-local default event duration, using the legacy AGY-PORT 09 key so
+ * existing duration, account transfer and reset behavior remain compatible.
  *
- * Nothing is inferred from history: the student types the values, reviews
- * them and saves. An offer only changes a new draft after the student taps
- * Apply, and the student still saves the event. Saved events are never
- * rewritten. Every write is revision-checked and owner-checked.
+ * Runtime consumers use getDefaultDuration/saveDefaultDuration. Legacy
+ * review/offer APIs below are retained for compatibility and migration tests;
+ * their settings sheet has been removed. New preferences have no fixed start
+ * time or expiry, and do not rewrite saved events. Writes are owner checked.
  */
 
 export const EVENT_MEMORY_KEY = 'event_memory_v1';
 export const REVIEW_TTL_MS = 300000;
 export const MIN_DURATION_MINUTES = 15;
 export const MAX_DURATION_MINUTES = 480;
+export const DEFAULT_EVENT_DURATION_MINUTES = 60;
 export const EXPIRY_CHOICES = [0, 30, 90] as const;
 const MAX_REVIEWS = 16;
 const DAY_MS = 86400000;
@@ -152,8 +153,9 @@ const write = (
   change: (
     before: EventMemorySnapshot,
   ) => Pick<EventMemorySnapshot, 'enabled' | 'value'>,
-): EventMemorySnapshot =>
-  db.transactionSync(tx => {
+  executor?: DatabaseTransaction,
+): EventMemorySnapshot => {
+  const apply = (tx: DatabaseTransaction): EventMemorySnapshot => {
     assertActive(userId, tx);
     const before = read(userId, tx);
     if (before.revision !== expected) {
@@ -173,7 +175,9 @@ const write = (
       [userId, EVENT_MEMORY_KEY, JSON.stringify(next), now],
     );
     return next;
-  });
+  };
+  return executor ? apply(executor) : db.transactionSync(apply);
+};
 
 const describe = (value: EventMemoryValue): string => {
   const start = value.startTime ?? 'not saved';
@@ -188,6 +192,99 @@ const describe = (value: EventMemoryValue): string => {
 export const personalMemoryStore = {
   /** Explicit device-local preferences; never inferred from the student's content. */
   read,
+
+  /** Duration-only Schedule preference. Legacy start times are never reused.
+   * Migrate an enabled, unexpired duration once; disabled/expired values reset
+   * to 60 minutes. Keep the same owner-scoped key so reset/guest transfer work.
+   */
+  getDefaultDuration: (userId: string): number => {
+    try {
+      assertActive(userId);
+    } catch {
+      return DEFAULT_EVENT_DURATION_MINUTES;
+    }
+    let saved: EventMemorySnapshot;
+    try {
+      saved = read(userId);
+    } catch {
+      return DEFAULT_EVENT_DURATION_MINUTES;
+    }
+    if (!saved.value) return DEFAULT_EVENT_DURATION_MINUTES;
+    if (
+      saved.enabled &&
+      saved.value.startTime === null &&
+      saved.value.expiresAt === null &&
+      saved.value.durationMinutes !== null
+    )
+      return saved.value.durationMinutes;
+    const now = Date.now();
+    const active =
+      saved.enabled &&
+      now >= Date.parse(saved.updatedAt) &&
+      (saved.value.expiresAt === null ||
+        Date.parse(saved.value.expiresAt) > now);
+    const duration = active
+      ? saved.value.durationMinutes ?? DEFAULT_EVENT_DURATION_MINUTES
+      : DEFAULT_EVENT_DURATION_MINUTES;
+    if (
+      !saved.enabled ||
+      saved.value.startTime !== null ||
+      saved.value.expiresAt !== null ||
+      saved.value.durationMinutes === null
+    ) {
+      write(userId, saved.revision, () => ({
+        enabled: true,
+        value: {
+          startTime: null,
+          durationMinutes: duration,
+          expiresAt: null,
+        },
+      }));
+    }
+    return duration;
+  },
+
+  saveDefaultDuration: (
+    userId: string,
+    minutes: number,
+    executor?: DatabaseTransaction,
+  ): void => {
+    if (
+      !Number.isInteger(minutes) ||
+      minutes < MIN_DURATION_MINUTES ||
+      minutes > MAX_DURATION_MINUTES
+    )
+      throw new EventMemoryError(
+        'invalid',
+        `Enter a whole number from ${MIN_DURATION_MINUTES} to ${MAX_DURATION_MINUTES} minutes.`,
+      );
+    let before: EventMemorySnapshot;
+    try {
+      before = read(userId, executor);
+    } catch (error) {
+      if (
+        !(error instanceof EventMemoryError) ||
+        error.problem !== 'unreadable'
+      )
+        throw error;
+      // A damaged old defaults record must not block the normal settings Save.
+      personalMemoryStore.clearForDataReset(userId, executor);
+      before = read(userId, executor);
+    }
+    write(
+      userId,
+      before.revision,
+      () => ({
+        enabled: true,
+        value: {
+          startTime: null,
+          durationMinutes: minutes,
+          expiresAt: null,
+        },
+      }),
+      executor,
+    );
+  },
 
   describe,
 

@@ -21,6 +21,7 @@ import type {
   DraftCancelPayload,
   MultiActionBatchData,
   MultiActionItemData,
+  MultiPreparePayload,
 } from './types';
 import {
   isToolExecutionPermitted,
@@ -66,6 +67,7 @@ export const SUGGESTED_CONFIRM_REFUSAL =
   'Not saved: this card was suggested from the conversation, so the student must confirm it themselves. Ask them to say yes or tap Confirm.';
 import {addMinutesToTime} from '../nlu/actionExecutor';
 import {isWallTime} from '../../storage/eventTime';
+import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {
   parseGroupedRequest,
   createMultiActionBatch,
@@ -78,7 +80,7 @@ import {
   searchUstpSourcesForVoice,
   type UstpSearchCollection,
 } from '../../handbook';
-import {recordCallUstpSources} from './callUstpCitations';
+import {clearCallUstpSources, recordCallUstpSources} from './callUstpCitations';
 
 export interface ActionRecord {
   envelope: ActionEnvelope;
@@ -321,8 +323,10 @@ class ActionService {
               this.lastUstpQueryBySession.delete(oldest);
           }
           recordCallUstpSources(userId, result.sources);
-          options?.onReadResult?.(result);
+        } else {
+          clearCallUstpSources(userId);
         }
+        options?.onReadResult?.(result);
 
         const resultStr = formatVoiceUstpToolResult(result);
         envelope.phase = 'done';
@@ -803,21 +807,21 @@ class ActionService {
         envelope.phase = 'preparing';
         this.emit(actionId, toolDef.kind, 'preparing');
 
-        const rawPayload = envelope.payload as {
-          text?: string;
-          items?: Array<Record<string, unknown>>;
-        };
+        const rawPayload = envelope.payload as MultiPreparePayload;
         let items: MultiActionItemData[] = [];
         let truncated = false;
 
         if (Array.isArray(rawPayload.items) && rawPayload.items.length > 0) {
           items = rawPayload.items.map((it, idx) => {
-            const kind = (it.kind as MultiActionItemData['kind']) || 'task';
+            const kind = it.kind;
             const time = it.time ? String(it.time) : undefined;
             const endTime = it.endTime
               ? String(it.endTime)
               : kind === 'event' && time && isWallTime(time)
-              ? addMinutesToTime(time, 60)
+              ? addMinutesToTime(
+                  time,
+                  personalMemoryStore.getDefaultDuration(userId),
+                )
               : undefined;
             return {
               id: `item-${idx + 1}-${generateId().slice(0, 6)}`,
@@ -839,7 +843,11 @@ class ActionService {
             truncated = true;
           }
         } else if (rawPayload.text) {
-          const parsed = parseGroupedRequest(rawPayload.text);
+          const parsed = parseGroupedRequest(
+            rawPayload.text,
+            new Date(),
+            personalMemoryStore.getDefaultDuration(userId),
+          );
           items = parsed.items;
           truncated = parsed.truncated;
         }

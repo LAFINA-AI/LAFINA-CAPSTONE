@@ -233,7 +233,9 @@ const prepareJogging = async (
   call.message(tool('prepare_lafina_action', toolId, JOGGING));
   const card = await call.utils.findByTestId('voice-conversation-review-card');
   expect(card).toHaveTextContent(/7:00 PM/);
-  await waitFor(() => expect(toolResult(call.calls.sent, toolId)).not.toBeNull());
+  await waitFor(() =>
+    expect(toolResult(call.calls.sent, toolId)).not.toBeNull(),
+  );
   const id = latestPendingReview(call.userId, 'voice')?.operationId;
   expect(id).toBeTruthy();
   return id as string;
@@ -258,14 +260,129 @@ afterEach(() => {
 });
 
 describe('2026-11-26 Jogging Time bug: Card ID survives every turn and tool race', () => {
+  test('structured grouped reminders accept nullable optional fields and save both by voice without replay', async () => {
+    const call = await startCall('two-reminders-null-fields');
+    const request =
+      'remind me to go walking tomorrow at 7am and then on monday 8am to go jogging';
+    call.message(said(request));
+    call.message(
+      tool('prepare_multi_action', 'two-reminders-structured', {
+        text: request,
+        items: [
+          {
+            kind: 'reminder',
+            title: 'Go walking',
+            date: '2030-06-15',
+            time: '07:00',
+            endTime: null,
+            priority: null,
+            body: null,
+          },
+          {
+            kind: 'reminder',
+            title: 'Go jogging',
+            date: '2030-06-17',
+            time: '08:00',
+            endTime: null,
+            body: null,
+          },
+        ],
+      }),
+    );
+    await waitFor(() =>
+      expect(toolResult(call.calls.sent, 'two-reminders-structured')).toMatch(
+        /grouped review card with 2 items/i,
+      ),
+    );
+    expect(
+      db.executeSync('SELECT id FROM reminders WHERE user_id = ?', [
+        call.userId,
+      ]).rows,
+    ).toHaveLength(0);
+    call.message(said('save both'));
+    await waitFor(() =>
+      expect(
+        db.executeSync('SELECT id FROM reminders WHERE user_id = ?', [
+          call.userId,
+        ]).rows,
+      ).toHaveLength(2),
+    );
+    await waitFor(() =>
+      expect(
+        contexts(call.calls.sent).some(c => /All 2 items saved/.test(c)),
+      ).toBe(true),
+    );
+    call.message(said('save both'));
+    await waitFor(() =>
+      expect(
+        contexts(call.calls.sent).some(c => /already saved/i.test(c)),
+      ).toBe(true),
+    );
+    const rows = db.executeSync(
+      'SELECT task, trigger_at FROM reminders WHERE user_id = ? ORDER BY task',
+      [call.userId],
+    ).rows;
+    expect(rows.map(r => r.task)).toEqual(['Go jogging', 'Go walking']);
+    expect(rows.map(r => new Date(r.trigger_at as string).getHours())).toEqual([
+      8, 7,
+    ]);
+  });
+
+  test('reported walking/jogging request routes an older single tool to a two-reminder card and saves only after confirmation', async () => {
+    const call = await startCall('two-reminders-shared-verb');
+    const request =
+      'remind me to go walking tomorrow at 7am and then on monday 8am to go jogging';
+    call.message(said(request));
+    call.message(
+      tool('prepare_lafina_action', 'shared-verb-prepare', {
+        request,
+        action: 'create_reminder',
+        title: 'Go walking',
+        time: '07:00',
+      }),
+    );
+    await waitFor(() =>
+      expect(toolResult(call.calls.sent, 'shared-verb-prepare')).toMatch(
+        /grouped review card with 2 items/i,
+      ),
+    );
+    expect(call.utils.getByTestId('multi-item-title-input-0').props.value).toBe(
+      'Go walking',
+    );
+    expect(call.utils.getByTestId('multi-item-title-input-1').props.value).toBe(
+      'Go jogging',
+    );
+    expect(
+      db.executeSync('SELECT id FROM reminders WHERE user_id = ?', [
+        call.userId,
+      ]).rows,
+    ).toHaveLength(0);
+    fireEvent.press(call.utils.getByTestId('multi-action-confirm-all'));
+    await waitFor(() =>
+      expect(
+        db.executeSync('SELECT task FROM reminders WHERE user_id = ?', [
+          call.userId,
+        ]).rows,
+      ).toHaveLength(2),
+    );
+    expect(
+      db
+        .executeSync(
+          'SELECT task FROM reminders WHERE user_id = ? ORDER BY task',
+          [call.userId],
+        )
+        .rows.map(r => r.task),
+    ).toEqual(['Go jogging', 'Go walking']);
+  });
+
   test('prepare_lafina_action immediately sends a contextual_update with the Card ID for subsequent turns', async () => {
     const call = await startCall('ctx-on-prepare');
     const cardId = await prepareJogging(call);
 
     await waitFor(() =>
       expect(
-        contexts(call.calls.sent).some(
-          c => c.includes(`Card ID: ${cardId}; revision: 1`),
+        contexts(call.calls.sent).some(c =>
+          c.includes(`Card ID: ${cardId}; revision: 1`),
         ),
       ).toBe(true),
     );
@@ -503,7 +620,9 @@ describe('2026-11-26 Jogging Time bug: Card ID survives every turn and tool race
     await waitFor(() =>
       expect(
         contexts(call.calls.sent).some(
-          c => c.includes('Active memory card on screen') && c.includes('Card ID: '),
+          c =>
+            c.includes('Active memory card on screen') &&
+            c.includes('Card ID: '),
         ),
       ).toBe(true),
     );

@@ -371,13 +371,18 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> =
           provider = createCallSpeechProvider(userId, {
             getVoiceId: () => voice.id,
             isOnlineMode: () =>
-              localSettingsStore.get(userId, 'chat.onlineMode') === 'true',
+              localSettingsStore.get(userId, 'chat.onlineMode', null) !==
+              'false',
           });
           activeProvider.current = provider;
 
           await provider.speakText(PREVIEW_SAMPLE_TEXT);
         } catch {
-          setVoiceLoadError('Voice preview could not play. Please try again.');
+          if (activeProvider.current === provider) {
+            setVoiceLoadError(
+              'Voice preview could not play. Please try again.',
+            );
+          }
         } finally {
           if (activeProvider.current === provider) {
             setPreviewingVoiceId(null);

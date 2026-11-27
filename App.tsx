@@ -2,8 +2,10 @@ import {recoverNativeCall} from './src/scheduler/nativeCallRecovery';
 import {callLifecycle, sameCall} from './src/scheduler/callLifecycle';
 import {
   finishNativeIncomingCall,
+  silenceNativeIncomingCall,
   consumePendingNativeCalls,
 } from './src/scheduler/reminderAlarm';
+import {deliveryStore} from './src/storage/deliveryStore';
 import {cancelFocusTimer} from './src/scheduler/focusTimer';
 import {preparePerformanceFixture} from './src/utils/performanceFixture';
 import {beginTabSwitch, finishTabSwitch} from './src/utils/tabPerformance';
@@ -65,6 +67,7 @@ import {
   reconcileReminderDelivery,
   admitReminderCall,
   applyNotificationAction,
+  autoSnoozeReminderAction,
   disconnectCall,
   isNotificationAction,
   isNotifyOnlyReminder,
@@ -230,6 +233,19 @@ const AppMeetingsProvider = React.memo(function AppMeetingsProviderView({
   );
 });
 
+const prioritizeCallPayloads = <T extends {action?: NativeCallAction}>(
+  payloads: readonly T[],
+): T[] => {
+  const rank = (action?: NativeCallAction): number =>
+    action === 'answer' ||
+    action === 'decline' ||
+    action === 'acknowledge' ||
+    action === 'snooze'
+      ? 0
+      : 1;
+  return [...payloads].sort((a, b) => rank(a.action) - rank(b.action));
+};
+
 function AppContent({
   userId,
   setUserId,
@@ -359,27 +375,11 @@ function AppContent({
   // One admission path for every call source: owner + captured identity fence first.
   const presentCall = useCallback(
     (incoming: CallRequest): boolean => {
-      if (!userId || quickChatPresence.isOpen()) return false;
-      if (
-        isOnboarding &&
-        !isOnboardingReplay &&
-        incoming.action !== 'acknowledge' &&
-        incoming.action !== 'snooze' &&
-        incoming.action !== 'decline'
-      ) {
-        if (!incoming.ownerId || incoming.ownerId === userId) {
-          callLifecycle.put(userId, {
-            ...incoming,
-            ownerId: userId,
-            action: 'call',
-          });
-        }
-        return false;
-      }
+      if (!userId) return false;
+      const headlessNotification = isNotificationAction(incoming.action);
+      if (quickChatPresence.isOpen() && !headlessNotification) return false;
       const request = recoverNativeCall(incoming, userId);
       if (!request) return false;
-      // Startup events are retained natively until account hydration finishes.
-      if (!userId) return false;
       const admission = admitReminderCall(request, userId);
       if (!admission.admitted || !userId) return false;
       // "Notify only" (audit finding 16): the notification's own buttons are
@@ -393,10 +393,25 @@ function AppContent({
         );
         return false;
       }
+      const identity: CallRequest = {
+        reminderId: admission.reminder.id,
+        ownerId: userId,
+        generation: admission.generation,
+        action: admission.action,
+      };
       if (
         admission.action === 'call' &&
         isNotifyOnlyReminder(admission.reminder.id, userId, Date.now())
       ) {
+        void silenceNativeIncomingCall(
+          admission.reminder.id,
+          userId,
+          admission.generation,
+        ).catch(() => undefined);
+        if (activeCallRequest.current || (isOnboarding && !isOnboardingReplay)) {
+          callLifecycle.put(userId, {...identity, action: 'call'});
+          return false;
+        }
         showNotifyOnlyReminderAlert(
           admission.reminder.id,
           userId,
@@ -405,27 +420,60 @@ function AppContent({
         );
         return false;
       }
-      const identity: CallRequest = {
-        reminderId: admission.reminder.id,
-        ownerId: userId,
-        generation: admission.generation,
-        action: admission.action,
-      };
+      // A Decline tapped on a notification while onboarding or while another
+      // call is active settles that reminder immediately instead of re-ringing.
+      if (
+        admission.action === 'decline' &&
+        ((isOnboarding && !isOnboardingReplay) ||
+          (activeCallRequest.current &&
+            !sameCall(activeCallRequest.current, identity)))
+      ) {
+        callLifecycle.remove(userId, identity);
+        void autoSnoozeReminderAction(
+          admission.reminder.id,
+          userId,
+          admission.generation,
+        )
+          .catch(() => undefined)
+          .finally(() => {
+            void finishNativeIncomingCall(
+              admission.reminder.id,
+              userId,
+              admission.generation,
+            ).catch(() => undefined);
+          });
+        return false;
+      }
       if (isOnboarding && !isOnboardingReplay) {
         callLifecycle.put(userId, {...identity, action: 'call'});
+        void finishNativeIncomingCall(
+          identity.reminderId,
+          userId,
+          identity.generation,
+          true,
+        ).catch(() => undefined);
         return false;
       }
       if (activeCallRequest.current) {
-        if (!sameCall(activeCallRequest.current, identity)) {
-          callLifecycle.put(userId, {...identity, action: 'call'});
-          // Silence competing notification audio without deleting its durable request.
-          void finishNativeIncomingCall(
-            identity.reminderId,
-            userId,
-            identity.generation,
-            true,
-          ).catch(() => undefined);
+        if (sameCall(activeCallRequest.current, identity)) {
+          if (
+            activeCallRequest.current.action === 'call' &&
+            (identity.action === 'answer' || identity.action === 'decline')
+          ) {
+            activeCallRequest.current = identity;
+            setCallAction(identity.action);
+            return true;
+          }
+          return false;
         }
+        callLifecycle.put(userId, {...identity, action: 'call'});
+        // Silence competing notification audio without deleting its durable request.
+        void finishNativeIncomingCall(
+          identity.reminderId,
+          userId,
+          identity.generation,
+          true,
+        ).catch(() => undefined);
         return false;
       }
       callLifecycle.put(userId, identity, 'ringing');
@@ -462,7 +510,10 @@ function AppContent({
     chatDraftStore.retainOnly(userId);
     docGenDraftStore.retainOnly(userId);
 
-    if (callOwnerRef.current && callOwnerRef.current !== userId) {
+    if (
+      (callOwnerRef.current && callOwnerRef.current !== userId) ||
+      (previous && previous !== userId)
+    ) {
       activeCallRequest.current = null;
       callOwnerRef.current = null;
       setCallVisible(false);
@@ -564,7 +615,9 @@ function AppContent({
     const runStartup = async () => {
       if (!quickChatPresence.isOpen()) {
         try {
-          const payloads = await consumePendingNativeCalls();
+          const payloads = prioritizeCallPayloads(
+            await consumePendingNativeCalls(),
+          );
           if (cancelled) return;
           for (const payload of payloads) {
             if (presentCallRef.current(payload)) setIsLoading(false);
@@ -584,10 +637,16 @@ function AppContent({
     };
   }, [userId]);
 
-  // Verify reminder permissions once onboarding and the walkthrough are done.
+  // Verify reminder permissions once onboarding, walkthrough, and active calls are done.
   useEffect(() => {
     if (!userId) return undefined;
-    if (isOnboarding || tourOpen || productTourStore.isPending(userId)) {
+    if (
+      isOnboarding ||
+      tourOpen ||
+      callVisible ||
+      callLafinaVisible ||
+      productTourStore.isPending(userId)
+    ) {
       return undefined;
     }
     let cancelled = false;
@@ -627,7 +686,7 @@ function AppContent({
     return () => {
       cancelled = true;
     };
-  }, [userId, isOnboarding, tourOpen]);
+  }, [userId, isOnboarding, tourOpen, callVisible, callLafinaVisible]);
 
   // Recover durable queue entries after a close/restart; never auto-answer recovery.
   useEffect(() => {
@@ -763,6 +822,23 @@ function AppContent({
     const unsubscribeRemoteChanges = syncWorker.onRemoteChanges(
       changedUserId => {
         if (changedUserId === userId) {
+          const current = activeCallRequest.current;
+          if (
+            current &&
+            current.ownerId === userId &&
+            !deliveryStore.checkFence(
+              current.reminderId,
+              userId,
+              current.generation,
+            ).ok
+          ) {
+            callLifecycle.remove(userId, current);
+            activeCallRequest.current = null;
+            callOwnerRef.current = null;
+            setCallVisible(false);
+            setCallGeneration(null);
+            disconnectCall();
+          }
           void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
         }
       },
@@ -789,7 +865,9 @@ function AppContent({
       const quickChatInFront = quickChatPresence.isOpen();
       void (async () => {
         if (!quickChatInFront) {
-          const payloads = await consumePendingNativeCalls().catch(() => []);
+          const payloads = prioritizeCallPayloads(
+            await consumePendingNativeCalls().catch(() => []),
+          );
           if (disposed || AppState.currentState !== 'active') return;
           payloads.forEach(p => presentCallRef.current(p));
         }
@@ -866,6 +944,16 @@ function AppContent({
 
   const resetSessionUi = useCallback(() => {
     void cancelFocusTimer();
+    const activeCall = activeCallRequest.current;
+    if (activeCall) {
+      void finishNativeIncomingCall(
+        activeCall.reminderId,
+        activeCall.ownerId ?? undefined,
+        activeCall.generation,
+        true,
+      ).catch(() => undefined);
+    }
+    disconnectCall();
     activeCallRequest.current = null;
     callOwnerRef.current = null;
     setCallVisible(false);
@@ -1027,7 +1115,10 @@ function AppContent({
     setActiveTab('chat');
   }, [userId]);
 
-  const openCallLafina = useCallback(() => setCallLafinaVisible(true), []);
+  const openCallLafina = useCallback(() => {
+    setCallLafinaMinimized(false);
+    setCallLafinaVisible(true);
+  }, []);
   const closeCallLafina = useCallback(() => {
     setCallLafinaVisible(false);
     setCallLafinaMinimized(false);
@@ -1378,7 +1469,7 @@ function AppContent({
       {callLafinaMinimized && (
         <LiveMiniCallBar
           bottomOffset={
-            (isKeyboardVisible
+            (isKeyboardVisible || (activeTab === 'notes' && skillsPageOpen)
               ? Math.max(insets.bottom, 12)
               : Math.max(insets.bottom, 12) + 14 + Layout.navbarHeight) +
             Spacing.sm
@@ -1435,7 +1526,12 @@ function AppContent({
 
       {/* Reminder Permissions Educational / Onboarding Modal */}
       <ReminderPermissionModal
-        visible={permissionModalVisible}
+        visible={
+          permissionModalVisible &&
+          !callVisible &&
+          !callLafinaVisible &&
+          !tourOpen
+        }
         status={permissionStatus}
         onClose={() => setPermissionModalVisible(false)}
         onRefreshStatus={() => {

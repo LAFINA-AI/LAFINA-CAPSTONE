@@ -62,11 +62,14 @@ export const defaultOfflineCallDeps = (
   },
   voice: {
     ready: initTts,
-    speak: text => startOwnedSpeech(text, 'offline-call'),
+    speak: (text, admit) => startOwnedSpeech(text, 'offline-call', admit),
     stop: stopOwnedSpeech,
   },
   // Offline turns go to this account's general Chat, like an online call's.
   persistence: {
+    onReset: () => {
+      clearCallUstpSources(userId);
+    },
     userTurn: text => {
       clearCallUstpSources(userId);
       chatStore.addGeneralMessage(userId, 'user', text);

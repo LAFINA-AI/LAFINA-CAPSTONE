@@ -1,0 +1,25 @@
+
+> lafina-capstone@1.0.9 test
+> jest --runInBand --runTestsByPath __tests__/ui/memoryGrowthUiAndContinuity.test.tsx
+
+PASS __tests__/ui/memoryGrowthUiAndContinuity.test.tsx (11.378 s)
+  Explicit memory safety, Temporary/Quick Chat, and server switch reset
+    √ studyPreference parses "remember that my preferred study time is at night" while explicitMemory rejects scheduling traps (18 ms)
+    √ Temporary Chat refuses silent memory saves and honours "Forget everything"; Quick Chat saves memory without chat rows (34 ms)
+    √ backendSelection.select resets cached chat memory feature support (8 ms)
+  Memory-driven smart scheduling defaults and ML channel recommendation
+    √ events ask for missing times and use duration while study blocks suggest a free peak window (24 ms)
+    √ high-confidence ML notification preference sets default reminder delivery while explicit voice flag wins (10 ms)
+  Cross-surface personalization: Morning Briefing, Skills, and Voice
+    √ morning briefing greets student by preferred name, nudges overdue work, and highlights study peak (9 ms)
+    √ studyAi, materialQa, and documentPrompt honor explicit reply preferences safely within char bounds (25 ms)
+    √ actionService handles natural save_lafina_memory phrasing and voice persistence triggers post-turn extraction (6 ms)
+  UI components: ChatMemorySettings growth card + inline edit/pin + Preferences bidirectional sync
+    √ ChatMemorySettings updates live on CHAT_MEMORY_CHANGED_EVENT, edits, pins, filters, and reconciles Forget All (2325 ms)
+    √ PreferencesSettingsScreen saves identity, tone, detail, goal, and study peaks to both stores (468 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        11.766 s
+Ran all test suites within paths "__tests__/ui/memoryGrowthUiAndContinuity.test.tsx".

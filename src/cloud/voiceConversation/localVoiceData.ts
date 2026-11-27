@@ -219,6 +219,9 @@ export const buildStudentVoiceContext = (
 ): string => {
   if (!userId) return '';
   const sections: string[] = [];
+  sections.push(
+    'For new events, omit endTime and durationMinutes when no length is specified; the app applies the Schedule duration preference. Ask for a missing start time, or use find_free_time to suggest an available slot for confirmation. Never invent a fixed start time.',
+  );
 
   // 1. Identity & Persona preferences
   try {

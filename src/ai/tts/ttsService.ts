@@ -82,6 +82,7 @@ interface ActiveSpeech {
 }
 let activeSpeech: ActiveSpeech | null = null;
 let speechSequence = 0;
+let stopEpoch = 0;
 
 const getNativeAudioPlayer = (): NativeAudioPlayerModule | null => {
   const mod = (NativeModules.LafinaAudioPlayer ?? NativeModules.LafinaTTS) as
@@ -456,6 +457,7 @@ export const playSpeechFile = async (filePath: string): Promise<boolean> => {
  * This is the existing app-wide stop (calls, voice sheet, chat).
  */
 export const stopSpeechPlayback = async (): Promise<void> => {
+  stopEpoch += 1;
   activeSpeech?.stop();
   try {
     await bounded(Tts.stop() as Promise<unknown>, TTS_SETTING_TIMEOUT_MS, 'Stop');
@@ -660,9 +662,13 @@ export const speakTextWithTts = async (text: string): Promise<void> => {
     return;
   }
 
+  const epochAtStart = stopEpoch;
   const ready = await initTts();
   if (!ready) {
     throw new Error('Offline TTS engine is unavailable on this device.');
+  }
+  if (stopEpoch !== epochAtStart) {
+    return;
   }
 
   await speakOwned(trimmed, 'app');

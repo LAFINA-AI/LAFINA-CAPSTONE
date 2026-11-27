@@ -141,9 +141,18 @@ const allowLocalTestServer = (): boolean => {
   return typeof override === 'string' && override.trim().length > 0;
 };
 
-const createVoicePersistence = (userId: string) => {
+const createVoicePersistence = (
+  userId: string,
+  pinnedSessionRef?: {current: string | null},
+) => {
   let lastUserTurn: {text: string; revision: string} | null = null;
+  const sessionRef = pinnedSessionRef ?? {current: null};
   return {
+    onReset: () => {
+      lastUserTurn = null;
+      sessionRef.current = null;
+      clearCallUstpSources(userId);
+    },
     // Saved to this account's general Chat only while it is still the signed-in one.
     userTurn: (text: string) => {
       if (!isSignedInOwner(userId)) return;
@@ -152,15 +161,33 @@ const createVoicePersistence = (userId: string) => {
         text,
         revision: chatMemoryStore.revision(userId),
       };
-      chatStore.addGeneralMessage(userId, 'user', text);
+      const saved = chatStore.addGeneralMessage(
+        userId,
+        'user',
+        text,
+        null,
+        sessionRef.current,
+      );
+      if (saved?.sessionId && !sessionRef.current) {
+        sessionRef.current = saved.sessionId;
+      }
     },
     assistantTurn: (text: string, heard: 'complete' | 'interrupted') => {
       if (!isSignedInOwner(userId)) return;
       const citation = consumeCallUstpCitation(userId, text);
-      const saved = chatStore.addGeneralMessage(userId, 'assistant', text, {
-        voiceInterrupted: heard === 'interrupted',
-        ...(citation ? citation : {}),
-      });
+      const saved = chatStore.addGeneralMessage(
+        userId,
+        'assistant',
+        text,
+        {
+          voiceInterrupted: heard === 'interrupted',
+          ...(citation ? citation : {}),
+        },
+        sessionRef.current,
+      );
+      if (saved?.sessionId && !sessionRef.current) {
+        sessionRef.current = saved.sessionId;
+      }
       const captured = lastUserTurn;
       lastUserTurn = null;
       if (
@@ -193,38 +220,46 @@ const createVoicePersistence = (userId: string) => {
 export const defaultVoiceConversationDeps = (
   userId: string,
   extra: Pick<VoiceConversationDeps, 'onFinalUserText'> = {},
-): VoiceConversationDeps => ({
-  gates: {
-    isForeground: () => AppState.currentState === 'active',
-    isGuest: () => isGuestAccount(userId),
-    isSignedInOwner: () => isSignedInOwner(userId),
-    // Matches callMode.ts: only an explicit Offline Mode ('false') blocks online calls.
-    isOnlineMode: () =>
-      localSettingsStore.get(userId, ONLINE_MODE_KEY, null) !== 'false',
-    isOnline: () => cloudClient.isOnline(),
-    hasConsent: () => hasOnlineCallConsent(userId),
-    ensureMicPermission: () => ensureMicrophonePermission(),
-  },
-  getVoice: () => onlineVoiceSettingsStore.read(userId),
-  // Server-side handbook search only with a confirmed USTP COR setup.
-  useHandbook: () =>
-    handbookPreference.read(userId) && isUstpSchoolEnabled(userId),
-  hasLocalHandbook: () => localHandbookService.isPopulated(),
-  // The chat's recent conversation first: the context is cut from the end.
-  getStudentContext: () =>
-    [buildChatRecap(userId), buildStudentVoiceContext(userId)]
-      .filter(Boolean)
-      .join('\n\n'),
-  // ADR-046: a network or server drop reconnects the same call.
-  autoReconnect: true,
-  getOpeningLine: () => callGreetingFor(userId, 'online'),
-  api: directProviderTestEnabled() ? directTestVoiceApi : voiceConversationApi,
-  transport: nativeVoiceTransport,
-  allowLocalTestServer: allowLocalTestServer(),
-  persistence: createVoicePersistence(userId),
-  log: line => console.log(line),
-  ...extra,
-});
+): VoiceConversationDeps => {
+  const pinnedSessionRef: {current: string | null} = {current: null};
+  return {
+    gates: {
+      isForeground: () => AppState.currentState === 'active',
+      isGuest: () => isGuestAccount(userId),
+      isSignedInOwner: () => isSignedInOwner(userId),
+      // Matches callMode.ts: only an explicit Offline Mode ('false') blocks online calls.
+      isOnlineMode: () =>
+        localSettingsStore.get(userId, ONLINE_MODE_KEY, null) !== 'false',
+      isOnline: () => cloudClient.isOnline(),
+      hasConsent: () => hasOnlineCallConsent(userId),
+      ensureMicPermission: () => ensureMicrophonePermission(),
+    },
+    getVoice: () => onlineVoiceSettingsStore.read(userId),
+    // Server-side handbook search only with a confirmed USTP COR setup.
+    useHandbook: () =>
+      handbookPreference.read(userId) && isUstpSchoolEnabled(userId),
+    hasLocalHandbook: () => localHandbookService.isPopulated(),
+    // The chat's recent conversation first: the context is cut from the end.
+    getStudentContext: () =>
+      [
+        buildChatRecap(userId, {sessionId: pinnedSessionRef.current}),
+        buildStudentVoiceContext(userId),
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    // ADR-046: a network or server drop reconnects the same call.
+    autoReconnect: true,
+    getOpeningLine: () => callGreetingFor(userId, 'online'),
+    api: directProviderTestEnabled()
+      ? directTestVoiceApi
+      : voiceConversationApi,
+    transport: nativeVoiceTransport,
+    allowLocalTestServer: allowLocalTestServer(),
+    persistence: createVoicePersistence(userId, pinnedSessionRef),
+    log: line => console.log(line),
+    ...extra,
+  };
+};
 
 // One conversation app-wide, so a reminder call or sign-out can end it.
 let active: ConversationController | null = null;
@@ -301,6 +336,11 @@ export const registerVoiceConversation = (
       notifyVoiceOwner();
     }
   };
+};
+
+/** Cancels a queued start/resume waiting on a previous call's release. */
+export const cancelPendingVoiceConversationStart = (): void => {
+  acquisition += 1;
 };
 
 /** Ends a running conversation for a system reason (call, sign-out). No restart. */

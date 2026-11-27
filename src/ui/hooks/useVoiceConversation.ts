@@ -5,6 +5,7 @@ import {AppState} from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import {
   VoiceConversationController,
+  cancelPendingVoiceConversationStart,
   defaultVoiceConversationDeps,
   NETWORK_DROP_REASON,
   registerVoiceConversation,
@@ -125,16 +126,23 @@ export const useVoiceConversation = (
   const suppressRef = useRef(options.suppressAgentResponse);
   suppressRef.current = options.suppressAgentResponse;
   const appOwnedAudio = useRef(options.appOwnedAudio === true);
+  appOwnedAudio.current = options.appOwnedAudio === true;
   const toolRef = useRef(options.onClientTool);
   toolRef.current = options.onClientTool;
   const depsFactory = useRef(options.deps ?? defaultVoiceConversationDeps);
+  depsFactory.current = options.deps ?? defaultVoiceConversationDeps;
   const extraContext = useRef(options.extraContext?.trim() ?? '');
+  extraContext.current = options.extraContext?.trim() ?? '';
   const quietOpening = useRef(options.quietOpening === true);
+  quietOpening.current = options.quietOpening === true;
   const beforeAudioRef = useRef(options.beforeAudio);
   beforeAudioRef.current = options.beforeAudio;
   const hasBeforeAudio = useRef(Boolean(options.beforeAudio));
+  hasBeforeAudio.current = Boolean(options.beforeAudio);
   const callStateRef = useRef(options.getCallState);
   callStateRef.current = options.getCallState;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   useEffect(() => {
     const deps = depsFactory.current(userId);
@@ -243,15 +251,26 @@ export const useVoiceConversation = (
       controllerRef.current?.setPreferences(preferences),
     start: () => {
       const controller = controllerRef.current;
-      if (controller) void startVoiceConversation(controller);
+      if (controller) {
+        controller.setPreferences(getCallLafinaSettings(userIdRef.current));
+        void startVoiceConversation(controller);
+      }
     },
     resume: () => {
       const controller = controllerRef.current;
-      if (controller) void resumeVoiceConversation(controller);
+      if (controller) {
+        controller.setPreferences(getCallLafinaSettings(userIdRef.current));
+        void resumeVoiceConversation(controller);
+      }
     },
-    end: () => controllerRef.current?.end(),
-    endAndWait: async () =>
-      (await controllerRef.current?.endAndWait()) ?? false,
+    end: () => {
+      cancelPendingVoiceConversationStart();
+      controllerRef.current?.end();
+    },
+    endAndWait: async () => {
+      cancelPendingVoiceConversationStart();
+      return (await controllerRef.current?.endAndWait()) ?? false;
+    },
     setMuted: muted => {
       void controllerRef.current?.setMuted(muted);
     },

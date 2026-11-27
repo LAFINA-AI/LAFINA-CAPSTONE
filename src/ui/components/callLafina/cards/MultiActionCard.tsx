@@ -390,14 +390,16 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
                 </Text>
               )}
 
-              {/* Per-item controls: Retry if failed, Remove if draft */}
+              {/* Per-item controls: Retry if failed, Remove if draft or failed */}
               <View style={styles.itemActionsRow}>
                 {item.status === 'failed' && (
                   <TouchableOpacity
                     style={[
                       styles.itemButton,
                       {backgroundColor: colors.primary},
+                      busy && {opacity: 0.5},
                     ]}
+                    disabled={busy}
                     onPress={() => onRetryItem(item.id)}
                     accessibilityRole="button"
                     accessibilityLabel={`Retry item ${index + 1}`}
@@ -408,7 +410,7 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {item.status === 'draft' && (
+                {(item.status === 'draft' || item.status === 'failed') && (
                   <TouchableOpacity
                     style={[
                       styles.itemButtonSecondary,
@@ -460,7 +462,9 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
           </TouchableOpacity>
         )}
 
-        {(batch.status === 'draft' || batch.status === 'partial') && (
+        {(batch.status === 'draft' ||
+          batch.status === 'partial' ||
+          batch.status === 'failed') && (
           <TouchableOpacity
             style={[styles.cancelButton, themed.secondaryButton]}
             disabled={busy}

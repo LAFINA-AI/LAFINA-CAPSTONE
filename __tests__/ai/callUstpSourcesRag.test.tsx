@@ -13,6 +13,7 @@ import {isToolSupported} from '../../src/ai/voiceActions/actionRegistry';
 import {
   clearCallUstpSources,
   consumeCallUstpCitation,
+  recordCallUstpSources,
 } from '../../src/ai/voiceActions/callUstpCitations';
 import {getToolWorkingPhrase} from '../../src/cloud/voiceConversation/personaPolicy';
 import {VoiceConversationController} from '../../src/cloud/voiceConversation/controller';
@@ -21,7 +22,10 @@ import {
   DIRECT_DATA_CONSENT_KEY,
   VOICE_CONSENT_KEY,
 } from '../../src/cloud/voiceConversation';
-import {handbookPreference, onlineChatSkill} from '../../src/skills/onlineChatSkill';
+import {
+  handbookPreference,
+  onlineChatSkill,
+} from '../../src/skills/onlineChatSkill';
 import {runChatAgent} from '../../src/ai/chatAgent';
 import {CallReadResults} from '../../src/ui/components/callLafina/CallReadResults';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
@@ -142,9 +146,7 @@ describe('Call LAFINA on-device USTP Sources RAG (ADR-047)', () => {
       {referenceDate: refDate},
     );
     expect(midyear.status).toBe('ok');
-    expect(
-      midyear.passages.some(p => p.caveats.length > 0),
-    ).toBe(true);
+    expect(midyear.passages.some(p => p.caveats.length > 0)).toBe(true);
 
     const wrongYear = await searchUstpSourcesForVoice(
       USER_ID,
@@ -346,6 +348,35 @@ describe('Call LAFINA on-device USTP Sources RAG (ADR-047)', () => {
     expect(onSeePassages).toHaveBeenCalledWith(
       expect.arrayContaining([res.passages[0].passageId]),
     );
+  });
+
+  test('a disabled tool lookup replaces a previous source card with an honest status', async () => {
+    const previous = await searchUstpSourcesForVoice(
+      USER_ID,
+      'is it ok to wear tattered jeans in ustp?',
+    );
+    expect(previous.sources.length).toBeGreaterThan(0);
+    recordCallUstpSources(USER_ID, previous.sources);
+    handbookPreference.write(USER_ID, false);
+    const onReadResult = jest.fn();
+    await actionService.executeTool(
+      USER_ID,
+      'disabled-ustp-card-session',
+      'search_ustp_sources',
+      {query: 'What is the USTP attendance rule?'},
+      () => true,
+      {onReadResult},
+    );
+    expect(onReadResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'disabled',
+        passages: [],
+        message: expect.stringMatching(/turned off/i),
+      }),
+    );
+    expect(
+      consumeCallUstpCitation(USER_ID, 'Please check your settings.'),
+    ).toBeNull();
   });
 
   test('ChatAgent exposes and executes search_ustp_sources with citations', async () => {

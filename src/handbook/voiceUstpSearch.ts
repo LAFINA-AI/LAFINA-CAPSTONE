@@ -90,6 +90,21 @@ export async function searchUstpSourcesForVoice(
 ): Promise<VoiceUstpSearchResult> {
   const query = rawQuery.trim().slice(0, 200);
   const referenceDate = options.referenceDate ?? new Date();
+  if (!/[0-9a-z]/i.test(query)) {
+    const emptyReply =
+      'I did not hear a USTP question to look up. Try asking about a handbook rule, office, or campus date.';
+    return {
+      ustpSearch: true,
+      status: 'no_evidence',
+      query,
+      passages: [],
+      sources: [],
+      message: emptyReply,
+      guidance: NO_EVIDENCE_GUIDANCE,
+      spokenReply: emptyReply,
+      dataIsUntrusted: true,
+    };
+  }
 
   const eligibility = getUstpEligibility(userId);
   if (!eligibility.eligible) {

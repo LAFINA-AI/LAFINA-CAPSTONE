@@ -108,7 +108,7 @@ const PLANNER_OBJECT =
 
 /** Future date/time anchors indicate a planner scheduling request rather than an immediate skill launch. */
 const HAS_FUTURE_SCHEDULE_TIME =
-  /\b(?:tomorrow|tonight|next\s+(?:week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|on\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|by\s+(?:tomorrow|tonight|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/;
+  /\b(?:tomorrow|tonight|next\s+(?:week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|on\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|by\s+(?:tomorrow|tonight|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm|o'?clock)?)\b/;
 
 /** Study-material nouns that clearly target the Summarizer tool rather than inline Q&A. */
 const SUMMARIZER_TARGET =

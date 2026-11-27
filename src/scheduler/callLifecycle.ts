@@ -4,11 +4,26 @@ import type {CallRequest} from './callAdmission';
 import {remindersStore} from '../storage/remindersStore';
 import {deliveryStore} from '../storage/deliveryStore';
 import {createNextRecurringReminder} from './reminderActions';
-import {scheduleReminderAlarm} from './reminderAlarm';
+import {
+  cancelReminderAlarm,
+  finishNativeIncomingCall,
+  scheduleReminderAlarm,
+} from './reminderAlarm';
+import {alertPreferencesStore} from '../storage/alertPreferencesStore';
 
 const KEY = 'reminder.callQueue.v1';
 export const ANSWERED_CALL_LIMIT_MS = 10 * 60_000;
 export const QUEUED_CALL_LIMIT_MS = 15 * 60_000;
+
+const ringingLeaseMs = (owner: string): number => {
+  try {
+    const sec = alertPreferencesStore.read(owner).callRingTimeoutSec;
+    if (Number.isFinite(sec) && sec > 0) return sec * 1000 + 5_000;
+  } catch {
+    // Fall back to default lease if preferences cannot be read.
+  }
+  return 45_000;
+};
 export interface CallLease {
   request: CallRequest;
   receivedAt: number;
@@ -59,7 +74,9 @@ export const callLifecycle = {
           existing.state = state;
           existing.deadline =
             Date.now() +
-            (state === 'answered' ? ANSWERED_CALL_LIMIT_MS : 45_000);
+            (state === 'answered'
+              ? ANSWERED_CALL_LIMIT_MS
+              : ringingLeaseMs(owner));
         }
       } else {
         entries.push({
@@ -76,7 +93,7 @@ export const callLifecycle = {
               ? QUEUED_CALL_LIMIT_MS
               : state === 'answered'
               ? ANSWERED_CALL_LIMIT_MS
-              : 45_000),
+              : ringingLeaseMs(owner)),
           state,
         });
       }
@@ -129,6 +146,14 @@ export const callLifecycle = {
               next.triggerAt,
             ).catch(() => undefined);
           });
+        tx.afterCommit?.(() => {
+          void finishNativeIncomingCall(
+            reminder.id,
+            owner,
+            request.generation,
+          ).catch(() => undefined);
+          void cancelReminderAlarm(reminder.id).catch(() => undefined);
+        });
         this.remove(owner, request, tx);
       });
     } else this.remove(owner, request);

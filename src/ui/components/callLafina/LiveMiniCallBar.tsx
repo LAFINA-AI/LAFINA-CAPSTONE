@@ -26,7 +26,11 @@ export function LiveMiniCallBar({
   const [status, setStatus] = useState(() => controller?.getSnapshot());
   const [duration, setDuration] = useState(0);
   useEffect(() => {
-    if (!controller) return;
+    if (!controller) {
+      setStatus(undefined);
+      onEnd();
+      return;
+    }
     const update = () => {
       const next = controller.getSnapshot();
       setStatus(previous =>
@@ -34,8 +38,14 @@ export function LiveMiniCallBar({
           ? previous
           : next,
       );
-      if (['ended', 'idle', 'failed', 'restart_required'].includes(next.phase))
+      if (next.phase === 'ended' || next.phase === 'idle') {
         onEnd();
+      } else if (next.phase === 'failed' || next.phase === 'restart_required') {
+        // Bring the call screen forward so automatic offline fallback or
+        // ADR-046 "Continue call" / error guidance stays visible instead of
+        // silently unmounting the call.
+        onExpand();
+      }
     };
     update();
     const unsubscribe = controller.subscribe(update);
@@ -51,7 +61,7 @@ export function LiveMiniCallBar({
       unsubscribe();
       clearInterval(timer);
     };
-  }, [controller, onEnd]);
+  }, [controller, onEnd, onExpand]);
   if (!status) return null;
   return (
     <MiniCallBar

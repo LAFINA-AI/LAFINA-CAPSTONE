@@ -14,6 +14,11 @@ import {academicProfileStore} from '../../../storage/academicProfileStore';
 import {readSkillState, writeSkillState} from '../../../skills/skillsState';
 import {stepGrade, weightedGwa} from '../../../skills/studyLogic';
 import type {GradeSubject} from '../../../skills/studyLogic';
+import {
+  mergeCorSubjects,
+  restoreCorSubjectNames,
+  subjectsFromCor,
+} from '../../../skills/gwaSubjects';
 import {db} from '../../../storage/database';
 import {generateId} from '../../../utils';
 import {SkillFonts, useSkillsPalette} from '../../theme/skills';
@@ -22,8 +27,6 @@ import {SkillButton, SkillCard, SkillInput, SkillText, ui} from './SkillUI';
 const USTP_GRADES = [
   1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 4.0, 5.0,
 ] as const;
-
-const normalizeSubjectKey = (name: string) => name.trim().toLowerCase();
 
 export function GwaSkill({userId}: {userId: string}) {
   const p = useSkillsPalette();
@@ -40,21 +43,19 @@ export function GwaSkill({userId}: {userId: string}) {
   });
   const [termDraft, setTermDraft] = useState(term);
   const [termEditor, setTermEditor] = useState(false);
-  const fromCor = (): GradeSubject[] =>
-    profile?.courses
-      .filter(c => c.creditUnits > 0)
-      .map(c => ({
-        id: generateId('subject'),
-        name: (c.code || c.subjectTitle).trim(),
-        units: c.creditUnits,
-        grade: null,
-      })) ?? [];
-  const [subjects, setSubjects] = useState<GradeSubject[]>(() =>
-    readSkillState(
+  const fromCor = () => subjectsFromCor(profile?.courses ?? []);
+  const readSubjects = (semester: string, fallback: GradeSubject[] = []) => {
+    const saved = readSkillState<GradeSubject[]>(
       userId,
-      `gwa.${encodeURIComponent(term)}`,
-      term && term === currentTerm ? fromCor() : [],
-    ),
+      `gwa.${encodeURIComponent(semester)}`,
+      fallback,
+    );
+    return semester && semester === currentTerm
+      ? restoreCorSubjectNames(saved, profile?.courses ?? [])
+      : saved;
+  };
+  const [subjects, setSubjects] = useState<GradeSubject[]>(() =>
+    readSubjects(term, term && term === currentTerm ? fromCor() : []),
   );
   const [editor, setEditor] = useState<{
     id: string | null;
@@ -120,11 +121,7 @@ export function GwaSkill({userId}: {userId: string}) {
       setModalError('Enter a semester name first.');
       return;
     }
-    const rows = readSkillState<GradeSubject[]>(
-      userId,
-      `gwa.${encodeURIComponent(next)}`,
-      next === currentTerm ? fromCor() : [],
-    );
+    const rows = readSubjects(next, next === currentTerm ? fromCor() : []);
     if (persist(rows, next)) {
       setTerm(next);
       setTermEditor(false);
@@ -153,15 +150,7 @@ export function GwaSkill({userId}: {userId: string}) {
             if (target === term) {
               setTerm(fallbackTerm);
               setTermDraft(fallbackTerm);
-              setSubjects(
-                fallbackTerm
-                  ? readSkillState<GradeSubject[]>(
-                      userId,
-                      `gwa.${encodeURIComponent(fallbackTerm)}`,
-                      [],
-                    )
-                  : [],
-              );
+              setSubjects(fallbackTerm ? readSubjects(fallbackTerm) : []);
             }
             setStatus({text: `Removed ${target}.`});
           } catch (e) {
@@ -401,22 +390,14 @@ export function GwaSkill({userId}: {userId: string}) {
               openTermModal();
               return;
             }
-            const existing = new Set(
-              subjects.map(s => normalizeSubjectKey(s.name)),
-            );
-            const incoming = fromCor().filter(s => {
-              const key = normalizeSubjectKey(s.name);
-              if (!key || existing.has(key)) return false;
-              existing.add(key);
-              return true;
-            });
-            if (!incoming.length) {
+            const merged = mergeCorSubjects(subjects, fromCor());
+            if (merged.length === subjects.length) {
               setStatus({
                 text: 'All COR subjects are already in this semester.',
               });
               return;
             }
-            persist([...subjects, ...incoming]);
+            persist(merged);
           }}
         />
       )}

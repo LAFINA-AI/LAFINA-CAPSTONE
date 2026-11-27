@@ -327,11 +327,14 @@ describe('Call Lafina: a card the call talks about is on screen', () => {
       },
     });
     await waitFor(() =>
-      expect(calls.sent.some(f => f.includes('Use prepare_multi_action'))).toBe(
-        true,
-      ),
+      expect(
+        calls.sent.some(f => f.includes('grouped review card with 2 items')),
+      ).toBe(true),
     );
-    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+    expect(utils.getByTestId('multi-item-title-input-1').props.value).toBe(
+      'Submit slides',
+    );
+    expect(utils.getByTestId('multi-action-confirm-all')).toBeTruthy();
     message({
       type: 'client_tool_call',
       client_tool_call: {

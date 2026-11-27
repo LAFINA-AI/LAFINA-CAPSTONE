@@ -8,6 +8,7 @@ import {
   scheduleReminderAlarm,
 } from './reminderAlarm';
 import type {NativeDeliveryRegistration} from './reminderAlarm';
+import {resolveReminderDeliveryStyle} from './reminderDeliveryPolicy';
 
 /**
  * AGY-PORT 03: the single authoritative reminder engine.
@@ -154,6 +155,13 @@ const matches = (
   Number(registration.generation) === job.generation &&
   Number(registration.triggerAtMs) === Date.parse(job.triggerAt) &&
   registration.armed !== false &&
+  (registration.style === undefined ||
+    registration.style ===
+      resolveReminderDeliveryStyle(
+        job.reminderId,
+        job.userId,
+        Date.parse(job.triggerAt),
+      )) &&
   job.registrationState === 'registered' &&
   job.registeredGeneration === job.generation;
 

@@ -2,7 +2,6 @@ import type {CallNavigationRequest} from '../../navigation/callNavigation';
 import type {Task, Event, TimeBlock, Reminder} from '../../../storage';
 import {ImportBatch} from '../../../storage/importedBatchesStore';
 import type {EventFolds} from '../../../storage/eventTime';
-import type {EventMemoryOffer} from '../../../storage/personalMemoryStore';
 import type {Holiday} from './utils/philippineHolidays';
 import type {UstpCalendarOccurrence} from './utils/ustpAcademicCalendar';
 
@@ -167,8 +166,4 @@ export interface ScheduleItemModalState {
   delete: (id: string, type: 'task' | 'event') => void;
   setShowTimePicker: (show: boolean) => void;
   setShowEndTimePicker: (show: boolean) => void;
-  /** AGY-PORT 09: saved event defaults offered on a new event draft, else null. */
-  memoryOffer?: EventMemoryOffer | null;
-  /** Applies the offer to the draft only; the student still saves the event. */
-  applyMemoryOffer?: () => void;
 }

@@ -1,0 +1,33 @@
+
+> lafina-capstone@1.0.9 test
+> jest --runInBand --runTestsByPath __tests__/ai/groupedReminderRegression.test.ts __tests__/ui/callLafinaPhase11.test.tsx __tests__/ui/callDraftCardSync.test.tsx __tests__/ui/callSaveApproval.test.tsx __tests__/ai/onlineIntentAndEditableReview.test.tsx __tests__/ui/offlineCallPanel.test.tsx
+
+PASS __tests__/ui/callSaveApproval.test.tsx (27.912 s)
+PASS __tests__/ai/groupedReminderRegression.test.ts
+PASS __tests__/ui/callDraftCardSync.test.tsx
+PASS __tests__/ui/offlineCallPanel.test.tsx
+  ● Console
+
+    console.warn
+      [cloud] GET /v1/ai/voice/capabilities got no response: LAFINA's server at lafina-backend.vercel.app didn't answer (no response).
+
+      851 |         lastConnectionError,
+      852 |       );
+    > 853 |       console.warn(
+          |               ^
+      854 |         `[cloud] ${
+      855 |           options.method || 'GET'
+      856 |         } ${endpoint} got no response: ${reason}`,
+
+      at Object.warn (src/cloud/cloudClient.ts:853:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ai/onlineIntentAndEditableReview.test.tsx
+PASS __tests__/ui/callLafinaPhase11.test.tsx
+
+Test Suites: 6 passed, 6 total
+Tests:       166 passed, 166 total
+Snapshots:   0 total
+Time:        41.42 s, estimated 43 s
+Ran all test suites within paths "__tests__/ai/groupedReminderRegression.test.ts", "__tests__/ui/callLafinaPhase11.test.tsx", "__tests__/ui/callDraftCardSync.test.tsx", "__tests__/ui/callSaveApproval.test.tsx", "__tests__/ai/onlineIntentAndEditableReview.test.tsx", "__tests__/ui/offlineCallPanel.test.tsx".

@@ -139,38 +139,40 @@ export function PomodoroSkill({
     return () => clearInterval(t);
   }, [timer.deadline, screenActive, appState, refresh]);
   // LAFINA can pause or resume the timer during a call; show what she did.
-  useEffect(
-    () =>
-      subscribePomodoro(userId, () => {
-        if (busy.current || !mountedRef.current) return;
-        const next = readPomodoro(userId);
-        ref.current = next;
-        setTimer(next);
-      }),
-    [userId],
-  );
+  // Also re-read on mount/re-activation (React 19 <Activity mode="hidden">
+  // unmounts effects while preserving state).
+  useEffect(() => {
+    const sync = () => {
+      if (busy.current || !mountedRef.current) return;
+      const next = readPomodoro(userId);
+      ref.current = next;
+      setTimer(next);
+    };
+    sync();
+    return subscribePomodoro(userId, sync);
+  }, [userId]);
   const apply = async (
     draft: PomodoroState,
     options?: {starting?: boolean},
-  ): Promise<boolean> => {
-    if (busy.current) return false;
+  ): Promise<{ok: boolean; hadNotice: boolean}> => {
+    if (busy.current) return {ok: false, hadNotice: false};
     busy.current = true;
     setNotice('');
     setErrorMsg('');
     try {
       // Save first; a failed local write must not start a timer the UI cannot restore.
       const result = await applyPomodoro(userId, draft, options);
-      if (!mountedRef.current) return false;
+      if (!mountedRef.current) return {ok: false, hadNotice: false};
       ref.current = result.state;
       setTimer(result.state);
       if (result.notice) setNotice(result.notice);
       if (result.error) setErrorMsg(result.error);
-      return true;
+      return {ok: true, hadNotice: Boolean(result.notice)};
     } catch (e) {
       if (mountedRef.current) {
         setErrorMsg((e as Error).message || 'Could not save timer.');
       }
-      return false;
+      return {ok: false, hadNotice: false};
     } finally {
       busy.current = false;
     }
@@ -183,9 +185,16 @@ export function PomodoroSkill({
     handledLaunch.current = launch.id;
     onLaunchHandled?.(launch.id);
     if (launch.action !== 'start' && launch.action !== 'break') return;
-    const current = reconcilePomodoro(ref.current, Date.now());
+    const fresh = readPomodoro(userId);
+    ref.current = fresh;
+    const current = reconcilePomodoro(fresh, Date.now());
     if (current.deadline) {
-      setNotice('Your focus session is already running.');
+      setTimer(current);
+      setNotice(
+        current.mode === 'Focus 25'
+          ? 'Your focus session is already running.'
+          : 'Your break is already running.',
+      );
       return;
     }
     const mode: PomodoroMode =
@@ -198,8 +207,8 @@ export function PomodoroSkill({
       current.mode === mode && current.remaining > 0
         ? {...current, deadline: null}
         : {...current, mode, remaining: MODE_SECONDS[mode], deadline: null};
-    void apply(draft, {starting: true}).then(started => {
-      if (started && mountedRef.current)
+    void apply(draft, {starting: true}).then(({ok}) => {
+      if (ok && mountedRef.current)
         setNotice(
           mode === 'Focus 25'
             ? 'LAFINA started your focus session. Tap Pause any time.'

@@ -5,9 +5,11 @@ import {
 import {
   autoSnoozeCall,
   commitAgentSnooze,
+  downgradeExternalVoiceToButtons,
   isExternalVoiceDowngraded,
   ownsCallCapture,
 } from '../../scheduler/callDispatcher';
+import {deliveryStore} from '../../storage/deliveryStore';
 import {silenceNativeIncomingCall} from '../../scheduler/reminderAlarm';
 import {stopSpeechPlayback} from '../../ai/tts/ttsService';
 import {cloudClient} from '../../cloud/cloudClient';
@@ -20,6 +22,7 @@ import {
   Image,
   Modal,
   PermissionsAndroid,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -79,6 +82,7 @@ import {isGuestAccount} from '../../cloud/entitlements';
 import {
   endActiveVoiceConversation,
   hasOnlineCallConsent,
+  RECONNECT_FAILED_REASON,
   waitForVoiceConversationRelease,
 } from '../../cloud/voiceConversation';
 import {choseOfflineMode} from '../../ai/offlineCall/callMode';
@@ -293,6 +297,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const speechProviderRef = useRef<CallSpeechProvider | null>(null);
   const onlineRef = useRef<OnlineReminderHandle | null>(null);
   const answeringRef = useRef(false);
+  const decliningRef = useRef(false);
+  const onlineFailedRef = useRef(false);
   const answeredAtRef = useRef<number | null>(null);
   const attemptRef = useRef(0);
   const transitioningRef = useRef(false);
@@ -347,6 +353,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const resetPresentation = useCallback((): void => {
     attemptRef.current += 1;
     answeringRef.current = false;
+    decliningRef.current = false;
+    onlineFailedRef.current = false;
+    answeredAtRef.current = null;
     transitioningRef.current = false;
     greetingGateRef.current?.resolve();
     greetingGateRef.current = null;
@@ -441,6 +450,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       // an offline call never sends the reminder text anywhere.
       const speechProvider = createCallSpeechProvider(userId, {
         isOnlineMode: () =>
+          !onlineFailedRef.current &&
           expectsOnlineCall(userId, alertPrefsRef.current.callAnswerMode),
       });
       speechProviderRef.current = speechProvider;
@@ -546,6 +556,30 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     alertPrefs.callVibrationPattern,
   ]);
 
+  // Stop background vibration when leaving the screen while ringing, and
+  // dismiss stale ringing UI if native auto-snoozed or remote sync settled it.
+  useEffect(() => {
+    if (!visible || callState !== 'ringing') return undefined;
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') {
+        try {
+          Vibration.cancel();
+        } catch {
+          // ignore
+        }
+        return;
+      }
+      if (
+        reminderId &&
+        userId &&
+        !deliveryStore.checkFence(reminderId, userId, deliveryGeneration).ok
+      ) {
+        closeCallScreen();
+      }
+    });
+    return () => sub.remove();
+  }, [visible, callState, reminderId, userId, deliveryGeneration, closeCallScreen]);
+
   useEffect(() => {
     if (!visible) return;
 
@@ -626,7 +660,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   ]);
 
   const handleAnswer = useCallback(async (): Promise<void> => {
-    if (answeringRef.current) return;
+    if (answeringRef.current || decliningRef.current || closingRef.current)
+      return;
     answeringRef.current = true;
     setAnswering(true);
     const attempt = ++attemptRef.current;
@@ -714,6 +749,28 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     }
 
     if (attempt !== attemptRef.current || closingRef.current) return;
+    if (
+      microphoneGranted &&
+      Platform.OS === 'android' &&
+      process.env.NODE_ENV !== 'test' &&
+      AppState.currentState !== 'active'
+    ) {
+      await new Promise<void>(resolve => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          sub?.remove();
+          resolve();
+        };
+        const sub = AppState.addEventListener('change', next => {
+          if (next === 'active') finish();
+        });
+        const timer = setTimeout(finish, 300);
+      });
+    }
+    if (attempt !== attemptRef.current || closingRef.current) return;
     if (AppState.currentState !== 'active') microphoneGranted = false;
     // No connection, no consent or no microphone: this is an offline call and
     // keeps its Acknowledge and Snooze buttons.
@@ -751,21 +808,29 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             );
       if (attempt !== attemptRef.current || closingRef.current) return;
       if (!accepted) {
-        // A button settled the call while the reminder was being read: the
-        // result is on screen and closes it; do not cut it short.
-        if (goOnline) void stopOnline();
-        if (!resolvedRef.current && !pendingActionRef.current)
+        // A button settled the call while the reminder was being read, or
+        // online already handed off to offline voice: do not close a live call.
+        if (goOnline && !onlineFailedRef.current) void stopOnline();
+        if (
+          !resolvedRef.current &&
+          !pendingActionRef.current &&
+          !onlineFailedRef.current
+        )
           closeCallScreen();
         return;
       }
       if (goOnline && isExternalVoiceDowngraded?.(reminderId, userId)) {
+        onlineFailedRef.current = true;
         void stopOnline();
+        downgradeExternalVoiceToButtons(reminderId, userId);
         setOnlineView(false);
         setReply(
           'Microphone access is unavailable. Use Acknowledge or Snooze below.',
         );
       } else if (goOnline && AppState.currentState !== 'active') {
+        onlineFailedRef.current = true;
         void stopOnline();
+        downgradeExternalVoiceToButtons(reminderId, userId);
         setOnlineView(false);
         setReply('The app left the screen. Use Acknowledge or Snooze below.');
       }
@@ -813,6 +878,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   ]);
 
   const handleDecline = useCallback(async (): Promise<void> => {
+    if (decliningRef.current || closingRef.current) return;
+    decliningRef.current = true;
     Vibration.cancel();
     attemptRef.current += 1;
     try {
@@ -829,6 +896,12 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
   /** End after Answer: the reminder was received, so it is acknowledged. */
   const handleEndAnswered = useCallback(async (): Promise<void> => {
+    if (closingRef.current) return;
+    if (resolvedRef.current) {
+      closeCallScreen();
+      return;
+    }
+    if (pendingActionRef.current) return;
     Vibration.cancel();
     attemptRef.current += 1;
     pendingActionRef.current = 'end';
@@ -940,11 +1013,16 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       if (!committed)
         return 'This call is already being handled. No additional snooze was saved.';
       if (committed.result.ok) {
-        // Yield for the controller to send the actual tool result, then release audio.
+        // Yield for the controller to send the actual tool result, then release audio
+        // and speak the confirmation before closing so the student does not hear silence.
         if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current);
         snoozeTimerRef.current = setTimeout(() => {
           snoozeTimerRef.current = null;
-          void stopOnline().then(committed.close);
+          void stopOnline().then(() =>
+            committed.speakAndClose
+              ? committed.speakAndClose()
+              : committed.close(),
+          );
         }, 0);
       }
       return committed.result.message;
@@ -1350,10 +1428,15 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         return;
       if (transitioningRef.current) return;
       transitioningRef.current = true;
-      const message =
+      onlineFailedRef.current = true;
+      const rawMessage =
         snapshot.failure?.message ||
         snapshot.restartReason ||
         'Online conversation stopped.';
+      const message =
+        rawMessage === RECONNECT_FAILED_REASON
+          ? 'The connection dropped and could not be restored.'
+          : rawMessage;
       const noMicrophone =
         snapshot.failure?.kind === 'mic_denied' ||
         snapshot.failure?.kind === 'mic_busy' ||
@@ -1379,7 +1462,10 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         }`;
         setNotice(fallbackMessage);
         setReply(fallbackMessage);
-        if (!canFallBack) return;
+        if (!canFallBack) {
+          downgradeExternalVoiceToButtons(reminderId, userId);
+          return;
+        }
         // The connection can fail while the reminder is still being read
         // (it connects meanwhile): offline voice starts after the reading.
         await waitForGreeting();
@@ -1536,9 +1622,14 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       animationType="fade"
       presentationStyle="fullScreen"
       statusBarTranslucent={false}
-      onRequestClose={() =>
-        void (callState === 'ringing' ? handleDecline() : handleEndAnswered())
-      }
+      onRequestClose={() => {
+        if (resolvedRef.current || callState === 'disconnected') {
+          closeCallScreen();
+          return;
+        }
+        if (pendingActionRef.current) return;
+        void (callState === 'ringing' ? handleDecline() : handleEndAnswered());
+      }}
     >
       <StatusBar
         barStyle={colors.statusBarStyle}
@@ -1632,6 +1723,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                       styles.circleButton,
                       {backgroundColor: colors.error},
                     ]}
+                    disabled={answering}
                     onPress={() => void handleDecline()}
                     activeOpacity={0.8}
                     accessibilityRole="button"
@@ -1654,6 +1746,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                       styles.circleButton,
                       {backgroundColor: colors.success},
                     ]}
+                    disabled={answering}
                     onPress={() => void handleAnswer()}
                     activeOpacity={0.8}
                     accessibilityRole="button"
@@ -1698,6 +1791,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             onStopResponse={handleStopResponse}
             onSendText={handleSendText}
             onEnd={handleEndAnswered}
+            answeredAtMs={answeredAtRef.current}
           />
         ) : (
           // Offline (or the online conversation could not run): the
@@ -1717,6 +1811,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             busy={answering && !sessionLive}
             pendingAction={pendingAction}
             reviewCard={reviewCard}
+            answeredAtMs={answeredAtRef.current}
           />
         )}
         {onlineCall && callState !== 'ringing' ? (
@@ -1731,6 +1826,13 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             onSnooze={handleAgentSnooze}
             onPlannerTool={handlePlannerTool}
             beforeAudio={waitForGreeting}
+            getCallState={() => {
+              const open =
+                reviewRef.current.proposal && !reviewRef.current.expired
+                  ? reviewRef.current.proposal
+                  : null;
+              return open ? describeCallCard(open) : null;
+            }}
           />
         ) : null}
       </SafeAreaView>

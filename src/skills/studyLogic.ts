@@ -1,6 +1,8 @@
 export interface GradeSubject {
   id: string;
   name: string;
+  /** COR identity stays separate from the student-facing subject name. */
+  corCourseCode?: string;
   units: number;
   grade: number | null;
 }

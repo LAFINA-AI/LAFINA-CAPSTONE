@@ -1,0 +1,5 @@
+
+> lafina-capstone@1.0.9 check:architecture
+> node scripts/check-architecture.mjs
+
+PASS: 548 TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/Kokoro or unapproved legacy study-tool dependencies; 128 offline leaves reach no network API or online module (transitive, dynamic imports included).

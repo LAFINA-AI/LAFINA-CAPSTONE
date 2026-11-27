@@ -151,6 +151,8 @@ export type ApiOutcome<T> =
       status:
         | 'auth_required'
         | 'account_disabled'
+        | 'subscription_required'
+        | 'conflict'
         | 'offline'
         | 'rate_limited'
         | 'validation_error'
@@ -158,6 +160,8 @@ export type ApiOutcome<T> =
         | 'server_error'
         | 'not_found';
       httpStatus?: number;
+      /** True only when the backend confirmed the refresh/session is permanently ended. */
+      sessionEnded?: boolean;
       message: string;
     };
 
@@ -261,4 +265,6 @@ export interface ConversationController {
 export interface ConversationPersistence {
   userTurn(text: string): void;
   assistantTurn(text: string, heard: 'complete' | 'interrupted'): void;
+  /** Called when a call starts or tears down so transient per-call state resets. */
+  onReset?(): void;
 }

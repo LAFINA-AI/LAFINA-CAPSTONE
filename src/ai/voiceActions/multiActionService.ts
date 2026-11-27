@@ -18,9 +18,12 @@ import {verifyReminderDelivery} from '../../scheduler/verifyReminderDelivery';
 import {generateId} from '../../utils';
 import {addMinutesToTime} from '../nlu/actionExecutor';
 import {parseDateAndTime} from '../nlu/fastPathParser';
+import {splitGroupedClauses} from '../nlu/groupedClauses';
+export {splitGroupedClauses} from '../nlu/groupedClauses';
 import {tasksStore} from '../../storage/tasksStore';
 import {remindersStore} from '../../storage/remindersStore';
 import {isRealDate, isWallTime} from '../../storage/eventTime';
+import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {notesStore} from '../../storage/notesStore';
 import type {
   MultiActionBatchData,
@@ -31,40 +34,13 @@ import type {
 export const MAX_MULTI_ITEMS = 5;
 
 /**
- * Splits compound requests into individual clauses.
- * Examples:
- * - "Add meeting with adviser Friday at 2 PM and remind me Thursday 8 PM"
- * - "Schedule math study group tomorrow at 10 AM, and remind me tonight at 8 PM to do pre-reading"
- * - "Task: submit assignment on Friday; reminder: check grades on Monday at 9 AM"
- */
-export function splitGroupedClauses(text: string): string[] {
-  const normalized = text.trim();
-  if (!normalized) return [];
-
-  // Split on semicolons, or conjunctions when followed by a planner action marker
-  // (so Oxford-comma lists like "buy pens, notebooks, and folders" stay one clause).
-  const rawSplits = normalized.split(
-    /(?:;\s*|(?:,\s*|\s+)(?:and|also|plus|then)\s+(?=(?:please\s+)?(?:remind|schedule|add|create|make\s+a|set\s+(?:a|an)?\s*reminder|jot|write\s+down|task:|event:|reminder:|note:|meeting\b)\b)|\s+and\s+remind\b)/i,
-  );
-
-  const results: string[] = [];
-  for (const part of rawSplits) {
-    const trimmed = part.trim();
-    if (trimmed.length > 0) {
-      results.push(trimmed);
-    }
-  }
-
-  return results.length > 0 ? results : [normalized];
-}
-
-/**
  * Parses grouped spoken requests into structured drafts (P11-01).
  * Preserves quoted titles and individual date/time without guessing missing fields.
  */
 export function parseGroupedRequest(
   text: string,
   referenceDate: Date = new Date(),
+  defaultEventDurationMinutes = 60,
 ): {items: MultiActionItemData[]; truncated: boolean; rawSegments: string[]} {
   const clauses = splitGroupedClauses(text);
   const truncated = clauses.length > MAX_MULTI_ITEMS;
@@ -73,9 +49,11 @@ export function parseGroupedRequest(
   const items: MultiActionItemData[] = targetClauses.map((clause, index) => {
     // 1. Check for quoted title: e.g. "Meeting with Adviser" or 'Study Session'
     let title = '';
-    const quoteMatch = clause.match(/["']([^"']+)["']/);
+    const quoteMatch = clause.match(
+      /"([^"]+)"|“([^”]+)”|(?:^|\s)'([^']+)'(?=\s|$|[.,;])/,
+    );
     if (quoteMatch) {
-      title = quoteMatch[1].trim();
+      title = (quoteMatch[1] || quoteMatch[2] || quoteMatch[3]).trim();
     }
 
     // 2. Determine kind based on keywords
@@ -83,6 +61,7 @@ export function parseGroupedRequest(
     const lower = clause.toLowerCase();
     if (
       lower.startsWith('remind') ||
+      /^(?:a|an|another)\s+reminder\b/.test(lower) ||
       lower.includes('remind me') ||
       lower.includes('reminder:')
     ) {
@@ -108,7 +87,7 @@ export function parseGroupedRequest(
     const date = parsedDt.date || undefined;
     const time = parsedDt.time || undefined;
     const defaultEventEnd = (start: string): string => {
-      const candidate = addMinutesToTime(start, 60);
+      const candidate = addMinutesToTime(start, defaultEventDurationMinutes);
       return candidate > start ? candidate : '23:59';
     };
     const endTime =
@@ -121,6 +100,10 @@ export function parseGroupedRequest(
         // Remove leading action verbs
         .replace(
           /^(?:please\s+)?(?:add|schedule|create|remind\s+me(?:\s+to)?|make\s+a|task:|event:|reminder:|note:)\s*/i,
+          '',
+        )
+        .replace(
+          /^(?:a|an|another)\s+(?:task|event|reminder|note)(?:\s+to)?\s+/i,
           '',
         )
         // Remove date/time phrases
@@ -344,7 +327,12 @@ export async function executeMultiActionBatch(
         throw new Error('Please specify the date and time before saving.');
       if (item.kind === 'event' && (!item.endTime || !isWallTime(item.endTime)))
         throw new Error('Please specify a valid end time.');
-      if (item.kind === 'event' && item.endTime! <= item.time!)
+      if (
+        item.kind === 'event' &&
+        item.endTime &&
+        item.time &&
+        item.endTime <= item.time
+      )
         throw new Error('Please specify an end time after the start time.');
       let reminderTriggerIso: string | null = null;
       if (item.kind === 'reminder') {
@@ -365,10 +353,15 @@ export async function executeMultiActionBatch(
             ? item.reviewedScheduleWarning
             : item.scheduleWarning;
         refreshMultiItemConflict(ownerId, item);
-        if (
-          item.scheduleWarning?.startsWith('Schedule could not') ||
-          item.scheduleWarning !== reviewedWarning
-        ) {
+        if (item.scheduleWarning?.startsWith('Schedule could not')) {
+          throw new Error(
+            'Schedule changed or could not be checked. Review the warning before retrying.',
+          );
+        }
+        if (item.scheduleWarning !== reviewedWarning) {
+          // Record the newly surfaced warning so once the student reviews it,
+          // tapping Retry succeeds instead of throwing forever.
+          item.reviewedScheduleWarning = item.scheduleWarning;
           throw new Error(
             'Schedule changed or could not be checked. Review the warning before retrying.',
           );
@@ -549,6 +542,16 @@ export function reviseMultiItem(
     if (!['title', 'date', 'time', 'endTime', 'body', 'priority'].includes(key))
       throw new Error('Unsupported grouped edit.');
   Object.assign(target, patch);
+  if (
+    target.kind === 'event' &&
+    target.time &&
+    isWallTime(target.time) &&
+    !target.endTime
+  )
+    target.endTime = addMinutesToTime(
+      target.time,
+      personalMemoryStore.getDefaultDuration(batch.ownerId),
+    );
   refreshMultiItemConflict(batch.ownerId, target);
   target.reviewedScheduleWarning = target.scheduleWarning;
   batch.revision += 1;

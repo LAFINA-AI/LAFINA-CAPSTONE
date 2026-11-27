@@ -28,6 +28,7 @@ export interface MemoryReviewCardProps {
   expired?: boolean;
   busy?: boolean;
   onSave: (editedText?: string) => void;
+  onEditText?: (text: string) => void;
   onCancel: () => void;
   onDismiss: () => void;
   onUndo?: () => void;
@@ -39,6 +40,7 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
   expired = false,
   busy = false,
   onSave,
+  onEditText,
   onCancel,
   onDismiss,
   onUndo,
@@ -50,7 +52,8 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
 
   useEffect(() => {
     setEditText(data.text);
-  }, [data.text]);
+    onEditText?.(data.text);
+  }, [data.text, onEditText]);
 
   const isDraft = data.status === 'draft';
   const isSaved = data.status === 'saved';
@@ -145,7 +148,10 @@ export const MemoryReviewCard: React.FC<MemoryReviewCardProps> = ({
                 {color: colors.textPrimary, borderColor: colors.border},
               ]}
               value={editText}
-              onChangeText={setEditText}
+              onChangeText={next => {
+                setEditText(next);
+                onEditText?.(next);
+              }}
               placeholder="Fact to remember..."
               placeholderTextColor={colors.textSecondary}
               maxLength={200}

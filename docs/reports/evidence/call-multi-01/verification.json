@@ -1,0 +1,81 @@
+{
+  "phase": "CALL-MULTI-01",
+  "recordedAtUtc": "2026-11-26T19:52:47Z",
+  "localDate": "2026-11-27",
+  "timezone": "Asia/Manila",
+  "baseCommit": "e2afa500",
+  "status": "AWAITING_DEVICE_VALIDATION",
+  "phasePassed": false,
+  "ownerInstruction": "Skip unrelated audit errors; Antigravity is handling them.",
+  "reportedUtterance": "remind me to go walking tomorrow at 7am and then on monday 8am to go jogging",
+  "devices": [],
+  "benchmarks": null,
+  "checks": [
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ai/groupedReminderRegression.test.ts __tests__/ui/callLafinaPhase11.test.tsx __tests__/ui/callDraftCardSync.test.tsx __tests__/ui/callSaveApproval.test.tsx __tests__/ai/onlineIntentAndEditableReview.test.tsx __tests__/ui/offlineCallPanel.test.tsx",
+      "status": "PASS",
+      "log": "targeted-final.log",
+      "suites": 6,
+      "tests": 166,
+      "seconds": 41.42
+    },
+    {
+      "command": "npm test -- --runTestsByPath __tests__/ai/groupedReminderRegression.test.ts __tests__/ui/callDraftCardSync.test.tsx",
+      "status": "PASS",
+      "log": "final-regressions.log",
+      "suites": 2,
+      "tests": 35,
+      "seconds": 14.292,
+      "note": "Final test additions/assertion synchronization; overlaps prior count."
+    },
+    {
+      "command": "npm run lint",
+      "status": "PASS",
+      "log": "lint.log"
+    },
+    {
+      "command": "npx eslint src/ai/nlu/groupedClauses.ts src/ai/voiceActions/multiActionService.ts src/ai/voiceActions/actionValidator.ts src/ai/voiceActions/types.ts src/ai/voiceActions/actionService.ts src/cloud/voiceConversation/turnPolicy.ts src/ui/components/voice/VoiceConversationPanel.tsx __tests__/ai/groupedReminderRegression.test.ts __tests__/ui/callDraftCardSync.test.tsx --max-warnings 0",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "scoped-lint-final.log"
+    },
+    {
+      "command": "npx prettier --check src/ai/nlu/groupedClauses.ts src/ai/voiceActions/multiActionService.ts src/ai/voiceActions/actionValidator.ts src/ai/voiceActions/types.ts src/ai/voiceActions/actionService.ts src/cloud/voiceConversation/turnPolicy.ts src/ui/components/voice/VoiceConversationPanel.tsx __tests__/ai/groupedReminderRegression.test.ts __tests__/ui/callDraftCardSync.test.tsx",
+      "status": "PASS",
+      "log": "format.log"
+    },
+    {
+      "command": "npm run check:architecture",
+      "status": "PASS",
+      "log": "architecture.log",
+      "modules": 549,
+      "cycles": 0,
+      "offlineLeaves": 128
+    },
+    {
+      "command": "npm run preflight",
+      "status": "FAIL_AT_TYPECHECK",
+      "log": "preflight.log",
+      "note": "Initial local validator type diagnostic corrected; latest typecheck below."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "FAIL_UNRELATED_AUDIT_ERRORS",
+      "log": "typecheck-final.log",
+      "diagnostics": 5,
+      "phaseSourceDiagnostics": 0
+    },
+    {
+      "cwd": "android",
+      "command": ".\\gradlew.bat :app:testDebugUnitTest --console=plain",
+      "status": "BLOCKED",
+      "log": "gradle.log",
+      "reason": "Access denied to Gradle distribution zip lock before tasks started."
+    },
+    {
+      "procedure": "Live phone call, offline STT/TTS, installed APK, native reminder/call delivery",
+      "status": "NOT_RUN"
+    }
+  ]
+}
+

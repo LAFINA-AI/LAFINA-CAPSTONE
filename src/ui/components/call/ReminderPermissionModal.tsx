@@ -55,6 +55,11 @@ export const ReminderPermissionModal: React.FC<ReminderPermissionModalProps> = (
 
   const handleRequestNotifications = async () => {
     if (Platform.OS === 'android') {
+      if (typeof Platform.Version === 'number' && Platform.Version < 33) {
+        await openNotificationSettings();
+        onRefreshStatus?.();
+        return;
+      }
       try {
         const result = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
