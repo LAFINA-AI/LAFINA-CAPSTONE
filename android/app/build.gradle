@@ -47,7 +47,7 @@ android {
         // an older one install the new APK from inside the app.
         // 100: above every build number used before in-app updates (up to 11), so no
         // earlier test APK can look newer than a release.
-        versionCode 105
+        versionCode 106
         versionName appVersion
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'false'
